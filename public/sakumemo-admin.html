@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>サクメモ 管理者画面</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Hiragino Sans','BIZ UDGothic',sans-serif;background:#f8f5ef;color:#1c1a14;}
+.login-wrap{display:flex;align-items:center;justify-content:center;height:100svh;}
+.login-box{background:#fff;border-radius:16px;padding:32px;max-width:340px;width:90%;box-shadow:0 4px 20px rgba(0,0,0,.15);text-align:center;}
+.login-box h1{font-size:1.2rem;margin-bottom:20px;color:#2d6a3f;}
+.login-inp{width:100%;padding:10px;border:1.5px solid #e0d9ce;border-radius:8px;font-size:.9rem;margin-bottom:10px;font-family:inherit;}
+.login-btn{width:100%;padding:10px;background:#2d6a3f;color:#fff;border:none;border-radius:8px;font-size:.9rem;font-weight:700;cursor:pointer;font-family:inherit;}
+.header{background:linear-gradient(135deg,#2d6a3f,#419857);color:#fff;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;}
+.header h1{font-size:1.1rem;font-weight:700;}
+.container{max-width:900px;margin:0 auto;padding:20px 14px 60px;}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:24px;}
+.stat-card{background:#fff;border-radius:12px;padding:16px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.08);}
+.stat-num{font-size:2rem;font-weight:700;color:#2d6a3f;}
+.stat-label{font-size:.76rem;color:#888;margin-top:4px;}
+.section{background:#fff;border-radius:12px;padding:16px;margin-bottom:16px;box-shadow:0 2px 8px rgba(0,0,0,.08);}
+.section h2{font-size:.95rem;font-weight:700;color:#2d6a3f;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid #e0d9ce;}
+table{width:100%;border-collapse:collapse;font-size:.8rem;}
+th{background:#f8f5ef;padding:8px 10px;text-align:left;font-weight:700;color:#5c3d1e;border-bottom:2px solid #e0d9ce;}
+td{padding:8px 10px;border-bottom:1px solid #f0ebe3;vertical-align:top;}
+tr:hover td{background:#fafaf8;}
+.badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:.68rem;font-weight:700;}
+.badge-red{background:#fee2e2;color:#dc2626;}
+.badge-yellow{background:#fef3c7;color:#92400e;}
+.badge-green{background:#d1fae5;color:#065f46;}
+.badge-gray{background:#f3f4f6;color:#374151;}
+.del-btn{background:#dc2626;color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:.72rem;cursor:pointer;font-family:inherit;}
+.del-btn:hover{background:#b91c1c;}
+.img-thumb{max-width:80px;max-height:60px;border-radius:6px;object-fit:cover;cursor:pointer;}
+.tab-btns{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
+.tab-btn{padding:7px 14px;border:2px solid #e0d9ce;border-radius:999px;background:#fff;font-size:.78rem;font-weight:700;cursor:pointer;font-family:inherit;color:#888;}
+.tab-btn.active{background:#2d6a3f;color:#fff;border-color:#2d6a3f;}
+.loading{text-align:center;padding:40px;color:#aaa;}
+.empty{text-align:center;padding:24px;color:#aaa;font-size:.82rem;}
+.user-row td:first-child{font-family:monospace;font-size:.7rem;color:#aaa;}
+.refresh-btn{background:none;border:1.5px solid rgba(255,255,255,.5);color:#fff;padding:5px 12px;border-radius:999px;font-size:.74rem;cursor:pointer;font-family:inherit;}
+.img-modal{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.8);z-index:999;align-items:center;justify-content:center;}
+.img-modal.open{display:flex;}
+.img-modal img{max-width:90vw;max-height:90vh;border-radius:12px;}
+</style>
+</head>
+<body>
+
+<!-- ログイン画面 -->
+<div class="login-wrap" id="login-wrap">
+  <div class="login-box">
+    <h1>🌾 サクメモ管理者</h1>
+    <input class="login-inp" type="password" id="pw-inp" placeholder="管理者パスワード" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="login-btn" onclick="doLogin()">ログイン</button>
+    <div id="login-err" style="color:#dc2626;font-size:.78rem;margin-top:8px;"></div>
+  </div>
+</div>
+
+<!-- 管理画面 -->
+<div id="admin-wrap" style="display:none">
+  <div class="header">
+    <h1>🌾 サクメモ 管理者画面</h1>
+    <button class="refresh-btn" onclick="loadAll()">🔄 更新</button>
+  </div>
+  <div class="container">
+    <!-- 統計 -->
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-num" id="s-users">-</div><div class="stat-label">登録ユーザー</div></div>
+      <div class="stat-card"><div class="stat-num" id="s-crops">-</div><div class="stat-label">品目数</div></div>
+      <div class="stat-card"><div class="stat-num" id="s-logs">-</div><div class="stat-label">作業記録数</div></div>
+      <div class="stat-card"><div class="stat-num" id="s-public">-</div><div class="stat-label">公開農場</div></div>
+      <div class="stat-card"><div class="stat-num" id="s-reports">-</div><div class="stat-label">未処理の通報</div></div>
+      <div class="stat-card"><div class="stat-num" id="s-photos">-</div><div class="stat-label">写真数</div></div>
+    </div>
+
+    <!-- タブ -->
+    <div class="tab-btns">
+      <button class="tab-btn active" onclick="showTab('reports')">⚠️ 通報</button>
+      <button class="tab-btn" onclick="showTab('users')">👤 ユーザー</button>
+      <button class="tab-btn" onclick="showTab('public')">🌾 公開農場</button>
+      <button class="tab-btn" onclick="showTab('logs')">📋 最新記録</button>
+    </div>
+
+    <!-- 通報一覧 -->
+    <div class="section" id="tab-reports">
+      <h2>⚠️ 通報一覧</h2>
+      <div id="reports-table"><div class="loading">読み込み中…</div></div>
+    </div>
+
+    <!-- ユーザー一覧 -->
+    <div class="section" id="tab-users" style="display:none">
+      <h2>👤 登録ユーザー一覧</h2>
+      <div style="background:#f0f9f0;border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:.82rem;">
+        <div style="font-weight:700;color:#2d6a3f;margin-bottom:8px">📧 新規ユーザーを招待</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <input id="invite-email" type="email" placeholder="招待するメールアドレス"
+            style="flex:1;min-width:200px;padding:8px 12px;border:1.5px solid #e0d9ce;border-radius:8px;font-size:.82rem;font-family:inherit;">
+          <input id="invite-memo" type="text" placeholder="メモ（誰？）"
+            style="width:140px;padding:8px 12px;border:1.5px solid #e0d9ce;border-radius:8px;font-size:.82rem;font-family:inherit;">
+          <button onclick="inviteUser()"
+            style="padding:8px 16px;background:#2d6a3f;color:#fff;border:none;border-radius:8px;font-size:.82rem;font-weight:700;cursor:pointer;font-family:inherit;">
+            招待メール送信
+          </button>
+        </div>
+        <div id="invite-result" style="margin-top:6px;font-size:.76rem;"></div>
+      </div>
+      <div id="users-table"><div class="loading">読み込み中…</div></div>
+    </div>
+
+    <!-- 公開農場 -->
+    <div class="section" id="tab-public" style="display:none">
+      <h2>🌾 公開農場一覧</h2>
+      <div id="public-table"><div class="loading">読み込み中…</div></div>
+    </div>
+
+    <!-- 最新記録 -->
+    <div class="section" id="tab-logs" style="display:none">
+      <h2>📋 最新の作業記録（全ユーザー）</h2>
+      <div id="logs-table"><div class="loading">読み込み中…</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- 画像モーダル -->
+<div class="img-modal" id="img-modal" onclick="this.classList.remove('open')">
+  <img id="modal-img" src="" alt="">
+</div>
+
+<script>
+var SB_URL='https://nlamtphkwdoxtjktkjzo.supabase.co';
+var SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5sYW10cGhrd2RveHRqa3RranpvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3ODI3NzYsImV4cCI6MjA5MzM1ODc3Nn0.8gba30xxu0s132vg_xOA6-Y3XWjR1YhaprIgUYHZO0o';
+var ADMIN_PW = 'sakumemo-admin-2026';
+
+function doLogin(){
+  var pw=document.getElementById('pw-inp').value;
+  if(pw===ADMIN_PW){
+    document.getElementById('login-wrap').style.display='none';
+    document.getElementById('admin-wrap').style.display='';
+    loadAll();
+  } else {
+    document.getElementById('login-err').textContent='パスワードが違います';
+  }
+}
+
+function api(table,params){
+  return fetch(SB_URL+'/rest/v1/'+table+'?'+params,{
+    headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY,Prefer:'count=exact'}
+  }).then(function(r){return r.json();});
+}
+
+function apiDelete(table,id){
+  return fetch(SB_URL+'/rest/v1/'+table+'?id=eq.'+id,{
+    method:'DELETE',
+    headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY}
+  });
+}
+
+function fmtDate(d){
+  if(!d)return'-';
+  var dt=new Date(d);
+  return (dt.getMonth()+1)+'/'+dt.getDate()+' '+dt.getHours()+':'+String(dt.getMinutes()).padStart(2,'0');
+}
+
+function showImg(src){
+  document.getElementById('modal-img').src=src;
+  document.getElementById('img-modal').classList.add('open');
+}
+
+function showTab(name){
+  var tabs=['reports','users','public','logs'];
+  tabs.forEach(function(t){
+    document.getElementById('tab-'+t).style.display=t===name?'':'none';
+  });
+  document.querySelectorAll('.tab-btn').forEach(function(b,i){
+    b.classList.toggle('active',tabs[i]===name);
+  });
+}
+
+async function loadAll(){
+  loadStats();
+  loadReports();
+  loadUsers();
+  loadPublicFarms();
+  loadRecentLogs();
+}
+
+async function loadStats(){
+  try{
+    var results=await Promise.all([
+      fetch(SB_URL+'/rest/v1/crops?select=id',{headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY,Prefer:'count=exact',Range:'0-0'}}).then(function(r){return r.headers.get('content-range');}),
+      fetch(SB_URL+'/rest/v1/logs?select=id',{headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY,Prefer:'count=exact',Range:'0-0'}}).then(function(r){return r.headers.get('content-range');}),
+      fetch(SB_URL+'/rest/v1/public_farms?is_public=eq.true&select=id',{headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY,Prefer:'count=exact',Range:'0-0'}}).then(function(r){return r.headers.get('content-range');}),
+      fetch(SB_URL+'/rest/v1/reports?select=id',{headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY,Prefer:'count=exact',Range:'0-0'}}).then(function(r){return r.headers.get('content-range');}),
+      fetch(SB_URL+'/rest/v1/logs?img_src=not.is.null&select=id',{headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY,Prefer:'count=exact',Range:'0-0'}}).then(function(r){return r.headers.get('content-range');}),
+    ]);
+    function getCount(cr){if(!cr)return 0;var m=cr.match(/\/(\d+)/);return m?parseInt(m[1]):0;}
+    document.getElementById('s-crops').textContent=getCount(results[0]);
+    document.getElementById('s-logs').textContent=getCount(results[1]);
+    document.getElementById('s-public').textContent=getCount(results[2]);
+    document.getElementById('s-reports').textContent=getCount(results[3]);
+    document.getElementById('s-photos').textContent=getCount(results[4]);
+  }catch(e){console.error(e);}
+}
+
+async function loadReports(){
+  var el=document.getElementById('reports-table');
+  try{
+    var data=await api('reports','select=*&order=created_at.desc&limit=100');
+    if(!data||!data.length){el.innerHTML='<div class="empty">通報はありません</div>';return;}
+    var html='<table><thead><tr><th>日時</th><th>理由</th><th>画像</th><th>ログID</th><th>操作</th></tr></thead><tbody>';
+    html+=data.map(function(r){
+      return '<tr>'
+        +'<td>'+fmtDate(r.created_at)+'</td>'
+        +'<td><span class="badge badge-red">'+( r.reason||'-')+'</span></td>'
+        +'<td>'+(r.img_src?'<img class="img-thumb" src="'+r.img_src+'" onclick="showImg(\''+r.img_src+'\')">':'-')+'</td>'
+        +'<td style="font-size:.68rem;color:#aaa">'+(r.log_id?r.log_id.slice(0,8)+'…':'-')+'</td>'
+        +'<td>'
+        +(r.log_id?'<button class="del-btn" onclick="deleteLog(\''+r.log_id+'\',\''+r.id+'\')">記録削除</button> ':'' )
+        +'<button class="del-btn" style="background:#888" onclick="deleteReport(\''+r.id+'\')">通報削除</button>'
+        +'</td>'
+        +'</tr>';
+    }).join('');
+    html+='</tbody></table>';
+    el.innerHTML=html;
+  }catch(e){el.innerHTML='<div class="empty">読み込み失敗</div>';}
+}
+
+async function deleteLog(logId, reportId){
+  if(!confirm('この作業記録を削除しますか？'))return;
+  await apiDelete('logs', logId);
+  await apiDelete('reports', reportId);
+  alert('削除しました');
+  loadReports();
+  loadStats();
+}
+
+async function deleteReport(reportId){
+  if(!confirm('この通報を削除（処理済みにする）しますか？'))return;
+  await apiDelete('reports', reportId);
+  loadReports();
+  loadStats();
+}
+
+// 招待メモをlocalStorageで管理
+function getInviteMemos(){try{return JSON.parse(localStorage.getItem('sakumemo_invite_memos')||'{}');}catch{return {};}}
+function saveInviteMemo(uid,memo){var m=getInviteMemos();m[uid]=memo;localStorage.setItem('sakumemo_invite_memos',JSON.stringify(m));}
+
+async function loadUsers(){
+  var el=document.getElementById('users-table');
+  try{
+    var data=await api('profiles','select=*&order=created_at.desc&limit=200');
+    document.getElementById('s-users').textContent=data?data.length:0;
+    if(!data||!data.length){el.innerHTML='<div class="empty">ユーザーはいません</div>';return;}
+    var memos=getInviteMemos();
+    var html='<table><thead><tr><th>ユーザーID</th><th>表示名</th><th>登録日</th><th>招待メモ（誰？）</th></tr></thead><tbody>';
+    html+=data.map(function(u){
+      var memo=memos[u.id]||'';
+      return '<tr class="user-row">'
+        +'<td>'+u.id.slice(0,8)+'…</td>'
+        +'<td>'+(u.display_name||'未設定')+'</td>'
+        +'<td>'+fmtDate(u.created_at)+'</td>'
+        +'<td><input value="'+memo+'" placeholder="例：山田さん" '
+        +'style="border:1px solid #e0d9ce;border-radius:6px;padding:4px 8px;font-size:.76rem;width:120px;font-family:inherit;" '
+        +'onchange="saveInviteMemo(''+u.id+'',this.value)" '
+        +'onblur="saveInviteMemo(''+u.id+'',this.value)"></td>'
+        +'</tr>';
+    }).join('');
+    html+='</tbody></table>';
+    el.innerHTML=html;
+  }catch(e){el.innerHTML='<div class="empty">読み込み失敗</div>';}
+}
+
+async function loadPublicFarms(){
+  var el=document.getElementById('public-table');
+  try{
+    var data=await api('public_farms','is_public=eq.true&select=*&order=updated_at.desc');
+    if(!data||!data.length){el.innerHTML='<div class="empty">公開農場はありません</div>';return;}
+    var html='<table><thead><tr><th>農場名</th><th>説明</th><th>slug</th><th>更新日</th><th>操作</th></tr></thead><tbody>';
+    html+=data.map(function(f){
+      var url='farm.html?uid='+f.user_id;
+      return '<tr>'
+        +'<td><a href="'+url+'" target="_blank" style="color:#2d6a3f;font-weight:700">'+(f.display_name||'-')+'</a></td>'
+        +'<td style="font-size:.76rem;color:#888">'+(f.description||'-')+'</td>'
+        +'<td style="font-size:.72rem;color:#aaa">'+(f.slug||'-')+'</td>'
+        +'<td>'+fmtDate(f.updated_at)+'</td>'
+        +'<td><button class="del-btn" onclick="setPrivate(\''+f.user_id+'\')">非公開に</button></td>'
+        +'</tr>';
+    }).join('');
+    html+='</tbody></table>';
+    el.innerHTML=html;
+  }catch(e){el.innerHTML='<div class="empty">読み込み失敗</div>';}
+}
+
+async function inviteUser(){
+  var email=document.getElementById('invite-email').value.trim();
+  var memo=document.getElementById('invite-memo').value.trim();
+  if(!email){alert('メールアドレスを入力してください');return;}
+  var res=document.getElementById('invite-result');
+  res.textContent='送信中…';res.style.color='#888';
+  try{
+    var r=await fetch(SB_URL+'/auth/v1/invite',{
+      method:'POST',
+      headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY,'Content-Type':'application/json'},
+      body:JSON.stringify({email:email})
+    });
+    var d=await r.json();
+    if(d.id){
+      // メモを保存
+      if(memo) saveInviteMemo(d.id, memo);
+      res.textContent='✅ 招待メールを送信しました（'+email+'）';
+      res.style.color='#2d6a3f';
+      document.getElementById('invite-email').value='';
+      document.getElementById('invite-memo').value='';
+      setTimeout(loadUsers, 1500);
+    } else {
+      res.textContent='❌ '+(d.msg||d.message||'送信失敗');
+      res.style.color='#dc2626';
+    }
+  }catch(e){
+    res.textContent='❌ エラー: '+e.message;
+    res.style.color='#dc2626';
+  }
+}
+
+async function setPrivate(userId){
+  if(!confirm('この農場を非公開にしますか？'))return;
+  await fetch(SB_URL+'/rest/v1/public_farms?user_id=eq.'+userId,{
+    method:'PATCH',
+    headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY,'Content-Type':'application/json'},
+    body:JSON.stringify({is_public:false})
+  });
+  alert('非公開にしました');
+  loadPublicFarms();
+  loadStats();
+}
+
+async function loadRecentLogs(){
+  var el=document.getElementById('logs-table');
+  try{
+    var data=await api('logs','select=*&order=created_at.desc&limit=50');
+    if(!data||!data.length){el.innerHTML='<div class="empty">記録がありません</div>';return;}
+    var WORK={sow:'播種',germinated:'発芽確認',transplant:'定植',water:'水やり',fert:'施肥',pest:'防除',pruning:'剪定',thinning:'摘果',sideshot:'脇芽かき',repot:'植え替え',event:'生育記録',harvest:'収穫',discard:'廃棄',equip:'資材作業',check:'見回り',other:'その他'};
+    var html='<table><thead><tr><th>日時</th><th>作業</th><th>メモ</th><th>画像</th><th>操作</th></tr></thead><tbody>';
+    html+=data.map(function(l){
+      return '<tr>'
+        +'<td>'+fmtDate(l.created_at)+'</td>'
+        +'<td><span class="badge badge-gray">'+(WORK[l.work]||l.work||'-')+'</span></td>'
+        +'<td style="max-width:200px;font-size:.76rem">'+(l.memo?l.memo.slice(0,50):'-')+'</td>'
+        +'<td>'+(l.img_src?'<img class="img-thumb" src="'+l.img_src+'" onclick="showImg(\''+l.img_src+'\')">':'-')+'</td>'
+        +'<td><button class="del-btn" onclick="deleteLogOnly(\''+l.id+'\')">削除</button></td>'
+        +'</tr>';
+    }).join('');
+    html+='</tbody></table>';
+    el.innerHTML=html;
+  }catch(e){el.innerHTML='<div class="empty">読み込み失敗</div>';}
+}
+
+async function deleteLogOnly(logId){
+  if(!confirm('この作業記録を削除しますか？'))return;
+  await apiDelete('logs', logId);
+  loadRecentLogs();
+  loadStats();
+}
+</script>
+</body>
+</html>
