@@ -483,10 +483,11 @@ function SetPasswordScreen({ onDone }) {
     setLoading(true); setErr("");
     const { error } = await sb.auth.updateUser({ password });
     if(error) { setErr(error.message); setLoading(false); return; }
-    setDone(true);
-    // URLのハッシュをクリア
+    // セッションをクリアしてログイン画面に戻す
+    await sb.auth.signOut();
     window.history.replaceState(null, '', window.location.pathname);
-    setTimeout(() => onDone(), 2000);
+    setDone(true);
+    setTimeout(() => onDone(), 2500);
   };
 
   return (
