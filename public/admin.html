@@ -83,12 +83,17 @@ tr:hover td{background:#fafaf8;}
       <h2>👤 登録ユーザー一覧</h2>
       <div class="invite-box">
         <h3>📧 新規ユーザーを招待</h3>
-        <div class="invite-row">
-          <input class="invite-inp" id="invite-email" type="email" placeholder="招待するメールアドレス">
-          <input class="invite-inp" id="invite-memo" type="text" placeholder="メモ（誰？）" style="max-width:140px;">
-          <button class="invite-btn" id="invite-btn">招待メール送信</button>
-        </div>
-        <div id="invite-result" style="margin-top:6px;font-size:.76rem;"></div>
+        <p style="font-size:.8rem;color:#5a5040;margin-bottom:10px">
+          Supabaseダッシュボードから招待メールを送信してください。
+        </p>
+        <a href="https://supabase.com/dashboard/project/nlamtphkwdoxtjktkjzo/auth/users"
+           target="_blank"
+           style="display:inline-block;padding:8px 16px;background:#2d6a3f;color:#fff;border-radius:8px;font-size:.82rem;font-weight:700;text-decoration:none;">
+          Supabaseで招待する →
+        </a>
+        <p style="font-size:.74rem;color:#888;margin-top:8px">
+          ① リンクを開く → ② 「Invite user」ボタン → ③ メールアドレスを入力
+        </p>
       </div>
       <div id="users-table"><div class="loading">読み込み中…</div></div>
     </div>
@@ -256,37 +261,6 @@ async function loadUsers() {
   } catch(e) { el.innerHTML = '<div class="empty">読み込み失敗</div>'; }
 }
 
-async function inviteUser() {
-  var email = document.getElementById('invite-email').value.trim();
-  var memo = document.getElementById('invite-memo').value.trim();
-  if(!email) { alert('メールアドレスを入力してください'); return; }
-  var res = document.getElementById('invite-result');
-  res.textContent = '送信中…';
-  res.style.color = '#888';
-  try {
-    var r = await fetch(SB_URL + '/auth/v1/invite', {
-      method: 'POST',
-      headers: { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: email })
-    });
-    var d = await r.json();
-    if(d.id) {
-      if(memo) saveInviteMemo(d.id, memo);
-      res.textContent = '✅ 招待メールを送信しました（' + email + '）';
-      res.style.color = '#2d6a3f';
-      document.getElementById('invite-email').value = '';
-      document.getElementById('invite-memo').value = '';
-      setTimeout(loadUsers, 1500);
-    } else {
-      res.textContent = '❌ ' + (d.msg || d.message || '送信失敗');
-      res.style.color = '#dc2626';
-    }
-  } catch(e) {
-    res.textContent = '❌ エラー: ' + e.message;
-    res.style.color = '#dc2626';
-  }
-}
-
 async function loadPublicFarms() {
   var el = document.getElementById('public-table');
   try {
@@ -414,7 +388,6 @@ document.addEventListener('DOMContentLoaded', function() {
     if(e.key === 'Enter') document.getElementById('login-btn').click();
   });
   document.getElementById('refresh-btn').addEventListener('click', loadAll);
-  document.getElementById('invite-btn').addEventListener('click', inviteUser);
   document.querySelectorAll('.tab-btn[data-tab]').forEach(function(btn) {
     btn.addEventListener('click', function() { showTab(btn.dataset.tab); });
   });
