@@ -1,0 +1,402 @@
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>サクメモ</title>
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Hiragino Sans','BIZ UDGothic',sans-serif;background:#f8f5ef;color:#1c1a14;min-height:100svh;}
+.top-bar{background:linear-gradient(135deg,#2d6a3f,#419857);padding:10px 14px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:200;}
+.top-bar a{color:#fff;text-decoration:none;font-size:.84rem;font-weight:700;white-space:nowrap;}
+.top-search{flex:1;padding:7px 12px;border:none;border-radius:999px;font-size:.82rem;font-family:inherit;outline:none;background:rgba(255,255,255,.9);}
+.farm-header{max-width:680px;margin:0 auto;padding:14px 14px 6px;}
+.farm-title{font-family:'Shippori Mincho B1',serif;font-size:1.3rem;margin-bottom:3px;}
+.farm-desc{font-size:.78rem;color:#888;}
+.tab-bar{background:#fff;border-bottom:2px solid #e0d9ce;position:sticky;top:44px;z-index:199;}
+.tab-bar-inner{max-width:680px;margin:0 auto;display:flex;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;}
+.tab-bar-inner::-webkit-scrollbar{display:none;}
+.tab{flex-shrink:0;padding:10px 13px;border:none;background:none;font-family:inherit;font-size:.76rem;color:#888;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;white-space:nowrap;position:relative;}
+.tab.active{color:#2d6a3f;border-bottom-color:#2d6a3f;font-weight:700;}
+.main{max-width:680px;margin:0 auto;padding:12px 14px 60px;}
+.crop-hero{background:#fff;border-radius:14px;padding:16px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,.07);}
+.crop-hero-top{display:flex;align-items:flex-start;gap:12px;margin-bottom:10px;}
+.crop-emoji{font-size:2.2rem;}
+.crop-title{font-family:'Shippori Mincho B1',serif;font-size:1rem;font-weight:700;}
+.crop-sub{font-size:.72rem;color:#888;margin-top:3px;}
+.crop-stats{display:flex;gap:8px;margin-top:10px;}
+.stat{flex:1;background:#f8f5ef;border-radius:9px;padding:7px 4px;text-align:center;}
+.stat-n{font-size:1rem;font-weight:700;color:#2d6a3f;}
+.stat-l{font-size:.62rem;color:#888;margin-top:1px;}
+.progress-bar{height:5px;background:#e0d9ce;border-radius:999px;margin:8px 0 3px;overflow:hidden;}
+.progress-fill{height:100%;background:linear-gradient(90deg,#2d6a3f,#52b788);border-radius:999px;}
+.progress-label{display:flex;justify-content:space-between;font-size:.68rem;color:#888;}
+.meta-row{display:flex;align-items:center;justify-content:space-between;margin-top:10px;padding-top:10px;border-top:1px solid #e0d9ce;}
+.view-count{font-size:.7rem;color:#aaa;}
+.fav-btn{background:none;border:1.5px solid #e0d9ce;border-radius:999px;padding:4px 12px;font-size:.72rem;cursor:pointer;font-family:inherit;color:#888;transition:all .15s;}
+.fav-btn.on{background:#fff9f0;border-color:#f0a500;color:#f0a500;}
+.log-card{background:#fff;border-radius:12px;padding:12px 14px;margin-bottom:9px;box-shadow:0 1px 5px rgba(0,0,0,.07);}
+.log-work{display:flex;align-items:center;gap:8px;margin-bottom:4px;}
+.wt{padding:2px 8px;border-radius:999px;font-size:.68rem;font-weight:700;}
+.sow{background:#dcfce7;color:#166534;}
+.transplant{background:#ede9fe;color:#5b21b6;}
+.fert{background:#d1fae5;color:#065f46;}
+.pest{background:#fef3c7;color:#92400e;}
+.harvest{background:#dbeafe;color:#1e40af;}
+.other{background:#f3f4f6;color:#374151;}
+.log-detail{font-size:.78rem;font-weight:600;margin-bottom:3px;}
+.log-memo{font-size:.78rem;color:#5a5040;line-height:1.6;}
+.log-photo{width:100%;border-radius:9px;margin-top:8px;max-height:220px;object-fit:cover;}
+.hv-box{display:flex;gap:10px;margin-top:7px;background:#f0f9f4;border-radius:8px;padding:7px 10px;}
+.hv-n{font-size:.95rem;font-weight:700;color:#2d6a3f;}
+.hv-l{font-size:.62rem;color:#888;margin-top:1px;}
+.empty{text-align:center;padding:48px 20px;color:#aaa;}
+.empty-icon{font-size:2.2rem;margin-bottom:10px;}
+.loading{text-align:center;padding:48px;color:#aaa;}
+.search-result-header{font-size:.76rem;color:#2d6a3f;font-weight:700;margin-bottom:10px;padding:6px 10px;background:#f0f9f0;border-radius:8px;}
+.report-modal{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);z-index:999;align-items:center;justify-content:center;}
+.report-modal.open{display:flex;}
+.report-box{background:#fff;border-radius:16px;padding:24px;max-width:360px;width:90%;}
+.report-box h3{font-size:.9rem;margin-bottom:10px;color:#dc2626;}
+.report-sel,.report-detail{width:100%;padding:8px;border:1.5px solid #e0d9ce;border-radius:8px;font-size:.82rem;margin-bottom:10px;font-family:inherit;}
+.report-detail{resize:none;}
+.report-submit{background:#dc2626;color:#fff;border:none;border-radius:8px;padding:8px;font-size:.82rem;font-weight:700;cursor:pointer;font-family:inherit;width:100%;}
+.report-cancel{background:none;border:1.5px solid #e0d9ce;border-radius:8px;padding:8px;font-size:.82rem;cursor:pointer;font-family:inherit;width:100%;margin-top:6px;}
+.report-btn{background:none;border:none;color:#ccc;font-size:.65rem;cursor:pointer;padding:2px 6px;border-radius:4px;font-family:inherit;display:block;margin-top:4px;}
+.report-btn:hover{color:#dc2626;background:#fef2f2;}
+</style>
+</head>
+<body>
+<div class="top-bar">
+  <a href="community.html">← みんなのサクメモ</a>
+  <input class="top-search" id="top-search" placeholder="🔍 この農場を検索..." oninput="doSearch()">
+</div>
+<div id="farm-header-wrap"></div>
+<div class="tab-bar" id="tab-bar" style="display:none">
+  <div class="tab-bar-inner" id="tabs"></div>
+</div>
+<div class="main" id="main"><div class="loading">🌾 読み込み中…</div></div>
+<div class="report-modal" id="report-modal">
+  <div class="report-box">
+    <h3>⚠️ 不適切なコンテンツを報告</h3>
+    <p style="font-size:.78rem;color:#666;margin-bottom:10px">報告内容は管理者が確認します。</p>
+    <select class="report-sel" id="report-reason">
+      <option value="inappropriate">不適切な画像・内容</option>
+      <option value="spam">スパム・広告</option>
+      <option value="privacy">プライバシー侵害</option>
+      <option value="other">その他</option>
+    </select>
+    <textarea class="report-detail" id="report-detail" placeholder="詳細（任意）" rows="3"></textarea>
+    <button class="report-submit" onclick="submitReport()">報告する</button>
+    <button class="report-cancel" onclick="closeReport()">キャンセル</button>
+  </div>
+</div>
+<script>
+var SB_URL='https://zmpvnvlkaadsdpwudlzq.supabase.co';
+var SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InptcHZudmxrYWFkc2Rwd3VkbHpxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU0NzEyOTAsImV4cCI6MjA5MTA0NzI5MH0.qImXQYWOylbku2duOFSfD6HTaeYqeF_PLeiVezwj2RI';
+var CDB={
+  tomato:{n:'トマト',e:'🍅',d:90},cherry_tomato:{n:'ミニトマト',e:'🍅',d:75},
+  cucumber:{n:'キュウリ',e:'🥒',d:55},eggplant:{n:'ナス',e:'🍆',d:75},
+  pepper:{n:'ピーマン',e:'🫑',d:70},bitter_gourd:{n:'ゴーヤ',e:'🌿',d:60},
+  pumpkin:{n:'カボチャ',e:'🎃',d:100},watermelon:{n:'スイカ',e:'🍉',d:85},
+  sweet_corn:{n:'トウモロコシ',e:'🌽',d:80},zucchini:{n:'ズッキーニ',e:'🥒',d:55},
+  edamame:{n:'枝豆',e:'🫘',d:70},green_bean:{n:'インゲン',e:'🫘',d:55},
+  azuki:{n:'小豆',e:'🫘',d:100},lettuce:{n:'レタス',e:'🥬',d:55},
+  spinach:{n:'ほうれん草',e:'🌿',d:40},komatsuna:{n:'小松菜',e:'🥬',d:35},
+  hakusai:{n:'白菜',e:'🥬',d:90},cabbage:{n:'キャベツ',e:'🥬',d:90},
+  broccoli:{n:'ブロッコリー',e:'🥦',d:90},carrot:{n:'ニンジン',e:'🥕',d:100},
+  radish:{n:'ダイコン',e:'🌰',d:60},okra:{n:'オクラ',e:'🌿',d:60},
+  potato:{n:'ジャガイモ',e:'🥔',d:90},sweetpotato:{n:'サツマイモ',e:'🍠',d:120},
+  taro:{n:'里芋',e:'🥔',d:150},jinenjo:{n:'自然薯',e:'🌿',d:210},
+  onion:{n:'タマネギ',e:'🧅',d:210},leek:{n:'ネギ',e:'🌿',d:100},
+  garlic:{n:'ニンニク',e:'🧄',d:240},strawberry:{n:'イチゴ',e:'🍓',d:180},
+  rice:{n:'水稲',e:'🌾',d:150},wheat:{n:'麦',e:'🌾',d:240},soba:{n:'そば',e:'🌿',d:75},
+  apple:{n:'リンゴ',e:'🍎',d:150,fruit:true},pear:{n:'ナシ',e:'🍐',d:140,fruit:true},
+  peach:{n:'モモ',e:'🍑',d:100,fruit:true},cherry:{n:'サクランボ',e:'🍒',d:50,fruit:true},
+  plum:{n:'ウメ',e:'🌸',d:90,fruit:true},mikan:{n:'ミカン',e:'🍊',d:180,fruit:true},
+  lemon:{n:'レモン',e:'🍋',d:180,fruit:true},yuzu:{n:'ユズ',e:'🍋',d:180,fruit:true},
+  grape:{n:'ブドウ',e:'🍇',d:120,fruit:true},persimmon:{n:'カキ',e:'🧡',d:180,fruit:true},
+  blueberry:{n:'ブルーベリー',e:'🫐',d:60,fruit:true},fig:{n:'イチジク',e:'🍈',d:90,fruit:true},
+  kiwi:{n:'キウイ',e:'🥝',d:180,fruit:true},biwa:{n:'ビワ',e:'🍊',d:150,fruit:true}
+};
+var WORK={
+  sow:{l:'播種',cls:'sow'},germinated:{l:'発芽確認',cls:'sow'},
+  transplant:{l:'定植',cls:'transplant'},water:{l:'水やり',cls:'other'},
+  fert:{l:'施肥',cls:'fert'},pest:{l:'防除',cls:'pest'},
+  pruning:{l:'剪定',cls:'other'},thinning:{l:'摘果・摘花',cls:'other'},
+  sideshot:{l:'脇芽かき',cls:'other'},repot:{l:'植え替え',cls:'transplant'},
+  event:{l:'生育記録',cls:'other'},harvest:{l:'収穫',cls:'harvest'},
+  discard:{l:'廃棄',cls:'other'},equip:{l:'資材作業',cls:'other'},
+  check:{l:'見回り',cls:'other'},other:{l:'その他',cls:'other'}
+};
+
+var allCrops=[],allLogs=[],currentCropId=null,searchMode=false;
+
+function api(t,p){
+  return fetch(SB_URL+'/rest/v1/'+t+'?'+p,{headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY}}).then(function(r){return r.json();});
+}
+function daysSince(d){return d?Math.floor((Date.now()-new Date(d))/86400000):0;}
+function fmtDate(d){if(!d)return'';var dt=new Date(d);return(dt.getMonth()+1)+'/'+dt.getDate();}
+function cropName(c){var db=CDB[c.type]||{};return c.type==='custom'?(c.custom_name||'カスタム'):(db.n||c.type);}
+function cropEmoji(c){return(CDB[c.type]||{}).e||'🌱';}
+
+// お気に入り
+function getFavs(){try{return JSON.parse(localStorage.getItem('sakumemo_crop_favs')||'[]');}catch{return[];}}
+function isFav(id){return getFavs().indexOf(id)>=0;}
+function toggleFav(cropId){
+  var fs=getFavs(),fi=fs.indexOf(cropId);
+  if(fi>=0)fs.splice(fi,1);else fs.push(cropId);
+  localStorage.setItem('sakumemo_crop_favs',JSON.stringify(fs));
+  buildTabs();
+  if(currentCropId===cropId) updateFavBtn(cropId);
+}
+function updateFavBtn(cropId){
+  var btn=document.getElementById('crop-fav-btn');
+  if(!btn)return;
+  var on=isFav(cropId);
+  btn.textContent=on?'⭐ お気に入り':'☆ お気に入り';
+  btn.className='fav-btn'+(on?' on':'');
+  btn.onclick=function(){toggleFav(cropId);};
+}
+
+// タブを再描画（お気に入り状態を反映）
+function refreshTabs(){
+  var favsMode=document.getElementById('fav-tab-btn')&&document.getElementById('fav-tab-btn').classList.contains('active');
+  buildTabs(favsMode);
+}
+
+function buildTabs(favOnly){
+  var favs=getFavs();
+  var crops=favOnly?allCrops.filter(function(c){return favs.indexOf(c.id)>=0;}):allCrops;
+  var q=(document.getElementById('top-search').value||'').toLowerCase().trim();
+  if(q&&!favOnly){
+    crops=allCrops.filter(function(c){
+      var n=cropName(c).toLowerCase();
+      var logs=allLogs.filter(function(l){return l.crop_id===c.id;});
+      var logText=logs.map(function(l){return[l.memo||'',l.fert_name||'',l.pest_name||'',l.event_type||''].join(' ');}).join(' ').toLowerCase();
+      return n.indexOf(q)>=0||logText.indexOf(q)>=0;
+    });
+  }
+  var favBtn='';
+  var tabs=crops.map(function(c){
+    var fav=isFav(c.id);
+    return '<button class="tab'+(currentCropId===c.id?' active':'')+'" data-id="'+c.id+'" onclick="renderCrop(\''+c.id+'\')">'
+      +cropEmoji(c)+' '+cropName(c)
+      +(fav?'<span class="fav-dot">⭐</span>':'')
+      +'</button>';
+  }).join('');
+  document.getElementById('tabs').innerHTML=favBtn+tabs;
+  if(crops.length===0){
+    document.getElementById('main').innerHTML='<div class="empty"><div class="empty-icon">'+(favOnly?'☆':'🔍')+'</div><p>'+(favOnly?'お気に入りの品目はまだありません':'「'+q+'」に一致する品目・記録はありません')+'</p></div>';
+  } else if(currentCropId&&!crops.find(function(c){return c.id===currentCropId;})){
+    renderCrop(crops[0].id);
+  }
+}
+
+function toggleFavTab(){
+  var btn=document.getElementById('fav-tab-btn');
+  var isActive=btn.classList.contains('active');
+  buildTabs(!isActive);
+  if(!isActive){
+    var favs=getFavs();
+    var first=allCrops.find(function(c){return favs.indexOf(c.id)>=0;});
+    if(first)renderCrop(first.id);
+  } else {
+    if(allCrops.length>0)renderCrop(allCrops[0].id);
+  }
+}
+
+function doSearch(){
+  buildTabs();
+  var q=(document.getElementById('top-search').value||'').toLowerCase().trim();
+  if(!q){
+    if(currentCropId)renderCrop(currentCropId);
+    return;
+  }
+  // 検索モード: 全品目の合致ログを表示
+  var matchLogs=[];
+  allCrops.forEach(function(c){
+    var n=cropName(c).toLowerCase();
+    var logs=allLogs.filter(function(l){
+      if(l.crop_id!==c.id)return false;
+      var text=[l.memo||'',l.fert_name||'',l.pest_name||'',l.event_type||'',n,(WORK[l.work]||{}).l||''].join(' ').toLowerCase();
+      return text.indexOf(q)>=0;
+    });
+    logs.forEach(function(l){matchLogs.push({log:l,crop:c});});
+  });
+  matchLogs.sort(function(a,b){return((b.log.date||'')+(b.log.time||''))>((a.log.date||'')+(a.log.time||''))?1:-1;});
+  if(!matchLogs.length){
+    document.getElementById('main').innerHTML='<div class="empty"><div class="empty-icon">🔍</div><p>「'+q+'」に一致する記録はありません</p></div>';
+    return;
+  }
+  var html='<div class="search-result-header">🔍 「'+q+'」の検索結果 '+matchLogs.length+'件</div>';
+  html+=matchLogs.map(function(item){return makeLogCard(item.log,item.crop);}).join('');
+  document.getElementById('main').innerHTML=html;
+}
+
+function makeLogCard(l,crop){
+  var w=WORK[l.work]||{l:l.work||'',cls:'other'};
+  var detail='';
+  if(l.fert_name)detail=l.fert_name+(l.fert_amt?' '+l.fert_amt+(l.fert_unit||''):'')+(l.fert_method?' · '+l.fert_method:'');
+  if(l.pest_name)detail=l.pest_name+(l.pest_dil?' '+l.pest_dil+'倍':'')+(l.pest_amt?' · '+l.pest_amt+(l.pest_unit||''):'');
+  if(l.transplant_qty)detail='定植 '+l.transplant_qty+'株';
+  if(l.sow_qty)detail='播種 '+l.sow_qty+'粒';
+  if(l.event_type)detail=l.event_type+(l.event_note?' · '+l.event_note:'');
+  var hvHtml='';
+  if(l.hv_kg||l.hv_cnt){
+    hvHtml='<div class="hv-box">';
+    if(l.hv_kg)hvHtml+='<div><div class="hv-n">'+l.hv_kg+'kg</div><div class="hv-l">収穫量</div></div>';
+    if(l.hv_cnt)hvHtml+='<div><div class="hv-n">'+l.hv_cnt+'個</div><div class="hv-l">個数</div></div>';
+    if(l.hv_q)hvHtml+='<div><div class="hv-n">'+l.hv_q+'</div><div class="hv-l">品質</div></div>';
+    hvHtml+='</div>';
+  }
+  var cropBadge=crop?'<span style="font-size:.68rem;background:#f0f9f0;color:#2d6a3f;border-radius:999px;padding:1px 7px;margin-left:auto">'+cropEmoji(crop)+' '+cropName(crop)+'</span>':'';
+  return '<div class="log-card">'
+    +'<div class="log-work"><span class="wt '+w.cls+'">'+w.l+'</span>'
+    +'<span style="font-size:.68rem;color:#aaa;margin-left:4px">'+fmtDate(l.date)+'</span>'
+    +cropBadge+'</div>'
+    +(detail?'<div class="log-detail">'+detail+'</div>':'')
+    +(l.memo?'<div class="log-memo">'+l.memo+'</div>':'')
+    +hvHtml
+    +(l.img_src?'<img src="'+l.img_src+'" class="log-photo" alt=""><button class="report-btn" onclick="openReport(\'' + l.id + '\',\'' + l.img_src + '\')">通報</button>':'')
+    +'</div>';
+}
+
+function renderCrop(cropId){
+  currentCropId=cropId;
+  // 検索をクリア
+  var searchEl=document.getElementById('top-search');
+  if(searchEl&&searchEl.value){searchEl.value='';buildTabs();}
+
+  var crop=allCrops.find(function(c){return c.id===cropId;});
+  if(!crop)return;
+
+  var db=CDB[crop.type]||{};
+  var name=cropName(crop);
+  var emoji=cropEmoji(crop);
+  var days=daysSince(crop.plant_date||crop.sow_date);
+  var harvestD=db.d||90;
+  var pct=Math.min(100,Math.round(days/harvestD*100));
+  var isFruitCrop=db.fruit||false;
+  var plantYear=crop.plant_date?new Date(crop.plant_date).getFullYear():null;
+  var yearsSince=plantYear?new Date().getFullYear()-plantYear+1:null;
+
+  var cropLogs=allLogs.filter(function(l){return l.crop_id===cropId;});
+  cropLogs.sort(function(a,b){return((b.date||'')+(b.time||''))>((a.date||'')+(a.time||''))?1:-1;});
+  var hvKg=0,hvCnt=0;
+  cropLogs.forEach(function(l){hvKg+=parseFloat(l.hv_kg)||0;hvCnt+=parseInt(l.hv_cnt)||0;});
+
+  // タブのアクティブ更新
+  document.querySelectorAll('.tab').forEach(function(t){t.classList.toggle('active',t.dataset.id===cropId);});
+
+  var subText='';
+  if(isFruitCrop&&yearsSince)subText='植付 '+yearsSince+'年目';
+  else if(crop.plant_date)subText=(crop.cultivation_type==='direct'?'播種':'定植')+': '+crop.plant_date+' · '+days+'日目';
+  else if(crop.sow_date)subText='播種: '+crop.sow_date+' · '+days+'日目';
+  if(crop.ended)subText+=(subText?' · ':'')+'栽培終了'+(crop.end_date?' '+crop.end_date:'');
+
+  var progressHtml='';
+  if(!crop.ended&&(crop.plant_date||crop.sow_date)&&!isFruitCrop){
+    progressHtml='<div class="progress-bar"><div class="progress-fill" style="width:'+pct+'%"></div></div>'
+      +'<div class="progress-label"><span>生育進捗 '+pct+'%</span><span>収穫まで約'+Math.max(0,harvestD-days)+'日</span></div>';
+  }
+
+  var on=isFav(cropId);
+  var logsHtml=cropLogs.length===0
+    ?'<div class="empty"><div class="empty-icon">📝</div><p>作業記録がまだありません</p></div>'
+    :cropLogs.map(function(l){return makeLogCard(l,null);}).join('');
+
+  document.getElementById('main').innerHTML=
+    '<div class="crop-hero">'
+    +'<div class="crop-hero-top">'
+    +'<span class="crop-emoji">'+emoji+'</span>'
+    +'<div style="flex:1;min-width:0">'
+    +'<div class="crop-title">'+name+(crop.variety?' <span style="font-weight:400;font-size:.82rem;color:#888">('+crop.variety+')</span>':'')+'</div>'
+    +(subText?'<div class="crop-sub">'+subText+'</div>':'')
+    +'</div>'
+    +'</div>'
+    +progressHtml
+    +'<div class="crop-stats">'
+    +'<div class="stat"><div class="stat-n">'+cropLogs.length+'</div><div class="stat-l">作業記録</div></div>'
+    +'<div class="stat"><div class="stat-n">'+(hvKg>0?hvKg.toFixed(1)+'kg':'—')+'</div><div class="stat-l">収穫量</div></div>'
+    +'<div class="stat"><div class="stat-n">'+(hvCnt>0?hvCnt+'個':'—')+'</div><div class="stat-l">収穫個数</div></div>'
+    +'</div>'
+    +'<div class="meta-row">'
+    +'<span class="view-count" id="crop-view-count">👁 …</span>'
+    +'<button class="fav-btn'+(on?' on':'')+'" id="crop-fav-btn">'+(on?'⭐ お気に入り':'☆ お気に入り')+'</button>'
+    +'</div>'
+    +'</div>'
+    +'<div id="log-list">'+logsHtml+'</div>';
+
+  // お気に入りボタン
+  var btn=document.getElementById('crop-fav-btn');
+  if(btn)btn.onclick=function(){toggleFav(cropId);};
+
+  // ビュー数
+  fetch(SB_URL+'/rest/v1/crop_views?crop_id=eq.'+cropId+'&select=view_count',{headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY}})
+    .then(function(r){return r.json();}).then(function(data){
+      var el=document.getElementById('crop-view-count');
+      if(el)el.textContent='👁 '+(data&&data.length>0?data[0].view_count||1:1)+'回閲覧';
+      // カウントアップ
+      if(data&&data.length>0){
+        fetch(SB_URL+'/rest/v1/crop_views?crop_id=eq.'+cropId,{method:'PATCH',headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY,'Content-Type':'application/json'},body:JSON.stringify({view_count:(data[0].view_count||0)+1,updated_at:new Date().toISOString()})});
+      }else{
+        fetch(SB_URL+'/rest/v1/crop_views',{method:'POST',headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify({crop_id:cropId,view_count:1})});
+      }
+    }).catch(function(){var el=document.getElementById('crop-view-count');if(el)el.textContent='';});
+}
+
+// 報告機能
+var reportTarget={};
+function openReport(logId,imgSrc){reportTarget={logId:logId,imgSrc:imgSrc};document.getElementById('report-modal').classList.add('open');}
+function closeReport(){document.getElementById('report-modal').classList.remove('open');reportTarget={};}
+function submitReport(){
+  fetch(SB_URL+'/rest/v1/reports',{method:'POST',headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY,'Content-Type':'application/json',Prefer:'return=minimal'},
+    body:JSON.stringify({log_id:reportTarget.logId||null,img_src:reportTarget.imgSrc||null,reason:document.getElementById('report-reason').value+(document.getElementById('report-detail').value?': '+document.getElementById('report-detail').value:''),created_at:new Date().toISOString()})
+  }).then(function(){closeReport();alert('報告を受け付けました。');}).catch(function(){alert('送信に失敗しました。');});
+}
+
+// メイン
+async function main(){
+  var params=new URLSearchParams(location.search);
+  var uidParam=params.get('uid'),slugParam=params.get('u');
+  if(!uidParam&&!slugParam){document.getElementById('main').innerHTML='<div class="empty"><div class="empty-icon">⚠️</div><p>URLが正しくありません</p></div>';return;}
+  try{
+    var farms=await api('public_farms',slugParam?'slug=eq.'+slugParam+'&is_public=eq.true&select=*':'user_id=eq.'+uidParam+'&is_public=eq.true&select=*');
+    if(!farms||!farms.length){document.getElementById('main').innerHTML='<div class="empty"><div class="empty-icon">🌾</div><p>農場が見つかりません</p></div>';return;}
+    var farm=farms[0],farmUid=farm.user_id;
+    document.title=(farm.display_name||'サクメモ')+' - サクメモ';
+    document.getElementById('farm-header-wrap').innerHTML=
+      '<div class="farm-header">'
+      +'<h1 class="farm-title">🌾 '+(farm.display_name||'農場')+'</h1>'
+      +(farm.description?'<p class="farm-desc">'+farm.description+'</p>':'')
+      +'</div>';
+    var res=await Promise.all([
+      api('crops','user_id=eq.'+farmUid+'&is_public=eq.true&select=*&order=created_at'),
+      api('logs','user_id=eq.'+farmUid+'&select=*&order=date.desc,time.desc')
+    ]);
+    allCrops=res[0]||[];allLogs=res[1]||[];
+    if(!allCrops.length){document.getElementById('main').innerHTML='<div class="empty"><div class="empty-icon">🌱</div><p>公開されている品目がありません</p></div>';return;}
+    document.getElementById('tab-bar').style.display='';
+    buildTabs();
+    var cropParam=params.get('crop');
+    var firstCrop=cropParam&&allCrops.find(function(c){return c.id===cropParam;})?cropParam:allCrops[0].id;
+    renderCrop(firstCrop);
+    // 農場ビューカウント
+    api('farm_views','user_id=eq.'+farmUid+'&select=view_count').then(function(data){
+      if(data&&data.length>0){
+        fetch(SB_URL+'/rest/v1/farm_views?user_id=eq.'+farmUid,{method:'PATCH',headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY,'Content-Type':'application/json'},body:JSON.stringify({view_count:(data[0].view_count||0)+1,updated_at:new Date().toISOString()})});
+      }else{
+        fetch(SB_URL+'/rest/v1/farm_views',{method:'POST',headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify({user_id:farmUid,view_count:1})});
+      }
+    }).catch(function(){});
+  }catch(e){
+    document.getElementById('main').innerHTML='<div class="empty"><div class="empty-icon">⚠️</div><p>読み込みに失敗しました<br><small>'+e.message+'</small></p></div>';
+  }
+}
+main();
+</script>
+</body>
+</html>
