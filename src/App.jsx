@@ -469,6 +469,72 @@ function ModalWithSave({ open, onClose, title, onSave, saveLabel="保存", child
 }
 
 // LOGIN
+function SetPasswordScreen({ onDone }) {
+  const [password, setPassword] = useState("");
+  const [confirm,  setConfirm]  = useState("");
+  const [showPw,   setShowPw]   = useState(false);
+  const [loading,  setLoading]  = useState(false);
+  const [err,      setErr]      = useState("");
+  const [done,     setDone]     = useState(false);
+
+  const submit = async () => {
+    if(!password || password.length < 6) { setErr("パスワードは6文字以上で設定してください"); return; }
+    if(password !== confirm) { setErr("パスワードが一致しません"); return; }
+    setLoading(true); setErr("");
+    const { error } = await sb.auth.updateUser({ password });
+    if(error) { setErr(error.message); setLoading(false); return; }
+    setDone(true);
+    // URLのハッシュをクリア
+    window.history.replaceState(null, '', window.location.pathname);
+    setTimeout(() => onDone(), 2000);
+  };
+
+  return (
+    <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:"100svh",background:"linear-gradient(135deg,"+GD+","+G+")",padding:20}}>
+      <style>{globalCss}</style>
+      <div style={{background:"#fff",borderRadius:20,padding:"32px 28px",maxWidth:360,width:"100%",textAlign:"center",boxShadow:"0 8px 40px rgba(0,0,0,.3)"}}>
+        <div style={{fontSize:"2.2rem",marginBottom:8}}>🌾</div>
+        <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:"1.3rem",color:G,marginBottom:4}}>サクメモ</div>
+        {done ? (
+          <div style={{padding:"20px 0"}}>
+            <div style={{fontSize:"2rem",marginBottom:12}}>✅</div>
+            <div style={{fontWeight:700,marginBottom:8}}>パスワードを設定しました</div>
+            <div style={{fontSize:".8rem",color:TX3}}>ログイン画面に移動します…</div>
+          </div>
+        ) : (
+          <>
+            <div style={{fontSize:".86rem",fontWeight:700,marginBottom:4}}>パスワードを設定してください</div>
+            <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>招待いただいたアカウントのパスワードを設定します</div>
+            <div style={{textAlign:"left",marginBottom:12}}>
+              <div style={{fontSize:".74rem",fontWeight:700,color:"#5c3d1e",marginBottom:3}}>パスワード（6文字以上）</div>
+              <div style={{position:"relative"}}>
+                <input type={showPw?"text":"password"} value={password} onChange={e=>setPassword(e.target.value)}
+                  placeholder="パスワードを設定"
+                  style={{width:"100%",padding:"9px 36px 9px 12px",border:"1.5px solid #e0d9ce",borderRadius:8,fontSize:".86rem",fontFamily:"inherit",outline:"none"}}/>
+                <button type="button" onClick={()=>setShowPw(p=>!p)}
+                  style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",fontSize:".8rem",color:"#888"}}>
+                  {showPw?"🙈":"👁"}
+                </button>
+              </div>
+            </div>
+            <div style={{textAlign:"left",marginBottom:16}}>
+              <div style={{fontSize:".74rem",fontWeight:700,color:"#5c3d1e",marginBottom:3}}>パスワード（確認）</div>
+              <input type="password" value={confirm} onChange={e=>setConfirm(e.target.value)}
+                placeholder="もう一度入力"
+                style={{width:"100%",padding:"9px 12px",border:"1.5px solid #e0d9ce",borderRadius:8,fontSize:".86rem",fontFamily:"inherit",outline:"none"}}/>
+            </div>
+            {err&&<div style={{color:ALERT,fontSize:".78rem",marginBottom:12}}>{err}</div>}
+            <button onClick={submit} disabled={loading}
+              style={{width:"100%",padding:"12px",background:loading?"#ccc":G,color:"#fff",border:"none",borderRadius:12,fontSize:".88rem",fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+              {loading?"設定中…":"パスワードを設定してログイン"}
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function LoginScreen() {
   const [loading,  setLoading]  = useState(false);
   const [err,      setErr]      = useState("");
@@ -2082,6 +2148,8 @@ const SCREENS = [
 export default function App() {
   const [user,     setUser]    = useState(null);
   const [authLoad, setAuthLoad]= useState(true);
+  // 招待リンクからのアクセスを検出
+  const [inviteMode, setInviteMode] = useState(false);
   const [dbLoad,   setDbLoad]  = useState(false);
   const [scr,      setScr]     = useState("home");
   const [fields,   setFieldsR] = useState([]);
@@ -2151,6 +2219,7 @@ export default function App() {
   const loading_screen = bg => <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100svh",background:"linear-gradient(135deg,"+GD+","+G+")"}}><style>{globalCss}</style><div style={{color:"#fff",textAlign:"center"}}><div style={{fontSize:"2rem",marginBottom:10}}>🌾</div><div>{bg}</div></div></div>;
 
   if(authLoad) return loading_screen("読み込み中…");
+  if(inviteMode) return <SetPasswordScreen onDone={()=>setInviteMode(false)}/>;
   if(!user)    return <LoginScreen/>;
   // dbLoad中は前の画面を薄くして表示（読込中でも操作可能）
   // → loading_screen を使わずにオーバーレイで表示
