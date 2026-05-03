@@ -1,0 +1,2233 @@
+import { useState, useEffect, useRef } from "react";
+import { createClient } from "@supabase/supabase-js";
+
+const sb = createClient(
+  "https://zmpvnvlkaadsdpwudlzq.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InptcHZudmxrYWFkc2Rwd3VkbHpxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU0NzEyOTAsImV4cCI6MjA5MTA0NzI5MH0.qImXQYWOylbku2duOFSfD6HTaeYqeF_PLeiVezwj2RI"
+);
+
+// DB helpers
+const dbFetch = async (table, uid) => {
+  const { data, error } = await sb.from(table).select("*").eq("user_id", uid).order("created_at");
+  if (error) { console.error(table, error.message); return []; }
+  return data || [];
+};
+const dbUpsert = async (table, row) => {
+  const { error } = await sb.from(table).upsert(row, { onConflict: "id" });
+  if (error) console.error("upsert", table, error.message);
+};
+const dbDelete = async (table, id) => {
+  const { error } = await sb.from(table).delete().eq("id", id);
+  if (error) console.error("delete", table, error.message);
+};
+
+// Converters
+const fieldToDb   = (o, uid) => ({ id:o.id, user_id:uid, name:o.name||"", area:o.area||null, soil:o.soil||null, addr:o.addr||null, memo:o.memo||null });
+const fieldFromDb = r => ({ id:r.id, name:r.name||"", area:r.area||"", soil:r.soil||"", addr:r.addr||"", memo:r.memo||"" });
+const cropToDb    = (o, uid) => ({ id:o.id, user_id:uid, field_id:o.fieldId||null, type:o.type||null, variety:o.variety||null, germ_rate:o.germRate||null, stocks:o.stocks||null, ridge_w:o.ridgeW||null, ridge_h:o.ridgeH||null, rows:o.rows||null, row_space:o.rowSpace||null, plant_space:o.plantSpace||null, sow_date:o.sowDate||null, plant_date:o.plantDate||null, memo:o.memo||null, cultivation_type:o.cultivationType||null, seed_cost:o.seedCost||null, seed_note:o.seedNote||null, custom_name:o.customName||null, ended:o.ended||false, end_date:o.endDate||null, maturity:o.maturity||null, custom_days:o.customDays||null, custom_water:o.customWater||null, pot_size:o.potSize||null, pot_volume:o.potVolume||null, pot_count:o.potCount||null, grow_env:o.growEnv||null });
+const cropFromDb  = (r, fields) => { const fi = fields.findIndex(f=>f.id===r.field_id); return { id:r.id, fieldId:r.field_id||"", fieldIdx:fi>=0?fi:0, type:r.type||"", variety:r.variety||"", germRate:r.germ_rate||"", stocks:r.stocks||"", ridgeW:r.ridge_w||"", ridgeH:r.ridge_h||"", rows:r.rows||"", rowSpace:r.row_space||"", plantSpace:r.plant_space||"", sowDate:r.sow_date||"", plantDate:r.plant_date||"", memo:r.memo||"", cultivationType:r.cultivation_type||"transplant", seedCost:r.seed_cost||"", seedNote:r.seed_note||"", customName:r.custom_name||"", ended:r.ended||false, endDate:r.end_date||"", maturity:r.maturity||"mid", customDays:r.custom_days||"", customWater:r.custom_water||"", potSize:r.pot_size||"", potVolume:r.pot_volume||"", potCount:r.pot_count||"", growEnv:r.grow_env||"field" }; };
+const logToDb     = (o, uid, fields) => ({ id:o.id, user_id:uid, field_id:fields[o.fieldIdx]?.id||o.fieldId||null, crop_id:o.cropId||null, work:o.work||null, memo:o.memo||null, date:o.date||null, time:o.time||null, duration:o.duration||null, img_src:o.imgSrc||null, ai_reply:o.aiReply||null, fert_name:o.fertName||null, fert_amt:o.fertAmt||null, fert_unit:o.fertUnit||null, fert_method:o.fertMethod||null, fert_cost:o.fertCost||null, pest_name:o.pestName||null, pest_dil:o.pestDil||null, pest_amt:o.pestAmt||null, pest_unit:o.pestUnit||null, pest_target:o.pestTarget||null, pest_cost:o.pestCost||null, hv_kg:o.hvKg||null, hv_cnt:o.hvCnt||null, hv_q:o.hvQ||null, hv_price:o.hvPrice||null, hv_img_src:o.hvImgSrc||null, equip_ids:o.equipIds||null, equip_act:o.equipAct||null, sow_qty:o.sowQty||null, germination_cnt:o.germinationCnt||null, germination_date:o.germinationDate||null, transplant_qty:o.transplantQty||null, discard_cnt:o.discardCnt||null, add_cnt:o.addCnt||null, event_type:o.eventType||null, event_note:o.eventNote||null });
+const logFromDb   = (r, fields) => { const fi=fields.findIndex(f=>f.id===r.field_id); return { id:r.id, fieldId:r.field_id||"", fieldIdx:fi>=0?fi:0, cropId:r.crop_id||"", work:r.work||"", memo:r.memo||"", date:r.date||"", time:r.time||"", duration:r.duration||"", imgSrc:r.img_src||null, aiReply:r.ai_reply||"", fertName:r.fert_name||"", fertAmt:r.fert_amt||"", fertUnit:r.fert_unit||"", fertMethod:r.fert_method||"", fertCost:r.fert_cost||"", pestName:r.pest_name||"", pestDil:r.pest_dil||"", pestAmt:r.pest_amt||"", pestUnit:r.pest_unit||"", pestTarget:r.pest_target||"", pestCost:r.pest_cost||"", hvKg:r.hv_kg||"", hvCnt:r.hv_cnt||"", hvQ:r.hv_q||"", hvPrice:r.hv_price||"", hvImgSrc:r.hv_img_src||null, equipIds:r.equip_ids||[], equipAct:r.equip_act||"", sowQty:r.sow_qty||"", germinationCnt:r.germination_cnt||"", germinationDate:r.germination_date||"", transplantQty:r.transplant_qty||"", discardCnt:r.discard_cnt||"", addCnt:r.add_cnt||"", eventType:r.event_type||"", eventNote:r.event_note||"" }; };
+const fertMToDb   = (o, uid) => ({ id:o.id, user_id:uid, name:o.name||null, type:o.type||null, npk:o.npk||null, price:o.price||null, punit:o.punit||null, capacity:o.capacity||null, cunit:o.cunit||null, stock:o.stock||null, sunit:o.sunit||null, note:o.note||null });
+const fertMFromDb = r => ({ id:r.id, name:r.name||"", type:r.type||"", npk:r.npk||"", price:r.price||"", punit:r.punit||"", capacity:r.capacity||"", cunit:r.cunit||"", stock:r.stock||"0", sunit:r.sunit||"", note:r.note||"" });
+const pestMToDb   = (o, uid) => ({ id:o.id, user_id:uid, name:o.name||null, type:o.type||null, dil:o.dil||null, target:o.target||null, price:o.price||null, punit:o.punit||null, capacity:o.capacity||null, cunit:o.cunit||null, stock:o.stock||null, sunit:o.sunit||null, note:o.note||null });
+const pestMFromDb = r => ({ id:r.id, name:r.name||"", type:r.type||"", dil:r.dil||"", target:r.target||"", price:r.price||"", punit:r.punit||"", capacity:r.capacity||"", cunit:r.cunit||"", stock:r.stock||"0", sunit:r.sunit||"", note:r.note||"" });
+const equipToDb   = (o, uid) => ({ id:o.id, user_id:uid, name:o.name||null, cat:o.cat||null, status:o.status||null, price:o.price||null, date:o.date||null, note:o.note||null });
+const equipFromDb = r => ({ id:r.id, name:r.name||"", cat:r.cat||"", status:r.status||"", price:r.price||"", date:r.date||"", note:r.note||"" });
+const costToDb    = (o, uid, fields) => ({ id:o.id, user_id:uid, field_id:fields[o.fieldIdx]?.id||null, crop_id:o.cropId||null, cat:o.cat||null, name:o.name||null, amt:o.amt||null, date:o.date||null, qty:o.qty||null, qunit:o.qunit||null, note:o.note||null, master_id:o.masterId||null });
+const costFromDb  = (r, fields) => { const fi=fields.findIndex(f=>f.id===r.field_id); return { id:r.id, fieldIdx:fi>=0?fi:"", cropId:r.crop_id||"", masterId:r.master_id||"", cat:r.cat||"", name:r.name||"", amt:r.amt||"", date:r.date||"", qty:r.qty||"", qunit:r.qunit||"", note:r.note||"" }; };
+
+// ============================================================
+// CONSTANTS
+// ============================================================
+const CDB = {
+  // ─── イネ科 ───
+  rice:         { n:"水稲",       e:"🌾", d:150, w:2, cat:"イネ科",   hs:"穂が黄金色になり、籾が硬くなったら",          events:["穂ばらみ","出穂","収穫"], maturity:{early:130,mid:150,late:170} },
+  wheat:        { n:"麦",         e:"🌾", d:240, w:5, cat:"イネ科",   hs:"穂が黄色くなり茎が枯れてきたら",              events:["出穂","収穫"], maturity:{early:210,mid:240,late:270} },
+  corn:         { n:"トウモロコシ",e:"🌽", d:80,  w:2, cat:"イネ科",   hs:"絹糸が茶色になり、押すと乳液が出る状態",      events:["雄穂開花","絹糸出現","収穫"], maturity:{early:70,mid:80,late:95} },
+  soba:         { n:"そば",       e:"🌿", d:75,  w:3, cat:"タデ科",   hs:"実の7〜8割が黒褐色になったら",                events:["開花","収穫"], maturity:{early:65,mid:75,late:85} },
+  // ─── ナス科 ───
+  tomato:       { n:"トマト",     e:"🍅", d:90,  w:2, cat:"ナス科",   hs:"果皮が均一に赤くなりヘタが反り返ったら",      events:["開花","着果","収穫"], maturity:{early:75,mid:90,late:110} },
+  cherry_tomato:{ n:"ミニトマト", e:"🍅", d:75,  w:2, cat:"ナス科",   hs:"鮮やかな赤になりわずかに柔らかくなったら",    events:["開花","着果","収穫"], maturity:{early:60,mid:75,late:90} },
+  eggplant:     { n:"ナス",       e:"🍆", d:75,  w:1, cat:"ナス科",   hs:"果皮に光沢・ガクのとげが鋭い状態",            events:["開花","収穫"], maturity:{early:65,mid:75,late:90} },
+  pepper:       { n:"ピーマン",   e:"🫑", d:70,  w:2, cat:"ナス科",   hs:"長さ6〜7cm・果肉が厚くなったら",              events:["開花","収穫"], maturity:{early:60,mid:70,late:85} },
+  potato:       { n:"ジャガイモ", e:"🥔", d:90,  w:3, cat:"ナス科",   hs:"地上部の葉が黄化・枯死したら掘る",            events:["萌芽","開花","地上部枯死"], maturity:{early:75,mid:90,late:110} },
+  // ─── ウリ科 ───
+  cucumber:     { n:"キュウリ",   e:"🥒", d:55,  w:1, cat:"ウリ科",   hs:"長さ18〜22cm・イボが鮮明で張りがあるうちに",  events:["開花","収穫"], maturity:{early:45,mid:55,late:65} },
+  zucchini:     { n:"ズッキーニ", e:"🥒", d:55,  w:1, cat:"ウリ科",   hs:"長さ20cm前後・果皮にツヤがあるうちに",        events:["開花","収穫"], maturity:{early:45,mid:55,late:65} },
+  pumpkin:      { n:"カボチャ",   e:"🎃", d:100, w:3, cat:"ウリ科",   hs:"ヘタがコルク化し葉が枯れ始めたら",            events:["開花","受粉","着果","収穫"], maturity:{early:85,mid:100,late:120} },
+  watermelon:   { n:"スイカ",     e:"🍉", d:85,  w:3, cat:"ウリ科",   hs:"ヘタの巻きひげが枯れ叩くと濁音がする状態",    events:["開花","受粉","着果","収穫"], maturity:{early:75,mid:85,late:100} },
+  melon:        { n:"メロン",     e:"🍈", d:90,  w:3, cat:"ウリ科",   hs:"ヘタの周りが黄色くなり香りが出たら",          events:["開花","受粉","着果","収穫"], maturity:{early:75,mid:90,late:110} },
+  bitter_gourd: { n:"ゴーヤ",     e:"🌿", d:60,  w:1, cat:"ウリ科",   hs:"長さ20cm前後・黄緑色均一の状態",              events:["開花","着果","収穫"], maturity:{early:50,mid:60,late:75} },
+  // ─── アブラナ科 ───
+  cabbage:      { n:"キャベツ",   e:"🥬", d:90,  w:2, cat:"アブラナ科",hs:"結球が固く締まり外葉に張りがある状態",        events:["結球開始","収穫"], maturity:{early:70,mid:90,late:120} },
+  hakusai:      { n:"白菜",       e:"🥬", d:90,  w:2, cat:"アブラナ科",hs:"頭部を押して固く締まっていたら",              events:["結球開始","収穫"], maturity:{early:70,mid:90,late:110} },
+  broccoli:     { n:"ブロッコリー",e:"🥦", d:90,  w:2, cat:"アブラナ科",hs:"花蕾が緊密で15〜18cm・黄色くなる前に",       events:["頂花蕾形成","収穫"], maturity:{early:75,mid:90,late:110} },
+  radish:       { n:"ダイコン",   e:"🌰", d:60,  w:2, cat:"アブラナ科",hs:"根が地表に出て肩の直径6〜8cm",               events:["間引き完了","収穫"], maturity:{early:50,mid:60,late:75} },
+  komatsuna:    { n:"小松菜",     e:"🥬", d:35,  w:1, cat:"アブラナ科",hs:"草丈20〜25cmで収穫",                         events:["収穫"], maturity:{early:30,mid:35,late:45} },
+  // ─── マメ科 ───
+  edamame:      { n:"枝豆",       e:"🫘", d:70,  w:2, cat:"マメ科",   hs:"さやが膨らんで豆の形がはっきりわかる状態",    events:["開花","さや形成","収穫"], maturity:{early:60,mid:70,late:85} },
+  green_bean:   { n:"インゲン",   e:"🫘", d:55,  w:2, cat:"マメ科",   hs:"さやが膨らむ前・すじが出る前に収穫",          events:["開花","さや形成","収穫"], maturity:{early:45,mid:55,late:65} },
+  azuki:        { n:"小豆",       e:"🫘", d:100, w:3, cat:"マメ科",   hs:"さやが黄褐色になり乾燥してきたら",            events:["開花","さや形成","収穫"], maturity:{early:90,mid:100,late:115} },
+  // ─── キク科 ───
+  lettuce:      { n:"レタス",     e:"🥬", d:55,  w:1, cat:"キク科",   hs:"結球部を押して固くなったら",                  events:["結球開始","収穫"], maturity:{early:45,mid:55,late:70} },
+  // ─── セリ科 ───
+  carrot:       { n:"ニンジン",   e:"🥕", d:100, w:2, cat:"セリ科",   hs:"根頭部の直径2.5〜3cm・根長12〜15cm",          events:["間引き完了","収穫"], maturity:{early:85,mid:100,late:120} },
+  // ─── ヒガンバナ科 ───
+  onion:        { n:"タマネギ",   e:"🧅", d:210, w:4, cat:"ヒガンバナ科",hs:"葉の80%が倒伏し始めてから1週間後",         events:["葉鞘肥大","倒伏開始","収穫"], maturity:{early:180,mid:210,late:240} },
+  leek:         { n:"ネギ",       e:"🌿", d:100, w:3, cat:"ヒガンバナ科",hs:"白根部が20〜25cmになったら",               events:["土寄せ","収穫"], maturity:{early:85,mid:100,late:120} },
+  garlic:       { n:"ニンニク",   e:"🧄", d:240, w:4, cat:"ヒガンバナ科",hs:"葉が半分枯れたら",                         events:["萌芽","スケープ発生","収穫"], maturity:{early:210,mid:240,late:270} },
+  // ─── ヤマノイモ科 ───
+  jinenjo:      { n:"自然薯",     e:"🌿", d:210, w:4, cat:"ヤマノイモ科",hs:"葉が黄色くなり枯れ始めたら",              events:["萌芽","収穫"], maturity:{early:180,mid:210,late:240} },
+  // ─── サトイモ科 ───
+  taro:         { n:"里芋",       e:"🥔", d:150, w:3, cat:"サトイモ科",hs:"葉が黄化し始めたら・霜が降りる前に収穫",     events:["萌芽","増殖","収穫"], maturity:{early:130,mid:150,late:180} },
+  // ─── ヒルガオ科 ───
+  sweetpotato:  { n:"サツマイモ", e:"🍠", d:120, w:4, cat:"ヒルガオ科",hs:"定植後120〜130日・試し掘りで確認",           events:["活着","収穫"], maturity:{early:110,mid:120,late:140} },
+  // ─── バラ科 ───
+  strawberry:   { n:"イチゴ",     e:"🍓", d:180, w:1, cat:"バラ科",   hs:"果実全体が赤く着色しヘタが反り返ったら",      events:["開花","着果","収穫"], maturity:{early:160,mid:180,late:210} },
+  // ─── アカザ科 ───
+  spinach:      { n:"ほうれん草", e:"🌿", d:40,  w:1, cat:"アカザ科",  hs:"草丈20〜25cm・本葉がしっかり展開したら",      events:["本葉展開","収穫"], maturity:{early:35,mid:40,late:50} },
+  // ─── タデ科 ───
+  // ─── オクラ（アオイ科）───
+  okra:         { n:"オクラ",     e:"🌿", d:60,  w:1, cat:"アオイ科",  hs:"長さ7〜8cm・開花後4〜5日で収穫",              events:["開花","収穫"], maturity:{early:55,mid:60,late:70} },
+  // ─── 果樹（バラ科）───
+  apple:        { n:"リンゴ",     e:"🍎", d:150, w:5, cat:"果樹/バラ科",hs:"品種固有の色に着色し、甘みが出たら",        events:["開花","摘果","着色","収穫"], maturity:{early:120,mid:150,late:180}, fruit:true },
+  pear:         { n:"ナシ",       e:"🍐", d:140, w:5, cat:"果樹/バラ科",hs:"果皮が品種特有の色になり香りが出たら",       events:["開花","摘果","収穫"], maturity:{early:120,mid:140,late:160}, fruit:true },
+  peach:        { n:"モモ",       e:"🍑", d:100, w:4, cat:"果樹/バラ科",hs:"果皮が品種特有の色になり果肉が軟化したら",   events:["開花","摘果","収穫"], maturity:{early:80,mid:100,late:120}, fruit:true },
+  cherry:       { n:"サクランボ", e:"🍒", d:50,  w:3, cat:"果樹/バラ科",hs:"果皮が濃い赤色になり甘みが出たら",          events:["開花","収穫"], maturity:{early:40,mid:50,late:60}, fruit:true },
+  plum:         { n:"ウメ",       e:"🌸", d:90,  w:4, cat:"果樹/バラ科",hs:"梅酒用は青いうち・梅干し用は黄色くなったら",events:["開花","収穫"], maturity:{early:80,mid:90,late:100}, fruit:true },
+  // ─── 果樹（ミカン科）───
+  mikan:        { n:"ミカン",     e:"🍊", d:180, w:5, cat:"果樹/ミカン科",hs:"果皮がオレンジ色になり酸味が落ち着いたら",events:["開花","着果","収穫"], maturity:{early:160,mid:180,late:210}, fruit:true },
+  lemon:        { n:"レモン",     e:"🍋", d:180, w:5, cat:"果樹/ミカン科",hs:"果皮が黄色くなったら",                     events:["開花","着果","収穫"], maturity:{early:160,mid:180,late:200}, fruit:true },
+  yuzu:         { n:"ユズ",       e:"🍋", d:180, w:5, cat:"果樹/ミカン科",hs:"果皮が黄色くなったら",                     events:["開花","着果","収穫"], maturity:{early:160,mid:180,late:200}, fruit:true },
+  // ─── 果樹（ブドウ科）───
+  grape:        { n:"ブドウ",     e:"🍇", d:120, w:4, cat:"果樹/ブドウ科",hs:"果皮が品種の色になり糖度が上がったら",     events:["開花","摘粒","着色","収穫"], maturity:{early:100,mid:120,late:140}, fruit:true },
+  // ─── 果樹（カキノキ科）───
+  persimmon:    { n:"カキ",       e:"🧡", d:180, w:5, cat:"果樹/カキノキ科",hs:"果皮がオレンジ色になり渋が抜けたら",    events:["開花","着果","収穫"], maturity:{early:160,mid:180,late:200}, fruit:true },
+  // ─── 果樹（その他）───
+  blueberry:    { n:"ブルーベリー",e:"🫐", d:60,  w:3, cat:"果樹/ツツジ科",hs:"果皮が濃い青紫色になり甘みが出たら",     events:["開花","着果","収穫"], maturity:{early:50,mid:60,late:75}, fruit:true },
+  fig:          { n:"イチジク",   e:"🍈", d:90,  w:3, cat:"果樹/クワ科",hs:"果皮が品種の色になり果頂部が裂け始めたら",  events:["着果","収穫"], maturity:{early:80,mid:90,late:100}, fruit:true },
+  kiwi:         { n:"キウイ",     e:"🥝", d:180, w:4, cat:"果樹/マタタビ科",hs:"果実が硬いまま収穫し追熟させる",        events:["開花","着果","収穫"], maturity:{early:160,mid:180,late:200}, fruit:true },
+  biwa:         { n:"ビワ",       e:"🍊", d:150, w:4, cat:"果樹/バラ科",hs:"果皮がオレンジ色になり甘みが出たら",        events:["開花","着果","収穫"], maturity:{early:130,mid:150,late:170}, fruit:true },
+};
+// 科別グループ化
+const CROP_CATS = ["イネ科","タデ科","ナス科","ウリ科","アブラナ科","マメ科","キク科","セリ科","ヒガンバナ科","ヤマノイモ科","サトイモ科","ヒルガオ科","バラ科","アカザ科","アオイ科","果樹/バラ科","果樹/ミカン科","果樹/ブドウ科","果樹/カキノキ科","果樹/ツツジ科","果樹/クワ科","果樹/マタタビ科"];
+const CROP_OPTIONS = [
+  ...CROP_CATS.flatMap(cat=>{
+    const items = Object.entries(CDB).filter(([,v])=>v.cat===cat);
+    if(!items.length) return [];
+    return [
+      { value:"__group__"+cat, label:"── "+cat+" ──", disabled:true },
+      ...items.map(([k,v])=>({ value:k, label:v.e+" "+v.n }))
+    ];
+  }),
+  { value:"__group__custom", label:"── カスタム ──", disabled:true },
+  { value:"custom", label:"✏️ カスタム（自由入力）" },
+];
+const WORK_TYPES = [
+  { value:"sow",        label:"播種",         tag:"green",  icon:"🌰" },
+  { value:"germinated", label:"発芽確認",     tag:"green",  icon:"🌱" },
+  { value:"transplant", label:"定植",         tag:"purple", icon:"🪴" },
+  { value:"water",      label:"水やり",       tag:"blue",   icon:"💧" },
+  { value:"fert",       label:"施肥",         tag:"green",  icon:"🌿" },
+  { value:"pest",       label:"防除",         tag:"yellow", icon:"🐛" },
+  { value:"pruning",    label:"剪定",         tag:"green",  icon:"✂️" },
+  { value:"thinning",   label:"摘果・摘花",   tag:"pink",   icon:"🌸" },
+  { value:"sideshot",   label:"脇芽かき",     tag:"green",  icon:"🌱" },
+  { value:"repot",      label:"植え替え",     tag:"purple", icon:"🪣" },
+  { value:"event",      label:"生育記録",     tag:"pink",   icon:"📋" },
+  { value:"harvest",    label:"収穫",         tag:"pink",   icon:"🧺" },
+  { value:"discard",    label:"廃棄・株調整", tag:"gray",   icon:"♻️" },
+  { value:"equip",      label:"資材作業",     tag:"gray",   icon:"🏗️" },
+  { value:"repot",      label:"植え替え",     tag:"purple", icon:"🪴" },
+  { value:"check",      label:"見回り",       tag:"gray",   icon:"👀" },
+  { value:"other",      label:"その他",       tag:"gray",   icon:"✏️" },
+];
+const COST_CATS = [
+  { value:"seed",  label:"🌱 種・苗" },
+  { value:"fert",  label:"🌿 肥料" },
+  { value:"pest",  label:"🐛 農薬" },
+  { value:"equip", label:"🏗️ 設備・資材" },
+  { value:"labor", label:"👷 労務費" },
+  { value:"other", label:"📦 その他" },
+];
+const WX_MAP = [[0,"☀️","快晴"],[3,"⛅","晴れ時々くもり"],[48,"🌫️","霧"],[67,"🌧️","雨"],[77,"❄️","雪"],[82,"🌦️","にわか雨"],[99,"⛈️","雷雨"]];
+const wxIcon  = c => { for(const [t,i] of WX_MAP) if(c<=t) return i; return "⛈️"; };
+const wxLabel = c => { for(const [t,,l] of WX_MAP) if(c<=t) return l; return "雷雨"; };
+const wxAdvice= w => {
+  if(!w) return "取得中…";
+  if(w.rain>3)  return "☔ 雨天：水やり不要";
+  if(w.temp>33) return "高温注意：朝夕に水やりを";
+  if(w.temp<8)  return "低温リスク：防寒対策を";
+  if(w.wind>35) return "強風注意：支柱確認を";
+  return "作業日和";
+};
+
+// Utils
+const uid0     = () => crypto.randomUUID();
+
+// 単位を正規化して同じ単位に変換（masterUnit基準）
+function normalizeToMasterUnit(value, valueUnit, masterUnit) {
+  const v = parseFloat(value) || 0;
+  const vu = (valueUnit || "").toLowerCase().trim();
+  const mu = (masterUnit || "").toLowerCase().trim();
+  if(vu === mu) return v; // 同じ単位
+  // 重量変換
+  if(mu === "kg" && vu === "g")  return v / 1000;
+  if(mu === "g"  && vu === "kg") return v * 1000;
+  // 容量変換
+  if(mu === "l"  && vu === "ml") return v / 1000;
+  if(mu === "ml" && vu === "l")  return v * 1000;
+  // 変換できない場合はそのまま（単位が一致しないケース）
+  return v;
+}
+const daysSince= d => d ? Math.floor((Date.now()-new Date(d))/86400000) : 0;
+const fmtDate  = d => (d.getMonth()+1)+"/"+d.getDate();
+const todayStr = () => new Date().toISOString().slice(0,10);
+const nowTime  = () => new Date().toTimeString().slice(0,5);
+
+async function extractExifDate(file) {
+  return new Promise(resolve => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        const buf = e.target.result;
+        const view = new DataView(buf);
+        let offset = 2;
+        while(offset < view.byteLength - 4) {
+          const marker = view.getUint16(offset);
+          if(marker === 0xFFE1) {
+            const len = view.getUint16(offset+2);
+            const exif = String.fromCharCode(...new Uint8Array(buf, offset+10, Math.min(len,2000)));
+            const m = exif.match(/(\d{4}):(\d{2}):(\d{2}) (\d{2}):(\d{2})/);
+            if(m) { resolve({ date:m[1]+"-"+m[2]+"-"+m[3], time:m[4]+":"+m[5] }); return; }
+          }
+          if(marker === 0xFFDA) break;
+          offset += 2 + (view.getUint16(offset+2)||2);
+        }
+      } catch {}
+      resolve(null);
+    };
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+async function compressImage(file) {
+  return new Promise(resolve => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const MAX = 1200;
+      let w = img.width, h = img.height;
+      if (w > MAX || h > MAX) {
+        if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
+        else        { w = Math.round(w * MAX / h); h = MAX; }
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = w; canvas.height = h;
+      canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+      // 品質を調整して400KB以下に
+      let quality = 0.75;
+      let base64 = canvas.toDataURL("image/jpeg", quality);
+      while (base64.length > 150000 && quality > 0.3) {
+        quality -= 0.1;
+        base64 = canvas.toDataURL("image/jpeg", quality);
+      }
+      canvas.toBlob(blob => {
+        URL.revokeObjectURL(url);
+        resolve({ base64, blob });
+      }, "image/jpeg", quality);
+    };
+    img.src = url;
+  });
+}
+
+// Supabase Storageに写真をアップロードしてURLを返す
+async function uploadPhoto(blob, userId, filename) {
+  try {
+    const path = userId + "/" + filename;
+    const { data: uploadData, error } = await sb.storage
+      .from("farm-photos")
+      .upload(path, blob, { contentType:"image/jpeg", upsert:true });
+    if (error) {
+      console.error("upload error:", error.message, error);
+      return null;
+    }
+    const { data } = sb.storage.from("farm-photos").getPublicUrl(path);
+    return data?.publicUrl || null;
+  } catch(e) {
+    console.error("uploadPhoto exception:", e.message);
+    return null;
+  }
+}
+
+async function fetchWeather(addr) {
+  let lat=34.9756, lon=138.3827, label="沼津（デフォルト）";
+  if(addr) {
+    try {
+      const r = await fetch("https://nominatim.openstreetmap.org/search?q="+encodeURIComponent(addr+" Japan")+"&format=json&limit=1", { headers:{"User-Agent":"FarmAI/1.0"} });
+      const d = await r.json();
+      if(d[0]) { lat=parseFloat(d[0].lat); lon=parseFloat(d[0].lon); label=addr; }
+    } catch {}
+  }
+  try {
+    const url = "https://api.open-meteo.com/v1/forecast"
+      +"?latitude="+lat+"&longitude="+lon
+      +"&current=temperature_2m,weathercode,precipitation,windspeed_10m,relative_humidity_2m"
+      +"&hourly=temperature_2m,weathercode,precipitation_probability,precipitation,windspeed_10m"
+      +"&daily=temperature_2m_max,temperature_2m_min,weathercode,precipitation_sum,precipitation_probability_max"
+      +"&timezone=Asia%2FTokyo&forecast_days=5";
+    const r = await fetch(url);
+    const d = await r.json();
+    const c = d.current;
+    // 今日の時間帯別データを抽出（現在時刻から24時間分）
+    const now = new Date();
+    const nowHour = now.getHours();
+    const todayStr = now.toISOString().slice(0,10);
+    const hourly = d.hourly;
+    // 今日と明日の時間帯インデックスを取得
+    const hourSlots = hourly.time.map((t,i)=>({t,i}))
+      .filter(({t})=>t>=todayStr+"T"+String(nowHour).padStart(2,"0")+":00")
+      .slice(0,24);
+    return {
+      temp:  Math.round(c.temperature_2m),
+      code:  c.weathercode,
+      rain:  c.precipitation,
+      wind:  Math.round(c.windspeed_10m),
+      humid: Math.round(c.relative_humidity_2m),
+      daily: d.daily,
+      hourly: hourSlots.map(({t,i})=>({
+        hour: new Date(t).getHours(),
+        temp: Math.round(hourly.temperature_2m[i]),
+        code: hourly.weathercode[i],
+        pop:  hourly.precipitation_probability[i]||0,
+        rain: hourly.precipitation[i]||0,
+      })),
+      label
+    };
+  } catch { return null; }
+}
+
+// ============================================================
+// STYLES
+// ============================================================
+const G="#2d6a3f", G2="#419857", G3="#d4edda", GD="#1a4028";
+const ALERT="#c0392b", WARN="#e67e22", INFO="#2471a3";
+const TX3="#a09070", BD="#e0d9ce";
+const TAG_COLORS = { blue:{background:"#dbeafe",color:"#1e40af"}, green:{background:"#d1fae5",color:"#065f46"}, yellow:{background:"#fef3c7",color:"#92400e"}, pink:{background:"#fce7f3",color:"#831843"}, purple:{background:"#ede9fe",color:"#5b21b6"}, gray:{background:"#f3f4f6",color:"#374151"} };
+const S = {
+  app:   { display:"flex", flexDirection:"column", height:"100svh", maxWidth:960, margin:"0 auto", background:"#f8f5ef", boxShadow:"0 0 40px rgba(0,0,0,.15)" },
+  topbar:{ background:G, color:"#fff", height:52, display:"flex", alignItems:"center", padding:"0 13px", gap:8, flexShrink:0 },
+  logo:  { fontFamily:"'Shippori Mincho B1',serif", fontSize:"1.1rem", letterSpacing:".06em" },
+  tbBtn: { background:"rgba(255,255,255,.18)", border:"1px solid rgba(255,255,255,.25)", color:"#fff", borderRadius:8, padding:"5px 10px", fontSize:".72rem", cursor:"pointer", flexShrink:0 },
+  main:  { flex:1, overflowY:"auto", WebkitOverflowScrolling:"touch" },
+  scr:   { padding:"12px 12px 80px" },
+  bnav:  { background:GD, display:"flex", borderTop:"1px solid rgba(255,255,255,.08)", flexShrink:0, height:58, paddingBottom:"env(safe-area-inset-bottom)" },
+  bBtn:  { flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:2, background:"none", border:"none", color:"rgba(255,255,255,.33)", fontSize:".52rem", cursor:"pointer", minWidth:0 },
+  bBtnOn:{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:2, background:"none", border:"none", color:"#9ffcb4", fontSize:".52rem", cursor:"pointer", minWidth:0 },
+  card:  { background:"#fff", borderRadius:14, boxShadow:"0 2px 12px rgba(0,0,0,.08)", padding:13, marginBottom:9, border:"1px solid "+BD },
+  sec:   { fontFamily:"'Shippori Mincho B1',serif", fontSize:".9rem", color:"#5c3d1e", margin:"14px 0 7px", display:"flex", alignItems:"center", justifyContent:"space-between" },
+  secBtn:{ fontSize:".68rem", fontWeight:700, color:G, background:G3, border:"none", borderRadius:999, padding:"3px 9px", cursor:"pointer" },
+  fg:    { marginBottom:9 },
+  lbl:   { display:"block", fontSize:".72rem", fontWeight:700, color:"#5c3d1e", marginBottom:3 },
+  inp:   { width:"100%", padding:"7px 10px", border:"1.5px solid "+BD, borderRadius:8, fontSize:".86rem", outline:"none", background:"#fff", WebkitAppearance:"none" },
+  btn:   { padding:"9px 14px", border:"none", borderRadius:10, fontSize:".85rem", fontWeight:700, width:"100%", display:"block", textAlign:"center", cursor:"pointer" },
+  btnG:  { background:G, color:"#fff" },
+  btnR:  { background:ALERT, color:"#fff" },
+  btnS:  { background:"#fff", color:G, border:"1.5px solid "+G },
+  btnI:  { background:INFO, color:"#fff" },
+  btnSm: { padding:"4px 10px", fontSize:".7rem", borderRadius:8, width:"auto", display:"inline-block" },
+  li:    { display:"flex", alignItems:"center", gap:8, padding:"9px 11px", background:"#fff", border:"1px solid "+BD, borderRadius:10, marginBottom:6 },
+  tag:   { display:"inline-flex", alignItems:"center", gap:2, fontSize:".66rem", fontWeight:700, padding:"2px 6px", borderRadius:999, whiteSpace:"nowrap" },
+};
+const globalCss = `
+  @import url('https://fonts.googleapis.com/css2?family=BIZ+UDGothic:wght@400;700&family=Shippori+Mincho+B1:wght@400;700&display=swap');
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  body{font-family:'BIZ UDGothic',sans-serif;background:#f8f5ef;color:#1c1a14;}
+  button,input,select,textarea{font-family:inherit;}
+  @media(min-width:900px){
+    #bot-nav{display:none!important;}
+    #pc-nav{display:flex!important;}
+    #main-scroll{height:calc(100svh - 52px - 44px);overflow-y:auto;scrollbar-width:none;}
+    #main-scroll::-webkit-scrollbar{display:none;}
+    .scr-inner{padding-bottom:20px!important;}
+  }
+`;
+
+// Small components
+function Tag({ type, children }) { return <span style={{...S.tag,...(TAG_COLORS[type]||TAG_COLORS.gray)}}>{children}</span>; }
+
+// 農業用語辞典
+const AGRI_TERMS = {
+  "播種":       {read:"はしゅ",           desc:"種を土にまくこと"},
+  "直まき":     {read:"じかまき",         desc:"畑やプランターに直接種をまくこと"},
+  "育苗":       {read:"いくびょう",       desc:"種から苗を育てること。本畑に植える前の準備"},
+  "発芽確認":   {read:"はつがかくにん",   desc:"種をまいてから芽が出たことを確認すること"},
+  "発芽率":     {read:"はつがりつ",       desc:"種をまいた数に対して発芽した割合"},
+  "定植":       {read:"ていしょく",       desc:"苗を畑やプランターに植えること"},
+  "水やり":     {read:"みずやり",         desc:"植物に水を与えること"},
+  "施肥":       {read:"せひ",             desc:"肥料を与えること。元肥・追肥などがある"},
+  "追肥":       {read:"ついひ",           desc:"育てている途中に肥料を与えること"},
+  "元肥":       {read:"もとごえ",         desc:"植え付け前に土に混ぜておく肥料"},
+  "防除":       {read:"ぼうじょ",         desc:"病気や害虫から作物を守る作業。農薬散布など"},
+  "剪定":       {read:"せんてい",         desc:"樹木の枝を切り整えること。風通しや日当たりを良くする"},
+  "摘心":       {read:"てきしん",         desc:"先端の芽を摘むこと。草丈を抑え脇芽を増やす"},
+  "摘果・摘花": {read:"てきか・てきか",   desc:"余分な実や花を取り除くこと。残した実を大きくする"},
+  "摘果":       {read:"てきか",           desc:"余分な実を取り除くこと。残した実を大きくする"},
+  "摘花":       {read:"てきか",           desc:"余分な花を取り除くこと"},
+  "脇芽かき":   {read:"わきめかき",       desc:"脇から出た芽を取り除くこと。養分を主枝に集中させる"},
+  "生育記録":   {read:"せいいくきろく",   desc:"開花・着果など生育の節目を記録すること"},
+  "収穫":       {read:"しゅうかく",       desc:"育てた作物を取り入れること"},
+  "廃棄・株調整":{read:"はいき・かぶちょうせい",desc:"枯れた株の除去や株数の調整をすること"},
+  "資材作業":   {read:"しざいさぎょう",   desc:"マルチや支柱など農業資材の設置・撤去作業"},
+  "見回り":     {read:"みまわり",         desc:"圃場を巡回して生育状況や異常を確認すること"},
+  "その他":     {read:"そのた",           desc:"上記以外の農作業全般"},
+  "中耕":       {read:"ちゅうこう",       desc:"育てている途中に土を耕すこと"},
+  "土寄せ":     {read:"どよせ",           desc:"株元に土を寄せること"},
+  "間引き":     {read:"まびき",           desc:"密集した苗を抜いて間隔を広げること"},
+  "誘引":       {read:"ゆういん",         desc:"茎や枝を支柱に結びつけること"},
+  "連作":       {read:"れんさく",         desc:"同じ場所に同じ作物を続けて栽培すること"},
+  "輪作":       {read:"りんさく",         desc:"同じ場所に異なる作物を順番に栽培すること"},
+  "休閑":       {read:"きゅうかん",       desc:"畑を休ませること"},
+  "堆肥":       {read:"たいひ",           desc:"有機物を発酵させた肥料"},
+  "緑肥":       {read:"りょくひ",         desc:"土に混ぜ込む植物"},
+  "草丈":       {read:"くさたけ",         desc:"地面から植物の先端までの高さ"},
+  "分げつ":     {read:"ぶんげつ",         desc:"イネ科の植物で茎が枝分かれすること"},
+  "植え替え":   {read:"うえかえ",          desc:"植物を大きな鉢や別の場所に移し替えること"},
+  "鉢植え":     {read:"はちうえ",          desc:"鉢やプランターで植物を育てること"},
+};
+
+function TermTooltip({ children }) {
+  const [show, setShow] = useState(false);
+  const term = AGRI_TERMS[children];
+  if(!term) return <span>{children}</span>;
+  return (
+    <span style={{position:"relative",display:"inline-block"}}
+      onMouseEnter={()=>setShow(true)}
+      onMouseLeave={()=>setShow(false)}
+      onTouchStart={()=>setShow(true)}
+      onTouchEnd={()=>setTimeout(()=>setShow(false),1500)}>
+      <span style={{borderBottom:"1px dashed "+G,color:G,cursor:"help",fontWeight:700}}>
+        {children}
+      </span>
+      {show&&(
+        <span style={{position:"absolute",bottom:"calc(100% + 6px)",left:"50%",transform:"translateX(-50%)",zIndex:999,background:"#1c1a14",color:"#fff",borderRadius:9,padding:"8px 12px",fontSize:".74rem",whiteSpace:"nowrap",boxShadow:"0 4px 16px rgba(0,0,0,.3)",minWidth:200,lineHeight:1.7,pointerEvents:"none"}}>
+          <span style={{color:"#9ffcb4",fontWeight:700}}>{children}</span>
+          <span style={{color:"#aaa",fontSize:".68rem",marginLeft:5}}>（{term.read}）</span>
+          <br/>{term.desc}
+          <span style={{position:"absolute",top:"100%",left:"50%",transform:"translateX(-50%)",width:0,height:0,borderLeft:"6px solid transparent",borderRight:"6px solid transparent",borderTop:"6px solid #1c1a14"}}/>
+        </span>
+      )}
+    </span>
+  );
+}
+function Btn({ onClick, style, disabled, children }) { return <button onClick={onClick} disabled={disabled} style={{...S.btn,...style,opacity:disabled?.5:1,cursor:disabled?"not-allowed":"pointer"}}>{children}</button>; }
+function FG({ label, children }) { return <div style={S.fg}>{label&&<label style={S.lbl}>{label}</label>}{children}</div>; }
+function Inp({ value, onChange, type="text", placeholder="", style={}, ...props }) { return <input type={type} value={value||""} onChange={e=>onChange(e.target.value)} placeholder={placeholder} style={{...S.inp,...style}} {...props} />; }
+function Sel({ value, onChange, options, style={} }) { return <select value={value||""} onChange={e=>{ if(!options.find(o=>o.value===e.target.value)?.disabled) onChange(e.target.value); }} style={{...S.inp,...style}}>{options.map(o=><option key={o.value} value={o.value} disabled={o.disabled} style={o.disabled?{color:"#aaa",fontWeight:700,background:"#f5f5f0"}:{}}>{o.label}</option>)}</select>; }
+function TA({ value, onChange, placeholder="" }) { return <textarea value={value||""} onChange={e=>onChange(e.target.value)} placeholder={placeholder} style={{...S.inp,minHeight:65,resize:"vertical",lineHeight:1.5}} />; }
+function R2({ children }) { return <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>{children}</div>; }
+function R3({ children }) { return <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:6}}>{children}</div>; }
+function Prog({ pct }) { return <div style={{height:5,background:"#eee",borderRadius:999,overflow:"hidden",marginTop:6}}><div style={{height:"100%",borderRadius:999,background:"linear-gradient(90deg,"+G+","+G2+")",width:pct+"%",transition:"width .7s ease"}} /></div>; }
+function Toast({ msg }) { if(!msg) return null; return <div style={{position:"fixed",bottom:66,left:"50%",transform:"translateX(-50%)",background:"#1c1a14",color:"#fff",padding:"6px 15px",borderRadius:999,fontSize:".78rem",zIndex:700,whiteSpace:"nowrap",pointerEvents:"none"}}>{msg}</div>; }
+
+function Modal({ open, onClose, title, children }) {
+  if(!open) return null;
+  return (
+    <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,.48)",zIndex:1000,display:"flex",flexDirection:"column",justifyContent:"flex-end",alignItems:"center"}}>
+      <div style={{background:"#f8f5ef",borderRadius:"16px 16px 0 0",width:"100%",maxWidth:960,display:"flex",flexDirection:"column",maxHeight:"calc(100svh - 60px)"}}>
+        <div style={{padding:"15px 13px 12px",flexShrink:0,display:"flex",justifyContent:"space-between",alignItems:"center",borderBottom:"1px solid #e0d9ce"}}>
+          <span style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".98rem"}}>{title}</span>
+          <button onClick={onClose} style={{background:"none",border:"none",fontSize:"1.25rem",color:"#aaa",cursor:"pointer",lineHeight:1}}>✕</button>
+        </div>
+        <div style={{overflowY:"auto",WebkitOverflowScrolling:"touch",padding:"13px 13px 0"}}>
+          {children}
+        </div>
+        <div style={{padding:"12px 13px",paddingBottom:"max(12px, env(safe-area-inset-bottom))",flexShrink:0,background:"#f8f5ef"}}>
+          <div id="modal-save-btn-portal" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Modal with a sticky save button always visible at bottom
+function ModalWithSave({ open, onClose, title, onSave, saveLabel="保存", children }) {
+  if(!open) return null;
+  return (
+    <div style={{position:"fixed",top:52,left:0,right:0,bottom:0,zIndex:9999,display:"flex",flexDirection:"column",background:"#f8f5ef"}}>
+      <div style={{background:GD,color:"#fff",padding:"11px 13px",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0,gap:8}}>
+        <span style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".92rem",fontWeight:700,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{title}</span>
+        <button onClick={onClose} style={{background:"rgba(255,255,255,.18)",border:"1px solid rgba(255,255,255,.25)",color:"#fff",borderRadius:8,padding:"6px 12px",fontSize:".8rem",cursor:"pointer",flexShrink:0}}>✕</button>
+        <button onClick={onSave} style={{background:"#fff",border:"none",color:G,borderRadius:8,padding:"6px 14px",fontSize:".8rem",fontWeight:700,cursor:"pointer",flexShrink:0}}>{saveLabel} ✓</button>
+      </div>
+      <div style={{flex:1,overflowY:"auto",WebkitOverflowScrolling:"touch",padding:"14px 14px 40px"}}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+// LOGIN
+function LoginScreen() {
+  const [loading,  setLoading]  = useState(false);
+  const [err,      setErr]      = useState("");
+  const [agreed,   setAgreed]   = useState(false);
+  const [mode,     setMode]     = useState("top");
+  const [email,    setEmail]    = useState("");
+  const [password, setPassword] = useState("");
+  const [showPw,   setShowPw]   = useState(false);
+
+  const loginGoogle = async () => {
+    if(!agreed){setErr("利用規約に同意してください");return;}
+    setLoading(true);setErr("");
+    const {error}=await sb.auth.signInWithOAuth({provider:"google",options:{redirectTo:window.location.origin,queryParams:{prompt:"select_account"}}});
+    if(error){setErr(error.message);setLoading(false);}
+  };
+
+  const loginEmail = async () => {
+    if(!agreed){setErr("利用規約に同意してください");return;}
+    if(!email||!password){setErr("メールとパスワードを入力してください");return;}
+    setLoading(true);setErr("");
+    const {error}=await sb.auth.signInWithPassword({email,password});
+    if(error){setErr(error.message.includes("Invalid")?"メールまたはパスワードが違います":error.message);setLoading(false);}
+  };
+
+  const signupEmail = async () => {
+    if(!agreed){setErr("利用規約に同意してください");return;}
+    if(!email||!password){setErr("メールとパスワードを入力してください");return;}
+    if(password.length<6){setErr("パスワードは6文字以上");return;}
+    setLoading(true);setErr("");
+    const {error}=await sb.auth.signUp({email,password,options:{emailRedirectTo:window.location.origin}});
+    if(error){setErr(error.message);setLoading(false);}
+    else{setMode("verify");}
+  };
+
+  const resetPw = async () => {
+    if(!email){setErr("メールアドレスを入力してください");return;}
+    setLoading(true);setErr("");
+    const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:window.location.origin});
+    setErr(error?error.message:"パスワードリセットメールを送信しました");
+    setLoading(false);
+  };
+
+  // AgreeBox はインラインで直接記述
+
+  // EmailForm と AgreeBox はインラインで直接記述（コンポーネント化するとフォーカスが失われる）
+
+  return (
+    <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:"100svh",background:"linear-gradient(135deg,"+GD+","+G+")",padding:20}}>
+      <style>{globalCss}</style>
+      <div style={{background:"#fff",borderRadius:20,padding:"28px 24px",maxWidth:360,width:"100%",textAlign:"center",boxShadow:"0 8px 40px rgba(0,0,0,.3)"}}>
+        <div style={{fontSize:"2.2rem",marginBottom:6}}>🌾</div>
+        <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:"1.3rem",color:G,marginBottom:4}}>サクメモ</div>
+        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ</div>
+
+        {mode==="verify"&&(
+          <div style={{background:"#f0f9f0",borderRadius:12,padding:16}}>
+            <div style={{fontSize:"2rem",marginBottom:8}}>📧</div>
+            <div style={{fontWeight:700,marginBottom:8}}>確認メールを送信しました</div>
+            <div style={{fontSize:".78rem",color:TX3,lineHeight:1.7,marginBottom:12}}>{email} のメールを確認してリンクをクリックしてください</div>
+            <button onClick={()=>setMode("login")} style={{width:"100%",padding:"8px",background:"none",border:"1.5px solid #e0d9ce",borderRadius:8,fontSize:".82rem",cursor:"pointer",fontFamily:"inherit"}}>ログイン画面に戻る</button>
+          </div>
+        )}
+
+        {mode==="top"&&<>
+          <div style={{display:"flex",alignItems:"flex-start",gap:8,marginBottom:14,textAlign:"left"}}>
+          <input type="checkbox" id="agree" checked={agreed} onChange={e=>setAgreed(e.target.checked)}
+              style={{marginTop:3,width:16,height:16,accentColor:G,flexShrink:0,cursor:"pointer"}}/>
+          <label htmlFor="agree" style={{fontSize:".72rem",color:"#5a5040",lineHeight:1.6,cursor:"pointer"}}>
+            <a href="https://sakumemo-jp.com/privacy-policy.html" target="_blank" style={{color:G,fontWeight:700}}>プライバシーポリシー</a>・
+            <a href="https://sakumemo-jp.com/terms-of-service.html" target="_blank" style={{color:G,fontWeight:700}}>利用規約</a>に同意する
+          </label>
+          </div>
+          <button onClick={loginGoogle} disabled={loading||!agreed}
+            style={{display:"flex",alignItems:"center",justifyContent:"center",gap:8,width:"100%",padding:"11px",background:(loading||!agreed)?"#eee":"#fff",border:"1.5px solid #e0d9ce",borderRadius:12,fontSize:".86rem",fontWeight:700,cursor:(loading||!agreed)?"not-allowed":"pointer",boxShadow:"0 2px 8px rgba(0,0,0,.08)",opacity:agreed?1:0.6,marginBottom:10}}>
+            <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.36-8.16 2.36-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+            {loading?"ログイン中…":"Googleでログイン"}
+          </button>
+          <div style={{display:"flex",alignItems:"center",gap:8,margin:"8px 0"}}>
+            <div style={{flex:1,height:1,background:"#e0d9ce"}}/><span style={{fontSize:".72rem",color:TX3}}>または</span><div style={{flex:1,height:1,background:"#e0d9ce"}}/>
+          </div>
+          <button onClick={()=>{setMode("login");setErr("");}}
+            style={{width:"100%",padding:"11px",background:G,color:"#fff",border:"none",borderRadius:12,fontSize:".86rem",fontWeight:700,cursor:"pointer",fontFamily:"inherit",marginBottom:8}}>
+            📧 メールでログイン
+          </button>
+          <button onClick={()=>{setMode("signup");setErr("");}}
+            style={{width:"100%",padding:"9px",background:"none",color:G,border:"1.5px solid "+G,borderRadius:12,fontSize:".82rem",fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+            新規登録（メール）
+          </button>
+          {err&&<div style={{color:"#e74c3c",fontSize:".78rem",marginTop:10}}>{err}</div>}
+          <div style={{fontSize:".68rem",color:"#856404",marginTop:12,background:"#fff9f0",border:"1px solid #ffd88a",borderRadius:8,padding:"8px 10px",textAlign:"left",lineHeight:1.8}}>
+            <b>⚠️ LINEから開いた場合</b><br/>
+            ① 右下「…」→「コピー」でURLをコピー<br/>
+            ② Safariを開いて貼り付けて移動<br/>
+            またはメールアドレスでログイン
+          </div>
+        </>}
+
+        {mode==="login"&&<>
+          <div style={{fontWeight:700,fontSize:".9rem",marginBottom:12,textAlign:"left"}}>📧 メールでログイン</div>
+          <div style={{display:"flex",alignItems:"flex-start",gap:8,marginBottom:14,textAlign:"left"}}>
+          <input type="checkbox" id="agree" checked={agreed} onChange={e=>setAgreed(e.target.checked)}
+              style={{marginTop:3,width:16,height:16,accentColor:G,flexShrink:0,cursor:"pointer"}}/>
+          <label htmlFor="agree" style={{fontSize:".72rem",color:"#5a5040",lineHeight:1.6,cursor:"pointer"}}>
+            <a href="https://sakumemo-jp.com/privacy-policy.html" target="_blank" style={{color:G,fontWeight:700}}>プライバシーポリシー</a>・
+            <a href="https://sakumemo-jp.com/terms-of-service.html" target="_blank" style={{color:G,fontWeight:700}}>利用規約</a>に同意する
+          </label>
+          </div>
+          <div style={{textAlign:"left"}}>
+            <div style={{marginBottom:8}}>
+              <div style={{fontSize:".74rem",fontWeight:700,color:"#5c3d1e",marginBottom:3}}>メールアドレス</div>
+              <input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="example@gmail.com" autoComplete="email"
+                style={{width:"100%",padding:"9px 12px",border:"1.5px solid #e0d9ce",borderRadius:8,fontSize:".86rem",fontFamily:"inherit",outline:"none"}}/>
+            </div>
+            <div style={{marginBottom:12}}>
+              <div style={{fontSize:".74rem",fontWeight:700,color:"#5c3d1e",marginBottom:3}}>パスワード</div>
+              <div style={{position:"relative"}}>
+                <input type={showPw?"text":"password"} value={password} onChange={e=>setPassword(e.target.value)} placeholder="パスワード" autoComplete="current-password"
+                  style={{width:"100%",padding:"9px 36px 9px 12px",border:"1.5px solid #e0d9ce",borderRadius:8,fontSize:".86rem",fontFamily:"inherit",outline:"none"}}/>
+                <button type="button" onClick={()=>setShowPw(p=>!p)}
+                  style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",fontSize:".8rem",color:"#888"}}>
+                  {showPw?"🙈":"👁"}
+                </button>
+              </div>
+            </div>
+          </div>
+          <button onClick={loginEmail} disabled={loading||!agreed}
+            style={{width:"100%",padding:"11px",background:(loading||!agreed)?"#ccc":G,color:"#fff",border:"none",borderRadius:12,fontSize:".86rem",fontWeight:700,cursor:"pointer",fontFamily:"inherit",marginBottom:6}}>
+            {loading?"ログイン中…":"ログイン"}
+          </button>
+          {err&&<div style={{color:"#e74c3c",fontSize:".78rem",marginTop:4,marginBottom:4}}>{err}</div>}
+          <button onClick={resetPw} style={{background:"none",border:"none",color:TX3,fontSize:".74rem",cursor:"pointer",fontFamily:"inherit",marginBottom:8,display:"block",margin:"4px auto 8px"}}>
+            パスワードを忘れた方
+          </button>
+          <div style={{display:"flex",gap:8}}>
+            <button onClick={()=>{setMode("top");setErr("");}} style={{flex:1,padding:"8px",background:"none",border:"1.5px solid #e0d9ce",borderRadius:8,fontSize:".78rem",cursor:"pointer",fontFamily:"inherit"}}>← 戻る</button>
+            <button onClick={()=>{setMode("signup");setErr("");}} style={{flex:1,padding:"8px",background:"none",border:"1.5px solid "+G,borderRadius:8,fontSize:".78rem",color:G,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>新規登録</button>
+          </div>
+        </>}
+
+        {mode==="signup"&&<>
+          <div style={{fontWeight:700,fontSize:".9rem",marginBottom:12,textAlign:"left"}}>🌱 新規登録</div>
+          <div style={{display:"flex",alignItems:"flex-start",gap:8,marginBottom:14,textAlign:"left"}}>
+          <input type="checkbox" id="agree" checked={agreed} onChange={e=>setAgreed(e.target.checked)}
+              style={{marginTop:3,width:16,height:16,accentColor:G,flexShrink:0,cursor:"pointer"}}/>
+          <label htmlFor="agree" style={{fontSize:".72rem",color:"#5a5040",lineHeight:1.6,cursor:"pointer"}}>
+            <a href="https://sakumemo-jp.com/privacy-policy.html" target="_blank" style={{color:G,fontWeight:700}}>プライバシーポリシー</a>・
+            <a href="https://sakumemo-jp.com/terms-of-service.html" target="_blank" style={{color:G,fontWeight:700}}>利用規約</a>に同意する
+          </label>
+          </div>
+          <div style={{textAlign:"left"}}>
+            <div style={{marginBottom:8}}>
+              <div style={{fontSize:".74rem",fontWeight:700,color:"#5c3d1e",marginBottom:3}}>メールアドレス</div>
+              <input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="example@gmail.com" autoComplete="email"
+                style={{width:"100%",padding:"9px 12px",border:"1.5px solid #e0d9ce",borderRadius:8,fontSize:".86rem",fontFamily:"inherit",outline:"none"}}/>
+            </div>
+            <div style={{marginBottom:12}}>
+              <div style={{fontSize:".74rem",fontWeight:700,color:"#5c3d1e",marginBottom:3}}>パスワード</div>
+              <div style={{position:"relative"}}>
+                <input type={showPw?"text":"password"} value={password} onChange={e=>setPassword(e.target.value)} placeholder="パスワード（6文字以上）" autoComplete="new-password"
+                  style={{width:"100%",padding:"9px 36px 9px 12px",border:"1.5px solid #e0d9ce",borderRadius:8,fontSize:".86rem",fontFamily:"inherit",outline:"none"}}/>
+                <button type="button" onClick={()=>setShowPw(p=>!p)}
+                  style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",fontSize:".8rem",color:"#888"}}>
+                  {showPw?"🙈":"👁"}
+                </button>
+              </div>
+            </div>
+          </div>
+          <button onClick={signupEmail} disabled={loading||!agreed}
+            style={{width:"100%",padding:"11px",background:(loading||!agreed)?"#ccc":G,color:"#fff",border:"none",borderRadius:12,fontSize:".86rem",fontWeight:700,cursor:"pointer",fontFamily:"inherit",marginBottom:6}}>
+            {loading?"登録中…":"登録する"}
+          </button>
+          {err&&<div style={{color:"#e74c3c",fontSize:".78rem",marginTop:4,marginBottom:4}}>{err}</div>}
+          <div style={{display:"flex",gap:8}}>
+            <button onClick={()=>{setMode("top");setErr("");}} style={{flex:1,padding:"8px",background:"none",border:"1.5px solid #e0d9ce",borderRadius:8,fontSize:".78rem",cursor:"pointer",fontFamily:"inherit"}}>← 戻る</button>
+            <button onClick={()=>{setMode("login");setErr("");}} style={{flex:1,padding:"8px",background:"none",border:"1.5px solid "+G,borderRadius:8,fontSize:".78rem",color:G,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>ログイン</button>
+          </div>
+        </>}
+
+        <div style={{fontSize:".66rem",color:"#a09070",marginTop:14,lineHeight:1.6}}>
+          <a href="https://sakumemo-jp.com/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
+          <a href="https://sakumemo-jp.com/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function HomeScreen({ fields, crops, logs, costs, onEditCrop }) {
+  const [wx, setWx] = useState(null);
+
+  const [wxFieldIdx, setWxFieldIdx] = useState(0);
+  const wxField = fields[wxFieldIdx] || fields[0];
+  const addr0   = wxField?.addr || "";
+  useEffect(() => { fetchWeather(addr0).then(setWx); }, [addr0]);
+
+  const sched = [];
+  crops.forEach(c => {
+    const db=CDB[c.type]; if(!db&&c.type!=="custom") return;
+    if(!c.plantDate) return;
+    const harvestDays = c.type==="custom"
+      ? (parseInt(c.customDays)||90)
+      : (db?.maturity?.[c.maturity||"mid"]||db?.d||90);
+    const waterDays = c.type==="custom"
+      ? (parseInt(c.customWater)||2)
+      : (db?.w||2);
+    const pl=new Date(c.plantDate).getTime();
+    const hd=new Date(pl+harvestDays*86400000); const dl=Math.ceil((hd-Date.now())/86400000);
+    const cropName=c.type==="custom"?c.customName||"カスタム":db?.n||c.type; sched.push({ date:fmtDate(hd), task:"収穫予定（定植後"+harvestDays+"日）", crop:(db?.e||"🌱")+" "+cropName, color:dl<7?ALERT:dl<21?WARN:G, ts:hd.getTime() });
+    const wn=new Date(Date.now()+waterDays*86400000);
+    sched.push({ date:fmtDate(wn), task:"水やり（"+(waterDays===1?"毎日":waterDays+"日に1回")+"）", crop:(db?.e||"🌱")+" "+cropName, color:waterDays<=1?ALERT:WARN, ts:wn.getTime() });
+  });
+  sched.sort((a,b)=>a.ts-b.ts);
+
+  return (
+    <div style={{padding:"10px 12px 16px"}}>
+
+      {wx && (
+        <div style={{background:"linear-gradient(135deg,#1565a8,#3498db)",borderRadius:14,padding:"13px 15px",color:"#fff",marginBottom:9}}>
+          {fields.length > 1 && (
+            <div style={{display:"flex",gap:5,marginBottom:10,flexWrap:"wrap"}}>
+              {fields.map((f,i)=>(
+                <button key={f.id} onClick={()=>setWxFieldIdx(i)}
+                  style={{background:wxFieldIdx===i?"rgba(255,255,255,.9)":"rgba(255,255,255,.18)",color:wxFieldIdx===i?"#1565a8":"#fff",border:"1px solid rgba(255,255,255,.3)",borderRadius:999,padding:"3px 10px",fontSize:".71rem",cursor:"pointer",fontFamily:"inherit",fontWeight:wxFieldIdx===i?700:400}}>
+                  {f.name}
+                </button>
+              ))}
+            </div>
+          )}
+          <div style={{display:"flex",alignItems:"center",gap:11,flexWrap:"wrap"}}>
+            <span style={{fontSize:"2.3rem"}}>{wxIcon(wx.code)}</span>
+            <div>
+              <div style={{fontSize:"1.8rem",fontWeight:700,lineHeight:1}}>{wx.temp}°C</div>
+              <div style={{fontSize:".72rem",opacity:.8,marginTop:2}}>{wx.label} / {wxLabel(wx.code)}</div>
+              <div style={{display:"flex",gap:8,marginTop:3,fontSize:".68rem",opacity:.78}}><span>💧{wx.rain}mm</span><span>💨{wx.wind}m/s</span><span>💦{wx.humid}%</span></div>
+            </div>
+            <div style={{background:"rgba(255,255,255,.19)",borderRadius:9,padding:"7px 11px",fontSize:".73rem",lineHeight:1.4,textAlign:"center",marginLeft:"auto"}}>{wxAdvice(wx)}</div>
+          </div>
+          {/* 時間別予報 */}
+          {wx.hourly && wx.hourly.length > 0 && (
+            <div style={{marginTop:10}}>
+              <div style={{fontSize:".63rem",opacity:.6,marginBottom:5}}>時間別予報</div>
+              <div style={{display:"flex",gap:5,overflowX:"auto",paddingBottom:4,WebkitOverflowScrolling:"touch"}}>
+                {wx.hourly.filter((_,i)=>i%2===0).slice(0,12).map((h,i)=>(
+                  <div key={i} style={{flexShrink:0,background:"rgba(255,255,255,.13)",borderRadius:9,padding:"5px 7px",textAlign:"center",minWidth:44}}>
+                    <div style={{fontSize:".6rem",opacity:.7}}>{h.hour}時</div>
+                    <div style={{fontSize:"1rem",margin:"2px 0"}}>{wxIcon(h.code)}</div>
+                    <div style={{fontSize:".7rem",fontWeight:700}}>{h.temp}°</div>
+                    {h.pop>0&&<div style={{fontSize:".58rem",opacity:.8,color:"#90caf9"}}>💧{h.pop}%</div>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {/* 3日間予報 */}
+          {wx.daily && (
+            <div style={{display:"flex",gap:6,marginTop:8}}>
+              {[0,1,2,3].map(i=>{
+                const now=new Date();
+                const d=new Date(now); d.setDate(d.getDate()+i);
+                const label=i===0?"今日":i===1?"明日":i===2?"明後日":"3日後";
+                return(
+                  <div key={i} style={{flex:1,background:"rgba(255,255,255,.13)",borderRadius:9,padding:5,textAlign:"center",fontSize:".67rem"}}>
+                    <div style={{opacity:.7,marginBottom:1}}>{label}</div>
+                    <div style={{fontSize:"1.1rem"}}>{wxIcon(wx.daily.weathercode[i])}</div>
+                    <div style={{fontWeight:700,marginTop:1}}>{Math.round(wx.daily.temperature_2m_max[i])}°/<span style={{opacity:.7}}>{Math.round(wx.daily.temperature_2m_min[i])}°</span></div>
+                    {wx.daily.precipitation_probability_max&&<div style={{fontSize:".58rem",opacity:.8,color:"#90caf9"}}>💧{wx.daily.precipitation_probability_max[i]}%</div>}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 栽培中の作物 */}
+      <div style={S.sec}><span>🌾 栽培中の作物</span></div>
+      {!crops.filter(c=>!c.ended).length && <div style={{color:TX3,fontSize:".82rem",padding:8,textAlign:"center"}}>品目がまだ登録されていません</div>}
+      {crops.filter(c=>!c.ended).slice(0,8).map(c=>{
+        const db=CDB[c.type]||{}; const f=fields[c.fieldIdx]||{};
+        const days=daysSince(c.plantDate);
+        const harvestD=c.type==="custom"?(parseInt(c.customDays)||90):(db?.maturity?.[c.maturity||"mid"]||db?.d||90);
+        const pct=Math.min(100,Math.round(days/harvestD*100));
+        const startLabel=c.cultivationType==="direct"?"播種":"定植";
+        const cl=logs.filter(l=>l.cropId===c.id);
+        const added=cl.filter(l=>l.addCnt).reduce((s,l)=>s+(parseInt(l.addCnt)||0),0);
+        const disc=cl.filter(l=>l.discardCnt).reduce((s,l)=>s+(parseInt(l.discardCnt)||0),0);
+        const stocks=(parseInt(c.stocks)||0)+added-disc;
+        const hvKg=cl.reduce((s,l)=>s+(parseFloat(l.hvKg)||0),0);
+        return (
+          <div key={c.id} style={{...S.card,cursor:"pointer"}} onClick={()=>onEditCrop&&onEditCrop(c)}>
+            <div style={{display:"flex",gap:9,alignItems:"center"}}>
+              <span style={{fontSize:"1.8rem"}}>{db.e||"🌱"}</span>
+              <div style={{flex:1}}>
+                <div style={{fontWeight:700}}>{c.type==="custom"?c.customName||"カスタム":db.n||c.type}{c.variety?" ("+c.variety+")":""}</div>
+                <div style={{fontSize:".7rem",color:TX3}}>{f.name||"?"} / {c.plantDate?startLabel+days+"日目":"定植日未設定"} / {stocks}株{disc>0?" (廃棄"+disc+"株)":""}</div>
+                {hvKg>0 && <div style={{fontSize:".7rem",color:G}}>累計収穫: {hvKg.toFixed(1)}kg</div>}
+              </div>
+            </div>
+            <div style={{height:5,background:"#eee",borderRadius:999,overflow:"hidden",marginTop:6}}>
+              <div style={{height:"100%",borderRadius:999,background:"linear-gradient(90deg,"+G+","+G2+")",width:pct+"%",transition:"width .7s ease"}}/>
+            </div>
+            <div style={{fontSize:".64rem",color:TX3,marginTop:2,display:"flex",justifyContent:"space-between"}}>
+              <span>生育進捗 {pct}%</span>
+              <span>収穫まで約{Math.max(0,harvestD-days)}日</span>
+            </div>
+          </div>
+        );
+      })}
+
+      {/* みんなのサクメモ */}
+      <a href="/community.html" style={{display:"flex",alignItems:"center",justifyContent:"space-between",background:"linear-gradient(135deg,#2d6a3f,#419857)",borderRadius:14,padding:"13px 16px",marginBottom:9,textDecoration:"none"}}>
+        <div>
+          <div style={{color:"#fff",fontWeight:700,fontSize:".9rem",fontFamily:"'Shippori Mincho B1',serif"}}>🌾 みんなのサクメモ</div>
+          <div style={{color:"rgba(255,255,255,.8)",fontSize:".74rem",marginTop:3}}>公開中の農場記録を見る</div>
+        </div>
+        <span style={{color:"#fff",fontSize:"1.3rem"}}>›</span>
+      </a>
+
+      {/* 作業スケジュール */}
+      <div style={S.sec}><span>📅 作業スケジュール</span></div>
+      {!sched.length && <div style={{color:TX3,fontSize:".82rem",padding:8}}>品目を登録するとスケジュールが表示されます</div>}
+      <div style={{display:"flex",flexDirection:"column",gap:7}}>
+        {sched.slice(0,6).map((s,i)=>(
+          <div key={i} style={{display:"flex",gap:9,alignItems:"flex-start",background:"#fff",borderRadius:10,padding:"9px 12px",borderLeft:"4px solid "+s.color,boxShadow:"0 2px 12px rgba(0,0,0,.08)"}}>
+            <div style={{fontSize:".68rem",color:TX3,minWidth:44}}>{s.date}</div>
+            <div><div style={{fontWeight:700,fontSize:".83rem"}}>{s.task}</div><div style={{fontSize:".7rem",color:G}}>{s.crop}</div></div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// MASTER
+function MasterScreen({ fertMs, setFertMs, pestMs, setPestMs, equips, setEquips, costs, setCosts, showToast }) {
+  // 全資材を統合して管理
+  const [filter, setFilter] = useState("all"); // all / fert / pest / equip
+  const [mItem,  setMItem]  = useState(null);  // 編集モーダル
+  const [mBuy,   setMBuy]   = useState(null);  // 購入モーダル
+
+  // 全資材リスト（種類タグ付き）
+  const allItems = [
+    ...fertMs.map((f,i)=>({...f, _type:"fert",  _idx:i, _label:"肥料",   _color:"#d1fae5", _tc:"#065f46", _icon:"🌿"})),
+    ...pestMs.map((p,i)=>({...p, _type:"pest",  _idx:i, _label:"農薬",   _color:"#fef3c7", _tc:"#92400e", _icon:"🐛"})),
+    ...equips.map((e,i)=>({...e, _type:"equip", _idx:i, _label:"設備・資材", _color:"#ede9fe", _tc:"#5b21b6", _icon:"🏗️"})),
+  ];
+  const filtered = filter==="all" ? allItems : allItems.filter(x=>x._type===filter);
+
+  // 保存
+  const saveItem = () => {
+    if(!mItem.name?.trim()){showToast("資材名を入力してください");return;}
+    const isEdit = mItem._idx !== undefined;
+    const item = {...mItem, id:mItem.id||uid0()};
+    if(item._type==="fert"){
+      const n=isEdit?fertMs.map((x,i)=>i===item._idx?item:x):[...fertMs,item];
+      setFertMs(n,item);
+    } else if(item._type==="pest"){
+      const n=isEdit?pestMs.map((x,i)=>i===item._idx?item:x):[...pestMs,item];
+      setPestMs(n,item);
+    } else {
+      const n=isEdit?equips.map((x,i)=>i===item._idx?item:x):[...equips,item];
+      setEquips(n,item);
+    }
+    // 費用自動追加（価格が入力されている場合）
+    if(item.price && parseFloat(item.price) > 0) {
+      const costCat = item._type==="equip"?"equip":item._type;
+      const costName = item.name + (item.capacity?" ("+item.capacity+(item.cunit||item.sunit||"")+"入り)":"");
+      if(isEdit) {
+        // 編集時：同じIDの費用を更新
+        const existCostIdx = costs.findIndex(c=>c.masterId===item.id);
+        if(existCostIdx >= 0) {
+          const updated = costs.map((c,i)=>i===existCostIdx?{...c,amt:String(item.price),name:costName}:c);
+          const updCost = updated[existCostIdx];
+          setCosts(updated, updCost);
+        }
+      } else {
+        // 新規：費用を追加
+        const newCost = {id:uid0(),masterId:item.id,cat:costCat,name:costName,amt:String(item.price),date:todayStr(),qty:"1",qunit:"個",fieldIdx:"",note:"マスター登録時に自動追加"};
+        setCosts([...costs, newCost], newCost);
+      }
+    }
+    setMItem(null); showToast("保存しました");
+  };
+
+  // 削除
+  const deleteItem = (item) => {
+    if(!window.confirm("削除しますか？"))return;
+    if(item._type==="fert"){ dbDelete("fert_masters",item.id); setFertMs(fertMs.filter((_,i)=>i!==item._idx)); }
+    else if(item._type==="pest"){ dbDelete("pest_masters",item.id); setPestMs(pestMs.filter((_,i)=>i!==item._idx)); }
+    else { dbDelete("equipments",item.id); setEquips(equips.filter((_,i)=>i!==item._idx)); }
+    showToast("削除しました");
+  };
+
+  // 購入保存
+  const saveBuy = () => {
+    if(!mBuy.cnt||!mBuy.amt){showToast("個数と金額を入力してください");return;}
+    const cnt = parseFloat(mBuy.cnt)||0;
+    const cap = parseFloat(mBuy.capacity)||0;
+    const addStock = cap>0 ? cnt*cap : cnt;
+    // 在庫更新
+    const updItem = {...mBuy._item, stock:String((parseFloat(mBuy._item.stock)||0)+addStock)};
+    if(mBuy._type==="fert") setFertMs(fertMs.map((x,i)=>i===mBuy._idx?updItem:x),updItem);
+    else if(mBuy._type==="pest") setPestMs(pestMs.map((x,i)=>i===mBuy._idx?updItem:x),updItem);
+    // 費用追加
+    const cap2 = parseFloat(mBuy.capacity)||0;
+    const label = mBuy.name+(cap2>0?" "+cnt+"個("+addStock+(mBuy.sunit||mBuy.cunit||"")+")":" "+cnt+"個");
+    setCosts([...costs,{id:uid0(),cat:mBuy._type==="equip"?"equip":mBuy._type,name:label,amt:String(mBuy.amt),date:mBuy.date||todayStr(),qty:String(cnt),qunit:"個",fieldIdx:"",note:mBuy.note||""}],
+      {id:uid0(),cat:mBuy._type==="equip"?"equip":mBuy._type,name:label,amt:String(mBuy.amt),date:mBuy.date||todayStr(),qty:String(cnt),qunit:"個",fieldIdx:"",note:mBuy.note||""});
+    showToast("購入記録しました（在庫+"+(cap>0?addStock+(mBuy.sunit||mBuy.cunit||""):cnt+"個")+"・費用+"+Math.round(mBuy.amt).toLocaleString()+"円）");
+    setMBuy(null);
+  };
+
+
+
+  // 新規作成のデフォルト
+  const newFert  = {_type:"fert",  name:"",type:"化成肥料",npk:"",price:"",punit:"円/袋",capacity:"",cunit:"kg",stock:"0",sunit:"kg",note:""};
+  const newPest  = {_type:"pest",  name:"",type:"殺虫剤",dil:"",target:"",price:"",punit:"円/本",capacity:"",cunit:"ml",stock:"0",sunit:"ml",note:""};
+  const newEquip = {_type:"equip", name:"",cat:"マルチ",status:"使用中",price:"",date:todayStr(),note:"",_label:"資材",_color:"#ede9fe",_tc:"#5b21b6",_icon:"🏗️"};
+
+  return (
+    <div style={S.scr} className="scr-inner">
+      {/* フィルタータブ */}
+      <div style={{display:"flex",gap:6,marginBottom:12,overflowX:"auto",WebkitOverflowScrolling:"touch"}}>
+        {[{k:"all",l:"すべて"},{k:"fert",l:"🌿 肥料"},{k:"pest",l:"🐛 農薬"},{k:"equip",l:"🏗️ 設備"}].map(t=>(
+          <button key={t.k} onClick={()=>setFilter(t.k)}
+            style={{flexShrink:0,padding:"6px 14px",borderRadius:999,border:"1.5px solid "+(filter===t.k?G:BD),
+              background:filter===t.k?G:"#fff",color:filter===t.k?"#fff":"#5a5040",
+              fontSize:".78rem",fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+            {t.l}
+          </button>
+        ))}
+        <div style={{flex:1}}/>
+        <button style={{...S.btn,background:G3,color:G,border:"1px solid "+G,borderRadius:999,padding:"6px 14px",fontSize:".78rem",fontWeight:700,width:"auto",flexShrink:0}}
+          onClick={()=>setMItem({...newFert,_idx:undefined})}>＋ 肥料</button>
+        <button style={{...S.btn,background:"#fffde7",color:"#92400e",border:"1px solid #f9e4a0",borderRadius:999,padding:"6px 14px",fontSize:".78rem",fontWeight:700,width:"auto",flexShrink:0}}
+          onClick={()=>setMItem({...newPest,_idx:undefined})}>＋ 農薬</button>
+        <button style={{...S.btn,background:"#ede9fe",color:"#5b21b6",border:"1px solid #c4b5fd",borderRadius:999,padding:"6px 14px",fontSize:".78rem",fontWeight:700,width:"auto",flexShrink:0}}
+          onClick={()=>setMItem({...newEquip,_idx:undefined})}>＋ 資材</button>
+      </div>
+
+      {!filtered.length&&<div style={{color:TX3,fontSize:".82rem",padding:16,textAlign:"center"}}>資材がまだ登録されていません</div>}
+
+      {filtered.map((item,i)=>(
+        <div key={item.id||i} style={{...S.card,borderLeft:"4px solid "+(item._type==="fert"?"#6ee7b7":item._type==="pest"?"#fcd34d":"#a78bfa")}}>
+          <div style={{display:"flex",alignItems:"flex-start",gap:10}}>
+            <span style={{fontSize:"1.6rem",lineHeight:1.2}}>{item._icon}</span>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
+                <span style={{fontWeight:700,fontSize:".92rem"}}>{item.name}</span>
+                <span style={{fontSize:".65rem",fontWeight:700,padding:"2px 7px",borderRadius:999,background:item._color,color:item._tc}}>{item._label}</span>
+                {item.type&&<span style={{fontSize:".65rem",color:TX3}}>{item.type}</span>}
+              </div>
+              {/* 在庫・単価情報 */}
+              <div style={{marginTop:5,display:"flex",gap:10,flexWrap:"wrap",fontSize:".75rem"}}>
+
+                {item.capacity&&<div style={{background:"#f5f5f0",borderRadius:8,padding:"4px 10px"}}>
+                  <span style={{color:TX3}}>内容量 </span>
+                  <span style={{fontWeight:700}}>{item.capacity}{item.cunit||""}</span>
+                </div>}
+                {item.price&&<div style={{background:"#f5f5f0",borderRadius:8,padding:"4px 10px"}}>
+                  <span style={{color:TX3}}>単価 </span>
+                  <span style={{fontWeight:700}}>{item.price}円</span>
+                </div>}
+                {item._type==="fert"&&item.npk&&<div style={{background:"#f5f5f0",borderRadius:8,padding:"4px 10px"}}>
+                  <span style={{color:TX3}}>N-P-K </span>
+                  <span style={{fontWeight:700}}>{item.npk}</span>
+                </div>}
+                {item._type==="pest"&&item.dil&&<div style={{background:"#f5f5f0",borderRadius:8,padding:"4px 10px"}}>
+                  <span style={{color:TX3}}>希釈 </span>
+                  <span style={{fontWeight:700}}>{item.dil}倍</span>
+                </div>}
+                {item._type==="equip"&&item.status&&<div style={{background:"#f5f5f0",borderRadius:8,padding:"4px 10px"}}>
+                  <span style={{fontWeight:700}}>{item.status}</span>
+                </div>}
+              </div>
+              {item.note&&<div style={{fontSize:".7rem",color:TX3,marginTop:4}}>{item.note}</div>}
+            </div>
+          </div>
+          {/* アクションボタン */}
+          <div style={{display:"flex",gap:6,marginTop:10,flexWrap:"wrap"}}>
+            {item._type!=="equip"&&<button
+              style={{...S.btn,background:G,color:"#fff",padding:"6px 12px",fontSize:".75rem",borderRadius:8,width:"auto",fontWeight:700}}
+              onClick={()=>setMBuy({...item,_item:item,cnt:"",amt:"",date:todayStr(),note:""})}>
+              🛒 購入を記録
+            </button>}
+            {item._type==="equip"&&<button
+              style={{...S.btn,background:G,color:"#fff",padding:"6px 12px",fontSize:".75rem",borderRadius:8,width:"auto",fontWeight:700}}
+              onClick={()=>setMBuy({...item,_item:item,cnt:"1",amt:item.price||"",date:todayStr(),note:""})}>
+              🛒 費用を記録
+            </button>}
+
+            <button style={{...S.btn,...S.btnS,...S.btnSm}} onClick={()=>setMItem({...item})}>編集</button>
+            <button style={{...S.btn,...S.btnR,...S.btnSm}} onClick={()=>deleteItem(item)}>削除</button>
+          </div>
+        </div>
+      ))}
+
+      {/* 登録・編集モーダル */}
+      <ModalWithSave open={!!mItem} onClose={()=>setMItem(null)} title={mItem?._idx!==undefined?"資材を編集":"資材を登録"} onSave={saveItem}>
+        {mItem&&<>
+          <FG label="資材名 *"><Inp value={mItem.name||""} onChange={v=>setMItem({...mItem,name:v})} placeholder="例：スミチオン乳剤"/></FG>
+
+          {mItem._type==="fert"&&<>
+            <R2>
+              <FG label="肥料の種類"><Sel value={mItem.type||"化成肥料"} onChange={v=>setMItem({...mItem,type:v})}
+                options={["化成肥料","有機肥料","液肥","緩効性肥料","石灰資材","その他"].map(v=>({value:v,label:v}))}/></FG>
+              <FG label="N-P-K"><Inp value={mItem.npk||""} onChange={v=>setMItem({...mItem,npk:v})} placeholder="8-8-8"/></FG>
+            </R2>
+          </>}
+
+          {mItem._type==="pest"&&<>
+            <R2>
+              <FG label="農薬の種類"><Sel value={mItem.type||"殺虫剤"} onChange={v=>setMItem({...mItem,type:v})}
+                options={["殺虫剤","殺菌剤","除草剤","殺虫殺菌剤","その他"].map(v=>({value:v,label:v}))}/></FG>
+              <FG label="希釈倍数"><Inp type="number" value={mItem.dil||""} onChange={v=>setMItem({...mItem,dil:v})} placeholder="1000"/></FG>
+            </R2>
+            <FG label="対象作物・病害虫"><Inp value={mItem.target||""} onChange={v=>setMItem({...mItem,target:v})} placeholder="例：アブラムシ"/></FG>
+          </>}
+
+          {mItem._type==="equip"&&<>
+            <R2>
+              <FG label="カテゴリ"><Sel value={mItem.cat||"マルチ"} onChange={v=>setMItem({...mItem,cat:v})}
+                options={["マルチ","トンネル資材","防虫ネット","支柱・杭","ハウス設備","かん水設備","動力機械","培養土・腐葉土","石灰・土壌改良材","プランター・育苗ポット","農機具","その他"].map(v=>({value:v,label:v}))}/></FG>
+              <FG label="状態"><Sel value={mItem.status||"使用中"} onChange={v=>setMItem({...mItem,status:v})}
+                options={["使用中","保管中","メンテナンス中","廃棄"].map(v=>({value:v,label:v}))}/></FG>
+            </R2>
+          </>}
+
+          {mItem._type!=="equip"&&<>
+            <div style={{background:"#f0f9f0",borderRadius:10,padding:"10px 12px",marginBottom:9}}>
+              <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".82rem",color:"#5c3d1e",marginBottom:8}}>📦 在庫・購入情報</div>
+              <R2>
+                <FG label="内容量（1個あたり）">
+                  <div style={{display:"flex",gap:4}}>
+                    <Inp type="number" value={mItem.capacity||""} onChange={v=>setMItem({...mItem,capacity:v})} placeholder="例：500" style={{flex:1}}/>
+                    <Sel value={mItem.cunit||"ml"} onChange={v=>setMItem({...mItem,cunit:v,sunit:v})}
+                      options={["ml","L","g","kg"].map(v=>({value:v,label:v}))} style={{width:60,flex:"none"}}/>
+                  </div>
+                </FG>
+                <FG label="単価（円/個）"><Inp type="number" value={mItem.price||""} onChange={v=>setMItem({...mItem,price:v})} placeholder="例：2000"/></FG>
+              </R2>
+            </div>
+          </>}
+
+          {mItem._type==="equip"&&<>
+            <R2>
+              <FG label="購入価格（円）"><Inp type="number" value={mItem.price||""} onChange={v=>setMItem({...mItem,price:v})}/></FG>
+              <FG label="購入日"><Inp type="date" value={mItem.date||todayStr()} onChange={v=>setMItem({...mItem,date:v})}/></FG>
+            </R2>
+          </>}
+
+          <FG label="メモ"><Inp value={mItem.note||""} onChange={v=>setMItem({...mItem,note:v})} placeholder="購入先・注意事項など"/></FG>
+        </>}
+      </ModalWithSave>
+
+      {/* 購入記録モーダル */}
+      <ModalWithSave open={!!mBuy} onClose={()=>setMBuy(null)} title={"🛒 "+( mBuy?.name||"")+" の購入"} onSave={saveBuy}>
+        {mBuy&&<>
+          <div style={{background:G3,borderRadius:9,padding:"8px 12px",marginBottom:10,fontSize:".8rem",color:G}}>
+            {mBuy.capacity&&<span>内容量: <b>{mBuy.capacity}{mBuy.cunit}/個</b> · </span>}
+            {mBuy.price&&<span>単価: <b>{mBuy.price}円/個</b></span>}
+          </div>
+          <R2>
+            <FG label="購入個数 *">
+              <Inp type="number" value={mBuy.cnt||""} onChange={v=>{
+                const cnt=parseFloat(v)||0;
+                const cap=parseFloat(mBuy.capacity)||0;
+                const autoAmt=mBuy.price&&cnt?String(Math.round(parseFloat(mBuy.price)*cnt)):"";
+                setMBuy({...mBuy,cnt:v,amt:autoAmt,_addStock:cap>0?cnt*cap:cnt});
+              }} placeholder="例：3"/>
+            </FG>
+            <FG label="購入金額（円）*">
+              <Inp type="number" value={mBuy.amt||""} onChange={v=>setMBuy({...mBuy,amt:v})} placeholder="自動計算"/>
+            </FG>
+          </R2>
+          {mBuy.cnt&&parseFloat(mBuy.capacity)>0&&(
+            <div style={{fontSize:".75rem",color:G,background:G3,borderRadius:8,padding:"6px 10px",marginBottom:8}}>
+              ✅ 在庫 +{(parseFloat(mBuy.cnt)||0)*parseFloat(mBuy.capacity)}{mBuy.sunit||mBuy.cunit||""}
+            </div>
+          )}
+          <FG label="購入日"><Inp type="date" value={mBuy.date||todayStr()} onChange={v=>setMBuy({...mBuy,date:v})}/></FG>
+          <FG label="メモ（購入先など）"><Inp value={mBuy.note||""} onChange={v=>setMBuy({...mBuy,note:v})} placeholder="例：農協"/></FG>
+        </>}
+      </ModalWithSave>
+
+
+    </div>
+  );
+}
+
+// FIELDS
+function FieldsScreen({ fields, setFields, setFieldsR, crops, setCrops, setCropsR, costs, setCosts, logs, showToast, editCrop }) {
+  const [mField, setMField] = useState(null);
+  const [mCrop,  setMCrop]  = useState(null);
+
+  // 外部から品目編集を開く
+  useEffect(()=>{
+    if(!editCrop) return;
+    const i = crops.indexOf(editCrop);
+    if(i>=0) setMCrop({...editCrop, _idx:i});
+  },[editCrop]);
+  const eF={ id:uid0(),name:"",area:"",soil:"砂壌土",addr:"",memo:"" };
+  const eC={ id:uid0(),fieldId:"",fieldIdx:0,type:"",variety:"",germRate:"",stocks:"",ridgeW:"",ridgeH:"",rows:"",rowSpace:"",plantSpace:"",sowDate:"",plantDate:"",memo:"",cultivationType:"nursery",growEnv:"field",seedCost:"",seedNote:"",customName:"",potSize:"",potVolume:"",potCount:"" };
+  const saveField=()=>{ if(!mField.name.trim()){showToast("圃場名を入力してください");return;} const item={...mField,id:mField.id||uid0()}; const n=mField._idx!==undefined?fields.map((x,i)=>i===mField._idx?item:x):[...fields,item]; setFields(n,item);setMField(null);showToast("保存しました"); };
+  const saveCrop=()=>{
+    if(!mCrop.type){showToast("作物を選んでください");return;}
+    if(mCrop.cultivationType==="direct"&&!mCrop.plantDate){showToast("播種日を入力してください");return;}
+    if(mCrop.cultivationType==="seedling"&&!mCrop.plantDate){showToast("購入・定植日を入力してください");return;}
+    const entry={...mCrop,id:mCrop.id||uid0(),fieldId:fields[mCrop.fieldIdx]?.id||mCrop.fieldId||""};
+    const n=mCrop._idx!==undefined?crops.map((x,i)=>i===mCrop._idx?entry:x):[...crops,entry];
+    setCrops(n,entry,fields);
+    // 種・苗代を費用に自動追加（新規登録時のみ）
+    if(mCrop._idx===undefined && mCrop.seedCost && parseFloat(mCrop.seedCost)>0){
+      const db=CDB[mCrop.type]||{};
+      const seedEntry={id:uid0(),cat:"seed",name:(db.n||mCrop.type)+(mCrop.variety?" "+mCrop.variety:"")+" 種・苗代",amt:mCrop.seedCost,date:mCrop.plantDate||todayStr(),qty:"",qunit:"",fieldIdx:mCrop.fieldIdx,cropId:entry.id,note:mCrop.seedNote||""};
+      setCosts([...costs,seedEntry],seedEntry);
+      showToast("保存しました（種・苗代を費用に追加）");
+    } else {
+      showToast("保存しました");
+    }
+    setMCrop(null);
+  };
+  return (
+    <div style={S.scr} className="scr-inner">
+      <div style={S.sec}><span>🌾 圃場一覧（{fields.length}件）</span><button style={S.secBtn} onClick={()=>setMField({...eF})}>＋ 圃場追加</button></div>
+      {!fields.length&&<div style={{color:TX3,fontSize:".82rem",padding:8,textAlign:"center"}}>圃場がまだ登録されていません</div>}
+      {fields.map((f,i)=>(
+        <div key={f.id} style={S.card}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+            <div><b style={{fontSize:".95rem"}}>{f.name}</b><div style={{fontSize:".7rem",color:TX3,marginTop:1}}>{f.addr||""} / {f.area||"?"}a / {f.soil||""}</div></div>
+            <div style={{display:"flex",gap:4}}><button style={{...S.btn,...S.btnS,...S.btnSm}} onClick={()=>setMField({...f,_idx:i})}>編集</button><button style={{...S.btn,...S.btnR,...S.btnSm}} onClick={()=>{if(!window.confirm("削除しますか?"))return;dbDelete("fields",f.id);if(typeof setFieldsR==="function")setFieldsR(fields.filter((_,j)=>j!==i));else setFields(fields.filter((_,j)=>j!==i));showToast("削除しました");}}>削除</button></div>
+          </div>
+          {f.memo&&<div style={{fontSize:".76rem",color:"#5a5040",marginTop:5}}>{f.memo}</div>}
+          <div style={{fontSize:".7rem",color:TX3,marginTop:5}}>品目:{crops.filter(c=>c.fieldIdx===i).length}品目 / 記録:{logs.filter(l=>l.fieldIdx===i).length}件</div>
+        </div>
+      ))}
+      <div style={S.sec}><span>🌱 栽培中（{crops.filter(c=>!c.ended).length}件）</span><button style={S.secBtn} onClick={()=>setMCrop({...eC,fieldIdx:0})}>＋ 品目追加</button></div>
+      {!crops.filter(c=>!c.ended).length&&<div style={{color:TX3,fontSize:".82rem",padding:8,textAlign:"center"}}>栽培中の品目はありません</div>}
+      {crops.filter(c=>!c.ended).map((c)=>{ const i=crops.indexOf(c);
+        const db=CDB[c.type]||{}; const f=fields[c.fieldIdx]||{};
+        const isFruit=db.fruit||false;
+        const days=daysSince(c.plantDate);
+        const plantYear=c.plantDate?new Date(c.plantDate).getFullYear():null;
+        const yearsSincePlant=plantYear?new Date().getFullYear()-plantYear+1:null;
+        const harvestD=c.type==="custom"?(parseInt(c.customDays)||90):(db?.maturity?.[c.maturity||"mid"]||db?.d||90);
+        const pct=Math.min(100,Math.round(days/harvestD*100));
+        const cl=logs.filter(l=>l.cropId===c.id);
+        const sowLog=cl.find(l=>l.sowQty);
+        const germLog=cl.find(l=>l.germinationCnt);
+        const germRate=sowLog&&germLog?Math.round((parseInt(germLog.germinationCnt)/parseInt(sowLog.sowQty))*100):null;
+        return (
+          <div key={c.id} style={S.card}>
+            <div style={{display:"flex",gap:9,alignItems:"flex-start"}}>
+              <span style={{fontSize:"1.85rem"}}>{db.e||"🌱"}</span>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontWeight:700}}>{c.type==="custom"?c.customName||"カスタム":db.n||c.type}{c.variety?" ("+c.variety+")":""}</div>
+                <div style={{fontSize:".7rem",color:TX3,marginTop:1}}>{f.name||"?"} / {c.plantDate?(isFruit?yearsSincePlant+"年目":(c.cultivationType==="direct"?"播種":"定植")+days+"日目"):<span style={{color:WARN}}>⚠️ 定植日未設定</span>}{c.growEnv==="pot"&&c.potSize?" / "+c.potSize:""}</div>
+                <div style={{marginTop:6,display:"flex",flexWrap:"wrap",gap:4}}>
+                  {c.cultivationType==="direct"&&<Tag type="green">直播</Tag>}
+                  {c.cultivationType==="seedling"&&<Tag type="yellow">苗購入</Tag>}
+                  {c.stocks&&<Tag type="blue">👥{c.stocks}株</Tag>}
+                  {c.ridgeW&&<Tag type="gray">畝幅{c.ridgeW}cm</Tag>}
+                  {c.rows&&<Tag type="gray">{c.rows}条植え</Tag>}
+                  {c.rowSpace&&<Tag type="gray">条間{c.rowSpace}cm</Tag>}
+                  {c.plantSpace&&<Tag type="gray">株間{c.plantSpace}cm</Tag>}
+                  {germRate!==null&&<Tag type="green">発芽率{germRate}%</Tag>}
+                </div>
+                <div style={{marginTop:6,fontSize:".72rem",color:"#5a5040",background:"#f5f5f0",borderRadius:8,padding:"5px 8px",lineHeight:1.5}}><b>収穫適期：</b>{db.hs||"—"}</div>
+                <Prog pct={pct}/>
+                <div style={{fontSize:".64rem",color:TX3,marginTop:2,display:"flex",justifyContent:"space-between"}}><span>生育{pct}%</span><span>収穫まで約{Math.max(0,harvestD-days)}日</span></div>
+              </div>
+              <div style={{display:"flex",flexDirection:"column",gap:4,flexShrink:0}}>
+                  <button style={{...S.btn,...S.btnS,...S.btnSm}} onClick={()=>setMCrop({...c,_idx:i})}>編集</button>
+                  {!c.ended && <button style={{...S.btn,...{background:"#e67e22",color:"#fff",padding:"4px 10px",fontSize:".7rem",borderRadius:8,width:"auto",display:"inline-block"},marginTop:0}} onClick={()=>{
+                    if(!window.confirm("栽培を終了しますか？\n費用集計をレポートで確認できます。"))return;
+                    const updated={...c,ended:true,endDate:todayStr()};
+                    const n=crops.map((x,j)=>j===i?updated:x);
+                    setCrops(n,updated);
+                    // 費用サマリー計算
+                    const cl=logs.filter(l=>l.cropId===c.id);
+                    const db2=CDB[c.type]||{};
+                    const cropName=c.type==="custom"?c.customName||"カスタム":db2.n||c.type;
+                    const seedCost=parseFloat(c.seedCost)||0;
+                    const workCosts=costs.filter(co=>co.note&&co.note.includes("作業記録より自動追加")&&cl.some(l=>(l.fertName&&co.name.startsWith(l.fertName))||(l.pestName&&co.name.startsWith(l.pestName))));
+                    const workTotal=workCosts.reduce((s,co)=>s+(parseFloat(co.amt)||0),0);
+                    const hvKg=cl.reduce((s,l)=>s+(parseFloat(l.hvKg)||0),0);
+                    const rev=cl.reduce((s,l)=>s+(parseFloat(l.hvKg)||0)*(parseFloat(l.hvPrice)||0),0);
+                    const total=seedCost+workTotal;
+                    showToast("栽培終了 "+cropName+" / 費用合計"+Math.round(total).toLocaleString()+"円 / 収穫"+hvKg.toFixed(1)+"kg / 損益"+(rev-total>=0?"+":"")+Math.round(rev-total).toLocaleString()+"円");
+                  }}>終了</button>}
+                  {c.ended && <span style={{fontSize:".66rem",color:"#e67e22",fontWeight:700,textAlign:"center"}}>栽培終了</span>}
+                  <button style={{...S.btn,...S.btnR,...S.btnSm}} onClick={()=>{if(!window.confirm("削除しますか?"))return;dbDelete("crops",c.id);const filtered=crops.filter((_,j)=>j!==i);if(typeof setCropsR==="function")setCropsR(filtered);else setCrops(filtered);showToast("削除しました");}}>削除</button>
+                </div>
+            </div>
+          </div>
+        );
+      })}
+      {crops.filter(c=>c.ended).length>0&&<>
+        <div style={S.sec}><span>📦 栽培終了（{crops.filter(c=>c.ended).length}件）</span></div>
+        {crops.filter(c=>c.ended).map((c)=>{ const i=crops.indexOf(c);
+          const db=CDB[c.type]||{}; const f=fields[c.fieldIdx]||{};
+          return (
+            <div key={c.id} style={{...S.card,opacity:.7,borderLeft:"4px solid #e67e22"}}>
+              <div style={{display:"flex",gap:9,alignItems:"center"}}>
+                <span style={{fontSize:"1.6rem"}}>{db.e||"🌱"}</span>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontWeight:700,fontSize:".88rem"}}>{c.type==="custom"?c.customName||"カスタム":db.n||c.type}{c.variety?" ("+c.variety+")":""}</div>
+                  <div style={{fontSize:".7rem",color:TX3}}>{f.name||"?"} · 終了:{c.endDate||"—"}</div>
+                </div>
+                <div style={{display:"flex",flexDirection:"column",gap:4,flexShrink:0}}>
+                  <button style={{...S.btn,background:"#aaa",color:"#fff",padding:"4px 10px",fontSize:".7rem",borderRadius:8,width:"auto"}}
+                    onClick={()=>{if(!window.confirm("栽培中に戻しますか？"))return;const u={...c,ended:false,endDate:""};setCrops(crops.map((x,j)=>j===i?u:x),u);showToast("栽培中に戻しました");}}>再開</button>
+                  <button style={{...S.btn,...S.btnR,...S.btnSm}}
+                    onClick={()=>{if(!window.confirm("削除しますか?"))return;dbDelete("crops",c.id);const filtered=crops.filter((_,j)=>j!==i);if(typeof setCropsR==="function")setCropsR(filtered);else setCrops(filtered);showToast("削除しました");}}>削除</button>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </>}
+      <ModalWithSave open={!!mField} onClose={()=>setMField(null)} title={mField?._idx!==undefined?"圃場を編集":"圃場を登録"} onSave={saveField}>
+        {mField&&<><FG label="圃場名 *"><Inp value={mField.name} onChange={v=>setMField({...mField,name:v})} placeholder="例：第1圃場"/></FG><R2><FG label="面積（a）"><Inp type="number" value={mField.area} onChange={v=>setMField({...mField,area:v})}/></FG><FG label="土壌"><Sel value={mField.soil} onChange={v=>setMField({...mField,soil:v})} options={["砂壌土","壌土","粘土質","黒ボク","その他"].map(v=>({value:v,label:v}))}/></FG></R2><FG label="住所（天気連動）"><Inp value={mField.addr} onChange={v=>setMField({...mField,addr:v})} placeholder="例：静岡県沼津市"/></FG><FG label="メモ"><TA value={mField.memo} onChange={v=>setMField({...mField,memo:v})}/></FG></>}
+      </ModalWithSave>
+      <ModalWithSave open={!!mCrop} onSave={saveCrop} onClose={()=>{setMCrop(null);}} title={mCrop?._idx!==undefined?"品目を編集":"品目を登録"}>
+        {mCrop&&<><FG label="圃場 *"><Sel value={mCrop.fieldIdx} onChange={v=>setMCrop({...mCrop,fieldIdx:parseInt(v)})} options={fields.map((f,i)=>({value:i,label:f.name}))}/></FG>
+                <FG label="作物 *"><Sel value={mCrop.type} onChange={v=>setMCrop({...mCrop,type:v})} options={[{value:"",label:"選択してください"},...CROP_OPTIONS]} renderOption={o=>o.disabled?<option key={o.value} disabled style={{color:"#aaa",fontWeight:700}}>{o.label}</option>:<option key={o.value} value={o.value}>{o.label}</option>}/></FG>
+                {mCrop.type==="custom" && (<>
+                  <FG label="作物名 *"><Inp value={mCrop.customName||""} onChange={v=>setMCrop({...mCrop,customName:v})} placeholder="例：ハーブミックス、花卉など"/></FG>
+                  <R2>
+                    <FG label="収穫までの日数"><Inp type="number" value={mCrop.customDays||""} onChange={v=>setMCrop({...mCrop,customDays:v})} placeholder="例：90"/></FG>
+                    <FG label="水やり頻度（日）"><Inp type="number" value={mCrop.customWater||""} onChange={v=>setMCrop({...mCrop,customWater:v})} placeholder="例：2"/></FG>
+                  </R2>
+                </>)}
+                <FG label="品種名"><Inp value={mCrop.variety} onChange={v=>setMCrop({...mCrop,variety:v})} placeholder="例：桃太郎"/></FG>
+                {CDB[mCrop.type]?.maturity&&<FG label="熟期">
+                  <div style={{display:"flex",gap:7}}>
+                    {[{v:"early",l:"早生"},{v:"mid",l:"中生"},{v:"late",l:"晩生"}].map(opt=>(
+                      <button key={opt.v} type="button" onClick={()=>setMCrop({...mCrop,maturity:opt.v})}
+                        style={{flex:1,padding:"8px 4px",border:"2px solid "+(mCrop.maturity===opt.v?"#419857":"#e0d9ce"),borderRadius:9,background:mCrop.maturity===opt.v?"#d4edda":"#fff",fontSize:".78rem",fontWeight:700,color:mCrop.maturity===opt.v?"#2d6a3f":"#5a5040",cursor:"pointer",textAlign:"center"}}>
+                        {opt.l}
+                        {CDB[mCrop.type]?.maturity&&<div style={{fontSize:".65rem",color:"#888",marginTop:2}}>{CDB[mCrop.type].maturity[opt.v]}日</div>}
+                      </button>
+                    ))}
+                  </div>
+                  <div style={{fontSize:".72rem",color:TX3,marginTop:4}}>収穫予定日の計算に使います</div>
+                </FG>}
+                <FG label="栽培方法 *">
+                  <div style={{display:"flex",gap:7}}>
+                    {[{v:"direct",l:"🌱 直播"},{v:"nursery",l:"🪴 育苗後定植"},{v:"seedling",l:"🛒 苗を購入"},{v:"pot",l:"🪣 鉢植え"}].map(opt=>(
+                      <button key={opt.v} type="button" onClick={()=>setMCrop({...mCrop,cultivationType:opt.v})}
+                        style={{flex:1,padding:"8px 4px",border:"2px solid "+(mCrop.cultivationType===opt.v?"#419857":"#e0d9ce"),borderRadius:9,background:mCrop.cultivationType===opt.v?"#d4edda":"#fff",fontSize:".72rem",fontWeight:700,color:mCrop.cultivationType===opt.v?"#2d6a3f":"#5a5040",cursor:"pointer",textAlign:"center"}}>
+                        {opt.l}
+                      </button>
+                    ))}
+                  </div>
+                </FG>
+                <R2>
+                  {mCrop.cultivationType==="direct" && (
+                    <FG label={<><TermTooltip>播種</TermTooltip>日 *</>}><Inp type="date" value={mCrop.plantDate} onChange={v=>setMCrop({...mCrop,plantDate:v})}/></FG>
+                  )}
+                  {mCrop.cultivationType==="nursery" && (<>
+                    <FG label={<><TermTooltip>播種</TermTooltip>日</>}><Inp type="date" value={mCrop.sowDate} onChange={v=>setMCrop({...mCrop,sowDate:v})}/></FG>
+                    <FG label={<><TermTooltip>定植</TermTooltip>日（後から作業記録で登録可）</>}><Inp type="date" value={mCrop.plantDate} onChange={v=>setMCrop({...mCrop,plantDate:v})}/></FG>
+                  </>)}
+                  {mCrop.cultivationType==="seedling" && (<>
+                    <FG label={<>購入・<TermTooltip>定植</TermTooltip>日 *</>}><Inp type="date" value={mCrop.plantDate} onChange={v=>setMCrop({...mCrop,plantDate:v})}/></FG>
+                  </>)}
+                </R2>
+                <R2><FG label="株数（本数）"><Inp type="number" value={mCrop.stocks} onChange={v=>setMCrop({...mCrop,stocks:v})} placeholder="120"/></FG><FG label=""><div/></FG></R2>
+                <div style={{background:"#fffdf0",border:"1px solid #f9e4a0",borderRadius:10,padding:"10px 12px",marginBottom:9}}>
+                  <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".82rem",color:"#5c3d1e",marginBottom:7}}>🌱 種・苗の費用</div>
+                  <R2>
+                    <FG label="費用（円）"><Inp type="number" value={mCrop.seedCost} onChange={v=>setMCrop({...mCrop,seedCost:v})} placeholder="0"/></FG>
+                    <FG label="購入先・メモ"><Inp value={mCrop.seedNote} onChange={v=>setMCrop({...mCrop,seedNote:v})} placeholder="例：○○種苗"/></FG>
+                  </R2>
+                </div>
+
+                {/* 栽培環境の選択 */}
+                <FG label="栽培環境">
+                  <div style={{display:"flex",gap:8}}>
+                    {[{v:"field",l:"🌾 畑・地植え"},{v:"pot",l:"🪴 鉢・プランター"}].map(opt=>(
+                      <button key={opt.v} type="button" onClick={()=>setMCrop({...mCrop,growEnv:opt.v})}
+                        style={{flex:1,padding:"10px 6px",border:"2px solid "+(mCrop.growEnv===opt.v?"#419857":"#e0d9ce"),borderRadius:9,background:mCrop.growEnv===opt.v?"#d4edda":"#fff",fontSize:".8rem",fontWeight:700,color:mCrop.growEnv===opt.v?"#2d6a3f":"#5a5040",cursor:"pointer",textAlign:"center"}}>
+                        {opt.l}
+                      </button>
+                    ))}
+                  </div>
+                </FG>
+
+                {/* 畑の詳細 */}
+                {(mCrop.growEnv==="field"||!mCrop.growEnv)&&<>
+                  <R2><FG label="畝幅（cm）"><Inp type="number" value={mCrop.ridgeW} onChange={v=>setMCrop({...mCrop,ridgeW:v})}/></FG><FG label="畝高（cm）"><Inp type="number" value={mCrop.ridgeH} onChange={v=>setMCrop({...mCrop,ridgeH:v})}/></FG></R2>
+                  <R3><FG label="条数"><Inp type="number" value={mCrop.rows} onChange={v=>setMCrop({...mCrop,rows:v})}/></FG><FG label="条間（cm）"><Inp type="number" value={mCrop.rowSpace} onChange={v=>setMCrop({...mCrop,rowSpace:v})}/></FG><FG label="株間（cm）"><Inp type="number" value={mCrop.plantSpace} onChange={v=>setMCrop({...mCrop,plantSpace:v})}/></FG></R3>
+                </>}
+
+                {/* 鉢植えの詳細 */}
+                {mCrop.growEnv==="pot"&&<>
+                  <div style={{background:"#f0f4ff",borderRadius:10,padding:"10px 12px",marginBottom:9}}>
+                    <R2>
+                      <FG label="鉢サイズ"><Sel value={mCrop.potSize||""} onChange={v=>setMCrop({...mCrop,potSize:v})}
+                        options={[{value:"",label:"選択してください"},...["3号(9cm)","4号(12cm)","5号(15cm)","6号(18cm)","7号(21cm)","8号(24cm)","10号(30cm)","12号(36cm)","プランター小(15L程度)","プランター中(25L程度)","プランター大(40L程度)","その他"].map(v=>({value:v,label:v}))]}/></FG>
+                      <FG label="容量（L）"><Inp type="number" value={mCrop.potVolume||""} onChange={v=>setMCrop({...mCrop,potVolume:v})} placeholder="例：10"/></FG>
+                    </R2>
+                    <FG label="鉢数"><Inp type="number" value={mCrop.potCount||""} onChange={v=>setMCrop({...mCrop,potCount:v})} placeholder="例：3"/></FG>
+                  </div>
+                </>}
+                <FG label="メモ"><TA value={mCrop.memo} onChange={v=>setMCrop({...mCrop,memo:v})}/></FG></>}
+      </ModalWithSave>
+    </div>
+  );
+}
+
+// LOG
+function LogScreen({ fields, crops, setCrops, fertMs, pestMs, equips, costs, setCosts, logs, setLogs, showToast, initialWork, editLog, uid, onDone }) {
+  const [fieldIdx, setFieldIdx] = useState(0);
+  const [cropId,   setCropId]   = useState("");
+  const [work,     setWork]     = useState(initialWork||"");
+  const [memo,     setMemo]     = useState("");
+  const [date,     setDate]     = useState(todayStr());
+  const [time,     setTime]     = useState(nowTime());
+  const [dur,      setDur]      = useState("");
+  const [logImg,   setLogImg]   = useState(null);
+  const [saving,   setSaving]   = useState(false);
+  const [sowQty,   setSowQty]   = useState("");
+  const [germCnt,  setGermCnt]  = useState("");
+  const [germDate, setGermDate] = useState(todayStr());
+  const [transpQty,setTranspQty]= useState("");
+  const [fertIdx,  setFertIdx]  = useState("");
+  const [fertName, setFertName] = useState("");
+  const [fertAmt,  setFertAmt]  = useState("");
+  const [fertUnit, setFertUnit] = useState("kg");
+  const [fertMeth, setFertMeth] = useState("追肥");
+  const [fertCost, setFertCost] = useState("");
+  const [pestIdx,  setPestIdx]  = useState("");
+  const [pestName, setPestName] = useState("");
+  const [pestDil,  setPestDil]  = useState("");
+  const [pestAmt,  setPestAmt]  = useState("");
+  const [pestUnit, setPestUnit] = useState("L");
+  const [pestTgt,  setPestTgt]  = useState("");
+  const [pestCost, setPestCost] = useState("");
+  const [eventType,setEventType]= useState("");
+  const [eventNote,setEventNote]= useState("");
+  const [hvKg,     setHvKg]     = useState("");
+  const [hvCnt,    setHvCnt]    = useState("");
+  const [hvQ,      setHvQ]      = useState("秀品");
+  const [hvPrice,  setHvPrice]  = useState("");
+  const [hvImg,    setHvImg]    = useState(null);
+  const [discardCnt,setDiscardCnt]=useState("");
+  const [addCnt,   setAddCnt]   = useState("");
+  const [equipSel, setEquipSel] = useState([]);
+  const [equipAct, setEquipAct] = useState("設置");
+  const [repotSize, setRepotSize] = useState("");
+  const [repotVol,  setRepotVol]  = useState("");
+  const [isRec,    setIsRec]    = useState(false);
+  const [editId,   setEditId]   = useState(null);
+  const recogRef = useRef(null);
+
+  // 編集モード: editLog が渡されたら各フィールドを初期化
+  // editLogがnullのとき（新規作成）は全フィールドをリセット
+  useEffect(()=>{
+    if(!editLog) {
+      setEditId(null);setWork("");setMemo("");setLogImg(null);setHvImg(null);
+      setFieldIdx(0);setCropId("");setDate(todayStr());setTime(nowTime());setDur("");
+      setSowQty("");setGermCnt("");setGermDate(todayStr());setTranspQty("");
+      setFertIdx("");setFertName("");setFertAmt("");setFertUnit("kg");setFertMeth("追肥");setFertCost("");
+      setPestIdx("");setPestName("");setPestDil("");setPestAmt("");setPestUnit("L");setPestTgt("");setPestCost("");
+      setEventType("");setEventNote("");
+      setHvKg("");setHvCnt("");setHvQ("秀品");setHvPrice("");
+      setDiscardCnt("");setAddCnt("");setEquipSel([]);setEquipAct("設置");setRepotSize("");setRepotVol("");
+      return;
+    }
+    setEditId(editLog.id);
+    setFieldIdx(editLog.fieldIdx||0);
+    setCropId(editLog.cropId||"");
+    setWork(editLog.work||"");
+    setMemo(editLog.memo||"");
+    setDate(editLog.date||todayStr());
+    setTime(editLog.time||nowTime());
+    setDur(editLog.duration||"");
+    setSowQty(editLog.sowQty||"");
+    setGermCnt(editLog.germinationCnt||"");
+    setTranspQty(editLog.transplantQty||"");
+    setFertName(editLog.fertName||"");
+    setFertAmt(editLog.fertAmt||"");
+    setFertUnit(editLog.fertUnit||"kg");
+    setFertMeth(editLog.fertMethod||"追肥");
+    setFertCost(editLog.fertCost||"");
+    setPestName(editLog.pestName||"");
+    setPestDil(editLog.pestDil||"");
+    setPestAmt(editLog.pestAmt||"");
+    setPestUnit(editLog.pestUnit||"L");
+    setPestTgt(editLog.pestTarget||"");
+    setPestCost(editLog.pestCost||"");
+    setEventType(editLog.eventType||"");
+    setEventNote(editLog.eventNote||"");
+    setHvKg(editLog.hvKg||"");
+    setHvCnt(editLog.hvCnt||"");
+    setHvQ(editLog.hvQ||"秀品");
+    setHvPrice(editLog.hvPrice||"");
+    setDiscardCnt(editLog.discardCnt||"");
+    setAddCnt(editLog.addCnt||"");
+    setEquipAct(editLog.equipAct||"設置");
+    // 既存写真をプレビューとして保持
+    if(editLog.imgSrc)   setLogImg({ base64:editLog.imgSrc, blob:null, name:"", existing:true });
+    else setLogImg(null);
+    if(editLog.hvImgSrc) setHvImg({ base64:editLog.hvImgSrc, blob:null, name:"", existing:true });
+    else setHvImg(null);
+  },[editLog]);
+
+  const toggleVoice = () => {
+    if(!("webkitSpeechRecognition" in window||"SpeechRecognition" in window)){showToast("このブラウザは音声入力非対応です");return;}
+    if(isRec){recogRef.current?.stop();setIsRec(false);return;}
+    const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+    const r=new SR();r.lang="ja-JP";r.continuous=false;r.interimResults=false;
+    r.onresult=e=>setMemo(m=>(m?m+" ":"")+e.results[0][0].transcript);
+    r.onend=()=>setIsRec(false);
+    r.start();recogRef.current=r;setIsRec(true);
+  };
+
+  const handleLogImg = async e => {
+    const f=e.target.files[0]; if(!f) return;
+    const exif = await extractExifDate(f);
+    if(exif){setDate(exif.date);setTime(exif.time);showToast("写真から日時を取得しました");}
+    const { base64, blob } = await compressImage(f);
+    setLogImg({ base64, blob, name: uid0()+".jpg" });
+  };
+  const handleHvImg = async e => {
+    const f=e.target.files[0]; if(!f) return;
+    const { base64, blob } = await compressImage(f);
+    setHvImg({ base64, blob, name: uid0()+".jpg" });
+  };
+
+  const fieldCrops = crops.filter(c=>c.fieldIdx===fieldIdx);
+  const cropObj    = crops.find(c=>c.id===cropId)||{};
+  const db         = CDB[cropObj.type]||{};
+  const eventOpts  = (db.events||["開花","着果","収穫","その他"]).concat(["その他"]).filter((v,i,a)=>a.indexOf(v)===i);
+
+  const doSave = async () => {
+    if(!work){showToast("作業内容を選んでください");return;}
+    setSaving(true);
+    // 写真をStorageにアップロード（既存URLはそのまま使用）
+    let imgUrl = null, hvImgUrl = null;
+    if(logImg) {
+      if(logImg.existing) {
+        imgUrl = logImg.base64; // 既存URLをそのまま使う
+      } else if(logImg.blob && uid) {
+        try {
+          imgUrl = await Promise.race([
+            uploadPhoto(logImg.blob, uid, logImg.name),
+            new Promise(r => setTimeout(()=>r(null), 10000))
+          ]);
+        } catch(e) { console.error("logImg upload failed:", e); }
+      }
+    }
+    if(hvImg) {
+      if(hvImg.existing) {
+        hvImgUrl = hvImg.base64;
+      } else if(hvImg.blob && uid) {
+        try {
+          hvImgUrl = await Promise.race([
+            uploadPhoto(hvImg.blob, uid, hvImg.name),
+            new Promise(r => setTimeout(()=>r(null), 10000))
+          ]);
+        } catch(e) { console.error("hvImg upload failed:", e); }
+      }
+    }
+    const entry = { id:uid0(), fieldIdx, cropId, work, memo, date, time, duration:dur, imgSrc:imgUrl||null, sowQty, germinationCnt:germCnt, germinationDate:germDate, transplantQty:transpQty, discardCnt, addCnt, eventType, eventNote };
+    if(work==="fert") {
+      Object.assign(entry,{fertName,fertAmt,fertUnit,fertMethod:fertMeth,fertCost});
+      // 施肥費用はレポートで品目別集計するのみ（費用一覧には追加しない）
+    }
+    if(work==="pest") {
+      Object.assign(entry,{pestName,pestDil,pestAmt,pestUnit,pestTarget:pestTgt,pestCost});
+      // 農薬費用はレポートで品目別集計するのみ（費用一覧には追加しない）
+    }
+    if(work==="harvest") Object.assign(entry,{hvKg,hvCnt,hvQ,hvPrice,hvImgSrc:hvImgUrl||null});
+    if(work==="equip")   Object.assign(entry,{equipIds:equipSel,equipAct});
+    // 記録のみ保存（AIアドバイスはホーム画面で）
+    entry.aiReply = "";
+    // 編集モードか新規か
+    let newLogs;
+    if(editId) {
+      // 既存ログを更新
+      entry.id = editId;
+      entry.aiReply = logs.find(l=>l.id===editId)?.aiReply||"";
+      newLogs = logs.map(l=>l.id===editId?entry:l);
+      setLogs(newLogs, entry);
+      showToast("記録を更新しました！");
+    } else {
+      // 新規追加
+      newLogs = [...logs, entry];
+      // 定植作業の場合、品目の定植日を自動更新
+      if(work==="transplant" && cropId && date) {
+        const updatedCrops = crops.map(c => {
+          if(c.id===cropId && !c.plantDate) return {...c, plantDate:date};
+          return c;
+        });
+        if(JSON.stringify(updatedCrops)!==JSON.stringify(crops)) {
+          const changedCrop=updatedCrops.find(c=>c.id===cropId);
+          setCrops(updatedCrops,changedCrop);
+          showToast("記録しました！（定植日を品目に反映しました）");
+        } else {
+          showToast("記録しました！");
+        }
+      } else {
+        showToast("記録しました！");
+      }
+      setLogs(newLogs, entry);
+    }
+    setSaving(false);
+    setWork("");setMemo("");setLogImg(null);setHvImg(null);
+    setSowQty("");setGermCnt("");setTranspQty("");
+    if(onDone) setTimeout(()=>onDone(), 600); // 保存後モーダルを閉じる
+    setFertName("");setFertAmt("");setPestName("");setPestDil("");setPestAmt("");setPestTgt("");
+    setDiscardCnt("");setAddCnt("");setEventType("");setEventNote("");
+  };
+
+  const panelStyle = (bg,bc) => ({...S.card,background:bg,borderColor:bc,marginBottom:7});
+  const ctitleStyle = {fontFamily:"'Shippori Mincho B1',serif",fontSize:".86rem",color:"#5c3d1e",marginBottom:8};
+
+  return (
+    <div style={S.scr} className="scr-inner">
+      <div style={S.sec}>
+        <span>作業内容を選択してください</span>
+        {(work||editId) && (
+          <button onClick={()=>{setEditId(null);setWork("");setMemo("");setLogImg(null);setHvImg(null);setSowQty("");setGermCnt("");setTranspQty("");setFertName("");setFertAmt("");setPestName("");setPestDil("");setPestAmt("");setPestTgt("");setDiscardCnt("");setAddCnt("");setEventType("");setEventNote("");}}
+            style={{...S.btn,...S.btnS,...S.btnSm}}>✕ リセット</button>
+        )}
+      </div>
+      <div style={S.card}>
+        <R2>
+          <FG label="圃場 *">{fields.length>0?<Sel value={fieldIdx} onChange={v=>{setFieldIdx(parseInt(v));setCropId("");}} options={fields.map((f,i)=>({value:i,label:f.name}))}/>:<div style={{color:TX3,fontSize:".82rem"}}>圃場を登録してください</div>}</FG>
+          <FG label="品目"><Sel value={cropId} onChange={setCropId} options={[{value:"",label:"（選択）"},...fieldCrops.map(c=>{const db=CDB[c.type]||{};return{value:c.id,label:(db.e||"🌱")+" "+(c.type==="custom"?c.customName||"カスタム":(db.n||c.type))+(c.variety?" ("+c.variety+")":"")};})]} /></FG>
+        </R2>
+        <FG label="作業内容 *">
+          <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:5,marginBottom:8}}>
+            {WORK_TYPES.map(w=>(
+              <button key={w.value} onClick={()=>setWork(w.value)}
+                style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2,padding:"7px 4px",border:"2px solid "+(work===w.value?G2:BD),borderRadius:10,background:work===w.value?G3:"#fff",fontSize:".62rem",fontWeight:700,color:work===w.value?G:"#5a5040",cursor:"pointer"}}>
+                <span style={{fontSize:"1.3rem",lineHeight:1}}>{w.icon}</span><TermTooltip>{w.label}</TermTooltip>
+              </button>
+            ))}
+          </div>
+        </FG>
+        {work==="sow"&&<div style={panelStyle("#f0fdf4","#86efac")}><div style={ctitleStyle}>🌰 播種詳細</div><FG label="播種量（粒数・個数）"><Inp type="number" value={sowQty} onChange={setSowQty} placeholder="例：300"/></FG></div>}
+        {work==="germinated"&&<div style={panelStyle("#f0fdf4","#86efac")}><div style={ctitleStyle}>🌱 発芽確認</div><R2><FG label="発芽確認数"><Inp type="number" value={germCnt} onChange={setGermCnt} placeholder="例：250"/></FG><FG label="確認日"><Inp type="date" value={germDate} onChange={setGermDate}/></FG></R2>{sowQty&&germCnt&&<div style={{fontSize:".8rem",color:G,marginTop:4}}>発芽率: {Math.round((parseInt(germCnt)/parseInt(sowQty))*100)}%</div>}</div>}
+        {work==="transplant"&&<div style={panelStyle("#f5f3ff","#c4b5fd")}><div style={ctitleStyle}>🪴 定植詳細</div><FG label="定植株数"><Inp type="number" value={transpQty} onChange={setTranspQty} placeholder="例：120"/></FG></div>}
+        {work==="repot"&&<div style={panelStyle("#f5f3ff","#c4b5fd")}>
+          <div style={ctitleStyle}>🪴 植え替え詳細</div>
+          <R2>
+            <FG label="新しい鉢サイズ（号）">
+              <Inp type="number" value={repotSize} onChange={v=>{setRepotSize(v);setMemo("植え替え: "+v+"号鉢"+(repotVol?" "+repotVol+"L":""));}} placeholder="例：10"/>
+            </FG>
+            <FG label="容量（L）">
+              <Inp type="number" value={repotVol} onChange={v=>{setRepotVol(v);setMemo("植え替え: "+repotSize+"号鉢"+(v?" "+v+"L":""));}} placeholder="例：15"/>
+            </FG>
+          </R2>
+          <div style={{fontSize:".72rem",color:TX3,marginTop:4}}>メモ欄に植え替え情報が自動入力されます</div>
+        </div>}
+        {work==="event"&&<div style={panelStyle("#fff7ed","#fdba74")}><div style={ctitleStyle}>📋 生育イベント</div><FG label="イベント種別"><Sel value={eventType} onChange={setEventType} options={[{value:"",label:"選択してください"},...eventOpts.map(v=>({value:v,label:v}))]}/></FG><FG label="メモ"><Inp value={eventNote} onChange={setEventNote} placeholder="例：1番花開花、受粉実施"/></FG></div>}
+        {work==="fert"&&<div style={panelStyle("#f9fff9","#b2dfdb")}><div style={ctitleStyle}>🌿 施肥詳細</div><FG label="肥料マスターから選ぶ"><Sel value={fertIdx} onChange={v=>{setFertIdx(v);const fm=v&&fertMs[parseInt(v)];if(fm){setFertName(fm.name);if(fm.cunit||fm.sunit)setFertUnit(fm.cunit||fm.sunit);}}} options={[{value:"",label:"手動入力"},...fertMs.map((f,i)=>({value:i,label:f.name}))]}/></FG><R2><FG label="肥料名"><Inp value={fertName} onChange={setFertName} placeholder="肥料名"/></FG><FG label="施用量"><div style={{display:"flex",gap:4}}><Inp type="number" value={fertAmt} onChange={setFertAmt} style={{flex:1}}/><Sel value={fertUnit} onChange={setFertUnit} options={["kg","g","L","ml"].map(v=>({value:v,label:v}))} style={{width:60,flex:"none"}}/></div></FG></R2><R2><FG label="施用方法"><Sel value={fertMeth} onChange={setFertMeth} options={["元肥","追肥","葉面散布","かん注"].map(v=>({value:v,label:v}))}/></FG></R2></div>}
+        {work==="pest"&&<div style={panelStyle("#fffdf0","#f9e4a0")}><div style={ctitleStyle}>🐛 農薬詳細</div>
+              <div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:8,padding:"8px 10px",marginBottom:9,fontSize:".72rem",color:"#856404",lineHeight:1.6}}>
+                ⚠️ 農薬の使用記録は農薬取締法により保管義務があります。本アプリの記録は補助的なものです。法的義務の履行は別途ご確認ください。
+              </div><FG label="農薬マスターから選ぶ"><Sel value={pestIdx} onChange={v=>{setPestIdx(v);const pm=v&&pestMs[parseInt(v)];if(pm){setPestName(pm.name);setPestDil(pm.dil||"");if(pm.cunit||pm.sunit)setPestUnit(pm.cunit||pm.sunit);}}} options={[{value:"",label:"手動入力"},...pestMs.map((p,i)=>({value:i,label:p.name}))]}/></FG><FG label="農薬名"><Inp value={pestName} onChange={setPestName} placeholder="農薬名"/></FG><R2><FG label="希釈倍数"><Inp type="number" value={pestDil} onChange={setPestDil} placeholder="1000"/></FG><FG label="散布量"><div style={{display:"flex",gap:4}}><Inp type="number" value={pestAmt} onChange={setPestAmt} style={{flex:1}}/><Sel value={pestUnit} onChange={setPestUnit} options={["L","ml"].map(v=>({value:v,label:v}))} style={{width:60,flex:"none"}}/></div></FG></R2><R2><FG label="対象病害虫"><Inp value={pestTgt} onChange={setPestTgt} placeholder="アブラムシ等"/></FG></R2></div>}
+        {work==="harvest"&&<div style={panelStyle("#fff9f0","#ffd9a0")}><div style={ctitleStyle}>🧺 収穫詳細</div><R2><FG label="収穫量（kg）"><Inp type="number" value={hvKg} onChange={setHvKg} placeholder="0"/></FG><FG label="収穫個数"><Inp type="number" value={hvCnt} onChange={setHvCnt} placeholder="0"/></FG></R2><R2><FG label="品質ランク"><Sel value={hvQ} onChange={setHvQ} options={["秀品","優品","良品","規格外"].map(v=>({value:v,label:v}))}/></FG><FG label="販売単価（円/kg）"><Inp type="number" value={hvPrice} onChange={setHvPrice}/></FG></R2><FG label="📷 写真でAIが熟度診断"><div style={{border:"2px dashed "+BD,borderRadius:10,padding:14,textAlign:"center",cursor:"pointer",background:"#fafafa"}} onClick={()=>document.getElementById("hvImgInp").click()}><input id="hvImgInp" type="file" accept="image/*" style={{display:"none"}} onChange={handleHvImg}/><div style={{fontSize:"1.5rem",marginBottom:2}}>📷</div><p style={{fontSize:".72rem",color:TX3}}>収穫写真を追加</p></div>{hvImg&&<img src={hvImg.base64||hvImg} alt="" style={{width:"100%",borderRadius:8,marginTop:7,maxHeight:170,objectFit:"cover"}}/>}</FG></div>}
+        {work==="discard"&&<div style={panelStyle("#fef2f2","#fca5a5")}><div style={ctitleStyle}>♻️ 廃棄・株数調整</div><R2><FG label="廃棄株数"><Inp type="number" value={discardCnt} onChange={setDiscardCnt} placeholder="0"/></FG><FG label="追加株数"><Inp type="number" value={addCnt} onChange={setAddCnt} placeholder="0"/></FG></R2></div>}
+        {work==="repot"&&<div style={panelStyle("#f0f4ff","#c4b5fd")}><div style={ctitleStyle}>🪣 植え替え詳細</div>
+          <R2>
+
+            <FG label="新しい容量（L）"><Inp type="number" value={fertAmt} onChange={setFertAmt} placeholder="例：15"/></FG>
+          </R2>
+          <div style={{fontSize:".72rem",color:TX3}}>メモ欄に植え替え理由など記録してください</div>
+        </div>}
+        {work==="equip"&&<div style={panelStyle("#f5f0ff","#c4b5fd")}><div style={ctitleStyle}>🏗️ 設備・資材作業</div><FG label="設備を選ぶ（複数可）"><select multiple size={4} value={equipSel.map(String)} onChange={e=>setEquipSel(Array.from(e.target.selectedOptions).map(o=>parseInt(o.value)))} style={{...S.inp,height:100}}>{equips.map((e,i)=><option key={i} value={i}>{e.name}（{e.cat}）</option>)}</select></FG><FG label="作業種別"><Sel value={equipAct} onChange={setEquipAct} options={["設置","撤去","着用","脱去","点検","修理","その他"].map(v=>({value:v,label:v}))}/></FG></div>}
+        <FG label="📷 生育状況の写真（撮影日時を自動取得）">
+          <div style={{border:"2px dashed "+BD,borderRadius:10,padding:14,textAlign:"center",cursor:"pointer",background:"#fafafa"}} onClick={()=>document.getElementById("logImgInp").click()}>
+            <input id="logImgInp" type="file" accept="image/*" style={{display:"none"}} onChange={handleLogImg}/>
+            <div style={{fontSize:"1.5rem",marginBottom:2}}>📷</div>
+            <p style={{fontSize:".72rem",color:TX3}}>タップして写真を追加（撮影日時を自動取得）</p>
+          </div>
+          {logImg&&<img src={logImg.base64||logImg} alt="" style={{width:"100%",borderRadius:8,marginTop:7,maxHeight:170,objectFit:"cover"}}/>}
+        </FG>
+        <FG><button onClick={toggleVoice} style={{display:"flex",alignItems:"center",justifyContent:"center",gap:5,background:"#fff",border:"1.5px solid "+(isRec?ALERT:BD),borderRadius:10,padding:"7px 11px",fontSize:".78rem",color:isRec?ALERT:"#5a5040",width:"100%",fontFamily:"inherit",cursor:"pointer"}}>{isRec?"🔴 録音中…（タップで停止）":"🎤 音声でメモを入力"}</button></FG>
+        <R2><FG label="作業日 *"><Inp type="date" value={date} onChange={setDate}/></FG><FG label="作業時刻"><Inp type="time" value={time} onChange={setTime}/></FG></R2>
+        <FG label="作業時間（分）"><Inp type="number" value={dur} onChange={setDur} placeholder="30"/></FG>
+        <FG label="メモ・気づき"><TA value={memo} onChange={setMemo} placeholder="天候・生育状態・気づいたことなど…"/></FG>
+        <Btn style={S.btnG} onClick={doSave} disabled={saving||!fields.length}>{saving?"保存中…":editId?"更新する ✓":"記録を保存する ✓"}</Btn>
+
+      </div>
+    </div>
+  );
+}
+
+// TIMELINE
+function TimelineScreen({ fields, crops, equips, logs, setLogs, showToast, onEdit, onNew }) {
+  const [q,setQ]=useState(""); const [fF,setFF]=useState(""); const [fW,setFW]=useState("");
+  const [expanded,setExpanded]=useState({});
+  const filtered=[...logs].sort((a,b)=>((b.date||"")+(b.time||"00:00")).localeCompare((a.date||"")+(a.time||"00:00"))).filter(l=>{
+    if(fF!==""&&l.fieldIdx!=fF)return false;
+    if(fW&&l.work!==fW)return false;
+    if(q){const cr=crops.find(c=>c.id===l.cropId)||{};const db=CDB[cr.type]||{};const txt=[db.n,cr.variety,l.memo,l.fertName,l.pestName,l.eventType].join(" ").toLowerCase();if(!txt.includes(q.toLowerCase()))return false;}
+    return true;
+  });
+  const tog=id=>setExpanded(e=>({...e,[id]:!e[id]}));
+  return (
+    <div style={S.scr} className="scr-inner">
+      <div style={S.sec}>
+        <span>📋 作業記録</span>
+        <button style={{...S.btn,background:G,color:"#fff",borderRadius:999,padding:"6px 16px",fontSize:".82rem",fontWeight:700,width:"auto"}}
+          onClick={()=>onNew&&onNew()}>＋ 記録する</button>
+      </div>
+      <div style={{display:"flex",gap:6,marginBottom:9,alignItems:"center",flexWrap:"wrap"}}>
+        <input value={q} onChange={e=>setQ(e.target.value)} placeholder="🔍 品目・メモで検索…" style={{...S.inp,flex:1,minWidth:100,borderRadius:999,padding:"7px 11px"}}/>
+        <select value={fF} onChange={e=>setFF(e.target.value)} style={{...S.inp,borderRadius:999,padding:"6px 9px",width:"auto"}}><option value="">全圃場</option>{fields.map((f,i)=><option key={i} value={i}>{f.name}</option>)}</select>
+        <select value={fW} onChange={e=>setFW(e.target.value)} style={{...S.inp,borderRadius:999,padding:"6px 9px",width:"auto"}}><option value="">全作業</option>{WORK_TYPES.map(w=><option key={w.value} value={w.value}>{w.label}</option>)}</select>
+      </div>
+      <div style={{fontSize:".7rem",color:TX3,marginBottom:7}}>{filtered.length}件</div>
+      <div style={{position:"relative",paddingLeft:20}}>
+        <div style={{position:"absolute",left:6,top:0,bottom:0,width:2,background:BD}}/>
+        {!filtered.length&&<div style={{color:TX3,padding:16,textAlign:"center"}}>該当する記録がありません</div>}
+        {filtered.map(l=>{
+          const f=fields[l.fieldIdx]||{}; const cr=crops.find(c=>c.id===l.cropId)||{}; const db=CDB[cr.type]||{}; const w=WORK_TYPES.find(wt=>wt.value===l.work);
+          return (
+            <div key={l.id} style={{position:"relative",marginBottom:10}}>
+              <div style={{position:"absolute",left:-17,top:12,width:10,height:10,borderRadius:"50%",background:G2,border:"2px solid #fff",boxShadow:"0 0 0 2px "+G2}}/>
+              <div style={{...S.card,padding:"9px 11px"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:4,flexWrap:"wrap",gap:3}}>
+                  <span style={{fontSize:".66rem",color:TX3}}>{l.date||""}{l.time?" "+l.time:""}{l.duration?" ⏱"+l.duration+"分":""}</span>
+                  <span style={{fontSize:".66rem",color:G,fontWeight:700}}>{f.name||"?"}</span>
+                </div>
+                <Tag type={w?.tag||"gray"}>{w?.icon||""} {w?.label||l.work}</Tag>
+                {" "}<span style={{fontSize:".7rem",color:G}}>{db.e||""} {db.n||cr.type||""}</span>
+                {l.memo&&<div style={{fontSize:".78rem",color:"#5a5040",marginTop:3,lineHeight:1.5}}>{l.memo}</div>}
+                {l.sowQty&&<div style={{fontSize:".72rem",borderRadius:8,padding:"3px 7px",marginTop:4,display:"inline-block",background:"#d1fae5",color:"#065f46"}}>播種: {l.sowQty}粒</div>}
+                {l.germinationCnt&&<div style={{fontSize:".72rem",borderRadius:8,padding:"3px 7px",marginTop:4,display:"inline-block",background:"#d1fae5",color:"#065f46"}}>発芽: {l.germinationCnt}株</div>}
+                {l.transplantQty&&<div style={{fontSize:".72rem",borderRadius:8,padding:"3px 7px",marginTop:4,display:"inline-block",background:"#ede9fe",color:"#5b21b6"}}>定植: {l.transplantQty}株</div>}
+                {l.eventType&&<div style={{fontSize:".72rem",borderRadius:8,padding:"3px 7px",marginTop:4,display:"inline-block",background:"#fff7ed",color:"#c2410c"}}>📋 {l.eventType}{l.eventNote?" - "+l.eventNote:""}</div>}
+                {l.fertName&&<div style={{fontSize:".72rem",borderRadius:8,padding:"3px 7px",marginTop:4,display:"inline-block",background:"#d1fae5",color:"#065f46"}}>🌿 {l.fertName} {l.fertAmt}{l.fertUnit}</div>}
+                {l.pestName&&<div style={{fontSize:".72rem",borderRadius:8,padding:"3px 7px",marginTop:4,display:"inline-block",background:"#fef3c7",color:"#92400e"}}>🐛 {l.pestName} {l.pestDil}倍</div>}
+                {(l.hvKg||l.hvCnt)&&<div style={{fontSize:".72rem",borderRadius:8,padding:"3px 7px",marginTop:4,display:"inline-block",background:"#fff9f0",color:"#b45309"}}>🧺 <b>{l.hvKg||0}kg / {l.hvCnt||0}個</b> ({l.hvQ||""}){l.hvPrice?" 単価"+l.hvPrice+"円/kg":""}</div>}
+                {(l.discardCnt||l.addCnt)&&<div style={{fontSize:".72rem",borderRadius:8,padding:"3px 7px",marginTop:4,display:"inline-block",background:"#fee2e2",color:"#991b1b"}}>♻️ 廃棄:{l.discardCnt||0}株 追加:{l.addCnt||0}株</div>}
+                {l.equipIds?.length>0&&<div style={{fontSize:".72rem",borderRadius:8,padding:"3px 7px",marginTop:4,display:"inline-block",background:"#ede9fe",color:"#5b21b6"}}>🏗️ {l.equipAct} - {l.equipIds.map(i=>equips[i]?.name||"?").join("、")}</div>}
+                {l.imgSrc&&<img src={l.imgSrc} alt="" style={{width:"100%",borderRadius:8,marginTop:5,maxHeight:140,objectFit:"cover"}}/>}
+                {l.hvImgSrc&&<img src={l.hvImgSrc} alt="" style={{width:"100%",borderRadius:8,marginTop:5,maxHeight:140,objectFit:"cover"}}/>}
+                
+                <div style={{display:"flex",gap:4,marginTop:7}}>
+                  {onEdit&&<button style={{...S.btn,...S.btnS,...S.btnSm}} onClick={()=>onEdit(l)}>✏️ 編集</button>}
+                  <button style={{...S.btn,...S.btnR,...S.btnSm}} onClick={()=>{if(!window.confirm("削除しますか?"))return;dbDelete("logs",l.id);setLogs(logs.filter(x=>x.id!==l.id));showToast("削除しました");}}>削除</button>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// COST
+function CostScreen({ fields, fertMs, pestMs, equips, costs, setCosts, logs, showToast }) {
+  const [mCost,setMCost]=useState(null);
+  const empty={id:uid0(),cat:"seed",name:"",amt:"",date:todayStr(),qty:"",qunit:"",fieldIdx:"",note:""};
+  const total=costs.reduce((s,c)=>s+(parseFloat(c.amt)||0),0);
+  const revenue=logs.reduce((s,l)=>s+(parseFloat(l.hvKg)||0)*(parseFloat(l.hvPrice)||0),0);
+  const totalHv=logs.reduce((s,l)=>s+(parseFloat(l.hvKg)||0),0);
+  const byCat=Object.fromEntries(COST_CATS.map(c=>[c.value,0]));
+  costs.forEach(c=>{if(byCat[c.cat]!==undefined)byCat[c.cat]+=(parseFloat(c.amt)||0);});
+  const maxC=Math.max(...Object.values(byCat),1);
+  const sv=()=>{ if(!mCost.name.trim()||!mCost.amt){showToast("品名と金額を入力してください");return;} const item={...mCost,id:mCost.id||uid0()}; const n=mCost._idx!==undefined?costs.map((x,i)=>i===mCost._idx?item:x):[...costs,item]; setCosts(n,item);setMCost(null);showToast("保存しました"); };
+  const catItems=mCost?(mCost.cat==="fert"?fertMs:mCost.cat==="pest"?pestMs:mCost.cat==="equip"?equips:[]):[];
+  return (
+    <div style={S.scr} className="scr-inner">
+      <div style={S.sec}><span>💰 費用管理</span><button style={S.secBtn} onClick={()=>setMCost({...empty})}>＋ 費用追加</button></div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:7,marginBottom:9}}>
+        {[{n:Math.round(total).toLocaleString()+"円",l:"総支出",c:ALERT},{n:Math.round(revenue).toLocaleString()+"円",l:"推定収益",c:INFO},{n:Math.round(revenue-total).toLocaleString()+"円",l:"損益",c:revenue-total>=0?G:ALERT},{n:totalHv.toFixed(1)+"kg",l:"累計収穫量",c:G}].map((s,i)=>(
+          <div key={i} style={{...S.card,textAlign:"center"}}><div style={{fontSize:"1.65rem",fontWeight:700,color:s.c,lineHeight:1}}>{s.n}</div><div style={{fontSize:".66rem",color:TX3,marginTop:3}}>{s.l}</div></div>
+        ))}
+      </div>
+      <div style={S.card}><div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".86rem",color:"#5c3d1e",marginBottom:8}}>カテゴリ別支出</div>
+        {COST_CATS.map(cat=>(
+          <div key={cat.value} style={{display:"flex",alignItems:"center",gap:7,marginBottom:5}}>
+            <div style={{fontSize:".7rem",minWidth:96,textAlign:"right"}}>{cat.label}</div>
+            <div style={{flex:1,background:"#eee",borderRadius:999,height:8,overflow:"hidden"}}><div style={{height:"100%",borderRadius:999,background:"linear-gradient(90deg,"+G+","+G2+")",width:Math.round(byCat[cat.value]/maxC*100)+"%",transition:"width .7s ease"}}/></div>
+            <div style={{fontSize:".68rem",color:TX3,minWidth:60}}>{Math.round(byCat[cat.value]).toLocaleString()}円</div>
+          </div>
+        ))}
+      </div>
+      <div style={S.card}><div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".86rem",color:"#5c3d1e",marginBottom:8}}>費用一覧</div>
+        {!costs.length&&<div style={{color:TX3,fontSize:".82rem"}}>費用がまだ登録されていません</div>}
+        <table style={{width:"100%",borderCollapse:"collapse",fontSize:".76rem"}}>
+          {costs.length>0&&<thead><tr>{["日付","種別","品名","金額","操作"].map(h=><th key={h} style={{background:G3,color:G,padding:"5px 6px",textAlign:"left",fontSize:".68rem"}}>{h}</th>)}</tr></thead>}
+          <tbody>{[...costs].sort((a,b)=>(b.date||"").localeCompare(a.date||"")).map((c,ri)=>{const oi=costs.indexOf(c);return<tr key={ri}><td style={{padding:"5px 6px",borderBottom:"1px solid "+BD}}>{c.date||"—"}</td><td style={{padding:"5px 6px",borderBottom:"1px solid "+BD}}>{COST_CATS.find(x=>x.value===c.cat)?.label||c.cat}</td><td style={{padding:"5px 6px",borderBottom:"1px solid "+BD}}>{c.name}</td><td style={{padding:"5px 6px",borderBottom:"1px solid "+BD}}><b>{Math.round(c.amt||0).toLocaleString()}円</b></td><td style={{padding:"5px 6px",borderBottom:"1px solid "+BD,whiteSpace:"nowrap"}}><button style={{...S.btn,...S.btnS,...S.btnSm}} onClick={()=>setMCost({...c,_idx:oi})}>編集</button> <button style={{...S.btn,...S.btnR,...S.btnSm}} onClick={()=>{if(!window.confirm("削除しますか?"))return;dbDelete("costs",c.id);setCosts(costs.filter((_,j)=>j!==oi));showToast("削除しました");}}>削除</button></td></tr>;})}
+          </tbody>
+        </table>
+      </div>
+      <ModalWithSave open={!!mCost} onSave={sv} onClose={()=>setMCost(null)} title={mCost?._idx!==undefined?"費用を編集":"購入費用を登録"}>
+        {mCost&&<><FG label="カテゴリ *"><Sel value={mCost.cat} onChange={v=>setMCost({...mCost,cat:v})} options={COST_CATS}/></FG>{catItems.length>0&&<FG label="品目から選ぶ"><Sel value="" onChange={v=>{const item=catItems[parseInt(v)];if(item)setMCost({...mCost,name:item.name,...(mCost.cat==="equip"?{amt:item.price||""}:{})});}} options={[{value:"",label:"手動入力"},...catItems.map((x,i)=>({value:i,label:x.name}))]}/></FG>}<FG label="品名 *"><Inp value={mCost.name} onChange={v=>setMCost({...mCost,name:v})} placeholder="例：トマト種子"/></FG><R2><FG label="金額（円）*"><Inp type="number" value={mCost.amt} onChange={v=>setMCost({...mCost,amt:v})}/></FG><FG label="購入日"><Inp type="date" value={mCost.date} onChange={v=>setMCost({...mCost,date:v})}/></FG></R2><R2><FG label="数量"><Inp type="number" value={mCost.qty} onChange={v=>setMCost({...mCost,qty:v})}/></FG><FG label="単位"><Inp value={mCost.qunit} onChange={v=>setMCost({...mCost,qunit:v})} placeholder="袋"/></FG></R2><FG label="関連圃場"><Sel value={mCost.fieldIdx} onChange={v=>setMCost({...mCost,fieldIdx:v})} options={[{value:"",label:"全体"},...fields.map((f,i)=>({value:i,label:f.name}))]}/></FG><FG label="メモ"><Inp value={mCost.note} onChange={v=>setMCost({...mCost,note:v})}/></FG></>}
+      </ModalWithSave>
+    </div>
+  );
+}
+
+// CHAT
+function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs }) {
+  const [selCropId,setSelCropId]=useState("all");
+
+  // 全品目のデータ集計
+  const cropStats = crops.map(c=>{
+    const db=CDB[c.type]||{};
+    const f=fields[c.fieldIdx]||{};
+    const cl=logs.filter(l=>l.cropId===c.id);
+    const kg=cl.reduce((s,l)=>s+(parseFloat(l.hvKg)||0),0);
+    const cnt=cl.reduce((s,l)=>s+(parseInt(l.hvCnt)||0),0);
+    const rev=cl.reduce((s,l)=>s+(parseFloat(l.hvKg)||0)*(parseFloat(l.hvPrice)||0),0);
+    const minutes=cl.reduce((s,l)=>s+(parseInt(l.duration)||0),0);
+    const added=cl.filter(l=>l.addCnt).reduce((s,l)=>s+(parseInt(l.addCnt)||0),0);
+    const disc=cl.filter(l=>l.discardCnt).reduce((s,l)=>s+(parseInt(l.discardCnt)||0),0);
+    const stocks=(parseInt(c.stocks)||0)+added-disc;
+    const sowLog=cl.find(l=>l.sowQty);
+    const germLog=cl.find(l=>l.germinationCnt);
+    const germRate=sowLog&&germLog?Math.round((parseInt(germLog.germinationCnt)/parseInt(sowLog.sowQty))*100):null;
+    // 種・苗費用（この品目に直接紐づくもの、またはcropIdがない場合は品目名で照合）
+    const cropName0 = c.type==="custom"?(c.customName||"カスタム"):(CDB[c.type]?.n||c.type);
+    const seedCosts = costs.filter(co=>
+      co.cat==="seed" && (
+        co.cropId===c.id ||
+        (!co.cropId && co.name.startsWith(cropName0))
+      )
+    );
+    const seedTotal = seedCosts.reduce((s,co)=>s+(parseFloat(co.amt)||0),0);
+    // 施肥・農薬費用（作業記録のマスター単価×使用量で計算・単位変換あり）
+    let fertTotal=0, pestTotal=0;
+    cl.forEach(l=>{
+      if(l.fertName && l.fertAmt && parseFloat(l.fertAmt)>0) {
+        const fm=fertMs.find(f=>f.name===l.fertName);
+        if(fm?.price && fm?.capacity && parseFloat(fm.capacity)>0) {
+          // 使用量をマスターの内容量単位に変換
+          const normalizedAmt = normalizeToMasterUnit(l.fertAmt, l.fertUnit, fm.cunit||fm.sunit);
+          const unitCost = parseFloat(fm.price) / parseFloat(fm.capacity);
+          fertTotal += Math.round(unitCost * normalizedAmt);
+        }
+      }
+      if(l.pestName && l.pestAmt && parseFloat(l.pestAmt)>0) {
+        const pm=pestMs.find(p=>p.name===l.pestName);
+        if(pm?.price && pm?.capacity && parseFloat(pm.capacity)>0) {
+          // 使用量をマスターの内容量単位に変換
+          const normalizedAmt = normalizeToMasterUnit(l.pestAmt, l.pestUnit, pm.cunit||pm.sunit);
+          const unitCost = parseFloat(pm.price) / parseFloat(pm.capacity);
+          pestTotal += Math.round(unitCost * normalizedAmt);
+        }
+      }
+    });
+    const costTotal = seedTotal + fertTotal + pestTotal;
+    const h=Math.floor(minutes/60), m=minutes%60;
+    const timeStr=minutes>0?(h>0?h+"時間"+m+"分":m+"分"):"—";
+    const name=(c.type==="custom"?c.customName||"カスタム":db.n||c.type)+(c.variety?" ("+c.variety+")":"");
+    // 施肥・農薬の使用量集計
+    const fertUse={}; // {name: {amt, unit}}
+    const pestUse={}; // {name: {amt, unit}}
+    cl.filter(l=>l.fertName&&l.fertAmt).forEach(l=>{
+      if(!fertUse[l.fertName]) fertUse[l.fertName]={amt:0,unit:l.fertUnit||""};
+      fertUse[l.fertName].amt+=parseFloat(l.fertAmt)||0;
+    });
+    cl.filter(l=>l.pestName&&l.pestAmt).forEach(l=>{
+      if(!pestUse[l.pestName]) pestUse[l.pestName]={amt:0,unit:l.pestUnit||""};
+      pestUse[l.pestName].amt+=parseFloat(l.pestAmt)||0;
+    });
+    return{id:c.id,name,emoji:db.e||"🌱",field:f.name||"?",ended:c.ended||false,endDate:c.endDate||"",
+      kg,cnt,rev,minutes,timeStr,stocks,disc,added,germRate,costTotal,profit:rev-costTotal,
+      seedTotal,fertTotal,pestTotal,
+      logCount:cl.length,plantDate:c.plantDate||"",sowDate:c.sowDate||"",
+      fertUse,pestUse};
+  });
+
+  // 選択中の品目データ
+  const sel = selCropId==="all" ? null : cropStats.find(c=>c.id===selCropId);
+  const dispLogs = selCropId==="all" ? logs : logs.filter(l=>l.cropId===selCropId);
+
+  // 全体集計
+  const totalKg  = cropStats.reduce((s,c)=>s+c.kg,0);
+  const totalRev = cropStats.reduce((s,c)=>s+c.rev,0);
+  const totalCost= costs.reduce((s,c)=>s+(parseFloat(c.amt)||0),0);
+  const totalMin = logs.reduce((s,l)=>s+(parseInt(l.duration)||0),0);
+  const th=Math.floor(totalMin/60),tm=totalMin%60;
+  const totalTimeStr=totalMin>0?(th>0?th+"時間"+tm+"分":tm+"分"):"0分";
+
+
+
+  return (
+    <div style={S.scr} className="scr-inner">
+      {/* 品目タブ */}
+      <div style={{marginBottom:10}}>
+        <div style={{display:"flex",gap:5,overflowX:"auto",paddingBottom:4,WebkitOverflowScrolling:"touch"}}>
+          <button onClick={()=>setSelCropId("all")}
+            style={{flexShrink:0,padding:"6px 12px",borderRadius:999,border:"1.5px solid "+(selCropId==="all"?G:BD),background:selCropId==="all"?G:"#fff",color:selCropId==="all"?"#fff":"#5a5040",fontSize:".75rem",fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+            全体
+          </button>
+          {cropStats.map(c=>(
+            <button key={c.id} onClick={()=>setSelCropId(c.id)}
+              style={{flexShrink:0,padding:"6px 12px",borderRadius:999,border:"1.5px solid "+(selCropId===c.id?G:BD),background:selCropId===c.id?G:"#fff",color:selCropId===c.id?"#fff":"#5a5040",fontSize:".75rem",fontWeight:600,cursor:"pointer",fontFamily:"inherit",opacity:c.ended?.7:1}}>
+              {c.emoji} {c.name}{c.ended?" 【終了】":""}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* 選択品目の詳細 or 全体サマリー */}
+      {sel ? (
+        <>
+          {/* 品目詳細 */}
+          <div style={{...S.card,background:"linear-gradient(135deg,"+G+","+GD+")",color:"#fff",marginBottom:9}}>
+            <div style={{fontSize:"1.1rem",fontWeight:700,marginBottom:4}}>{sel.emoji} {sel.name}</div>
+            <div style={{fontSize:".74rem",opacity:.75,marginBottom:10}}>{sel.field}{sel.ended?" · 栽培終了 ("+sel.endDate+")":""}{sel.plantDate?" · 定植:"+sel.plantDate:""}</div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
+              {[
+                {n:sel.kg.toFixed(1)+"kg",l:"収穫量"},
+                {n:sel.cnt+"個",l:"収穫個数"},
+                {n:Math.round(sel.rev).toLocaleString()+"円",l:"推定収益"},
+                {n:Math.round(sel.costTotal).toLocaleString()+"円",l:"費用合計"},
+                {n:Math.round(sel.profit).toLocaleString()+"円",l:"損益"},
+                {n:sel.timeStr,l:"作業時間"},
+                {n:sel.stocks+"株",l:"現在株数"},
+                {n:sel.germRate!==null?sel.germRate+"%":"—",l:"発芽率"},
+                {n:sel.logCount+"件",l:"作業記録数"},
+              ].map((s,i)=>(
+                <div key={i} style={{background:"rgba(255,255,255,.15)",borderRadius:9,padding:"6px 8px",textAlign:"center"}}>
+                  <div style={{fontSize:"1.1rem",fontWeight:700,lineHeight:1.2}}>{s.n}</div>
+                  <div style={{fontSize:".62rem",opacity:.7,marginTop:2}}>{s.l}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 費用内訳 */}
+          {sel.costTotal>0&&(
+            <div style={S.card}>
+              <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".86rem",color:"#5c3d1e",marginBottom:8}}>💰 費用内訳</div>
+              {sel.seedTotal>0&&<div style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid "+BD,fontSize:".82rem"}}>
+                <span>🌱 種・苗代</span><span style={{fontWeight:700}}>{Math.round(sel.seedTotal).toLocaleString()}円</span>
+              </div>}
+              {sel.fertTotal>0&&<div style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid "+BD,fontSize:".82rem"}}>
+                <span>🌿 施肥費用（使用量計算）</span><span style={{fontWeight:700}}>{Math.round(sel.fertTotal).toLocaleString()}円</span>
+              </div>}
+              {sel.pestTotal>0&&<div style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid "+BD,fontSize:".82rem"}}>
+                <span>🐛 農薬費用（使用量計算）</span><span style={{fontWeight:700}}>{Math.round(sel.pestTotal).toLocaleString()}円</span>
+              </div>}
+              <div style={{display:"flex",justifyContent:"space-between",padding:"6px 0",fontSize:".86rem",fontWeight:700,color:G}}>
+                <span>合計</span><span>{Math.round(sel.costTotal).toLocaleString()}円</span>
+              </div>
+            </div>
+          )}
+
+          {/* 施肥・農薬使用量 */}
+          {(Object.keys(sel.fertUse).length>0||Object.keys(sel.pestUse).length>0)&&(
+            <div style={S.card}>
+              <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".86rem",color:"#5c3d1e",marginBottom:8}}>📊 資材使用量</div>
+              {Object.entries(sel.fertUse).map(([name,{amt,unit}])=>(
+                <div key={name} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"5px 0",borderBottom:"1px solid "+BD,fontSize:".82rem"}}>
+                  <span style={{color:"#065f46"}}>🌿 {name}</span>
+                  <span style={{fontWeight:700}}>{amt.toFixed(1)}{unit}</span>
+                </div>
+              ))}
+              {Object.entries(sel.pestUse).map(([name,{amt,unit}])=>(
+                <div key={name} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"5px 0",borderBottom:"1px solid "+BD,fontSize:".82rem"}}>
+                  <span style={{color:"#92400e"}}>🐛 {name}</span>
+                  <span style={{fontWeight:700}}>{amt.toFixed(1)}{unit}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+
+          {/* 作業種別 */}
+          <div style={S.card}>
+            <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".86rem",color:"#5c3d1e",marginBottom:8}}>作業内訳</div>
+            {WORK_TYPES.map(w=>{
+              const cnt=dispLogs.filter(l=>l.work===w.value).length;
+              const maxW=Math.max(...WORK_TYPES.map(wt=>dispLogs.filter(l=>l.work===wt.value).length),1);
+              return cnt>0?(
+                <div key={w.value} style={{display:"flex",alignItems:"center",gap:7,marginBottom:5}}>
+                  <div style={{fontSize:".7rem",minWidth:60,textAlign:"right"}}><Tag type={w.tag}>{w.label}</Tag></div>
+                  <div style={{flex:1,background:"#eee",borderRadius:999,height:8,overflow:"hidden"}}><div style={{height:"100%",borderRadius:999,background:"linear-gradient(90deg,"+G+","+G2+")",width:Math.round(cnt/maxW*100)+"%",transition:"width .7s ease"}}/></div>
+                  <div style={{fontSize:".68rem",color:TX3,minWidth:26}}>{cnt}回</div>
+                </div>
+              ):null;
+            })}
+          </div>
+        </>
+      ) : (
+        <>
+          {/* 全体サマリー */}
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:7,marginBottom:9}}>
+            {[
+              {n:totalKg.toFixed(1)+"kg",l:"累計収穫量",c:G},
+              {n:Math.round(totalRev).toLocaleString()+"円",l:"累計収益",c:INFO},
+              {n:Math.round(totalCost).toLocaleString()+"円",l:"総支出",c:ALERT},
+              {n:Math.round(totalRev-totalCost).toLocaleString()+"円",l:"損益",c:totalRev-totalCost>=0?G:ALERT},
+              {n:totalTimeStr,l:"累計作業時間",c:G},
+              {n:crops.length+"品目",l:"栽培品目数",c:G},
+            ].map((s,i)=>(
+              <div key={i} style={{...S.card,textAlign:"center"}}>
+                <div style={{fontSize:"1.5rem",fontWeight:700,color:s.c,lineHeight:1}}>{s.n}</div>
+                <div style={{fontSize:".66rem",color:TX3,marginTop:3}}>{s.l}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* 品目別一覧表 */}
+          <div style={S.card}>
+            <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".86rem",color:"#5c3d1e",marginBottom:8}}>📊 品目別 実績</div>
+            {cropStats.length===0&&<div style={{color:TX3,fontSize:".82rem"}}>品目が登録されていません</div>}
+            {cropStats.map(c=>(
+              <div key={c.id} onClick={()=>setSelCropId(c.id)}
+                style={{display:"flex",alignItems:"center",gap:9,padding:"9px 0",borderBottom:"1px solid "+BD,cursor:"pointer"}}>
+                <span style={{fontSize:"1.5rem",opacity:c.ended?.6:1}}>{c.emoji}</span>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontWeight:700,fontSize:".85rem",display:"flex",alignItems:"center",gap:5}}>
+                    {c.name}
+                    {c.ended&&<span style={{fontSize:".62rem",background:"#e67e22",color:"#fff",borderRadius:999,padding:"1px 6px"}}>終了</span>}
+                  </div>
+                  <div style={{fontSize:".7rem",color:TX3}}>{c.field} / 作業{c.logCount}件 / {c.timeStr}</div>
+                </div>
+                <div style={{textAlign:"right",flexShrink:0}}>
+                  <div style={{fontWeight:700,fontSize:".88rem",color:G}}>{c.kg.toFixed(1)}kg</div>
+                  <div style={{fontSize:".68rem",color:c.profit>=0?G:ALERT}}>{c.profit>=0?"+":""}{Math.round(c.profit).toLocaleString()}円</div>
+                </div>
+                <div style={{color:TX3,fontSize:".8rem"}}>›</div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+
+    </div>
+  );
+}
+
+// SETTINGS
+function PublicSettings({ uid, crops, showToast }) {
+  const [isPublic,   setIsPublic]   = useState(false);
+  const [name,       setName]       = useState("");
+  const [desc,       setDesc]       = useState("");
+  const [publicCrops,setPublicCrops]= useState({});
+  const [loading,    setLoading]    = useState(true);
+  const [saving,     setSaving]     = useState(false);
+
+
+  useEffect(()=>{
+    if(!uid) return;
+    Promise.all([
+      sb.from("public_farms").select("*").eq("user_id",uid).maybeSingle(),
+      sb.from("crops").select("id,is_public").eq("user_id",uid)
+    ]).then(([{data:farm},{data:cropRows}])=>{
+      if(farm){ setIsPublic(farm.is_public||false); setName(farm.display_name||""); setDesc(farm.description||""); }
+      if(cropRows){ const m={}; cropRows.forEach(c=>{ m[c.id]=c.is_public||false; }); setPublicCrops(m); }
+      setLoading(false);
+    });
+  },[uid]);
+
+  const toggleCrop = (id) => setPublicCrops(p=>({...p,[id]:!p[id]}));
+
+  const save = async() => {
+    if(!uid) return;
+    setSaving(true);
+    await sb.from("public_farms").upsert({
+      user_id:uid, is_public:isPublic, display_name:name, description:desc, updated_at:new Date().toISOString()
+    },{onConflict:"user_id"});
+    for(const [cropId, pub] of Object.entries(publicCrops)){
+      await sb.from("crops").update({is_public:pub}).eq("id",cropId).eq("user_id",uid);
+    }
+    showToast("公開設定を保存しました");
+    setSaving(false);
+  };
+
+  if(loading) return null;
+  const activeCrops = crops.filter(c=>!c.ended);
+  const endedCrops  = crops.filter(c=>c.ended);
+
+  return (
+    <div style={S.card}>
+      <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".86rem",color:"#5c3d1e",marginBottom:12}}>🌐 栽培記録を公開</div>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14,padding:"10px 12px",background:"#f5f5f0",borderRadius:10}}>
+        <div>
+          <div style={{fontWeight:700,fontSize:".86rem"}}>公開する</div>
+          <div style={{fontSize:".72rem",color:TX3}}>みんなのサクメモに掲載されます</div>
+        </div>
+        <button onClick={()=>setIsPublic(!isPublic)}
+          style={{width:44,height:26,borderRadius:999,border:"none",cursor:"pointer",
+            background:isPublic?G:"#ccc",position:"relative",transition:"background .2s",flexShrink:0}}>
+          <span style={{position:"absolute",top:3,left:isPublic?21:3,width:20,height:20,borderRadius:"50%",background:"#fff",transition:"left .2s",boxShadow:"0 1px 3px rgba(0,0,0,.2)"}}/>
+        </button>
+      </div>
+      {isPublic&&<>
+        <FG label="農場名"><Inp value={name} onChange={setName} placeholder="例：〇〇農園"/></FG>
+        <FG label="一言説明（任意）"><Inp value={desc} onChange={setDesc} placeholder="例：静岡県で有機野菜を栽培しています"/></FG>
+
+        <div style={{marginBottom:12}}>
+          <div style={{fontSize:".78rem",fontWeight:700,color:"#5c3d1e",marginBottom:8}}>公開する品目を選ぶ</div>
+          {activeCrops.length===0&&<div style={{fontSize:".76rem",color:TX3}}>栽培中の品目がありません</div>}
+          {activeCrops.map(c=>{ const db=CDB[c.type]||{}; const n=c.type==="custom"?c.customName||"カスタム":db.n||c.type; return (
+            <div key={c.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 10px",background:publicCrops[c.id]?"#f0f9f0":"#fafafa",borderRadius:9,marginBottom:5,border:"1px solid "+(publicCrops[c.id]?"#6ee7b7":BD)}}>
+              <span style={{fontSize:".84rem"}}>{db.e||"🌱"} {n}{c.variety?" ("+c.variety+")":""}</span>
+              <button onClick={()=>toggleCrop(c.id)}
+                style={{width:40,height:22,borderRadius:999,border:"none",cursor:"pointer",
+                  background:publicCrops[c.id]?G:"#ccc",position:"relative",transition:"background .2s",flexShrink:0}}>
+                <span style={{position:"absolute",top:2,left:publicCrops[c.id]?19:2,width:18,height:18,borderRadius:"50%",background:"#fff",transition:"left .2s",boxShadow:"0 1px 3px rgba(0,0,0,.2)"}}/>
+              </button>
+            </div>
+          );})}
+          {endedCrops.map(c=>{ const db=CDB[c.type]||{}; const n=c.type==="custom"?c.customName||"カスタム":db.n||c.type; return (
+            <div key={c.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 10px",background:publicCrops[c.id]?"#f0f9f0":"#fafafa",borderRadius:9,marginBottom:5,border:"1px solid "+(publicCrops[c.id]?"#6ee7b7":BD),opacity:.75}}>
+              <span style={{fontSize:".84rem"}}>{db.e||"🌱"} {n}{c.variety?" ("+c.variety+")":""} <span style={{fontSize:".65rem",color:"#e67e22"}}>終了</span></span>
+              <button onClick={()=>toggleCrop(c.id)}
+                style={{width:40,height:22,borderRadius:999,border:"none",cursor:"pointer",
+                  background:publicCrops[c.id]?G:"#ccc",position:"relative",transition:"background .2s",flexShrink:0}}>
+                <span style={{position:"absolute",top:2,left:publicCrops[c.id]?19:2,width:18,height:18,borderRadius:"50%",background:"#fff",transition:"left .2s",boxShadow:"0 1px 3px rgba(0,0,0,.2)"}}/>
+              </button>
+            </div>
+          );})}
+        </div>
+
+      </>}
+      <Btn style={S.btnG} onClick={save} disabled={saving}>{saving?"保存中…":"保存する"}</Btn>
+      {isPublic&&(
+        <a href="/community.html"
+          style={{display:"flex",alignItems:"center",justifyContent:"center",gap:6,background:"#f0f9f0",border:"1.5px solid #6ee7b7",borderRadius:10,padding:"10px",marginTop:8,textDecoration:"none",color:G,fontWeight:700,fontSize:".82rem"}}>
+          🌾 みんなのサクメモを確認する →
+        </a>
+      )}
+    </div>
+  );
+}
+
+function SettingsScreen({ showToast, user, uid, signOut, fields, crops, logs, fertMs, pestMs, equips, costs }) {
+  const doExport=()=>{ const d=JSON.stringify({fields,crops,logs,fertMs,pestMs,equips,costs},null,2);const a=document.createElement("a");a.href="data:application/json;charset=utf-8,"+encodeURIComponent(d);a.download="farm-ai-export-"+todayStr()+".json";a.click(); };
+  return (
+    <div style={S.scr} className="scr-inner">
+      <div style={S.sec}>
+        <span>⚙️ 設定</span>
+        <button onClick={()=>setScr("home")}
+          style={{background:"#f5f5f0",border:"1px solid "+BD,borderRadius:999,padding:"5px 14px",fontSize:".76rem",fontWeight:700,color:"#5a5040",cursor:"pointer",fontFamily:"inherit"}}>
+          ✕ 閉じる
+        </button>
+      </div>
+
+      {/* アカウント */}
+      {user && (
+        <div style={S.card}>
+          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
+            {user.user_metadata?.avatar_url && <img src={user.user_metadata.avatar_url} alt="" style={{width:44,height:44,borderRadius:"50%"}}/>}
+            <div>
+              <div style={{fontWeight:700,fontSize:".9rem"}}>{user.user_metadata?.full_name||""}</div>
+              <div style={{fontSize:".74rem",color:TX3}}>{user.email}</div>
+            </div>
+          </div>
+          <Btn style={S.btnR} onClick={signOut}>ログアウト</Btn>
+        </div>
+      )}
+
+      {/* 栽培記録の公開設定 */}
+      <PublicSettings uid={uid} crops={crops} showToast={showToast}/>
+
+      {/* データ管理 */}
+      <div style={S.card}>
+        <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".86rem",color:"#5c3d1e",marginBottom:10}}>💾 データ管理</div>
+        <Btn style={S.btnR} onClick={async()=>{
+          if(!window.confirm("全データを削除して退会しますか？\nこの操作は取り消せません。\nSupabaseの全データ・写真も削除されます。"))return;
+          try {
+            const { data:{ session } } = await sb.auth.getSession();
+            const token = session?.access_token||"";
+            showToast("削除中…しばらくお待ちください");
+            const res = await fetch("/api/delete-account",{
+              method:"POST",
+              headers:{ "Content-Type":"application/json", "Authorization":"Bearer "+token }
+            });
+            const d = await res.json();
+            if(!res.ok) { showToast("エラー: "+(d.error||"削除できませんでした")); return; }
+            ["fa3_fields","fa3_crops","fa3_logs","fa3_fertM","fa3_pestM","fa3_equips","fa3_costs","fa3_chat","sakumemo_key"].forEach(k=>localStorage.removeItem(k));
+            showToast("退会しました。データは管理者が保管します。");
+            setTimeout(()=>signOut(), 1500);
+          } catch(e) { showToast("エラー: "+e.message); }
+        }}>🚪 退会・全データ削除</Btn>
+      </div>
+      <div style={{...S.card,fontSize:".76rem",color:TX3,lineHeight:1.8}}>
+        <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:10}}>
+          <a href="https://sakumemo-jp.com/privacy-policy.html" target="_blank"
+            style={{background:"#f0f0e8",border:"1px solid #e0d9ce",borderRadius:8,padding:"6px 12px",fontSize:".76rem",color:"#2d6a3f",textDecoration:"none",fontWeight:700}}>
+            🔒 プライバシーポリシー
+          </a>
+          <a href="https://sakumemo-jp.com/terms-of-service.html" target="_blank"
+            style={{background:"#f0f0e8",border:"1px solid #e0d9ce",borderRadius:8,padding:"6px 12px",fontSize:".76rem",color:"#2d6a3f",textDecoration:"none",fontWeight:700}}>
+            📋 利用規約
+          </a>
+        </div>
+        <div style={{fontSize:".72rem",color:"#a09070"}}>
+          お問い合わせ：ori.craft.2018@gmail.com
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// MAIN APP
+// ============================================================
+const SCREENS = [
+  { key:"home",    label:"ホーム",     icon:"🏡" },
+  { key:"master",  label:"マスター",   icon:"📦" },
+  { key:"fields",  label:"圃場・品目", icon:"🌾" },
+  { key:"log",     label:"作業記録",   icon:"📝" },
+  { key:"cost",    label:"費用",       icon:"💰" },
+
+  { key:"report",  label:"レポート",   icon:"📊" },
+];
+
+export default function App() {
+  const [user,     setUser]    = useState(null);
+  const [authLoad, setAuthLoad]= useState(true);
+  const [dbLoad,   setDbLoad]  = useState(false);
+  const [scr,      setScr]     = useState("home");
+  const [fields,   setFieldsR] = useState([]);
+  const [crops,    setCropsR]  = useState([]);
+  const [logs,     setLogsR]   = useState([]);
+  const [fertMs,   setFertMsR] = useState([]);
+  const [pestMs,   setPestMsR] = useState([]);
+  const [equips,   setEquipsR] = useState([]);
+  const [costs,    setCostsR]  = useState([]);
+  const [apiKey,   setApiKeyR] = useState(()=>localStorage.getItem("sakumemo_key")||"");
+  const [toast,    setToast]   = useState("");
+  const [initWork,     setInitWork]    = useState("");
+  const [initLog,      setInitLog]     = useState(null);
+  const [logModal,     setLogModal]    = useState(false);
+  const [pendingEditCrop, setPendingEditCrop] = useState(null); // ホームから品目編集
+  const toastTimer = useRef(null);
+  const showToast = msg => { setToast(msg); clearTimeout(toastTimer.current); toastTimer.current=setTimeout(()=>setToast(""),2400); };
+
+  // Auth
+  useEffect(()=>{
+    sb.auth.getSession().then(({data:{session}})=>{ setUser(session?.user??null); setAuthLoad(false); });
+    const {data:{subscription}}=sb.auth.onAuthStateChange((_,session)=>setUser(session?.user??null));
+    return ()=>subscription.unsubscribe();
+  },[]);
+
+  // Load from Supabase
+  useEffect(()=>{
+    if(!user)return;
+    setDbLoad(true);
+    const uid=user.id;
+    Promise.all([dbFetch("fields",uid),dbFetch("crops",uid),dbFetch("logs",uid),dbFetch("fert_masters",uid),dbFetch("pest_masters",uid),dbFetch("equipments",uid),dbFetch("costs",uid)]).then(([f,c,l,fm,pm,eq,co])=>{
+      const rawF=f.map(fieldFromDb);
+      const rawC=c.map(r=>cropFromDb(r,rawF));
+      const rawL=l.map(r=>logFromDb(r,rawF));
+      setFieldsR(rawF);setCropsR(rawC);setLogsR(rawL);
+      setFertMsR(fm.map(fertMFromDb));setPestMsR(pm.map(pestMFromDb));
+      setEquipsR(eq.map(equipFromDb));setCostsR(co.map(r=>costFromDb(r,rawF)));
+      setDbLoad(false);
+    });
+  },[user]);
+
+  const uid=user?.id;
+
+  // ── DB保存ヘルパー（1件だけ保存・非同期） ──
+  const dbSaveField = o => { if(!uid) return; const item = {...o, id:o.id||uid0()}; dbUpsert("fields", fieldToDb(item, uid)); return item; };
+  const dbSaveCrop  = (o, flds) => { if(!uid) return; const fId = (flds||fields)[o.fieldIdx]?.id || o.fieldId || null; dbUpsert("crops", cropToDb({...o, fieldId:fId}, uid)); };
+  const dbSaveLog   = o => { if(!uid) return; dbUpsert("logs", logToDb(o, uid, fields)); };
+  const dbSaveFertM = o => { if(!uid) return; dbUpsert("fert_masters", fertMToDb(o, uid)); };
+  const dbSavePestM = o => { if(!uid) return; dbUpsert("pest_masters", pestMToDb(o, uid)); };
+  const dbSaveEquip = o => { if(!uid) return; dbUpsert("equipments",   equipToDb(o, uid)); };
+  const dbSaveCost  = o => { if(!uid) return; dbUpsert("costs",        costToDb(o, uid, fields)); };
+
+  // ── State + DB同期（UIは即時更新・DB保存はバックグラウンド） ──
+  const setFields = (arr, item) => { setFieldsR(arr); if(item) dbSaveField(item); };
+  const setCrops  = (arr, item, flds) => { setCropsR(arr); if(item) dbSaveCrop(item, flds); };
+  const setLogs   = (arr, item) => { setLogsR(arr); if(item) dbSaveLog(item); };
+  const setFertMs = (arr, item) => { setFertMsR(arr); if(item) dbSaveFertM(item); };
+  const setPestMs = (arr, item) => { setPestMsR(arr); if(item) dbSavePestM(item); };
+  const setEquips = (arr, item) => { setEquipsR(arr); if(item) dbSaveEquip(item); };
+  const setCosts  = (arr, item) => { setCostsR(arr); if(item) dbSaveCost(item); };
+  const setApiKey = v => { setApiKeyR(v); localStorage.setItem("sakumemo_key",v); };
+
+  const signOut=async()=>{ await sb.auth.signOut(); setUser(null);setFieldsR([]);setCropsR([]);setLogsR([]);setFertMsR([]);setPestMsR([]);setEquipsR([]);setCostsR([]); };
+
+  const TITLES={home:"作物の記録アプリ",master:"マスター登録",fields:"圃場・品目管理",log:"作業記録",cost:"費用管理",report:"分析レポート",settings:"設定"};
+
+  const loading_screen = bg => <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100svh",background:"linear-gradient(135deg,"+GD+","+G+")"}}><style>{globalCss}</style><div style={{color:"#fff",textAlign:"center"}}><div style={{fontSize:"2rem",marginBottom:10}}>🌾</div><div>{bg}</div></div></div>;
+
+  if(authLoad) return loading_screen("読み込み中…");
+  if(!user)    return <LoginScreen/>;
+  // dbLoad中は前の画面を薄くして表示（読込中でも操作可能）
+  // → loading_screen を使わずにオーバーレイで表示
+
+  return (
+    <div id="app-root" style={S.app}>
+      <style>{globalCss}</style>
+      <div id="top-bar" style={S.topbar}>
+        <span style={{fontSize:"1.3rem"}}>🌾</span>
+        <span style={S.logo}>サクメモ</span>
+        <span style={{fontSize:".68rem",opacity:.58,flex:1,marginLeft:6,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{TITLES[scr]||""}</span>
+        <div style={{display:"flex",alignItems:"center",gap:5,flexShrink:0}}>
+          <span style={{fontSize:".65rem",opacity:.7,maxWidth:80,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{user.email}</span>
+          <button style={S.tbBtn} onClick={()=>setScr("settings")}>⚙️</button>
+          <button style={S.tbBtn} onClick={signOut}>ログアウト</button>
+        </div>
+      </div>
+      {/* PC horizontal tab nav - hidden on mobile via CSS */}
+      <div id="pc-nav" style={{display:"none",background:GD,width:"100%",flexShrink:0,overflowX:"auto"}}>
+        <div style={{display:"flex",gap:0,minWidth:"max-content"}}>
+          {SCREENS.map(s=>(
+            <button key={s.key} onClick={()=>{if(s.key!=="fields")setPendingEditCrop(null);setScr(s.key);}}
+              style={{display:"flex",alignItems:"center",gap:6,padding:"9px 16px",background:"none",border:"none",
+                color:scr===s.key?"#9ffcb4":"rgba(255,255,255,.55)",
+                borderBottom:scr===s.key?"2px solid #9ffcb4":"2px solid transparent",
+                fontSize:".78rem",cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>
+              <span style={{fontSize:"1rem"}}>{s.icon}</span>{s.label}
+            </button>
+          ))}
+          <button onClick={()=>setScr("settings")}
+            style={{display:"flex",alignItems:"center",gap:6,padding:"9px 16px",background:"none",border:"none",
+              color:scr==="settings"?"#9ffcb4":"rgba(255,255,255,.55)",
+              borderBottom:scr==="settings"?"2px solid #9ffcb4":"2px solid transparent",
+              fontSize:".78rem",cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>
+            <span style={{fontSize:"1rem"}}>⚙️</span>設定
+          </button>
+        </div>
+      </div>
+      <div id="main-scroll" style={S.main}>
+        {scr==="home"    &&<HomeScreen    fields={fields} crops={crops} logs={logs} costs={costs} onEditCrop={c=>{setPendingEditCrop(c);setScr("fields");}}/>}
+        {scr==="master"  &&<MasterScreen  fertMs={fertMs} setFertMs={setFertMs} pestMs={pestMs} setPestMs={setPestMs} equips={equips} setEquips={setEquips} costs={costs} setCosts={setCosts} showToast={showToast}/>}
+        {scr==="fields"  &&<FieldsScreen  fields={fields} setFields={setFields} setFieldsR={setFieldsR} crops={crops} setCrops={setCrops} setCropsR={setCropsR} costs={costs} setCosts={setCosts} logs={logs} showToast={showToast} editCrop={pendingEditCrop}/>}
+        {scr==="log" && <TimelineScreen fields={fields} crops={crops} equips={equips} logs={logs} setLogs={setLogs} showToast={showToast} onEdit={l=>{setInitLog(l);setLogModal(true);}} onNew={()=>{setInitLog(null);setLogModal(true);}}/> }
+        
+        {scr==="cost"    &&<CostScreen    fields={fields} fertMs={fertMs} pestMs={pestMs} equips={equips} costs={costs} setCosts={setCosts} logs={logs} showToast={showToast}/>}
+
+        {scr==="report"  &&<ReportScreen  fields={fields} crops={crops} logs={logs} costs={costs} fertMs={fertMs} pestMs={pestMs}/>}
+        {scr==="settings"&&<SettingsScreen showToast={showToast} user={user} uid={uid} signOut={signOut} fields={fields} crops={crops} logs={logs} fertMs={fertMs} pestMs={pestMs} equips={equips} costs={costs}/>}
+      </div>
+      <nav id="bot-nav" style={S.bnav}>
+        {SCREENS.map(s=>(
+          <button key={s.key} onClick={()=>{if(s.key!=="fields")setPendingEditCrop(null);setScr(s.key);}} style={s.key==="log"?S.bBtn:scr===s.key?S.bBtnOn:S.bBtn}>
+            <span style={{fontSize:"1.1rem",lineHeight:1}}>{s.icon}</span>{s.label}
+          </button>
+        ))}
+      </nav>
+      {/* 作業記録モーダル - 常にDOMに存在させて入力内容を保持 */}
+      <div style={{position:"fixed",top:52,left:0,right:0,bottom:0,zIndex:9999,background:"#f8f5ef",display:"flex",flexDirection:"column",visibility:logModal?"visible":"hidden",pointerEvents:logModal?"auto":"none"}}>
+          <div style={{background:GD,color:"#fff",padding:"11px 13px",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
+            <span style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".95rem",fontWeight:700}}>{initLog?"✏️ 作業を編集":"📝 記録する"}</span>
+            <button onClick={()=>{setLogModal(false);setInitLog(null);}} style={{background:"rgba(255,255,255,.2)",border:"1px solid rgba(255,255,255,.3)",color:"#fff",borderRadius:8,padding:"6px 14px",fontSize:".82rem",fontWeight:700,cursor:"pointer"}}>✕</button>
+          </div>
+          <div style={{flex:1,overflowY:"auto",WebkitOverflowScrolling:"touch"}}>
+            <LogScreen fields={fields} crops={crops} setCrops={setCrops} fertMs={fertMs} pestMs={pestMs} equips={equips} costs={costs} setCosts={setCosts} logs={logs} setLogs={setLogs} showToast={showToast} initialWork={initWork} editLog={initLog} uid={uid} onDone={()=>{setLogModal(false);setInitLog(null);}}/>
+          </div>
+        </div>
+      {dbLoad && (
+        <div style={{position:"fixed",top:0,left:0,right:0,height:3,zIndex:9998,background:"linear-gradient(90deg,"+G+","+G2+")",animation:"loading 1.5s ease-in-out infinite"}}/>
+      )}
+      <Toast msg={toast}/>
+    </div>
+  );
+}
