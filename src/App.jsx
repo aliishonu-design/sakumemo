@@ -473,17 +473,10 @@ function LoginScreen() {
   const [loading,  setLoading]  = useState(false);
   const [err,      setErr]      = useState("");
   const [agreed,   setAgreed]   = useState(false);
-  const [mode,     setMode]     = useState("top");
+  const [mode,     setMode]     = useState("login");
   const [email,    setEmail]    = useState("");
   const [password, setPassword] = useState("");
   const [showPw,   setShowPw]   = useState(false);
-
-  const loginGoogle = async () => {
-    if(!agreed){setErr("利用規約に同意してください");return;}
-    setLoading(true);setErr("");
-    const {error}=await sb.auth.signInWithOAuth({provider:"google",options:{redirectTo:window.location.origin,queryParams:{prompt:"select_account"}}});
-    if(error){setErr(error.message);setLoading(false);}
-  };
 
   const loginEmail = async () => {
     if(!agreed){setErr("利用規約に同意してください");return;}
@@ -537,8 +530,8 @@ function LoginScreen() {
           <input type="checkbox" id="agree" checked={agreed} onChange={e=>setAgreed(e.target.checked)}
               style={{marginTop:3,width:16,height:16,accentColor:G,flexShrink:0,cursor:"pointer"}}/>
           <label htmlFor="agree" style={{fontSize:".72rem",color:"#5a5040",lineHeight:1.6,cursor:"pointer"}}>
-            <a href="https://sakumemo-jp.com/privacy-policy.html" target="_blank" style={{color:G,fontWeight:700}}>プライバシーポリシー</a>・
-            <a href="https://sakumemo-jp.com/terms-of-service.html" target="_blank" style={{color:G,fontWeight:700}}>利用規約</a>に同意する
+            <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G,fontWeight:700}}>プライバシーポリシー</a>・
+            <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G,fontWeight:700}}>利用規約</a>に同意する
           </label>
           </div>
           <button onClick={loginGoogle} disabled={loading||!agreed}
@@ -567,13 +560,13 @@ function LoginScreen() {
         </>}
 
         {mode==="login"&&<>
-          <div style={{fontWeight:700,fontSize:".9rem",marginBottom:12,textAlign:"left"}}>📧 メールでログイン</div>
+          <div style={{fontWeight:700,fontSize:".9rem",marginBottom:16,textAlign:"center"}}>📧 メールアドレスでログイン</div>
           <div style={{display:"flex",alignItems:"flex-start",gap:8,marginBottom:14,textAlign:"left"}}>
           <input type="checkbox" id="agree" checked={agreed} onChange={e=>setAgreed(e.target.checked)}
               style={{marginTop:3,width:16,height:16,accentColor:G,flexShrink:0,cursor:"pointer"}}/>
           <label htmlFor="agree" style={{fontSize:".72rem",color:"#5a5040",lineHeight:1.6,cursor:"pointer"}}>
-            <a href="https://sakumemo-jp.com/privacy-policy.html" target="_blank" style={{color:G,fontWeight:700}}>プライバシーポリシー</a>・
-            <a href="https://sakumemo-jp.com/terms-of-service.html" target="_blank" style={{color:G,fontWeight:700}}>利用規約</a>に同意する
+            <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G,fontWeight:700}}>プライバシーポリシー</a>・
+            <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G,fontWeight:700}}>利用規約</a>に同意する
           </label>
           </div>
           <div style={{textAlign:"left"}}>
@@ -594,8 +587,8 @@ function LoginScreen() {
               </div>
             </div>
           </div>
-          <button onClick={loginEmail} disabled={loading||!agreed}
-            style={{width:"100%",padding:"11px",background:(loading||!agreed)?"#ccc":G,color:"#fff",border:"none",borderRadius:12,fontSize:".86rem",fontWeight:700,cursor:"pointer",fontFamily:"inherit",marginBottom:6}}>
+          <button onClick={loginEmail} disabled={loading}
+            style={{width:"100%",padding:"11px",background:loading?"#ccc":G,color:"#fff",border:"none",borderRadius:12,fontSize:".86rem",fontWeight:700,cursor:"pointer",fontFamily:"inherit",marginBottom:6}}>
             {loading?"ログイン中…":"ログイン"}
           </button>
           {err&&<div style={{color:"#e74c3c",fontSize:".78rem",marginTop:4,marginBottom:4}}>{err}</div>}
@@ -614,8 +607,8 @@ function LoginScreen() {
           <input type="checkbox" id="agree" checked={agreed} onChange={e=>setAgreed(e.target.checked)}
               style={{marginTop:3,width:16,height:16,accentColor:G,flexShrink:0,cursor:"pointer"}}/>
           <label htmlFor="agree" style={{fontSize:".72rem",color:"#5a5040",lineHeight:1.6,cursor:"pointer"}}>
-            <a href="https://sakumemo-jp.com/privacy-policy.html" target="_blank" style={{color:G,fontWeight:700}}>プライバシーポリシー</a>・
-            <a href="https://sakumemo-jp.com/terms-of-service.html" target="_blank" style={{color:G,fontWeight:700}}>利用規約</a>に同意する
+            <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G,fontWeight:700}}>プライバシーポリシー</a>・
+            <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G,fontWeight:700}}>利用規約</a>に同意する
           </label>
           </div>
           <div style={{textAlign:"left"}}>
@@ -636,8 +629,8 @@ function LoginScreen() {
               </div>
             </div>
           </div>
-          <button onClick={signupEmail} disabled={loading||!agreed}
-            style={{width:"100%",padding:"11px",background:(loading||!agreed)?"#ccc":G,color:"#fff",border:"none",borderRadius:12,fontSize:".86rem",fontWeight:700,cursor:"pointer",fontFamily:"inherit",marginBottom:6}}>
+          <button onClick={signupEmail} disabled={loading}
+            style={{width:"100%",padding:"11px",background:loading?"#ccc":G,color:"#fff",border:"none",borderRadius:12,fontSize:".86rem",fontWeight:700,cursor:"pointer",fontFamily:"inherit",marginBottom:6}}>
             {loading?"登録中…":"登録する"}
           </button>
           {err&&<div style={{color:"#e74c3c",fontSize:".78rem",marginTop:4,marginBottom:4}}>{err}</div>}
@@ -648,8 +641,8 @@ function LoginScreen() {
         </>}
 
         <div style={{fontSize:".66rem",color:"#a09070",marginTop:14,lineHeight:1.6}}>
-          <a href="https://sakumemo-jp.com/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
-          <a href="https://sakumemo-jp.com/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
+          <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
+          <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
       </div>
     </div>
@@ -2056,11 +2049,11 @@ function SettingsScreen({ showToast, user, uid, signOut, fields, crops, logs, fe
       </div>
       <div style={{...S.card,fontSize:".76rem",color:TX3,lineHeight:1.8}}>
         <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:10}}>
-          <a href="https://sakumemo-jp.com/privacy-policy.html" target="_blank"
+          <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank"
             style={{background:"#f0f0e8",border:"1px solid #e0d9ce",borderRadius:8,padding:"6px 12px",fontSize:".76rem",color:"#2d6a3f",textDecoration:"none",fontWeight:700}}>
             🔒 プライバシーポリシー
           </a>
-          <a href="https://sakumemo-jp.com/terms-of-service.html" target="_blank"
+          <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank"
             style={{background:"#f0f0e8",border:"1px solid #e0d9ce",borderRadius:8,padding:"6px 12px",fontSize:".76rem",color:"#2d6a3f",textDecoration:"none",fontWeight:700}}>
             📋 利用規約
           </a>
