@@ -2,8 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { createClient } from "@supabase/supabase-js";
 
 const sb = createClient(
-  "https://zmpvnvlkaadsdpwudlzq.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InptcHZudmxrYWFkc2Rwd3VkbHpxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU0NzEyOTAsImV4cCI6MjA5MTA0NzI5MH0.qImXQYWOylbku2duOFSfD6HTaeYqeF_PLeiVezwj2RI"
+  "https://nlamtphkwdoxtjktkjzo.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5sYW10cGhrd2RveHRqa3RranpvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3ODI3NzYsImV4cCI6MjA5MzM1ODc3Nn0.8gba30xxu0s132vg_xOA6-Y3XWjR1YhaprIgUYHZO0o"
 );
 
 // DB helpers
