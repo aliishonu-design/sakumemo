@@ -2125,7 +2125,7 @@ function SettingsScreen({ showToast, user, uid, signOut, fields, crops, logs, fe
           </a>
         </div>
         <div style={{fontSize:".72rem",color:"#a09070"}}>
-          お問い合わせ：ori.craft.2018@gmail.com
+          お問い合わせ：sakumemo.app@gmail.com
         </div>
       </div>
     </div>
