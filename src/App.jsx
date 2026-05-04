@@ -512,7 +512,7 @@ function SetPasswordScreen({ onDone }) {
               <div style={{position:"relative"}}>
                 <input type={showPw?"text":"password"} value={password} onChange={e=>setPassword(e.target.value)}
                   placeholder="パスワードを設定"
-                  style={{width:"100%",padding:"9px 36px 9px 12px",border:"1.5px solid #e0d9ce",borderRadius:8,fontSize:".86rem",fontFamily:"inherit",outline:"none"}}/>
+                  style={{width:"100%",padding:"9px 36px 9px 12px",border:"1.5px solid #e0d9ce",borderRadius:8,fontSize:"16px",fontFamily:"inherit",outline:"none"}}/>
                 <button type="button" onClick={()=>setShowPw(p=>!p)}
                   style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",fontSize:".8rem",color:"#888"}}>
                   {showPw?"🙈":"👁"}
@@ -523,7 +523,7 @@ function SetPasswordScreen({ onDone }) {
               <div style={{fontSize:".74rem",fontWeight:700,color:"#5c3d1e",marginBottom:3}}>パスワード（確認）</div>
               <input type="password" value={confirm} onChange={e=>setConfirm(e.target.value)}
                 placeholder="もう一度入力"
-                style={{width:"100%",padding:"9px 12px",border:"1.5px solid #e0d9ce",borderRadius:8,fontSize:".86rem",fontFamily:"inherit",outline:"none"}}/>
+                style={{width:"100%",padding:"9px 12px",border:"1.5px solid #e0d9ce",borderRadius:8,fontSize:"16px",fontFamily:"inherit",outline:"none"}}/>
             </div>
             {err&&<div style={{color:ALERT,fontSize:".78rem",marginBottom:12}}>{err}</div>}
             <button onClick={submit} disabled={loading}
@@ -538,7 +538,7 @@ function SetPasswordScreen({ onDone }) {
 }
 
 function LoginScreen() {
-  const [mode,    setMode]    = useState("login"); // login / signup / reset
+  const [mode,    setMode]    = useState("login");
   const [email,   setEmail]   = useState("");
   const [password,setPassword]= useState("");
   const [confirm, setConfirm] = useState("");
@@ -560,7 +560,7 @@ function LoginScreen() {
     setLoading(true);setErr("");
     const {error}=await sb.auth.signUp({email,password,options:{emailRedirectTo:window.location.origin}});
     if(error){setErr(error.message);setLoading(false);}
-    else{setErr("✅ 確認メールを送信しました。メールのリンクをクリックして登録を完了してください。");setLoading(false);}
+    else{setErr("✅ 確認メールを送信しました");setLoading(false);}
   };
 
   const resetPw = async () => {
@@ -571,30 +571,6 @@ function LoginScreen() {
     setLoading(false);
   };
 
-  const EmailInput = ()=>(
-    <div style={{marginBottom:8}}>
-      <div style={{fontSize:".74rem",fontWeight:700,color:"#5c3d1e",marginBottom:3}}>メールアドレス</div>
-      <input type="email" value={email} onChange={e=>setEmail(e.target.value)}
-        placeholder="example@gmail.com" autoComplete="email"
-        style={{width:"100%",padding:"9px 12px",border:"1.5px solid #e0d9ce",borderRadius:8,fontSize:"16px",fontFamily:"inherit",outline:"none"}}/>
-    </div>
-  );
-
-  const PwInput = ({label,ac})=>(
-    <div style={{marginBottom:12}}>
-      <div style={{fontSize:".74rem",fontWeight:700,color:"#5c3d1e",marginBottom:3}}>{label||"パスワード"}</div>
-      <div style={{position:"relative"}}>
-        <input type={showPw?"text":"password"} value={password} onChange={e=>setPassword(e.target.value)}
-          placeholder="パスワード" autoComplete={ac||"current-password"}
-          style={{width:"100%",padding:"9px 36px 9px 12px",border:"1.5px solid #e0d9ce",borderRadius:8,fontSize:"16px",fontFamily:"inherit",outline:"none"}}/>
-        <button type="button" onClick={()=>setShowPw(p=>!p)}
-          style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",fontSize:".8rem",color:"#888"}}>
-          {showPw?"🙈":"👁"}
-        </button>
-      </div>
-    </div>
-  );
-
   return (
     <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:"100svh",background:"linear-gradient(135deg,"+GD+","+G+")",padding:20}}>
       <style>{globalCss}</style>
@@ -603,7 +579,6 @@ function LoginScreen() {
         <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:"1.3rem",color:G,marginBottom:4}}>サクメモ</div>
         <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ</div>
 
-        {/* タブ */}
         {mode!=="reset"&&<div style={{display:"flex",gap:0,marginBottom:20,borderRadius:10,overflow:"hidden",border:"1.5px solid #e0d9ce"}}>
           {[["login","ログイン"],["signup","新規登録"]].map(([m,l])=>(
             <button key={m} onClick={()=>{setMode(m);setErr("");}}
@@ -613,10 +588,25 @@ function LoginScreen() {
           ))}
         </div>}
 
-        {/* ログイン */}
         {mode==="login"&&<div style={{textAlign:"left"}}>
-          <EmailInput/>
-          <PwInput ac="current-password"/>
+          <div style={{marginBottom:8}}>
+            <div style={{fontSize:".74rem",fontWeight:700,color:"#5c3d1e",marginBottom:3}}>メールアドレス</div>
+            <input type="email" value={email} onChange={e=>setEmail(e.target.value)}
+              placeholder="example@gmail.com" autoComplete="email"
+              style={{width:"100%",padding:"9px 12px",border:"1.5px solid #e0d9ce",borderRadius:8,fontSize:"16px",fontFamily:"inherit",outline:"none"}}/>
+          </div>
+          <div style={{marginBottom:16}}>
+            <div style={{fontSize:".74rem",fontWeight:700,color:"#5c3d1e",marginBottom:3}}>パスワード</div>
+            <div style={{position:"relative"}}>
+              <input type={showPw?"text":"password"} value={password} onChange={e=>setPassword(e.target.value)}
+                placeholder="パスワード" autoComplete="current-password"
+                style={{width:"100%",padding:"9px 36px 9px 12px",border:"1.5px solid #e0d9ce",borderRadius:8,fontSize:"16px",fontFamily:"inherit",outline:"none"}}/>
+              <button type="button" onClick={()=>setShowPw(p=>!p)}
+                style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",fontSize:".8rem",color:"#888"}}>
+                {showPw?"🙈":"👁"}
+              </button>
+            </div>
+          </div>
           <button onClick={loginEmail} disabled={loading}
             style={{width:"100%",padding:"11px",background:loading?"#ccc":G,color:"#fff",border:"none",borderRadius:12,fontSize:".9rem",fontWeight:700,cursor:"pointer",fontFamily:"inherit",marginBottom:8}}>
             {loading?"ログイン中…":"ログイン"}
@@ -628,11 +618,26 @@ function LoginScreen() {
           </button>
         </div>}
 
-        {/* 新規登録 */}
         {mode==="signup"&&<div style={{textAlign:"left"}}>
-          <EmailInput/>
-          <PwInput label="パスワード（6文字以上）" ac="new-password"/>
-          <div style={{marginBottom:12}}>
+          <div style={{marginBottom:8}}>
+            <div style={{fontSize:".74rem",fontWeight:700,color:"#5c3d1e",marginBottom:3}}>メールアドレス</div>
+            <input type="email" value={email} onChange={e=>setEmail(e.target.value)}
+              placeholder="example@gmail.com" autoComplete="email"
+              style={{width:"100%",padding:"9px 12px",border:"1.5px solid #e0d9ce",borderRadius:8,fontSize:"16px",fontFamily:"inherit",outline:"none"}}/>
+          </div>
+          <div style={{marginBottom:8}}>
+            <div style={{fontSize:".74rem",fontWeight:700,color:"#5c3d1e",marginBottom:3}}>パスワード（6文字以上）</div>
+            <div style={{position:"relative"}}>
+              <input type={showPw?"text":"password"} value={password} onChange={e=>setPassword(e.target.value)}
+                placeholder="パスワード" autoComplete="new-password"
+                style={{width:"100%",padding:"9px 36px 9px 12px",border:"1.5px solid #e0d9ce",borderRadius:8,fontSize:"16px",fontFamily:"inherit",outline:"none"}}/>
+              <button type="button" onClick={()=>setShowPw(p=>!p)}
+                style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",fontSize:".8rem",color:"#888"}}>
+                {showPw?"🙈":"👁"}
+              </button>
+            </div>
+          </div>
+          <div style={{marginBottom:16}}>
             <div style={{fontSize:".74rem",fontWeight:700,color:"#5c3d1e",marginBottom:3}}>パスワード（確認）</div>
             <input type="password" value={confirm} onChange={e=>setConfirm(e.target.value)}
               placeholder="もう一度入力" autoComplete="new-password"
@@ -645,10 +650,14 @@ function LoginScreen() {
           {err&&<div style={{color:err.includes("✅")?"#2d6a3f":"#e74c3c",fontSize:".78rem",marginBottom:8,textAlign:"center"}}>{err}</div>}
         </div>}
 
-        {/* パスワードリセット */}
         {mode==="reset"&&<div style={{textAlign:"left"}}>
           <div style={{fontSize:".8rem",color:TX3,marginBottom:12,textAlign:"center"}}>登録メールにリセット用リンクを送ります</div>
-          <EmailInput/>
+          <div style={{marginBottom:16}}>
+            <div style={{fontSize:".74rem",fontWeight:700,color:"#5c3d1e",marginBottom:3}}>メールアドレス</div>
+            <input type="email" value={email} onChange={e=>setEmail(e.target.value)}
+              placeholder="example@gmail.com" autoComplete="email"
+              style={{width:"100%",padding:"9px 12px",border:"1.5px solid #e0d9ce",borderRadius:8,fontSize:"16px",fontFamily:"inherit",outline:"none"}}/>
+          </div>
           <button onClick={resetPw} disabled={loading}
             style={{width:"100%",padding:"11px",background:loading?"#ccc":G,color:"#fff",border:"none",borderRadius:12,fontSize:".9rem",fontWeight:700,cursor:"pointer",fontFamily:"inherit",marginBottom:8}}>
             {loading?"送信中…":"リセットメールを送信"}
@@ -2066,7 +2075,7 @@ function PwChangeSection() {
   );
 }
 
-function SettingsScreen({ showToast, user, uid, signOut, fields, crops, logs, fertMs, pestMs, equips, costs }) {
+function SettingsScreen({ showToast, user, uid, signOut, fields, crops, logs, fertMs, pestMs, equips, costs, setScr }) {
   const doExport=()=>{ const d=JSON.stringify({fields,crops,logs,fertMs,pestMs,equips,costs},null,2);const a=document.createElement("a");a.href="data:application/json;charset=utf-8,"+encodeURIComponent(d);a.download="farm-ai-export-"+todayStr()+".json";a.click(); };
   return (
     <div style={S.scr} className="scr-inner">
