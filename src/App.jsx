@@ -9,7 +9,11 @@ const sb = createClient(
 // DB helpers
 const dbFetch = async (table, uid) => {
   const { data, error } = await sb.from(table).select("*").eq("user_id", uid).order("created_at");
-  if (error) { console.error(table, error.message); return []; }
+  if (error) {
+    console.error("DB fetch error:", table, error.code, error.message);
+    return [];
+  }
+  console.log("DB fetch OK:", table, data?.length, "rows");
   return data || [];
 };
 const dbUpsert = async (table, row) => {
@@ -2187,9 +2191,42 @@ export default function App() {
 
   // Auth
   useEffect(()=>{
-    sb.auth.getSession().then(({data:{session}})=>{ setUser(session?.user??null); setAuthLoad(false); });
-    const {data:{subscription}}=sb.auth.onAuthStateChange((_,session)=>setUser(session?.user??null));
-    return ()=>subscription.unsubscribe();
+    // 初回セッション取得 + recovery/invite検出
+    sb.auth.getSession().then(({data:{session}})=>{
+      const hash = window.location.hash;
+      if(hash.includes('type=recovery')||hash.includes('type=invite')){
+        setInviteMode(true);
+        setUser(null);
+      } else {
+        setUser(session?.user??null);
+      }
+      setAuthLoad(false);
+    });
+    // onAuthStateChange でrecovery/invite検出
+    const {data:{subscription}}=sb.auth.onAuthStateChange((event, session)=>{
+      const hash = window.location.hash;
+      const params = new URLSearchParams(hash.replace('#','?'));
+      const type = params.get('type');
+      if((event==='SIGNED_IN'||event==='USER_UPDATED')&&(type==='recovery'||type==='invite')){
+        setInviteMode(true);
+        setUser(null);
+        setAuthLoad(false);
+        return;
+      }
+      setUser(session?.user??null);
+      if(event!=='INITIAL_SESSION') setAuthLoad(false);
+    });
+    // バックグラウンド復帰時
+    const onVisible = ()=>{
+      if(document.visibilityState==='visible'){
+        sb.auth.getSession().then(({data:{session}})=>setUser(session?.user??null));
+      }
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return ()=>{
+      subscription.unsubscribe();
+      document.removeEventListener('visibilitychange', onVisible);
+    };
   },[]);
 
   // Load from Supabase
