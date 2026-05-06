@@ -255,14 +255,18 @@ async function compressImage(file) {
 async function uploadPhoto(blob, userId, filename) {
   try {
     const path = userId + "/" + filename;
+    console.log("Uploading to farm-photos:", path, "size:", blob.size);
     const { data: uploadData, error } = await sb.storage
       .from("farm-photos")
       .upload(path, blob, { contentType:"image/jpeg", upsert:true });
     if (error) {
-      console.error("upload error:", error.message, error);
+      console.error("upload error:", error.message, error.statusCode, error);
+      alert("写真のアップロードに失敗しました:\n" + error.message + "\n(Status: " + error.statusCode + ")");
       return null;
     }
+    console.log("Upload success:", uploadData);
     const { data } = sb.storage.from("farm-photos").getPublicUrl(path);
+    console.log("Public URL:", data?.publicUrl);
     return data?.publicUrl || null;
   } catch(e) {
     console.error("uploadPhoto exception:", e.message);
