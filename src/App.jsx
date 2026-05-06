@@ -578,6 +578,9 @@ function LoginScreen() {
     setLoading(false);
   };
 
+  const linkErr = window.__linkError || "";
+  if(linkErr) { window.__linkError = null; }
+
   return (
     <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:"100svh",background:"linear-gradient(135deg,"+GD+","+G+")",padding:20}}>
       <style>{globalCss}</style>
@@ -585,6 +588,7 @@ function LoginScreen() {
         <div style={{fontSize:"2.2rem",marginBottom:6}}>🌾</div>
         <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:"1.3rem",color:G,marginBottom:4}}>サクメモ</div>
         <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ</div>
+        {linkErr&&<div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:8,padding:"10px 12px",marginBottom:16,fontSize:".78rem",color:"#856404",textAlign:"left"}}>{linkErr}</div>}
 
         {mode!=="reset"&&<div style={{display:"flex",gap:0,marginBottom:20,borderRadius:10,overflow:"hidden",border:"1.5px solid #e0d9ce"}}>
           {[["login","ログイン"],["signup","新規登録"]].map(([m,l])=>(
@@ -2191,41 +2195,38 @@ export default function App() {
 
   // Auth
   useEffect(()=>{
-    // 初回セッション取得 + recovery/invite検出
-    sb.auth.getSession().then(({data:{session}})=>{
-      const hash = window.location.hash;
-      if(hash.includes('type=recovery')||hash.includes('type=invite')){
-        setInviteMode(true);
-        setUser(null);
-      } else {
-        setUser(session?.user??null);
-      }
-      setAuthLoad(false);
-    });
-    // onAuthStateChange でrecovery/invite検出
     const {data:{subscription}}=sb.auth.onAuthStateChange((event, session)=>{
-      const hash = window.location.hash;
-      const params = new URLSearchParams(hash.replace('#','?'));
-      const type = params.get('type');
-      if((event==='SIGNED_IN'||event==='USER_UPDATED')&&(type==='recovery'||type==='invite')){
+      console.log("AUTH EVENT:", event, session?.user?.email);
+      if(event==='PASSWORD_RECOVERY'){
+        // パスワードリセットリンクをクリックした → パスワード設定画面へ
         setInviteMode(true);
         setUser(null);
         setAuthLoad(false);
         return;
       }
+      if(event==='INITIAL_SESSION'){
+        const hash = window.location.hash;
+        if(hash.includes('error=access_denied')||hash.includes('otp_expired')){
+          window.__linkError='リンクの有効期限が切れています。もう一度お試しください。';
+          window.history.replaceState(null,'',window.location.pathname);
+          setUser(null);
+          setAuthLoad(false);
+          return;
+        }
+      }
       setUser(session?.user??null);
-      if(event!=='INITIAL_SESSION') setAuthLoad(false);
+      setAuthLoad(false);
     });
     // バックグラウンド復帰時
-    const onVisible = ()=>{
+    const onVisible=()=>{
       if(document.visibilityState==='visible'){
         sb.auth.getSession().then(({data:{session}})=>setUser(session?.user??null));
       }
     };
-    document.addEventListener('visibilitychange', onVisible);
+    document.addEventListener('visibilitychange',onVisible);
     return ()=>{
       subscription.unsubscribe();
-      document.removeEventListener('visibilitychange', onVisible);
+      document.removeEventListener('visibilitychange',onVisible);
     };
   },[]);
 
@@ -2321,7 +2322,7 @@ export default function App() {
         {scr==="cost"    &&<CostScreen    fields={fields} fertMs={fertMs} pestMs={pestMs} equips={equips} costs={costs} setCosts={setCosts} logs={logs} showToast={showToast}/>}
 
         {scr==="report"  &&<ReportScreen  fields={fields} crops={crops} logs={logs} costs={costs} fertMs={fertMs} pestMs={pestMs}/>}
-        {scr==="settings"&&<SettingsScreen showToast={showToast} user={user} uid={uid} signOut={signOut} fields={fields} crops={crops} logs={logs} fertMs={fertMs} pestMs={pestMs} equips={equips} costs={costs}/>}
+        {scr==="settings"&&<SettingsScreen showToast={showToast} user={user} uid={uid} signOut={signOut} fields={fields} crops={crops} logs={logs} fertMs={fertMs} pestMs={pestMs} equips={equips} costs={costs} setScr={setScr}/>}
       </div>
       <nav id="bot-nav" style={S.bnav}>
         {SCREENS.map(s=>(
