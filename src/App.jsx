@@ -19,9 +19,11 @@ const dbFetch = async (table, uid) => {
 const dbUpsert = async (table, row) => {
   const { error } = await sb.from(table).upsert(row, { onConflict: "id" });
   if (error) {
-    console.error("upsert", table, error.message, row);
-    // 開発用: エラーをアラートで表示
-    // alert("保存エラー: " + table + " - " + error.message);
+    console.error("DB保存エラー:", table, error.code, error.message);
+    // ユーザーに通知（重要なエラーの場合）
+    if(error.code === "42703") {
+      alert("データベースエラー: カラムが見つかりません(" + table + ")\nSupabaseのSQL設定を確認してください: " + error.message);
+    }
   }
 };
 const dbDelete = async (table, id) => {
@@ -518,7 +520,7 @@ function SetPasswordScreen({ onDone }) {
               <div style={{fontSize:".74rem",fontWeight:700,color:"#5c3d1e",marginBottom:3}}>パスワード（6文字以上）</div>
               <div style={{position:"relative"}}>
                 <input type={showPw?"text":"password"} value={password} onChange={e=>setPassword(e.target.value)}
-                  placeholder="パスワードを設定"
+                  placeholder="パスワードを設定" autoComplete="new-password" id="new-password"
                   style={{width:"100%",padding:"9px 36px 9px 12px",border:"1.5px solid #e0d9ce",borderRadius:8,fontSize:"16px",fontFamily:"inherit",outline:"none"}}/>
                 <button type="button" onClick={()=>setShowPw(p=>!p)}
                   style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",fontSize:".8rem",color:"#888"}}>
