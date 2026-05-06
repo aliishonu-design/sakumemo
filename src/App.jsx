@@ -686,6 +686,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v0.5.0</div>
       </div>
     </div>
   );
@@ -1107,11 +1108,17 @@ function FieldsScreen({ fields, setFields, setFieldsR, crops, setCrops, setCrops
   },[editCrop]);
   const eF={ id:uid0(),name:"",area:"",soil:"砂壌土",addr:"",memo:"" };
   const eC={ id:uid0(),fieldId:"",fieldIdx:0,type:"",variety:"",germRate:"",stocks:"",ridgeW:"",ridgeH:"",rows:"",rowSpace:"",plantSpace:"",sowDate:"",plantDate:"",memo:"",cultivationType:"nursery",growEnv:"field",seedCost:"",seedNote:"",customName:"",potSize:"",potVolume:"",potCount:"" };
-  const saveField=()=>{ if(!mField.name.trim()){showToast("圃場名を入力してください");return;} const item={...mField,id:mField.id||uid0()}; const n=mField._idx!==undefined?fields.map((x,i)=>i===mField._idx?item:x):[...fields,item]; setFields(n,item);setMField(null);showToast("保存しました"); };
+  const saveField=()=>{
+    if(!mField.name.trim()){showToast("圃場名を入力してください");return;}
+    const item={...mField,id:mField.id||uid0()};
+    const n=mField._idx!==undefined?fields.map((x,i)=>i===mField._idx?item:x):[...fields,item];
+    console.log("Saving field:", item, "uid:", uid);
+    setFields(n,item);
+    setMField(null);
+    showToast("保存しました");
+  };
   const saveCrop=()=>{
-    if(!mCrop.type){showToast("作物を選んでください");return;}
-    if(mCrop.cultivationType==="direct"&&!mCrop.plantDate){showToast("播種日を入力してください");return;}
-    if(mCrop.cultivationType==="seedling"&&!mCrop.plantDate){showToast("購入・定植日を入力してください");return;}
+    if(!mCrop.type&&!mCrop.customName){showToast("作物名を入力してください");return;}
     const entry={...mCrop,id:mCrop.id||uid0(),fieldId:fields[mCrop.fieldIdx]?.id||mCrop.fieldId||""};
     const n=mCrop._idx!==undefined?crops.map((x,i)=>i===mCrop._idx?entry:x):[...crops,entry];
     setCrops(n,entry,fields);
@@ -2200,21 +2207,18 @@ export default function App() {
     const {data:{subscription}}=sb.auth.onAuthStateChange((event, session)=>{
       console.log("AUTH EVENT:", event, session?.user?.email);
       if(event==='PASSWORD_RECOVERY'){
-        // パスワードリセットリンクをクリックした → パスワード設定画面へ
         setInviteMode(true);
         setUser(null);
         setAuthLoad(false);
         return;
       }
-      if(event==='INITIAL_SESSION'){
-        const hash = window.location.hash;
-        if(hash.includes('error=access_denied')||hash.includes('otp_expired')){
-          window.__linkError='リンクの有効期限が切れています。もう一度お試しください。';
-          window.history.replaceState(null,'',window.location.pathname);
-          setUser(null);
-          setAuthLoad(false);
-          return;
-        }
+      const hash = window.location.hash;
+      if(hash.includes('error=access_denied')||hash.includes('otp_expired')){
+        window.__linkError='リンクの有効期限が切れています。もう一度お試しください。';
+        window.history.replaceState(null,'',window.location.pathname);
+        setUser(null);
+        setAuthLoad(false);
+        return;
       }
       setUser(session?.user??null);
       setAuthLoad(false);
@@ -2238,6 +2242,7 @@ export default function App() {
     setDbLoad(true);
     const uid=user.id;
     Promise.all([dbFetch("fields",uid),dbFetch("crops",uid),dbFetch("logs",uid),dbFetch("fert_masters",uid),dbFetch("pest_masters",uid),dbFetch("equipments",uid),dbFetch("costs",uid)]).then(([f,c,l,fm,pm,eq,co])=>{
+      console.log("LOAD COMPLETE - fields:", f.length, "crops:", c.length, "logs:", l.length, "fertMs:", fm.length, "pestMs:", pm.length, "equips:", eq.length, "costs:", co.length);
       const rawF=f.map(fieldFromDb);
       const rawC=c.map(r=>cropFromDb(r,rawF));
       const rawL=l.map(r=>logFromDb(r,rawF));
@@ -2245,7 +2250,7 @@ export default function App() {
       setFertMsR(fm.map(fertMFromDb));setPestMsR(pm.map(pestMFromDb));
       setEquipsR(eq.map(equipFromDb));setCostsR(co.map(r=>costFromDb(r,rawF)));
       setDbLoad(false);
-    });
+    }).catch(e=>console.error("LOAD ERROR:", e));
   },[user]);
 
   const uid=user?.id;
