@@ -472,8 +472,8 @@ function ModalWithSave({ open, onClose, title, onSave, saveLabel="保存", child
     <div style={{position:"fixed",top:52,left:0,right:0,bottom:0,zIndex:9999,display:"flex",flexDirection:"column",background:"#f8f5ef"}}>
       <div style={{background:GD,color:"#fff",padding:"11px 13px",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0,gap:8}}>
         <span style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".92rem",fontWeight:700,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{title}</span>
-        <button onClick={onClose} onTouchEnd={e=>{e.preventDefault();onClose();}} style={{background:"rgba(255,255,255,.18)",border:"1px solid rgba(255,255,255,.25)",color:"#fff",borderRadius:8,padding:"6px 12px",fontSize:".8rem",cursor:"pointer",flexShrink:0,minWidth:40,minHeight:40}}>✕</button>
-        <button onClick={onSave} onTouchEnd={e=>{e.preventDefault();onSave();}} style={{background:"#fff",border:"none",color:G,borderRadius:8,padding:"6px 14px",fontSize:".8rem",fontWeight:700,cursor:"pointer",flexShrink:0,minWidth:60,minHeight:40}}>{saveLabel} ✓</button>
+        <button onClick={onClose} style={{background:"rgba(255,255,255,.18)",border:"1px solid rgba(255,255,255,.25)",color:"#fff",borderRadius:8,padding:"6px 12px",fontSize:".8rem",cursor:"pointer",flexShrink:0,minWidth:40,minHeight:40}}>✕</button>
+        <button onClick={onSave} style={{background:"#fff",border:"none",color:G,borderRadius:8,padding:"6px 14px",fontSize:".8rem",fontWeight:700,cursor:"pointer",flexShrink:0,minWidth:60,minHeight:40}}>{saveLabel} ✓</button>
       </div>
       <div style={{flex:1,overflowY:"auto",WebkitOverflowScrolling:"touch",padding:"14px 14px 40px"}}>
         {children}
@@ -690,7 +690,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v0.5.1</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v0.5.3</div>
       </div>
     </div>
   );
@@ -859,6 +859,7 @@ function MasterScreen({ fertMs, setFertMs, pestMs, setPestMs, equips, setEquips,
 
   // 保存
   const saveItem = () => {
+    if(!mItem) return;
     const isEdit = mItem._idx !== undefined;
     const item = {...mItem, id:mItem.id||uid0()};
     if(item._type==="fert"){
@@ -1130,14 +1131,16 @@ function FieldsScreen({ fields, setFields, setFieldsR, crops, setCrops, setCrops
   const eF={ id:uid0(),name:"",area:"",soil:"砂壌土",addr:"",memo:"" };
   const eC={ id:uid0(),fieldId:"",fieldIdx:0,type:"",variety:"",germRate:"",stocks:"",ridgeW:"",ridgeH:"",rows:"",rowSpace:"",plantSpace:"",sowDate:"",plantDate:"",memo:"",cultivationType:"nursery",growEnv:"field",seedCost:"",seedNote:"",customName:"",potSize:"",potVolume:"",potCount:"" };
   const saveField=()=>{
+    if(!mField) return;
     const item={...mField,id:mField.id||uid0()};
     const n=mField._idx!==undefined?fields.map((x,i)=>i===mField._idx?item:x):[...fields,item];
-    console.log("Saving field:", item, "uid:", uid);
+    console.log("saveField:", {item, idx:mField._idx, fieldsLen:fields.length});
     setFields(n,item);
     setMField(null);
     showToast("保存しました");
   };
   const saveCrop=()=>{
+    if(!mCrop) return;
     const entry={...mCrop,id:mCrop.id||uid0(),fieldId:fields[mCrop.fieldIdx]?.id||mCrop.fieldId||""};
     const n=mCrop._idx!==undefined?crops.map((x,i)=>i===mCrop._idx?entry:x):[...crops,entry];
     setCrops(n,entry,fields);
@@ -1639,7 +1642,7 @@ function LogScreen({ fields, crops, setCrops, fertMs, pestMs, equips, costs, set
         <R2><FG label="作業日"><Inp type="date" value={date} onChange={setDate}/></FG><FG label="作業時刻"><Inp type="time" value={time} onChange={setTime}/></FG></R2>
         <FG label="作業時間（分）"><Inp type="number" value={dur} onChange={setDur} placeholder="30"/></FG>
         <FG label="メモ・気づき"><TA value={memo} onChange={setMemo} placeholder="天候・生育状態・気づいたことなど…"/></FG>
-        <Btn style={S.btnG} onClick={doSave} onTouchEnd={e=>{e.preventDefault();doSave();}} disabled={saving||!fields.length}>{saving?"保存中…":editId?"更新する ✓":"記録を保存する ✓"}</Btn>
+        <Btn style={S.btnG} onClick={doSave} disabled={saving}>{saving?"保存中…":editId?"更新する ✓":"記録を保存する ✓"}</Btn>
 
       </div>
     </div>
@@ -2375,7 +2378,7 @@ export default function App() {
             <button onClick={()=>{setLogModal(false);setInitLog(null);}} style={{background:"rgba(255,255,255,.2)",border:"1px solid rgba(255,255,255,.3)",color:"#fff",borderRadius:8,padding:"6px 14px",fontSize:".82rem",fontWeight:700,cursor:"pointer"}}>✕</button>
           </div>
           <div style={{flex:1,overflowY:"auto",WebkitOverflowScrolling:"touch"}}>
-            <LogScreen fields={fields} crops={crops} setCrops={setCrops} fertMs={fertMs} pestMs={pestMs} equips={equips} costs={costs} setCosts={setCosts} logs={logs} setLogs={setLogs} showToast={showToast} initialWork={initWork} editLog={initLog} uid={uid} onDone={()=>{setLogModal(false);setInitLog(null);}}/>
+            <LogScreen uid={uid} fields={fields} crops={crops} setCrops={setCrops} fertMs={fertMs} pestMs={pestMs} equips={equips} costs={costs} setCosts={setCosts} logs={logs} setLogs={setLogs} showToast={showToast} initialWork={initWork} editLog={initLog} uid={uid} onDone={()=>{setLogModal(false);setInitLog(null);}}/>
           </div>
         </div>
       {dbLoad && (
