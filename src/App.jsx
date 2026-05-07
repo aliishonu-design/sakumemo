@@ -435,7 +435,7 @@ function TermTooltip({ children }) {
     </span>
   );
 }
-function Btn({ onClick, style, disabled, children }) { return <button onClick={onClick} disabled={disabled} style={{...S.btn,...style,opacity:disabled?.5:1,cursor:disabled?"not-allowed":"pointer"}}>{children}</button>; }
+function Btn({ onClick, onTouchEnd, style, disabled, children }) { return <button onClick={onClick} onTouchEnd={onTouchEnd} disabled={disabled} style={{...S.btn,...style,opacity:disabled?.5:1,cursor:disabled?"not-allowed":"pointer"}}>{children}</button>; }
 function FG({ label, children }) { return <div style={S.fg}>{label&&<label style={S.lbl}>{label}</label>}{children}</div>; }
 function Inp({ value, onChange, type="text", placeholder="", style={}, ...props }) { return <input type={type} value={value||""} onChange={e=>onChange(e.target.value)} placeholder={placeholder} style={{...S.inp,...style}} {...props} />; }
 function Sel({ value, onChange, options, style={} }) { return <select value={value||""} onChange={e=>{ if(!options.find(o=>o.value===e.target.value)?.disabled) onChange(e.target.value); }} style={{...S.inp,...style}}>{options.map(o=><option key={o.value} value={o.value} disabled={o.disabled} style={o.disabled?{color:"#aaa",fontWeight:700,background:"#f5f5f0"}:{}}>{o.label}</option>)}</select>; }
@@ -472,8 +472,8 @@ function ModalWithSave({ open, onClose, title, onSave, saveLabel="保存", child
     <div style={{position:"fixed",top:52,left:0,right:0,bottom:0,zIndex:9999,display:"flex",flexDirection:"column",background:"#f8f5ef"}}>
       <div style={{background:GD,color:"#fff",padding:"11px 13px",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0,gap:8}}>
         <span style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".92rem",fontWeight:700,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{title}</span>
-        <button onClick={onClose} style={{background:"rgba(255,255,255,.18)",border:"1px solid rgba(255,255,255,.25)",color:"#fff",borderRadius:8,padding:"6px 12px",fontSize:".8rem",cursor:"pointer",flexShrink:0}}>✕</button>
-        <button onClick={onSave} style={{background:"#fff",border:"none",color:G,borderRadius:8,padding:"6px 14px",fontSize:".8rem",fontWeight:700,cursor:"pointer",flexShrink:0}}>{saveLabel} ✓</button>
+        <button onClick={onClose} onTouchEnd={e=>{e.preventDefault();onClose();}} style={{background:"rgba(255,255,255,.18)",border:"1px solid rgba(255,255,255,.25)",color:"#fff",borderRadius:8,padding:"6px 12px",fontSize:".8rem",cursor:"pointer",flexShrink:0,minWidth:40,minHeight:40}}>✕</button>
+        <button onClick={onSave} onTouchEnd={e=>{e.preventDefault();onSave();}} style={{background:"#fff",border:"none",color:G,borderRadius:8,padding:"6px 14px",fontSize:".8rem",fontWeight:700,cursor:"pointer",flexShrink:0,minWidth:60,minHeight:40}}>{saveLabel} ✓</button>
       </div>
       <div style={{flex:1,overflowY:"auto",WebkitOverflowScrolling:"touch",padding:"14px 14px 40px"}}>
         {children}
@@ -1639,7 +1639,7 @@ function LogScreen({ fields, crops, setCrops, fertMs, pestMs, equips, costs, set
         <R2><FG label="作業日"><Inp type="date" value={date} onChange={setDate}/></FG><FG label="作業時刻"><Inp type="time" value={time} onChange={setTime}/></FG></R2>
         <FG label="作業時間（分）"><Inp type="number" value={dur} onChange={setDur} placeholder="30"/></FG>
         <FG label="メモ・気づき"><TA value={memo} onChange={setMemo} placeholder="天候・生育状態・気づいたことなど…"/></FG>
-        <Btn style={S.btnG} onClick={doSave} disabled={saving||!fields.length}>{saving?"保存中…":editId?"更新する ✓":"記録を保存する ✓"}</Btn>
+        <Btn style={S.btnG} onClick={doSave} onTouchEnd={e=>{e.preventDefault();doSave();}} disabled={saving||!fields.length}>{saving?"保存中…":editId?"更新する ✓":"記録を保存する ✓"}</Btn>
 
       </div>
     </div>
