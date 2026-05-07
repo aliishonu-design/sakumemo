@@ -8,7 +8,7 @@ const sb = createClient(
 
 // DB helpers
 const dbFetch = async (table, uid) => {
-  const { data, error } = await sb.from(table).select("*").eq("user_id", uid).order("created_at");
+  const { data, error } = await sb.from(table).select("").eq("user_id", uid).order("created_at");
   if (error) {
     console.error("DB fetch error:", table, error.code, error.message);
     return [];
@@ -690,7 +690,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v0.5.0</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v0.5.1</div>
       </div>
     </div>
   );
@@ -859,7 +859,6 @@ function MasterScreen({ fertMs, setFertMs, pestMs, setPestMs, equips, setEquips,
 
   // 保存
   const saveItem = () => {
-    if(!mItem.name?.trim()){showToast("資材名を入力してください");return;}
     const isEdit = mItem._idx !== undefined;
     const item = {...mItem, id:mItem.id||uid0()};
     if(item._type==="fert"){
@@ -1027,7 +1026,7 @@ function MasterScreen({ fertMs, setFertMs, pestMs, setPestMs, equips, setEquips,
       {/* 登録・編集モーダル */}
       <ModalWithSave open={!!mItem} onClose={()=>setMItem(null)} title={mItem?._idx!==undefined?"資材を編集":"資材を登録"} onSave={saveItem}>
         {mItem&&<>
-          <FG label="資材名 *"><Inp value={mItem.name||""} onChange={v=>setMItem({...mItem,name:v})} placeholder="例：スミチオン乳剤"/></FG>
+          <FG label="資材名"><Inp value={mItem.name||""} onChange={v=>setMItem({...mItem,name:v})} placeholder="例：スミチオン乳剤"/></FG>
 
           {mItem._type==="fert"&&<>
             <R2>
@@ -1090,7 +1089,7 @@ function MasterScreen({ fertMs, setFertMs, pestMs, setPestMs, equips, setEquips,
             {mBuy.price&&<span>単価: <b>{mBuy.price}円/個</b></span>}
           </div>
           <R2>
-            <FG label="購入個数 *">
+            <FG label="購入個数">
               <Inp type="number" value={mBuy.cnt||""} onChange={v=>{
                 const cnt=parseFloat(v)||0;
                 const cap=parseFloat(mBuy.capacity)||0;
@@ -1098,7 +1097,7 @@ function MasterScreen({ fertMs, setFertMs, pestMs, setPestMs, equips, setEquips,
                 setMBuy({...mBuy,cnt:v,amt:autoAmt,_addStock:cap>0?cnt*cap:cnt});
               }} placeholder="例：3"/>
             </FG>
-            <FG label="購入金額（円）*">
+            <FG label="購入金額（円）">
               <Inp type="number" value={mBuy.amt||""} onChange={v=>setMBuy({...mBuy,amt:v})} placeholder="自動計算"/>
             </FG>
           </R2>
@@ -1131,7 +1130,6 @@ function FieldsScreen({ fields, setFields, setFieldsR, crops, setCrops, setCrops
   const eF={ id:uid0(),name:"",area:"",soil:"砂壌土",addr:"",memo:"" };
   const eC={ id:uid0(),fieldId:"",fieldIdx:0,type:"",variety:"",germRate:"",stocks:"",ridgeW:"",ridgeH:"",rows:"",rowSpace:"",plantSpace:"",sowDate:"",plantDate:"",memo:"",cultivationType:"nursery",growEnv:"field",seedCost:"",seedNote:"",customName:"",potSize:"",potVolume:"",potCount:"" };
   const saveField=()=>{
-    if(!mField.name.trim()){showToast("圃場名を入力してください");return;}
     const item={...mField,id:mField.id||uid0()};
     const n=mField._idx!==undefined?fields.map((x,i)=>i===mField._idx?item:x):[...fields,item];
     console.log("Saving field:", item, "uid:", uid);
@@ -1140,7 +1138,6 @@ function FieldsScreen({ fields, setFields, setFieldsR, crops, setCrops, setCrops
     showToast("保存しました");
   };
   const saveCrop=()=>{
-    if(!mCrop.type&&!mCrop.customName){showToast("作物名を入力してください");return;}
     const entry={...mCrop,id:mCrop.id||uid0(),fieldId:fields[mCrop.fieldIdx]?.id||mCrop.fieldId||""};
     const n=mCrop._idx!==undefined?crops.map((x,i)=>i===mCrop._idx?entry:x):[...crops,entry];
     setCrops(n,entry,fields);
@@ -1267,13 +1264,13 @@ function FieldsScreen({ fields, setFields, setFieldsR, crops, setCrops, setCrops
         })}
       </>}
       <ModalWithSave open={!!mField} onClose={()=>setMField(null)} title={mField?._idx!==undefined?"圃場を編集":"圃場を登録"} onSave={saveField}>
-        {mField&&<><FG label="圃場名 *"><Inp value={mField.name} onChange={v=>setMField({...mField,name:v})} placeholder="例：第1圃場"/></FG><R2><FG label="面積（a）"><Inp type="number" value={mField.area} onChange={v=>setMField({...mField,area:v})}/></FG><FG label="土壌"><Sel value={mField.soil} onChange={v=>setMField({...mField,soil:v})} options={["砂壌土","壌土","粘土質","黒ボク","その他"].map(v=>({value:v,label:v}))}/></FG></R2><FG label="住所（天気連動）"><Inp value={mField.addr} onChange={v=>setMField({...mField,addr:v})} placeholder="例：静岡県沼津市"/></FG><FG label="メモ"><TA value={mField.memo} onChange={v=>setMField({...mField,memo:v})}/></FG></>}
+        {mField&&<><FG label="圃場名"><Inp value={mField.name} onChange={v=>setMField({...mField,name:v})} placeholder="例：第1圃場"/></FG><R2><FG label="面積（a）"><Inp type="number" value={mField.area} onChange={v=>setMField({...mField,area:v})}/></FG><FG label="土壌"><Sel value={mField.soil} onChange={v=>setMField({...mField,soil:v})} options={["砂壌土","壌土","粘土質","黒ボク","その他"].map(v=>({value:v,label:v}))}/></FG></R2><FG label="住所（天気連動）"><Inp value={mField.addr} onChange={v=>setMField({...mField,addr:v})} placeholder="例：静岡県沼津市"/></FG><FG label="メモ"><TA value={mField.memo} onChange={v=>setMField({...mField,memo:v})}/></FG></>}
       </ModalWithSave>
       <ModalWithSave open={!!mCrop} onSave={saveCrop} onClose={()=>{setMCrop(null);}} title={mCrop?._idx!==undefined?"品目を編集":"品目を登録"}>
-        {mCrop&&<><FG label="圃場 *"><Sel value={mCrop.fieldIdx} onChange={v=>setMCrop({...mCrop,fieldIdx:parseInt(v)})} options={fields.map((f,i)=>({value:i,label:f.name}))}/></FG>
-                <FG label="作物 *"><Sel value={mCrop.type} onChange={v=>setMCrop({...mCrop,type:v})} options={[{value:"",label:"選択してください"},...CROP_OPTIONS]} renderOption={o=>o.disabled?<option key={o.value} disabled style={{color:"#aaa",fontWeight:700}}>{o.label}</option>:<option key={o.value} value={o.value}>{o.label}</option>}/></FG>
+        {mCrop&&<><FG label="圃場"><Sel value={mCrop.fieldIdx} onChange={v=>setMCrop({...mCrop,fieldIdx:parseInt(v)})} options={fields.map((f,i)=>({value:i,label:f.name}))}/></FG>
+                <FG label="作物"><Sel value={mCrop.type} onChange={v=>setMCrop({...mCrop,type:v})} options={[{value:"",label:"選択してください"},...CROP_OPTIONS]} renderOption={o=>o.disabled?<option key={o.value} disabled style={{color:"#aaa",fontWeight:700}}>{o.label}</option>:<option key={o.value} value={o.value}>{o.label}</option>}/></FG>
                 {mCrop.type==="custom" && (<>
-                  <FG label="作物名 *"><Inp value={mCrop.customName||""} onChange={v=>setMCrop({...mCrop,customName:v})} placeholder="例：ハーブミックス、花卉など"/></FG>
+                  <FG label="作物名"><Inp value={mCrop.customName||""} onChange={v=>setMCrop({...mCrop,customName:v})} placeholder="例：ハーブミックス、花卉など"/></FG>
                   <R2>
                     <FG label="収穫までの日数"><Inp type="number" value={mCrop.customDays||""} onChange={v=>setMCrop({...mCrop,customDays:v})} placeholder="例：90"/></FG>
                     <FG label="水やり頻度（日）"><Inp type="number" value={mCrop.customWater||""} onChange={v=>setMCrop({...mCrop,customWater:v})} placeholder="例：2"/></FG>
@@ -1292,7 +1289,7 @@ function FieldsScreen({ fields, setFields, setFieldsR, crops, setCrops, setCrops
                   </div>
                   <div style={{fontSize:".72rem",color:TX3,marginTop:4}}>収穫予定日の計算に使います</div>
                 </FG>}
-                <FG label="栽培方法 *">
+                <FG label="栽培方法">
                   <div style={{display:"flex",gap:7}}>
                     {[{v:"direct",l:"🌱 直播"},{v:"nursery",l:"🪴 育苗後定植"},{v:"seedling",l:"🛒 苗を購入"},{v:"pot",l:"🪣 鉢植え"}].map(opt=>(
                       <button key={opt.v} type="button" onClick={()=>setMCrop({...mCrop,cultivationType:opt.v})}
@@ -1494,7 +1491,6 @@ function LogScreen({ fields, crops, setCrops, fertMs, pestMs, equips, costs, set
   const eventOpts  = (db.events||["開花","着果","収穫","その他"]).concat(["その他"]).filter((v,i,a)=>a.indexOf(v)===i);
 
   const doSave = async () => {
-    if(!work){showToast("作業内容を選んでください");return;}
     setSaving(true);
     // 写真をStorageにアップロード（既存URLはそのまま使用）
     let imgUrl = null, hvImgUrl = null;
@@ -1587,10 +1583,10 @@ function LogScreen({ fields, crops, setCrops, fertMs, pestMs, equips, costs, set
       </div>
       <div style={S.card}>
         <R2>
-          <FG label="圃場 *">{fields.length>0?<Sel value={fieldIdx} onChange={v=>{setFieldIdx(parseInt(v));setCropId("");}} options={fields.map((f,i)=>({value:i,label:f.name}))}/>:<div style={{color:TX3,fontSize:".82rem"}}>圃場を登録してください</div>}</FG>
+          <FG label="圃場">{fields.length>0?<Sel value={fieldIdx} onChange={v=>{setFieldIdx(parseInt(v));setCropId("");}} options={fields.map((f,i)=>({value:i,label:f.name}))}/>:<div style={{color:TX3,fontSize:".82rem"}}>圃場を登録してください</div>}</FG>
           <FG label="品目"><Sel value={cropId} onChange={setCropId} options={[{value:"",label:"（選択）"},...fieldCrops.map(c=>{const db=CDB[c.type]||{};return{value:c.id,label:(db.e||"🌱")+" "+(c.type==="custom"?c.customName||"カスタム":(db.n||c.type))+(c.variety?" ("+c.variety+")":"")};})]} /></FG>
         </R2>
-        <FG label="作業内容 *">
+        <FG label="作業内容">
           <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:5,marginBottom:8}}>
             {WORK_TYPES.map(w=>(
               <button key={w.value} onClick={()=>setWork(w.value)}
@@ -1621,7 +1617,7 @@ function LogScreen({ fields, crops, setCrops, fertMs, pestMs, equips, costs, set
               <div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:8,padding:"8px 10px",marginBottom:9,fontSize:".72rem",color:"#856404",lineHeight:1.6}}>
                 ⚠️ 農薬の使用記録は農薬取締法により保管義務があります。本アプリの記録は補助的なものです。法的義務の履行は別途ご確認ください。
               </div><FG label="農薬マスターから選ぶ"><Sel value={pestIdx} onChange={v=>{setPestIdx(v);const pm=v&&pestMs[parseInt(v)];if(pm){setPestName(pm.name);setPestDil(pm.dil||"");if(pm.cunit||pm.sunit)setPestUnit(pm.cunit||pm.sunit);}}} options={[{value:"",label:"手動入力"},...pestMs.map((p,i)=>({value:i,label:p.name}))]}/></FG><FG label="農薬名"><Inp value={pestName} onChange={setPestName} placeholder="農薬名"/></FG><R2><FG label="希釈倍数"><Inp type="number" value={pestDil} onChange={setPestDil} placeholder="1000"/></FG><FG label="散布量"><div style={{display:"flex",gap:4}}><Inp type="number" value={pestAmt} onChange={setPestAmt} style={{flex:1}}/><Sel value={pestUnit} onChange={setPestUnit} options={["L","ml"].map(v=>({value:v,label:v}))} style={{width:60,flex:"none"}}/></div></FG></R2><R2><FG label="対象病害虫"><Inp value={pestTgt} onChange={setPestTgt} placeholder="アブラムシ等"/></FG></R2></div>}
-        {work==="harvest"&&<div style={panelStyle("#fff9f0","#ffd9a0")}><div style={ctitleStyle}>🧺 収穫詳細</div><R2><FG label="収穫量（kg）"><Inp type="number" value={hvKg} onChange={setHvKg} placeholder="0"/></FG><FG label="収穫個数"><Inp type="number" value={hvCnt} onChange={setHvCnt} placeholder="0"/></FG></R2><R2><FG label="品質ランク"><Sel value={hvQ} onChange={setHvQ} options={["秀品","優品","良品","規格外"].map(v=>({value:v,label:v}))}/></FG><FG label="販売単価（円/kg）"><Inp type="number" value={hvPrice} onChange={setHvPrice}/></FG></R2><FG label="📷 写真でAIが熟度診断"><div style={{border:"2px dashed "+BD,borderRadius:10,padding:14,textAlign:"center",cursor:"pointer",background:"#fafafa"}} onClick={()=>document.getElementById("hvImgInp").click()}><input id="hvImgInp" type="file" accept="image/*" style={{display:"none"}} onChange={handleHvImg}/><div style={{fontSize:"1.5rem",marginBottom:2}}>📷</div><p style={{fontSize:".72rem",color:TX3}}>収穫写真を追加</p></div>{hvImg&&<img src={hvImg.base64||hvImg} alt="" style={{width:"100%",borderRadius:8,marginTop:7,maxHeight:170,objectFit:"cover"}}/>}</FG></div>}
+        {work==="harvest"&&<div style={panelStyle("#fff9f0","#ffd9a0")}><div style={ctitleStyle}>🧺 収穫詳細</div><R2><FG label="収穫量（kg）"><Inp type="number" value={hvKg} onChange={setHvKg} placeholder="0"/></FG><FG label="収穫個数"><Inp type="number" value={hvCnt} onChange={setHvCnt} placeholder="0"/></FG></R2><R2><FG label="品質ランク"><Sel value={hvQ} onChange={setHvQ} options={["秀品","優品","良品","規格外"].map(v=>({value:v,label:v}))}/></FG><FG label="販売単価（円/kg）"><Inp type="number" value={hvPrice} onChange={setHvPrice}/></FG></R2><FG label="📷 写真でAIが熟度診断"><div style={{border:"2px dashed "+BD,borderRadius:10,padding:14,textAlign:"center",cursor:"pointer",background:"#fafafa"}} onClick={()=>document.getElementById("hvImgInp").click()}><input id="hvImgInp" type="file" accept="image/" style={{display:"none"}} onChange={handleHvImg}/><div style={{fontSize:"1.5rem",marginBottom:2}}>📷</div><p style={{fontSize:".72rem",color:TX3}}>収穫写真を追加</p></div>{hvImg&&<img src={hvImg.base64||hvImg} alt="" style={{width:"100%",borderRadius:8,marginTop:7,maxHeight:170,objectFit:"cover"}}/>}</FG></div>}
         {work==="discard"&&<div style={panelStyle("#fef2f2","#fca5a5")}><div style={ctitleStyle}>♻️ 廃棄・株数調整</div><R2><FG label="廃棄株数"><Inp type="number" value={discardCnt} onChange={setDiscardCnt} placeholder="0"/></FG><FG label="追加株数"><Inp type="number" value={addCnt} onChange={setAddCnt} placeholder="0"/></FG></R2></div>}
         {work==="repot"&&<div style={panelStyle("#f0f4ff","#c4b5fd")}><div style={ctitleStyle}>🪣 植え替え詳細</div>
           <R2>
@@ -1633,14 +1629,14 @@ function LogScreen({ fields, crops, setCrops, fertMs, pestMs, equips, costs, set
         {work==="equip"&&<div style={panelStyle("#f5f0ff","#c4b5fd")}><div style={ctitleStyle}>🏗️ 設備・資材作業</div><FG label="設備を選ぶ（複数可）"><select multiple size={4} value={equipSel.map(String)} onChange={e=>setEquipSel(Array.from(e.target.selectedOptions).map(o=>parseInt(o.value)))} style={{...S.inp,height:100}}>{equips.map((e,i)=><option key={i} value={i}>{e.name}（{e.cat}）</option>)}</select></FG><FG label="作業種別"><Sel value={equipAct} onChange={setEquipAct} options={["設置","撤去","着用","脱去","点検","修理","その他"].map(v=>({value:v,label:v}))}/></FG></div>}
         <FG label="📷 生育状況の写真（撮影日時を自動取得）">
           <div style={{border:"2px dashed "+BD,borderRadius:10,padding:14,textAlign:"center",cursor:"pointer",background:"#fafafa"}} onClick={()=>document.getElementById("logImgInp").click()}>
-            <input id="logImgInp" type="file" accept="image/*" style={{display:"none"}} onChange={handleLogImg}/>
+            <input id="logImgInp" type="file" accept="image/" style={{display:"none"}} onChange={handleLogImg}/>
             <div style={{fontSize:"1.5rem",marginBottom:2}}>📷</div>
             <p style={{fontSize:".72rem",color:TX3}}>タップして写真を追加（撮影日時を自動取得）</p>
           </div>
           {logImg&&<img src={logImg.base64||logImg} alt="" style={{width:"100%",borderRadius:8,marginTop:7,maxHeight:170,objectFit:"cover"}}/>}
         </FG>
         <FG><button onClick={toggleVoice} style={{display:"flex",alignItems:"center",justifyContent:"center",gap:5,background:"#fff",border:"1.5px solid "+(isRec?ALERT:BD),borderRadius:10,padding:"7px 11px",fontSize:".78rem",color:isRec?ALERT:"#5a5040",width:"100%",fontFamily:"inherit",cursor:"pointer"}}>{isRec?"🔴 録音中…（タップで停止）":"🎤 音声でメモを入力"}</button></FG>
-        <R2><FG label="作業日 *"><Inp type="date" value={date} onChange={setDate}/></FG><FG label="作業時刻"><Inp type="time" value={time} onChange={setTime}/></FG></R2>
+        <R2><FG label="作業日"><Inp type="date" value={date} onChange={setDate}/></FG><FG label="作業時刻"><Inp type="time" value={time} onChange={setTime}/></FG></R2>
         <FG label="作業時間（分）"><Inp type="number" value={dur} onChange={setDur} placeholder="30"/></FG>
         <FG label="メモ・気づき"><TA value={memo} onChange={setMemo} placeholder="天候・生育状態・気づいたことなど…"/></FG>
         <Btn style={S.btnG} onClick={doSave} disabled={saving||!fields.length}>{saving?"保存中…":editId?"更新する ✓":"記録を保存する ✓"}</Btn>
@@ -1753,7 +1749,7 @@ function CostScreen({ fields, fertMs, pestMs, equips, costs, setCosts, logs, sho
         </table>
       </div>
       <ModalWithSave open={!!mCost} onSave={sv} onClose={()=>setMCost(null)} title={mCost?._idx!==undefined?"費用を編集":"購入費用を登録"}>
-        {mCost&&<><FG label="カテゴリ *"><Sel value={mCost.cat} onChange={v=>setMCost({...mCost,cat:v})} options={COST_CATS}/></FG>{catItems.length>0&&<FG label="品目から選ぶ"><Sel value="" onChange={v=>{const item=catItems[parseInt(v)];if(item)setMCost({...mCost,name:item.name,...(mCost.cat==="equip"?{amt:item.price||""}:{})});}} options={[{value:"",label:"手動入力"},...catItems.map((x,i)=>({value:i,label:x.name}))]}/></FG>}<FG label="品名 *"><Inp value={mCost.name} onChange={v=>setMCost({...mCost,name:v})} placeholder="例：トマト種子"/></FG><R2><FG label="金額（円）*"><Inp type="number" value={mCost.amt} onChange={v=>setMCost({...mCost,amt:v})}/></FG><FG label="購入日"><Inp type="date" value={mCost.date} onChange={v=>setMCost({...mCost,date:v})}/></FG></R2><R2><FG label="数量"><Inp type="number" value={mCost.qty} onChange={v=>setMCost({...mCost,qty:v})}/></FG><FG label="単位"><Inp value={mCost.qunit} onChange={v=>setMCost({...mCost,qunit:v})} placeholder="袋"/></FG></R2><FG label="関連圃場"><Sel value={mCost.fieldIdx} onChange={v=>setMCost({...mCost,fieldIdx:v})} options={[{value:"",label:"全体"},...fields.map((f,i)=>({value:i,label:f.name}))]}/></FG><FG label="メモ"><Inp value={mCost.note} onChange={v=>setMCost({...mCost,note:v})}/></FG></>}
+        {mCost&&<><FG label="カテゴリ"><Sel value={mCost.cat} onChange={v=>setMCost({...mCost,cat:v})} options={COST_CATS}/></FG>{catItems.length>0&&<FG label="品目から選ぶ"><Sel value="" onChange={v=>{const item=catItems[parseInt(v)];if(item)setMCost({...mCost,name:item.name,...(mCost.cat==="equip"?{amt:item.price||""}:{})});}} options={[{value:"",label:"手動入力"},...catItems.map((x,i)=>({value:i,label:x.name}))]}/></FG>}<FG label="品名"><Inp value={mCost.name} onChange={v=>setMCost({...mCost,name:v})} placeholder="例：トマト種子"/></FG><R2><FG label="金額（円）"><Inp type="number" value={mCost.amt} onChange={v=>setMCost({...mCost,amt:v})}/></FG><FG label="購入日"><Inp type="date" value={mCost.date} onChange={v=>setMCost({...mCost,date:v})}/></FG></R2><R2><FG label="数量"><Inp type="number" value={mCost.qty} onChange={v=>setMCost({...mCost,qty:v})}/></FG><FG label="単位"><Inp value={mCost.qunit} onChange={v=>setMCost({...mCost,qunit:v})} placeholder="袋"/></FG></R2><FG label="関連圃場"><Sel value={mCost.fieldIdx} onChange={v=>setMCost({...mCost,fieldIdx:v})} options={[{value:"",label:"全体"},...fields.map((f,i)=>({value:i,label:f.name}))]}/></FG><FG label="メモ"><Inp value={mCost.note} onChange={v=>setMCost({...mCost,note:v})}/></FG></>}
       </ModalWithSave>
     </div>
   );
@@ -2008,7 +2004,7 @@ function PublicSettings({ uid, crops, showToast }) {
   useEffect(()=>{
     if(!uid) return;
     Promise.all([
-      sb.from("public_farms").select("*").eq("user_id",uid).maybeSingle(),
+      sb.from("public_farms").select("").eq("user_id",uid).maybeSingle(),
       sb.from("crops").select("id,is_public").eq("user_id",uid)
     ]).then(([{data:farm},{data:cropRows}])=>{
       if(farm){ setIsPublic(farm.is_public||false); setName(farm.display_name||""); setDesc(farm.description||""); }
