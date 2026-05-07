@@ -872,6 +872,16 @@ function MasterScreen({ fertMs, setFertMs, pestMs, setPestMs, equips, setEquips,
       const n=isEdit?equips.map((x,i)=>i===item._idx?item:x):[...equips,item];
       setEquips(n,item);
     }
+    // マスター編集時に連動費用の名前も更新
+    if(isEdit && item.id){
+      const updatedCosts = costs.map(c=>{
+        if(c.masterId===item.id){
+          return {...c, name:item.name};
+        }
+        return c;
+      });
+      setCostsR(updatedCosts);
+    }
     // 費用自動追加（価格が入力されている場合）
     if(item.price && parseFloat(item.price) > 0) {
       const costCat = item._type==="equip"?"equip":item._type;
@@ -899,6 +909,14 @@ function MasterScreen({ fertMs, setFertMs, pestMs, setPestMs, equips, setEquips,
     if(item._type==="fert"){ dbDelete("fert_masters",item.id); setFertMs(fertMs.filter((_,i)=>i!==item._idx)); }
     else if(item._type==="pest"){ dbDelete("pest_masters",item.id); setPestMs(pestMs.filter((_,i)=>i!==item._idx)); }
     else { dbDelete("equipments",item.id); setEquips(equips.filter((_,i)=>i!==item._idx)); }
+    // マスター削除時に連動費用も削除
+    if(item.id){
+      const relatedCosts = costs.filter(c=>c.masterId===item.id);
+      relatedCosts.forEach(c=>{ dbDelete("costs",c.id); });
+      if(relatedCosts.length>0){
+        setCosts(costs.filter(c=>c.masterId!==item.id));
+      }
+    }
     showToast("削除しました");
   };
 
@@ -1136,11 +1154,13 @@ function FieldsScreen({ fields, setFields, setFieldsR, crops, setCrops, setCrops
         name:(db.n||mCrop.customName||mCrop.type)+(mCrop.variety?" "+mCrop.variety:"")+" 種・苗代",
         amt:String(seedAmt),
         date:mCrop.plantDate||mCrop.sowDate||todayStr(),
-        qty:"1",qunit:"式",
-        fieldIdx:mCrop.fieldIdx,
+        qty:"1", qunit:"式",
+        fieldIdx:mCrop.fieldIdx!==undefined?mCrop.fieldIdx:0,
+        fieldId:fields[mCrop.fieldIdx]?.id||"",
         cropId:entry.id,
         note:mCrop.seedNote||""
       };
+      console.log("Saving seedCost:", seedEntry, "fields:", fields.length);
       setCosts([...costs,seedEntry],seedEntry);
       showToast("保存しました（種・苗代を費用に追加）");
     } else {
@@ -1287,8 +1307,18 @@ function FieldsScreen({ fields, setFields, setFieldsR, crops, setCrops, setCrops
                     <FG label={<><TermTooltip>播種</TermTooltip>日 *</>}><Inp type="date" value={mCrop.plantDate} onChange={v=>setMCrop({...mCrop,plantDate:v})}/></FG>
                   )}
                   {mCrop.cultivationType==="nursery" && (<>
-                    <FG label={<><TermTooltip>播種</TermTooltip>日</>}><Inp type="date" value={mCrop.sowDate} onChange={v=>setMCrop({...mCrop,sowDate:v})}/></FG>
-                    <FG label={<><TermTooltip>定植</TermTooltip>日（後から作業記録で登録可）</>}><Inp type="date" value={mCrop.plantDate} onChange={v=>setMCrop({...mCrop,plantDate:v})}/></FG>
+                    <FG label={<><TermTooltip>播種</TermTooltip>日</>}>
+                      <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                        <Inp type="date" value={mCrop.sowDate} onChange={v=>setMCrop({...mCrop,sowDate:v})}/>
+                        {mCrop.sowDate&&<button type="button" onClick={()=>setMCrop({...mCrop,sowDate:""})} style={{background:"none",border:"none",color:"#aaa",cursor:"pointer",fontSize:".8rem",flexShrink:0}}>✕</button>}
+                      </div>
+                    </FG>
+                    <FG label={<><TermTooltip>定植</TermTooltip>日（後から作業記録で登録可）</>}>
+                      <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                        <Inp type="date" value={mCrop.plantDate} onChange={v=>setMCrop({...mCrop,plantDate:v})}/>
+                        {mCrop.plantDate&&<button type="button" onClick={()=>setMCrop({...mCrop,plantDate:""})} style={{background:"none",border:"none",color:"#aaa",cursor:"pointer",fontSize:".8rem",flexShrink:0}}>✕</button>}
+                      </div>
+                    </FG>
                   </>)}
                   {mCrop.cultivationType==="seedling" && (<>
                     <FG label={<>購入・<TermTooltip>定植</TermTooltip>日 *</>}><Inp type="date" value={mCrop.plantDate} onChange={v=>setMCrop({...mCrop,plantDate:v})}/></FG>
