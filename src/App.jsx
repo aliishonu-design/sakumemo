@@ -36,8 +36,8 @@ const fieldToDb   = (o, uid) => ({ id:o.id, user_id:uid, name:o.name||"", area:o
 const fieldFromDb = r => ({ id:r.id, name:r.name||"", area:r.area||"", soil:r.soil||"", addr:r.addr||"", memo:r.memo||"" });
 const cropToDb    = (o, uid) => ({ id:o.id, user_id:uid, field_id:o.fieldId||null, type:o.type||null, variety:o.variety||null, germ_rate:o.germRate||null, stocks:o.stocks||null, ridge_w:o.ridgeW||null, ridge_h:o.ridgeH||null, rows:o.rows||null, row_space:o.rowSpace||null, plant_space:o.plantSpace||null, sow_date:o.sowDate||null, plant_date:o.plantDate||null, memo:o.memo||null, cultivation_type:o.cultivationType||null, seed_cost:o.seedCost||null, seed_note:o.seedNote||null, custom_name:o.customName||null, ended:o.ended||false, end_date:o.endDate||null, maturity:o.maturity||null, custom_days:o.customDays||null, custom_water:o.customWater||null, pot_size:o.potSize||null, pot_volume:o.potVolume||null, pot_count:o.potCount||null, grow_env:o.growEnv||null });
 const cropFromDb  = (r, fields) => { const fi = fields.findIndex(f=>f.id===r.field_id); return { id:r.id, fieldId:r.field_id||"", fieldIdx:fi>=0?fi:0, type:r.type||"", variety:r.variety||"", germRate:r.germ_rate||"", stocks:r.stocks||"", ridgeW:r.ridge_w||"", ridgeH:r.ridge_h||"", rows:r.rows||"", rowSpace:r.row_space||"", plantSpace:r.plant_space||"", sowDate:r.sow_date||"", plantDate:r.plant_date||"", memo:r.memo||"", cultivationType:r.cultivation_type||"transplant", seedCost:r.seed_cost||"", seedNote:r.seed_note||"", customName:r.custom_name||"", ended:r.ended||false, endDate:r.end_date||"", maturity:r.maturity||"mid", customDays:r.custom_days||"", customWater:r.custom_water||"", potSize:r.pot_size||"", potVolume:r.pot_volume||"", potCount:r.pot_count||"", growEnv:r.grow_env||"field" }; };
-const logToDb     = (o, uid, fields) => ({ id:o.id, user_id:uid, field_id:fields[o.fieldIdx]?.id||o.fieldId||null, crop_id:o.cropId||null, work:o.work||null, memo:o.memo||null, date:o.date||null, time:o.time||null, duration:o.duration||null, img_src:o.imgSrc||null, fert_name:o.fertName||null, fert_amt:o.fertAmt||null, fert_unit:o.fertUnit||null, fert_method:o.fertMethod||null, fert_cost:o.fertCost||null, pest_name:o.pestName||null, pest_dil:o.pestDil||null, pest_amt:o.pestAmt||null, pest_unit:o.pestUnit||null, pest_tgt:o.pestTarget||null, pest_cost:o.pestCost||null, hv_kg:o.hvKg||null, hv_cnt:o.hvCnt||null, hv_q:o.hvQ||null, hv_price:o.hvPrice||null, hv_img_src:o.hvImgSrc||null, equip_ids:o.equipIds||null, equip_act:o.equipAct||null, sow_qty:o.sowQty||null, germination_cnt:o.germinationCnt||null, germ_date:o.germinationDate||null, transplant_qty:o.transplantQty||null, discard_cnt:o.discardCnt||null, add_cnt:o.addCnt||null, event_type:o.eventType||null, event_note:o.eventNote||null });
-const logFromDb   = (r, fields) => { const fi=fields.findIndex(f=>f.id===r.field_id); return { id:r.id, fieldId:r.field_id||"", fieldIdx:fi>=0?fi:0, cropId:r.crop_id||"", work:r.work||"", memo:r.memo||"", date:r.date||"", time:r.time||"", duration:r.duration||"", imgSrc:r.img_src||null, aiReply:"", fertName:r.fert_name||"", fertAmt:r.fert_amt||"", fertUnit:r.fert_unit||"", fertMethod:r.fert_method||"", fertCost:r.fert_cost||"", pestName:r.pest_name||"", pestDil:r.pest_dil||"", pestAmt:r.pest_amt||"", pestUnit:r.pest_unit||"", pestTarget:r.pest_target||"", pestCost:r.pest_cost||"", hvKg:r.hv_kg||"", hvCnt:r.hv_cnt||"", hvQ:r.hv_q||"", hvPrice:r.hv_price||"", hvImgSrc:r.hv_img_src||null, equipIds:r.equip_ids||[], equipAct:r.equip_act||"", sowQty:r.sow_qty||"", germinationCnt:r.germination_cnt||"", germinationDate:r.germination_date||"", transplantQty:r.transplant_qty||"", discardCnt:r.discard_cnt||"", addCnt:r.add_cnt||"", eventType:r.event_type||"", eventNote:r.event_note||"" }; };
+const logToDb     = (o, uid, fields) => ({ id:o.id, user_id:uid, field_id:fields[o.fieldIdx]?.id||o.fieldId||null, crop_id:o.cropId||null, work:o.work||null, memo:o.memo||null, date:o.date||null, time:o.time||null, duration:o.duration||null, img_src:o.imgSrc||null, img2_src:o.imgSrc2||null, img3_src:o.imgSrc3||null, fert_name:o.fertName||null, fert_amt:o.fertAmt||null, fert_unit:o.fertUnit||null, fert_method:o.fertMethod||null, fert_cost:o.fertCost||null, pest_name:o.pestName||null, pest_dil:o.pestDil||null, pest_amt:o.pestAmt||null, pest_unit:o.pestUnit||null, pest_tgt:o.pestTarget||null, pest_cost:o.pestCost||null, hv_kg:o.hvKg||null, hv_cnt:o.hvCnt||null, hv_q:o.hvQ||null, hv_price:o.hvPrice||null, hv_img_src:o.hvImgSrc||null, equip_ids:o.equipIds||null, equip_act:o.equipAct||null, sow_qty:o.sowQty||null, germination_cnt:o.germinationCnt||null, germ_date:o.germinationDate||null, transplant_qty:o.transplantQty||null, discard_cnt:o.discardCnt||null, add_cnt:o.addCnt||null, event_type:o.eventType||null, event_note:o.eventNote||null });
+const logFromDb   = (r, fields) => { const fi=fields.findIndex(f=>f.id===r.field_id); return { id:r.id, fieldId:r.field_id||"", fieldIdx:fi>=0?fi:0, cropId:r.crop_id||"", work:r.work||"", memo:r.memo||"", date:r.date||"", time:r.time||"", duration:r.duration||"", imgSrc:r.img_src||null, imgSrc2:r.img2_src||null, imgSrc3:r.img3_src||null, aiReply:"", fertName:r.fert_name||"", fertAmt:r.fert_amt||"", fertUnit:r.fert_unit||"", fertMethod:r.fert_method||"", fertCost:r.fert_cost||"", pestName:r.pest_name||"", pestDil:r.pest_dil||"", pestAmt:r.pest_amt||"", pestUnit:r.pest_unit||"", pestTarget:r.pest_target||"", pestCost:r.pest_cost||"", hvKg:r.hv_kg||"", hvCnt:r.hv_cnt||"", hvQ:r.hv_q||"", hvPrice:r.hv_price||"", hvImgSrc:r.hv_img_src||null, equipIds:r.equip_ids||[], equipAct:r.equip_act||"", sowQty:r.sow_qty||"", germinationCnt:r.germination_cnt||"", germinationDate:r.germination_date||"", transplantQty:r.transplant_qty||"", discardCnt:r.discard_cnt||"", addCnt:r.add_cnt||"", eventType:r.event_type||"", eventNote:r.event_note||"" }; };
 const fertMToDb   = (o, uid) => ({ id:o.id, user_id:uid, name:o.name||null, type:o.type||null, price:o.price||null, capacity:o.capacity||null, cunit:o.cunit||null, note:o.note||null });
 const fertMFromDb = r => ({ id:r.id, name:r.name||"", type:r.type||"", price:r.price||"", capacity:r.capacity||"", cunit:r.cunit||"", note:r.note||"" });
 const pestMToDb   = (o, uid) => ({ id:o.id, user_id:uid, name:o.name||null, type:o.type||null, target:o.target||null, capacity:o.capacity||null, sunit:o.sunit||null, price:o.price||null, note:o.note||null });const pestMFromDb = r => ({ id:r.id, name:r.name||"", type:r.type||"", target:r.target||"", capacity:r.capacity||"", sunit:r.sunit||"", price:r.price||"", note:r.note||"" });
@@ -690,7 +690,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v0.5.3</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v0.5.5</div>
       </div>
     </div>
   );
@@ -1378,6 +1378,8 @@ function LogScreen({ fields, crops, setCrops, fertMs, pestMs, equips, costs, set
   const [time,     setTime]     = useState(nowTime());
   const [dur,      setDur]      = useState("");
   const [logImg,   setLogImg]   = useState(null);
+  const [logImg2,  setLogImg2]  = useState(null);
+  const [logImg3,  setLogImg3]  = useState(null);
   const [saving,   setSaving]   = useState(false);
   const [sowQty,   setSowQty]   = useState("");
   const [germCnt,  setGermCnt]  = useState("");
@@ -1417,7 +1419,7 @@ function LogScreen({ fields, crops, setCrops, fertMs, pestMs, equips, costs, set
   // editLogがnullのとき（新規作成）は全フィールドをリセット
   useEffect(()=>{
     if(!editLog) {
-      setEditId(null);setWork("");setMemo("");setLogImg(null);setHvImg(null);
+      setEditId(null);setWork("");setMemo("");setLogImg(null);setLogImg2(null);setLogImg3(null);setHvImg(null);
       setFieldIdx(0);setCropId("");setDate(todayStr());setTime(nowTime());setDur("");
       setSowQty("");setGermCnt("");setGermDate(todayStr());setTranspQty("");
       setFertIdx("");setFertName("");setFertAmt("");setFertUnit("kg");setFertMeth("追肥");setFertCost("");
@@ -1482,6 +1484,16 @@ function LogScreen({ fields, crops, setCrops, fertMs, pestMs, equips, costs, set
     const { base64, blob } = await compressImage(f);
     setLogImg({ base64, blob, name: uid0()+".jpg" });
   };
+  const handleLogImg2 = async e => {
+    const f=e.target.files[0]; if(!f) return;
+    const { base64, blob } = await compressImage(f);
+    setLogImg2({ base64, blob, name: uid0()+".jpg" });
+  };
+  const handleLogImg3 = async e => {
+    const f=e.target.files[0]; if(!f) return;
+    const { base64, blob } = await compressImage(f);
+    setLogImg3({ base64, blob, name: uid0()+".jpg" });
+  };
   const handleHvImg = async e => {
     const f=e.target.files[0]; if(!f) return;
     const { base64, blob } = await compressImage(f);
@@ -1509,6 +1521,28 @@ function LogScreen({ fields, crops, setCrops, fertMs, pestMs, equips, costs, set
         } catch(e) { console.error("logImg upload failed:", e); }
       }
     }
+        if(logImg2) {
+      if(logImg2.existing) { imgUrl2 = logImg2.base64; }
+      else if(logImg2.blob && uid) {
+        try {
+          [imgUrl2] = await Promise.all([
+            uploadPhoto(logImg2.blob, uid, logImg2.name),
+            new Promise(r => setTimeout(r, 0))
+          ]);
+        } catch(e) { console.error("img2 upload failed:", e); }
+      }
+    }
+    if(logImg3) {
+      if(logImg3.existing) { imgUrl3 = logImg3.base64; }
+      else if(logImg3.blob && uid) {
+        try {
+          [imgUrl3] = await Promise.all([
+            uploadPhoto(logImg3.blob, uid, logImg3.name),
+            new Promise(r => setTimeout(r, 0))
+          ]);
+        } catch(e) { console.error("img3 upload failed:", e); }
+      }
+    }
     if(hvImg) {
       if(hvImg.existing) {
         hvImgUrl = hvImg.base64;
@@ -1521,7 +1555,7 @@ function LogScreen({ fields, crops, setCrops, fertMs, pestMs, equips, costs, set
         } catch(e) { console.error("hvImg upload failed:", e); }
       }
     }
-    const entry = { id:uid0(), fieldIdx, cropId, work, memo, date, time, duration:dur, imgSrc:imgUrl||null, sowQty, germinationCnt:germCnt, germinationDate:germDate, transplantQty:transpQty, discardCnt, addCnt, eventType, eventNote };
+    const entry = { id:uid0(), fieldIdx, cropId, work, memo, date, time, duration:dur, imgSrc:imgUrl||null, imgSrc2:imgUrl2||null, imgSrc3:imgUrl3||null, sowQty, germinationCnt:germCnt, germinationDate:germDate, transplantQty:transpQty, discardCnt, addCnt, eventType, eventNote };
     if(work==="fert") {
       Object.assign(entry,{fertName,fertAmt,fertUnit,fertMethod:fertMeth,fertCost});
       // 施肥費用はレポートで品目別集計するのみ（費用一覧には追加しない）
@@ -1565,7 +1599,7 @@ function LogScreen({ fields, crops, setCrops, fertMs, pestMs, equips, costs, set
       setLogs(newLogs, entry);
     }
     setSaving(false);
-    setWork("");setMemo("");setLogImg(null);setHvImg(null);
+    setWork("");setMemo("");setLogImg(null);setLogImg2(null);setLogImg3(null);setHvImg(null);
     setSowQty("");setGermCnt("");setTranspQty("");
     if(onDone) setTimeout(()=>onDone(), 600); // 保存後モーダルを閉じる
     setFertName("");setFertAmt("");setPestName("");setPestDil("");setPestAmt("");setPestTgt("");
@@ -1580,7 +1614,7 @@ function LogScreen({ fields, crops, setCrops, fertMs, pestMs, equips, costs, set
       <div style={S.sec}>
         <span>作業内容を選択してください</span>
         {(work||editId) && (
-          <button onClick={()=>{setEditId(null);setWork("");setMemo("");setLogImg(null);setHvImg(null);setDate(todayStr());setTime(nowTime());setDur("");setSowQty("");setGermCnt("");setGermDate(todayStr());setTranspQty("");setFertIdx("");setFertName("");setFertAmt("");setFertUnit("kg");setFertMeth("追肥");setFertCost("");setPestIdx("");setPestName("");setPestDil("");setPestAmt("");setPestUnit("L");setPestTgt("");setPestCost("");setDiscardCnt("");setAddCnt("");setEventType("");setEventNote("");setHvKg("");setHvCnt("");setHvQ("秀品");setHvPrice("");setRepotSize("");setRepotVol("");setEquipSel([]);setEquipAct("設置");setWork("");setCropId("");}}
+          <button onClick={()=>{setEditId(null);setWork("");setMemo("");setLogImg(null);setLogImg2(null);setLogImg3(null);setHvImg(null);setDate(todayStr());setTime(nowTime());setDur("");setSowQty("");setGermCnt("");setGermDate(todayStr());setTranspQty("");setFertIdx("");setFertName("");setFertAmt("");setFertUnit("kg");setFertMeth("追肥");setFertCost("");setPestIdx("");setPestName("");setPestDil("");setPestAmt("");setPestUnit("L");setPestTgt("");setPestCost("");setDiscardCnt("");setAddCnt("");setEventType("");setEventNote("");setHvKg("");setHvCnt("");setHvQ("秀品");setHvPrice("");setRepotSize("");setRepotVol("");setEquipSel([]);setEquipAct("設置");setWork("");setCropId("");}}
             style={{...S.btn,...S.btnS,...S.btnSm}}>✕ リセット</button>
         )}
       </div>
@@ -1636,7 +1670,38 @@ function LogScreen({ fields, crops, setCrops, fertMs, pestMs, equips, costs, set
             <div style={{fontSize:"1.5rem",marginBottom:2}}>📷</div>
             <p style={{fontSize:".72rem",color:TX3}}>タップして写真を追加（撮影日時を自動取得）</p>
           </div>
-          {logImg&&<img src={logImg.base64||logImg} alt="" style={{width:"100%",borderRadius:8,marginTop:7,maxHeight:170,objectFit:"cover"}}/>}
+          {logImg&&(
+            <div style={{position:"relative",marginTop:7}}>
+              <img src={logImg.base64||logImg} alt="" style={{width:"100%",borderRadius:8,maxHeight:170,objectFit:"cover"}}/>
+              <button onClick={()=>setLogImg(null)} style={{position:"absolute",top:4,right:4,background:"rgba(0,0,0,.5)",border:"none",color:"#fff",borderRadius:"50%",width:24,height:24,cursor:"pointer",fontSize:".8rem",lineHeight:"24px",textAlign:"center"}}>✕</button>
+            </div>
+          )}
+          {logImg&&!logImg2&&(
+            <div onClick={()=>document.getElementById("logImgInp2").click()}
+              style={{marginTop:6,padding:"8px",border:"1.5px dashed #ccc",borderRadius:8,textAlign:"center",cursor:"pointer",fontSize:".72rem",color:TX3}}>
+              <input id="logImgInp2" type="file" accept="image/" style={{display:"none"}} onChange={handleLogImg2}/>
+              ＋ 写真2枚目を追加
+            </div>
+          )}
+          {logImg2&&(
+            <div style={{position:"relative",marginTop:6}}>
+              <img src={logImg2.base64||logImg2} alt="" style={{width:"100%",borderRadius:8,maxHeight:170,objectFit:"cover"}}/>
+              <button onClick={()=>setLogImg2(null)} style={{position:"absolute",top:4,right:4,background:"rgba(0,0,0,.5)",border:"none",color:"#fff",borderRadius:"50%",width:24,height:24,cursor:"pointer",fontSize:".8rem",lineHeight:"24px",textAlign:"center"}}>✕</button>
+            </div>
+          )}
+          {logImg2&&!logImg3&&(
+            <div onClick={()=>document.getElementById("logImgInp3").click()}
+              style={{marginTop:6,padding:"8px",border:"1.5px dashed #ccc",borderRadius:8,textAlign:"center",cursor:"pointer",fontSize:".72rem",color:TX3}}>
+              <input id="logImgInp3" type="file" accept="image/" style={{display:"none"}} onChange={handleLogImg3}/>
+              ＋ 写真3枚目を追加
+            </div>
+          )}
+          {logImg3&&(
+            <div style={{position:"relative",marginTop:6}}>
+              <img src={logImg3.base64||logImg3} alt="" style={{width:"100%",borderRadius:8,maxHeight:170,objectFit:"cover"}}/>
+              <button onClick={()=>setLogImg3(null)} style={{position:"absolute",top:4,right:4,background:"rgba(0,0,0,.5)",border:"none",color:"#fff",borderRadius:"50%",width:24,height:24,cursor:"pointer",fontSize:".8rem",lineHeight:"24px",textAlign:"center"}}>✕</button>
+            </div>
+          )}
         </FG>
         <FG><button onClick={toggleVoice} style={{display:"flex",alignItems:"center",justifyContent:"center",gap:5,background:"#fff",border:"1.5px solid "+(isRec?ALERT:BD),borderRadius:10,padding:"7px 11px",fontSize:".78rem",color:isRec?ALERT:"#5a5040",width:"100%",fontFamily:"inherit",cursor:"pointer"}}>{isRec?"🔴 録音中…（タップで停止）":"🎤 音声でメモを入力"}</button></FG>
         <R2><FG label="作業日"><Inp type="date" value={date} onChange={setDate}/></FG><FG label="作業時刻"><Inp type="time" value={time} onChange={setTime}/></FG></R2>
@@ -1782,7 +1847,7 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs }) {
     const seedCosts = costs.filter(co=>
       co.cat==="seed" && (
         co.cropId===c.id ||
-        (!co.cropId && co.name.startsWith(cropName0))
+        (!co.cropId && (co.name.startsWith(cropName0) || co.name.includes(cropName0)))
       )
     );
     const seedTotal = seedCosts.reduce((s,co)=>s+(parseFloat(co.amt)||0),0);
@@ -2295,7 +2360,12 @@ export default function App() {
   const dbSaveFertM = o => { if(!uid) return; dbUpsert("fert_masters", fertMToDb(o, uid)); };
   const dbSavePestM = o => { if(!uid) return; dbUpsert("pest_masters", pestMToDb(o, uid)); };
   const dbSaveEquip = o => { if(!uid) return; dbUpsert("equipments",   equipToDb(o, uid)); };
-  const dbSaveCost  = o => { if(!uid) return; dbUpsert("costs",        costToDb(o, uid, fields)); };
+  const dbSaveCost  = o => {
+    if(!uid) return;
+    const row = costToDb(o, uid, fields);
+    console.log("dbSaveCost:", JSON.stringify(row));
+    dbUpsert("costs", row);
+  };
 
   // ── State + DB同期（UIは即時更新・DB保存はバックグラウンド） ──
   const setFields = (arr, item) => { setFieldsR(arr); if(item) dbSaveField(item); };
