@@ -690,7 +690,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v0.5.9</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v0.6.0</div>
       </div>
     </div>
   );
@@ -1382,9 +1382,7 @@ function FieldsScreen({ fields, setFields, setFieldsR, crops, setCrops, setCrops
                     <FG label="費用（円）"><Inp type="number" value={mCrop.seedCost} onChange={v=>setMCrop({...mCrop,seedCost:v})} placeholder="0"/></FG>
                     <FG label="購入先・メモ"><Inp value={mCrop.seedNote} onChange={v=>setMCrop({...mCrop,seedNote:v})} placeholder="例：○○種苗"/></FG>
                   </R2>
-                  {mCrop._idx!==undefined&&<div style={{fontSize:".72rem",color:"#888",marginTop:4}}>
-                    ※ 金額を変更して保存すると費用欄・レポートに反映されます
-                  </div>}
+
                 </div>
 
                 {/* 栽培環境の選択 */}
@@ -1620,14 +1618,11 @@ function LogScreen({ fields, crops, setCrops, fertMs, pestMs, equips, costs, set
     }
     if(work==="harvest") Object.assign(entry,{hvKg,hvCnt,hvQ,hvPrice,hvImgSrc:hvImgUrl||null});
     if(work==="equip")   Object.assign(entry,{equipIds:equipSel,equipAct});
-    // 記録のみ保存（AIアドバイスはホーム画面で）
-    entry.aiReply = "";
     // 編集モードか新規か
     let newLogs;
     if(editId) {
       // 既存ログを更新
       entry.id = editId;
-      entry.aiReply = logs.find(l=>l.id===editId)?.aiReply||"";
       newLogs = logs.map(l=>l.id===editId?entry:l);
       setLogs(newLogs, entry);
       showToast("記録を更新しました！");
@@ -1708,7 +1703,7 @@ function LogScreen({ fields, crops, setCrops, fertMs, pestMs, equips, costs, set
               <div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:8,padding:"8px 10px",marginBottom:9,fontSize:".72rem",color:"#856404",lineHeight:1.6}}>
                 ⚠️ 農薬の使用記録は農薬取締法により保管義務があります。本アプリの記録は補助的なものです。法的義務の履行は別途ご確認ください。
               </div><FG label="農薬マスターから選ぶ"><Sel value={pestIdx} onChange={v=>{setPestIdx(v);const pm=v&&pestMs[parseInt(v)];if(pm){setPestName(pm.name);setPestDil(pm.dil||"");if(pm.cunit||pm.sunit)setPestUnit(pm.cunit||pm.sunit);}}} options={[{value:"",label:"手動入力"},...pestMs.map((p,i)=>({value:i,label:p.name}))]}/></FG><FG label="農薬名"><Inp value={pestName} onChange={setPestName} placeholder="農薬名"/></FG><R2><FG label="希釈倍数"><Inp type="number" value={pestDil} onChange={setPestDil} placeholder="1000"/></FG><FG label="散布量"><div style={{display:"flex",gap:4}}><Inp type="number" value={pestAmt} onChange={setPestAmt} style={{flex:1}}/><Sel value={pestUnit} onChange={setPestUnit} options={["L","ml"].map(v=>({value:v,label:v}))} style={{width:60,flex:"none"}}/></div></FG></R2><R2><FG label="対象病害虫"><Inp value={pestTgt} onChange={setPestTgt} placeholder="アブラムシ等"/></FG></R2></div>}
-        {work==="harvest"&&<div style={panelStyle("#fff9f0","#ffd9a0")}><div style={ctitleStyle}>🧺 収穫詳細</div><R2><FG label="収穫量（kg）"><Inp type="number" value={hvKg} onChange={setHvKg} placeholder="0"/></FG><FG label="収穫個数"><Inp type="number" value={hvCnt} onChange={setHvCnt} placeholder="0"/></FG></R2><R2><FG label="品質ランク"><Sel value={hvQ} onChange={setHvQ} options={["秀品","優品","良品","規格外"].map(v=>({value:v,label:v}))}/></FG><FG label="販売単価（円/kg）"><Inp type="number" value={hvPrice} onChange={setHvPrice}/></FG></R2><FG label="📷 写真でAIが熟度診断"><div style={{border:"2px dashed "+BD,borderRadius:10,padding:14,textAlign:"center",cursor:"pointer",background:"#fafafa"}} onClick={()=>document.getElementById("hvImgInp").click()}><input id="hvImgInp" type="file" accept="image/" style={{display:"none"}} onChange={handleHvImg}/><div style={{fontSize:"1.5rem",marginBottom:2}}>📷</div><p style={{fontSize:".72rem",color:TX3}}>収穫写真を追加</p></div>{hvImg&&<img src={hvImg.base64||hvImg} alt="" style={{width:"100%",borderRadius:8,marginTop:7,maxHeight:170,objectFit:"cover"}}/>}</FG></div>}
+        {work==="harvest"&&<div style={panelStyle("#fff9f0","#ffd9a0")}><div style={ctitleStyle}>🧺 収穫詳細</div><R2><FG label="収穫量（kg）"><Inp type="number" value={hvKg} onChange={setHvKg} placeholder="0"/></FG><FG label="収穫個数"><Inp type="number" value={hvCnt} onChange={setHvCnt} placeholder="0"/></FG></R2><R2><FG label="品質ランク"><Sel value={hvQ} onChange={setHvQ} options={["秀品","優品","良品","規格外"].map(v=>({value:v,label:v}))}/></FG><FG label="販売単価（円/kg）"><Inp type="number" value={hvPrice} onChange={setHvPrice}/></FG></R2><FG label="📷 収穫写真"><div style={{border:"2px dashed "+BD,borderRadius:10,padding:14,textAlign:"center",cursor:"pointer",background:"#fafafa"}} onClick={()=>document.getElementById("hvImgInp").click()}><input id="hvImgInp" type="file" accept="image/" style={{display:"none"}} onChange={handleHvImg}/><div style={{fontSize:"1.5rem",marginBottom:2}}>📷</div><p style={{fontSize:".72rem",color:TX3}}>収穫写真を追加</p></div>{hvImg&&<img src={hvImg.base64||hvImg} alt="" style={{width:"100%",borderRadius:8,marginTop:7,maxHeight:170,objectFit:"cover"}}/>}</FG></div>}
         {work==="discard"&&<div style={panelStyle("#fef2f2","#fca5a5")}><div style={ctitleStyle}>♻️ 廃棄・株数調整</div><R2><FG label="廃棄株数"><Inp type="number" value={discardCnt} onChange={setDiscardCnt} placeholder="0"/></FG><FG label="追加株数"><Inp type="number" value={addCnt} onChange={setAddCnt} placeholder="0"/></FG></R2></div>}
         {work==="repot"&&<div style={panelStyle("#f0f4ff","#c4b5fd")}><div style={ctitleStyle}>🪣 植え替え詳細</div>
           <R2>
