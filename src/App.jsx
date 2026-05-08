@@ -690,7 +690,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v0.5.7</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v0.5.9</div>
       </div>
     </div>
   );
@@ -1126,7 +1126,13 @@ function FieldsScreen({ fields, setFields, setFieldsR, crops, setCrops, setCrops
   useEffect(()=>{
     if(!editCrop) return;
     const i = crops.indexOf(editCrop);
-    if(i>=0) setMCrop({...editCrop, _idx:i});
+    if(i>=0) {
+      // 既存費用から seedCost を取得して表示
+      const existingSeed = costs.find(co=>co.cropId===editCrop.id&&co.cat==="seed");
+      setMCrop({...editCrop, _idx:i,
+        seedCost: editCrop.seedCost||existingSeed?.amt||""
+      });
+    }
   },[editCrop]);
   const eF={ id:uid0(),name:"",area:"",soil:"砂壌土",addr:"",memo:"" };
   const eC={ id:uid0(),fieldId:"",fieldIdx:0,type:"",variety:"",germRate:"",stocks:"",ridgeW:"",ridgeH:"",rows:"",rowSpace:"",plantSpace:"",sowDate:"",plantDate:"",memo:"",cultivationType:"nursery",growEnv:"field",seedCost:"",seedNote:"",customName:"",potSize:"",potVolume:"",potCount:"" };
@@ -1144,19 +1150,39 @@ function FieldsScreen({ fields, setFields, setFieldsR, crops, setCrops, setCrops
     const entry={...mCrop,id:mCrop.id||uid0(),fieldId:fields[mCrop.fieldIdx]?.id||mCrop.fieldId||""};
     const n=mCrop._idx!==undefined?crops.map((x,i)=>i===mCrop._idx?entry:x):[...crops,entry];
     setCrops(n,entry,fields);
-    // 品目編集時: 既存費用のcropIdを更新
-    if(mCrop._idx!==undefined){
-      const updatedCosts = costs.map(co=>{
-        if(co.cropId===mCrop.id || (!co.cropId && co.name && co.name.includes(
-          (CDB[mCrop.type]?.n||mCrop.customName||mCrop.type)
-        ))){
-          return {...co, cropId:entry.id};
+    // 品目編集時: 費用を完全同期（名前・日付・金額）
+    if(mCrop._idx!==undefined && mCrop.id){
+      const db2=CDB[entry.type]||{};
+      const newName=(db2.n||entry.customName||entry.type)+(entry.variety?" "+entry.variety:"")+" 種・苗代";
+      const newDate=entry.plantDate||entry.sowDate||todayStr();
+      const newAmt=String(parseFloat(String(entry.seedCost||"0").replace(/,/g,""))||0);
+      const newSeedAmt=parseFloat(newAmt)||0;
+
+      const existingSeedCost=costs.find(co=>co.cropId===mCrop.id&&co.cat==="seed");
+
+      if(existingSeedCost){
+        if(newSeedAmt>0){
+          // 既存費用を更新
+          const updated={...existingSeedCost, name:newName, date:newDate, amt:newAmt};
+          const newCosts=costs.map(co=>co.id===existingSeedCost.id?updated:co);
+          setCostsR(newCosts);
+          dbSaveCost(updated);
+        } else {
+          // 金額が0になったら費用を削除
+          dbDelete("costs",existingSeedCost.id);
+          setCostsR(costs.filter(co=>co.id!==existingSeedCost.id));
         }
-        return co;
-      });
-      if(JSON.stringify(updatedCosts)!==JSON.stringify(costs)){
-        setCostsR(updatedCosts);
-        updatedCosts.filter(co=>co.cropId===entry.id).forEach(co=>dbSaveCost(co));
+      } else if(newSeedAmt>0){
+        // 費用がなかった場合は新規追加
+        const newEntry={
+          id:uid0(), cat:"seed", name:newName, amt:newAmt,
+          date:newDate, qty:"1", qunit:"式",
+          fieldIdx:entry.fieldIdx!==undefined?entry.fieldIdx:0,
+          fieldId:fields[entry.fieldIdx]?.id||"",
+          cropId:entry.id, note:entry.seedNote||""
+        };
+        console.log("Adding new cost entry:", newEntry);
+        setCosts([...costs,newEntry],newEntry);
       }
     }
     // 種・苗代を費用に自動追加（新規登録時のみ）
@@ -1233,7 +1259,10 @@ function FieldsScreen({ fields, setFields, setFieldsR, crops, setCrops, setCrops
                 <div style={{fontSize:".64rem",color:TX3,marginTop:2,display:"flex",justifyContent:"space-between"}}><span>生育{pct}%</span><span>収穫まで約{Math.max(0,harvestD-days)}日</span></div>
               </div>
               <div style={{display:"flex",flexDirection:"column",gap:4,flexShrink:0}}>
-                  <button style={{...S.btn,...S.btnS,...S.btnSm}} onClick={()=>setMCrop({...c,_idx:i})}>編集</button>
+                  <button style={{...S.btn,...S.btnS,...S.btnSm}} onClick={()=>{
+                    const existingSeed=costs.find(co=>co.cropId===c.id&&co.cat==="seed");
+                    setMCrop({...c,_idx:i,seedCost:c.seedCost||existingSeed?.amt||""});
+                  }}>編集</button>
                   {!c.ended && <button style={{...S.btn,...{background:"#e67e22",color:"#fff",padding:"4px 10px",fontSize:".7rem",borderRadius:8,width:"auto",display:"inline-block"},marginTop:0}} onClick={()=>{
                     if(!window.confirm("栽培を終了しますか？\n費用集計をレポートで確認できます。"))return;
                     const updated={...c,ended:true,endDate:todayStr()};
@@ -1341,11 +1370,21 @@ function FieldsScreen({ fields, setFields, setFieldsR, crops, setCrops, setCrops
                 </R2>
                 <R2><FG label="株数（本数）"><Inp type="number" value={mCrop.stocks} onChange={v=>setMCrop({...mCrop,stocks:v})} placeholder="120"/></FG><FG label=""><div/></FG></R2>
                 <div style={{background:"#fffdf0",border:"1px solid #f9e4a0",borderRadius:10,padding:"10px 12px",marginBottom:9}}>
-                  <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".82rem",color:"#5c3d1e",marginBottom:7}}>🌱 種・苗の費用</div>
+                  <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".82rem",color:"#5c3d1e",marginBottom:7}}>
+                    🌱 種・苗の費用
+                    {mCrop._idx!==undefined&&costs.find(co=>co.cropId===mCrop.id&&co.cat==="seed")&&
+                      <span style={{fontSize:".7rem",color:"#2d6a3f",marginLeft:8}}>
+                        （登録済: {costs.find(co=>co.cropId===mCrop.id&&co.cat==="seed")?.amt}円）
+                      </span>
+                    }
+                  </div>
                   <R2>
                     <FG label="費用（円）"><Inp type="number" value={mCrop.seedCost} onChange={v=>setMCrop({...mCrop,seedCost:v})} placeholder="0"/></FG>
                     <FG label="購入先・メモ"><Inp value={mCrop.seedNote} onChange={v=>setMCrop({...mCrop,seedNote:v})} placeholder="例：○○種苗"/></FG>
                   </R2>
+                  {mCrop._idx!==undefined&&<div style={{fontSize:".72rem",color:"#888",marginTop:4}}>
+                    ※ 金額を変更して保存すると費用欄・レポートに反映されます
+                  </div>}
                 </div>
 
                 {/* 栽培環境の選択 */}
@@ -1796,7 +1835,7 @@ function TimelineScreen({ fields, crops, equips, logs, setLogs, showToast, onEdi
 
 // COST
 function CostScreen({ fields, fertMs, pestMs, equips, costs, setCosts, logs, showToast }) {
-  console.log("CostScreen costs:", costs.length, costs.map(c=>({id:c.id?.slice(0,8),cat:c.cat,name:c.name,amt:c.amt})));
+  console.log("CostScreen costs:", costs.length, JSON.stringify(costs.map(c=>({id:c.id?.slice(0,8),cropId:c.cropId?.slice(0,8),cat:c.cat,name:c.name,amt:c.amt}))));
   const [mCost,setMCost]=useState(null);
   const empty={id:uid0(),cat:"seed",name:"",amt:"",date:todayStr(),qty:"",qunit:"",fieldIdx:"",note:""};
   const total=costs.reduce((s,c)=>s+(parseFloat(c.amt)||0),0);
@@ -1845,7 +1884,11 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs }) {
 
   // 全品目のデータ集計
   // デバッグ: costs の内容を確認
-  console.log("ReportScreen costs:", costs.length, costs.map(c=>({id:c.id.slice(0,8),cat:c.cat,name:c.name,cropId:c.cropId?.slice(0,8),amt:c.amt})));
+  console.log("ReportScreen costs:", costs.length, JSON.stringify(costs.map(c=>({id:c.id?.slice(0,8),cropId:c.cropId?.slice(0,8),cat:c.cat,name:c.name,amt:c.amt}))));
+  crops.forEach(c=>{
+    const sc=costs.filter(co=>co.cropId===c.id||co.cropId===c.id?.toString());
+    console.log("crop:", c.id?.slice(0,8), c.type, "seedCosts:", sc.length, sc.map(s=>s.amt));
+  });
 
   const cropStats = crops.map(c=>{
     const db=CDB[c.type]||{};
