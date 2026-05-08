@@ -20,7 +20,7 @@ body{font-family:'Hiragino Sans','BIZ UDGothic',sans-serif;background:#f8f5ef;co
 
 /* タブバー */
 .tab-bar{background:#fff;border-bottom:2px solid #e0d9ce;position:sticky;top:44px;z-index:199;overflow:visible;}
-.tab-bar-inner{max-width:680px;margin:0 auto;display:flex;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;overflow-y:visible;}
+.tab-bar-inner{max-width:680px;margin:0 auto;display:flex;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;overflow-y:visible;position:relative;}
 .tab-bar-inner::-webkit-scrollbar{display:none;}
 
 /* タイムラインタブ（先頭固定） */
@@ -36,6 +36,7 @@ body{font-family:'Hiragino Sans','BIZ UDGothic',sans-serif;background:#f8f5ef;co
 .dropdown.open{display:block;}
 .crop-tab-wrap:hover .dropdown{display:block;}
 .crop-tab-wrap:focus-within .dropdown{display:block;}
+.crop-tab-wrap{overflow:visible;}
 .dropdown-item{padding:10px 14px;cursor:pointer;font-size:.82rem;display:flex;align-items:center;gap:8px;border-bottom:1px solid #f0ebe3;}
 .dropdown-item:last-child{border-bottom:none;}
 .dropdown-item:hover{background:#f0f9f0;}
@@ -247,18 +248,21 @@ function buildTabs(){
     }).join('');
 
     // タップ/クリックでドロップダウン
-    btn.addEventListener('click',function(e){
-      e.stopPropagation();
-      // 他のドロップダウンを閉じる
+    function openDropdown(e){
+      if(e) e.stopPropagation();
       document.querySelectorAll('.dropdown.open').forEach(function(d){
         if(d!==dd)d.classList.remove('open');
       });
       if(g.crops.length===1){
-        // 1品目のみなら直接選択
         selectCrop(g.crops[0].id);
       } else {
         dd.classList.toggle('open');
       }
+    }
+    btn.addEventListener('click', openDropdown);
+    btn.addEventListener('touchend', function(e){
+      e.preventDefault();
+      openDropdown(e);
     });
 
     dd.addEventListener('click',function(e){
