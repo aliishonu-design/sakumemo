@@ -690,7 +690,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v0.6.0</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v0.6.1</div>
       </div>
     </div>
   );
@@ -1456,7 +1456,6 @@ function LogScreen({ fields, crops, setCrops, fertMs, pestMs, equips, costs, set
   const [hvCnt,    setHvCnt]    = useState("");
   const [hvQ,      setHvQ]      = useState("秀品");
   const [hvPrice,  setHvPrice]  = useState("");
-  const [hvImg,    setHvImg]    = useState(null);
   const [discardCnt,setDiscardCnt]=useState("");
   const [addCnt,   setAddCnt]   = useState("");
   const [equipSel, setEquipSel] = useState([]);
@@ -1471,7 +1470,7 @@ function LogScreen({ fields, crops, setCrops, fertMs, pestMs, equips, costs, set
   // editLogがnullのとき（新規作成）は全フィールドをリセット
   useEffect(()=>{
     if(!editLog) {
-      setEditId(null);setWork("");setMemo("");setLogImg(null);setLogImg2(null);setLogImg3(null);setHvImg(null);
+      setEditId(null);setWork("");setMemo("");setLogImg(null);setLogImg2(null);setLogImg3(null);
       setFieldIdx(0);setCropId("");setDate(todayStr());setTime(nowTime());setDur("");
       setSowQty("");setGermCnt("");setGermDate(todayStr());setTranspQty("");
       setFertIdx("");setFertName("");setFertAmt("");setFertUnit("kg");setFertMeth("追肥");setFertCost("");
@@ -1546,11 +1545,7 @@ function LogScreen({ fields, crops, setCrops, fertMs, pestMs, equips, costs, set
     const { base64, blob } = await compressImage(f);
     setLogImg3({ base64, blob, name: uid0()+".jpg" });
   };
-  const handleHvImg = async e => {
-    const f=e.target.files[0]; if(!f) return;
-    const { base64, blob } = await compressImage(f);
-    setHvImg({ base64, blob, name: uid0()+".jpg" });
-  };
+
 
   const fieldCrops = crops.filter(c=>c.fieldIdx===fieldIdx);
   const cropObj    = crops.find(c=>c.id===cropId)||{};
@@ -1595,18 +1590,7 @@ function LogScreen({ fields, crops, setCrops, fertMs, pestMs, equips, costs, set
         } catch(e) { console.error("img3 upload failed:", e); }
       }
     }
-    if(hvImg) {
-      if(hvImg.existing) {
-        hvImgUrl = hvImg.base64;
-      } else if(hvImg.blob && uid) {
-        try {
-          hvImgUrl = await Promise.race([
-            uploadPhoto(hvImg.blob, uid, hvImg.name),
-            new Promise(r => setTimeout(()=>r(null), 10000))
-          ]);
-        } catch(e) { console.error("hvImg upload failed:", e); }
-      }
-    }
+
     const entry = { id:uid0(), fieldIdx, cropId, work, memo, date, time, duration:dur, imgSrc:imgUrl||null, imgSrc2:imgUrl2||null, imgSrc3:imgUrl3||null, sowQty, germinationCnt:germCnt, germinationDate:germDate, transplantQty:transpQty, discardCnt, addCnt, eventType, eventNote };
     if(work==="fert") {
       Object.assign(entry,{fertName,fertAmt,fertUnit,fertMethod:fertMeth,fertCost});
@@ -1616,7 +1600,7 @@ function LogScreen({ fields, crops, setCrops, fertMs, pestMs, equips, costs, set
       Object.assign(entry,{pestName,pestDil,pestAmt,pestUnit,pestTarget:pestTgt,pestCost});
       // 農薬費用はレポートで品目別集計するのみ（費用一覧には追加しない）
     }
-    if(work==="harvest") Object.assign(entry,{hvKg,hvCnt,hvQ,hvPrice,hvImgSrc:hvImgUrl||null});
+    if(work==="harvest") Object.assign(entry,{hvKg,hvCnt,hvQ,hvPrice});
     if(work==="equip")   Object.assign(entry,{equipIds:equipSel,equipAct});
     // 編集モードか新規か
     let newLogs;
@@ -1648,7 +1632,7 @@ function LogScreen({ fields, crops, setCrops, fertMs, pestMs, equips, costs, set
       setLogs(newLogs, entry);
     }
     setSaving(false);
-    setWork("");setMemo("");setLogImg(null);setLogImg2(null);setLogImg3(null);setHvImg(null);
+    setWork("");setMemo("");setLogImg(null);setLogImg2(null);setLogImg3(null);
     setSowQty("");setGermCnt("");setTranspQty("");
     if(onDone) setTimeout(()=>onDone(), 600); // 保存後モーダルを閉じる
     setFertName("");setFertAmt("");setPestName("");setPestDil("");setPestAmt("");setPestTgt("");
@@ -1663,7 +1647,7 @@ function LogScreen({ fields, crops, setCrops, fertMs, pestMs, equips, costs, set
       <div style={S.sec}>
         <span>作業内容を選択してください</span>
         {(work||editId) && (
-          <button onClick={()=>{setEditId(null);setWork("");setMemo("");setLogImg(null);setLogImg2(null);setLogImg3(null);setHvImg(null);setDate(todayStr());setTime(nowTime());setDur("");setSowQty("");setGermCnt("");setGermDate(todayStr());setTranspQty("");setFertIdx("");setFertName("");setFertAmt("");setFertUnit("kg");setFertMeth("追肥");setFertCost("");setPestIdx("");setPestName("");setPestDil("");setPestAmt("");setPestUnit("L");setPestTgt("");setPestCost("");setDiscardCnt("");setAddCnt("");setEventType("");setEventNote("");setHvKg("");setHvCnt("");setHvQ("秀品");setHvPrice("");setRepotSize("");setRepotVol("");setEquipSel([]);setEquipAct("設置");setWork("");setCropId("");}}
+          <button onClick={()=>{setEditId(null);setWork("");setMemo("");setLogImg(null);setLogImg2(null);setLogImg3(null);setDate(todayStr());setTime(nowTime());setDur("");setSowQty("");setGermCnt("");setGermDate(todayStr());setTranspQty("");setFertIdx("");setFertName("");setFertAmt("");setFertUnit("kg");setFertMeth("追肥");setFertCost("");setPestIdx("");setPestName("");setPestDil("");setPestAmt("");setPestUnit("L");setPestTgt("");setPestCost("");setDiscardCnt("");setAddCnt("");setEventType("");setEventNote("");setHvKg("");setHvCnt("");setHvQ("秀品");setHvPrice("");setRepotSize("");setRepotVol("");setEquipSel([]);setEquipAct("設置");setWork("");setCropId("");}}
             style={{...S.btn,...S.btnS,...S.btnSm}}>✕ リセット</button>
         )}
       </div>
@@ -1703,7 +1687,7 @@ function LogScreen({ fields, crops, setCrops, fertMs, pestMs, equips, costs, set
               <div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:8,padding:"8px 10px",marginBottom:9,fontSize:".72rem",color:"#856404",lineHeight:1.6}}>
                 ⚠️ 農薬の使用記録は農薬取締法により保管義務があります。本アプリの記録は補助的なものです。法的義務の履行は別途ご確認ください。
               </div><FG label="農薬マスターから選ぶ"><Sel value={pestIdx} onChange={v=>{setPestIdx(v);const pm=v&&pestMs[parseInt(v)];if(pm){setPestName(pm.name);setPestDil(pm.dil||"");if(pm.cunit||pm.sunit)setPestUnit(pm.cunit||pm.sunit);}}} options={[{value:"",label:"手動入力"},...pestMs.map((p,i)=>({value:i,label:p.name}))]}/></FG><FG label="農薬名"><Inp value={pestName} onChange={setPestName} placeholder="農薬名"/></FG><R2><FG label="希釈倍数"><Inp type="number" value={pestDil} onChange={setPestDil} placeholder="1000"/></FG><FG label="散布量"><div style={{display:"flex",gap:4}}><Inp type="number" value={pestAmt} onChange={setPestAmt} style={{flex:1}}/><Sel value={pestUnit} onChange={setPestUnit} options={["L","ml"].map(v=>({value:v,label:v}))} style={{width:60,flex:"none"}}/></div></FG></R2><R2><FG label="対象病害虫"><Inp value={pestTgt} onChange={setPestTgt} placeholder="アブラムシ等"/></FG></R2></div>}
-        {work==="harvest"&&<div style={panelStyle("#fff9f0","#ffd9a0")}><div style={ctitleStyle}>🧺 収穫詳細</div><R2><FG label="収穫量（kg）"><Inp type="number" value={hvKg} onChange={setHvKg} placeholder="0"/></FG><FG label="収穫個数"><Inp type="number" value={hvCnt} onChange={setHvCnt} placeholder="0"/></FG></R2><R2><FG label="品質ランク"><Sel value={hvQ} onChange={setHvQ} options={["秀品","優品","良品","規格外"].map(v=>({value:v,label:v}))}/></FG><FG label="販売単価（円/kg）"><Inp type="number" value={hvPrice} onChange={setHvPrice}/></FG></R2><FG label="📷 収穫写真"><div style={{border:"2px dashed "+BD,borderRadius:10,padding:14,textAlign:"center",cursor:"pointer",background:"#fafafa"}} onClick={()=>document.getElementById("hvImgInp").click()}><input id="hvImgInp" type="file" accept="image/" style={{display:"none"}} onChange={handleHvImg}/><div style={{fontSize:"1.5rem",marginBottom:2}}>📷</div><p style={{fontSize:".72rem",color:TX3}}>収穫写真を追加</p></div>{hvImg&&<img src={hvImg.base64||hvImg} alt="" style={{width:"100%",borderRadius:8,marginTop:7,maxHeight:170,objectFit:"cover"}}/>}</FG></div>}
+        {work==="harvest"&&<div style={panelStyle("#fff9f0","#ffd9a0")}><div style={ctitleStyle}>🧺 収穫詳細</div><R2><FG label="収穫量（kg）"><Inp type="number" value={hvKg} onChange={setHvKg} placeholder="0"/></FG><FG label="収穫個数"><Inp type="number" value={hvCnt} onChange={setHvCnt} placeholder="0"/></FG></R2><R2><FG label="品質ランク"><Sel value={hvQ} onChange={setHvQ} options={["秀品","優品","良品","規格外"].map(v=>({value:v,label:v}))}/></FG><FG label="販売単価（円/kg）"><Inp type="number" value={hvPrice} onChange={setHvPrice}/></FG></R2></div>}
         {work==="discard"&&<div style={panelStyle("#fef2f2","#fca5a5")}><div style={ctitleStyle}>♻️ 廃棄・株数調整</div><R2><FG label="廃棄株数"><Inp type="number" value={discardCnt} onChange={setDiscardCnt} placeholder="0"/></FG><FG label="追加株数"><Inp type="number" value={addCnt} onChange={setAddCnt} placeholder="0"/></FG></R2></div>}
         {work==="repot"&&<div style={panelStyle("#f0f4ff","#c4b5fd")}><div style={ctitleStyle}>🪣 植え替え詳細</div>
           <R2>
