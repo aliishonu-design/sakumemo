@@ -11,7 +11,7 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:'Hiragino Sans','BIZ UDGothic',sans-serif;background:#f8f5ef;color:#1c1a14;min-height:100svh;}
-img{-webkit-user-drag:none;user-select:none;-webkit-touch-callout:none;pointer-events:none;}
+.photo-img{-webkit-user-drag:none;user-select:none;-webkit-touch-callout:none;} #lightbox-img{-webkit-user-drag:none;user-select:none;-webkit-touch-callout:none;pointer-events:none;}
 .top-bar{background:linear-gradient(135deg,#2d6a3f,#419857);padding:10px 14px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:200;}
 .top-bar a{color:#fff;text-decoration:none;font-size:.84rem;font-weight:700;white-space:nowrap;}
 .farm-header{max-width:680px;margin:0 auto;padding:14px 14px 6px;}
@@ -31,9 +31,11 @@ img{-webkit-user-drag:none;user-select:none;-webkit-touch-callout:none;pointer-e
 .crop-tab-wrap{position:relative;flex-shrink:0;}
 .crop-tab-btn{padding:10px 13px;border:none;background:none;font-family:inherit;font-size:.76rem;color:#888;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;white-space:nowrap;display:flex;align-items:center;gap:3px;}
 .crop-tab-btn.active{color:#2d6a3f;border-bottom-color:#2d6a3f;font-weight:700;}
-.crop-tab-btn:after{content:'▾';font-size:.6rem;}
-.dropdown{display:none;position:absolute;top:100%;left:0;background:#fff;border-radius:10px;box-shadow:0 4px 20px rgba(0,0,0,.15);min-width:160px;z-index:300;overflow:hidden;margin-top:4px;}
+
+.dropdown{display:none;position:absolute;top:100%;left:0;background:#fff;border-radius:10px;box-shadow:0 4px 20px rgba(0,0,0,.15);min-width:160px;z-index:300;overflow:hidden;margin-top:2px;}
 .dropdown.open{display:block;}
+.crop-tab-wrap:hover .dropdown{display:block;}
+.crop-tab-wrap:focus-within .dropdown{display:block;}
 .dropdown-item{padding:10px 14px;cursor:pointer;font-size:.82rem;display:flex;align-items:center;gap:8px;border-bottom:1px solid #f0ebe3;}
 .dropdown-item:last-child{border-bottom:none;}
 .dropdown-item:hover{background:#f0f9f0;}
@@ -329,9 +331,16 @@ function makeLogCard(l,showCropTag){
   if(photos.length){
     var pc='p'+Math.min(photos.length,3);
     var photosJson=JSON.stringify(photos).replace(/"/g,"'");
+    var crop2=allCrops.find(function(c){return c.id===l.crop_id;});
     photoHtml='<div class="log-photos-wrap '+pc+'">'
       +photos.slice(0,3).map(function(src,i){
-        return '<img src="'+src+'" class="photo-img" alt="" loading="lazy" onclick="openLightbox('+photosJson+','+i+')">';
+        if(showCropTag && crop2){
+          // タイムライン: 写真タップで品目ページへ
+          return '<img src="'+src+'" class="photo-img" alt="" loading="lazy" style="cursor:pointer" data-cid="'+crop2.id+'" onclick="handlePhotoClick(this)">';
+        } else {
+          // 品目ページ: 写真タップでライトボックス
+          return '<img src="'+src+'" class="photo-img" alt="" loading="lazy" onclick="openLightbox('+photosJson+','+i+')">';
+        }
       }).join('')
       +'</div>';
   }
@@ -441,6 +450,12 @@ function renderCrop(cropId){
         fetch(SB_URL+'/rest/v1/crop_views',{method:'POST',headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify({crop_id:cropId,view_count:1})});
       }
     }).catch(function(){});
+}
+
+// 写真クリックハンドラ
+function handlePhotoClick(el){
+  var cid = el.dataset.cid;
+  if(cid) selectCrop(cid);
 }
 
 // ライトボックス
