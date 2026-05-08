@@ -43,8 +43,8 @@ const fertMFromDb = r => ({ id:r.id, name:r.name||"", type:r.type||"", price:r.p
 const pestMToDb   = (o, uid) => ({ id:o.id, user_id:uid, name:o.name||null, type:o.type||null, target:o.target||null, capacity:o.capacity||null, sunit:o.sunit||null, price:o.price||null, note:o.note||null });const pestMFromDb = r => ({ id:r.id, name:r.name||"", type:r.type||"", target:r.target||"", capacity:r.capacity||"", sunit:r.sunit||"", price:r.price||"", note:r.note||"" });
 const equipToDb   = (o, uid) => ({ id:o.id, user_id:uid, name:o.name||null, cat:o.cat||null, status:o.status||null, price:o.price||null, date:o.date||null, note:o.note||null });
 const equipFromDb = r => ({ id:r.id, name:r.name||"", cat:r.cat||"", status:r.status||"", price:r.price||"", date:r.date||"", note:r.note||"" });
-const costToDb    = (o, uid, fields) => ({ id:o.id, user_id:uid, field_id:fields[o.fieldIdx]?.id||null, crop_id:o.cropId||null, cat:o.cat||null, name:o.name||null, amt:o.amt||null, date:o.date||null, qty:o.qty||null, qunit:o.qunit||null, note:o.note||null, master_id:o.masterId||null });
-const costFromDb  = (r, fields) => { const fi=fields.findIndex(f=>f.id===r.field_id); return { id:r.id, fieldIdx:fi>=0?fi:"", cropId:r.crop_id||"", masterId:r.master_id||"", cat:r.cat||"", name:r.name||"", amt:r.amt||"", date:r.date||"", qty:r.qty||"", qunit:r.qunit||"", note:r.note||"" }; };
+const costToDb    = (o, uid, fields) => ({ id:o.id, user_id:uid, field_id:(fields&&o.fieldIdx!==undefined&&o.fieldIdx!=="")?fields[o.fieldIdx]?.id||o.fieldId||null:o.fieldId||null, crop_id:o.cropId||null, cat:o.cat||null, name:o.name||null, amt:o.amt||null, date:o.date||null, qty:o.qty||null, qunit:o.qunit||null, note:o.note||null, master_id:o.masterId||null, work:o.work||null });
+const costFromDb  = (r, fields) => { const fi=fields.findIndex(f=>f.id===r.field_id); return { id:r.id, fieldId:r.field_id||"", fieldIdx:fi>=0?fi:0, cropId:r.crop_id||"", masterId:r.master_id||"", cat:r.cat||"", name:r.name||"", amt:r.amt||"", date:r.date||"", qty:r.qty||"", qunit:r.qunit||"", note:r.note||"", work:r.work||"" }; };
 
 // ============================================================
 // CONSTANTS
@@ -690,7 +690,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v0.5.5</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v0.5.6</div>
       </div>
     </div>
   );
@@ -1144,6 +1144,21 @@ function FieldsScreen({ fields, setFields, setFieldsR, crops, setCrops, setCrops
     const entry={...mCrop,id:mCrop.id||uid0(),fieldId:fields[mCrop.fieldIdx]?.id||mCrop.fieldId||""};
     const n=mCrop._idx!==undefined?crops.map((x,i)=>i===mCrop._idx?entry:x):[...crops,entry];
     setCrops(n,entry,fields);
+    // 品目編集時: 既存費用のcropIdを更新
+    if(mCrop._idx!==undefined){
+      const updatedCosts = costs.map(co=>{
+        if(co.cropId===mCrop.id || (!co.cropId && co.name && co.name.includes(
+          (CDB[mCrop.type]?.n||mCrop.customName||mCrop.type)
+        ))){
+          return {...co, cropId:entry.id};
+        }
+        return co;
+      });
+      if(JSON.stringify(updatedCosts)!==JSON.stringify(costs)){
+        setCostsR(updatedCosts);
+        updatedCosts.filter(co=>co.cropId===entry.id).forEach(co=>dbSaveCost(co));
+      }
+    }
     // 種・苗代を費用に自動追加（新規登録時のみ）
     const seedAmt = parseFloat(String(mCrop.seedCost).replace(/,/g,''))||0;
     if(mCrop._idx===undefined && seedAmt>0){
@@ -1237,7 +1252,7 @@ function FieldsScreen({ fields, setFields, setFieldsR, crops, setCrops, setCrops
                     showToast("栽培終了 "+cropName+" / 費用合計"+Math.round(total).toLocaleString()+"円 / 収穫"+hvKg.toFixed(1)+"kg / 損益"+(rev-total>=0?"+":"")+Math.round(rev-total).toLocaleString()+"円");
                   }}>終了</button>}
                   {c.ended && <span style={{fontSize:".66rem",color:"#e67e22",fontWeight:700,textAlign:"center"}}>栽培終了</span>}
-                  <button style={{...S.btn,...S.btnR,...S.btnSm}} onClick={()=>{if(!window.confirm("削除しますか?"))return;dbDelete("crops",c.id);const filtered=crops.filter((_,j)=>j!==i);if(typeof setCropsR==="function")setCropsR(filtered);else setCrops(filtered);showToast("削除しました");}}>削除</button>
+                  <button style={{...S.btn,...S.btnR,...S.btnSm}} onClick={()=>{if(!window.confirm("削除しますか?\n関連する費用も削除されます"))return;dbDelete("crops",c.id);const filtered=crops.filter((_,j)=>j!==i);if(typeof setCropsR==="function")setCropsR(filtered);else setCrops(filtered);const relCosts=costs.filter(co=>co.cropId===c.id);relCosts.forEach(co=>dbDelete("costs",co.id));if(relCosts.length>0)setCosts(costs.filter(co=>co.cropId!==c.id));showToast("削除しました");}}>削除</button>
                 </div>
             </div>
           </div>
@@ -1781,6 +1796,7 @@ function TimelineScreen({ fields, crops, equips, logs, setLogs, showToast, onEdi
 
 // COST
 function CostScreen({ fields, fertMs, pestMs, equips, costs, setCosts, logs, showToast }) {
+  console.log("CostScreen costs:", costs.length, costs.map(c=>({id:c.id?.slice(0,8),cat:c.cat,name:c.name,amt:c.amt})));
   const [mCost,setMCost]=useState(null);
   const empty={id:uid0(),cat:"seed",name:"",amt:"",date:todayStr(),qty:"",qunit:"",fieldIdx:"",note:""};
   const total=costs.reduce((s,c)=>s+(parseFloat(c.amt)||0),0);
@@ -1789,7 +1805,7 @@ function CostScreen({ fields, fertMs, pestMs, equips, costs, setCosts, logs, sho
   const byCat=Object.fromEntries(COST_CATS.map(c=>[c.value,0]));
   costs.forEach(c=>{if(byCat[c.cat]!==undefined)byCat[c.cat]+=(parseFloat(c.amt)||0);});
   const maxC=Math.max(...Object.values(byCat),1);
-  const sv=()=>{ if(!mCost.name.trim()||!mCost.amt){showToast("品名と金額を入力してください");return;} const item={...mCost,id:mCost.id||uid0()}; const n=mCost._idx!==undefined?costs.map((x,i)=>i===mCost._idx?item:x):[...costs,item]; setCosts(n,item);setMCost(null);showToast("保存しました"); };
+  const sv=()=>{ const item={...mCost,id:mCost.id||uid0()}; const n=mCost._idx!==undefined?costs.map((x,i)=>i===mCost._idx?item:x):[...costs,item]; setCosts(n,item);setMCost(null);showToast("保存しました"); };
   const catItems=mCost?(mCost.cat==="fert"?fertMs:mCost.cat==="pest"?pestMs:mCost.cat==="equip"?equips:[]):[];
   return (
     <div style={S.scr} className="scr-inner">
@@ -1828,6 +1844,9 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs }) {
   const [selCropId,setSelCropId]=useState("all");
 
   // 全品目のデータ集計
+  // デバッグ: costs の内容を確認
+  console.log("ReportScreen costs:", costs.length, costs.map(c=>({id:c.id.slice(0,8),cat:c.cat,name:c.name,cropId:c.cropId?.slice(0,8),amt:c.amt})));
+
   const cropStats = crops.map(c=>{
     const db=CDB[c.type]||{};
     const f=fields[c.fieldIdx]||{};
@@ -1847,7 +1866,12 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs }) {
     const seedCosts = costs.filter(co=>
       co.cat==="seed" && (
         co.cropId===c.id ||
-        (!co.cropId && (co.name.startsWith(cropName0) || co.name.includes(cropName0)))
+        co.cropId===c.id.toString() ||
+        (!co.cropId && (
+          co.name.startsWith(cropName0) ||
+          co.name.includes(cropName0) ||
+          (c.variety && co.name.includes(c.variety))
+        ))
       )
     );
     const seedTotal = seedCosts.reduce((s,co)=>s+(parseFloat(co.amt)||0),0);
