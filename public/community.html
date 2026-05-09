@@ -59,7 +59,7 @@
     </div>
   </div>
   <div class="search-wrap" id="search-wrap">
-    <input class="search-inp" id="search" placeholder="🔍 キーワードで検索（スペース区切りでAND）..." oninput="renderAll()">
+    <input class="search-inp" id="search" placeholder="🔍 キーワードで検索..." autocomplete="off" oninput="renderAll()">
   </div>
 </div>
 <div class="container" id="main-container"><div class="loading">🌱 読み込み中…</div></div>
@@ -228,6 +228,16 @@ function sortedFarms(){
 }
 
 // 全表示
+// ひらがな↔カタカナ相互変換
+function toHira(str){return str.replace(/[ァ-ヶ]/g,function(c){return String.fromCharCode(c.charCodeAt(0)-0x60);});}
+function toKata(str){return str.replace(/[ぁ-ゖ]/g,function(c){return String.fromCharCode(c.charCodeAt(0)+0x60);});}
+// 検索用: ひらがな・カタカナ両方で比較
+function matchWord(text,word){
+  var h=toHira(word),k=toKata(word);
+  var th=toHira(text),tk=toKata(text);
+  return th.indexOf(h)>=0||tk.indexOf(k)>=0||text.indexOf(word)>=0;
+}
+
 function renderAll(){
   var q=(document.getElementById('search').value||'').toLowerCase().trim();
   var data=sortedFarms();
@@ -243,7 +253,7 @@ function renderAll(){
           return (c.type==='custom'?c.custom_name||'':db.n||'')+' '+(c.variety||'');
         }).join(' ')
       ].join(' ').toLowerCase();
-      return words.every(function(w){return text.indexOf(w)>=0;});
+      return words.every(function(w){return matchWord(text,w);});
     });
   }
   if(!data.length){
