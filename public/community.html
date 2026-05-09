@@ -15,7 +15,7 @@
 <style>
   *{box-sizing:border-box;margin:0;padding:0;}
   body{font-family:'Hiragino Sans','BIZ UDGothic',sans-serif;background:#f8f5ef;color:#1c1a14;}
-  .hero{background:linear-gradient(135deg,#2d6a3f,#419857);color:#fff;padding:14px 16px;position:sticky;top:0;z-index:200;}
+  .hero{background:linear-gradient(135deg,#2d6a3f,#419857);color:#fff;padding:14px 16px;}
   .hero-inner{display:flex;align-items:center;justify-content:space-between;max-width:680px;margin:0 auto;}
   .hero h1{font-family:'Shippori Mincho B1',Georgia,serif;font-size:1.1rem;}
   .fav-btn-top{background:rgba(255,255,255,.2);border:none;color:#fff;padding:6px 12px;border-radius:999px;font-size:.76rem;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;}
@@ -51,15 +51,15 @@
 <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body>
-<div id="sticky-header" style="position:sticky;top:0;z-index:200;">
+<div style="position:sticky;top:0;z-index:200;">
   <div class="hero">
     <div class="hero-inner">
-      <h1 id="home-title" style="cursor:pointer" onclick="goHome()">🌾 みんなのサクメモ</h1>
+      <h1 style="cursor:pointer" onclick="goHome()">🌾 みんなのサクメモ</h1>
       <button class="fav-btn-top" id="fav-toggle-btn" onclick="toggleFavView()">☆ お気に入り</button>
     </div>
   </div>
   <div class="search-wrap" id="search-wrap">
-    <input class="search-inp" id="search" placeholder="🔍 農場名・品目名・品種で検索..." oninput="renderAll()">
+    <input class="search-inp" id="search" placeholder="🔍 キーワードで検索（スペース区切りでAND）..." oninput="renderAll()">
   </div>
 </div>
 <div class="container" id="main-container"><div class="loading">🌱 読み込み中…</div></div>
@@ -129,9 +129,12 @@ function isFav(uid){return getFavs().indexOf(uid)>=0;}
 function goHome(){
   document.getElementById('search').value='';
   favMode=false;
-  document.getElementById('fav-toggle-btn').textContent='☆ お気に入り';
-  document.getElementById('main-container').style.display='';
-  document.getElementById('fav-container').style.display='none';
+  var btn=document.getElementById('fav-toggle-btn');
+  if(btn)btn.textContent='☆ お気に入り';
+  var mc=document.getElementById('main-container');
+  var fc=document.getElementById('fav-container');
+  if(mc)mc.style.display='';
+  if(fc)fc.style.display='none';
   renderAll();
 }
 function toggleFavView(){
@@ -229,10 +232,18 @@ function renderAll(){
   var q=(document.getElementById('search').value||'').toLowerCase().trim();
   var data=sortedFarms();
   if(q){
+    var words=q.split(' ').filter(function(w){return w.length>0;});
     data=data.filter(function(d){
       var fc=allCrops.filter(function(c){return c.user_id===d.farm.user_id;});
-      var names=fc.map(function(c){var db=CDB[c.type]||{};return c.type==='custom'?c.custom_name||'':db.n||'';}).join(' ');
-      return (d.farm.display_name||'').toLowerCase().indexOf(q)>=0||names.toLowerCase().indexOf(q)>=0;
+      var text=[
+        d.farm.display_name||'',
+        d.farm.description||'',
+        fc.map(function(c){
+          var db=CDB[c.type]||{};
+          return (c.type==='custom'?c.custom_name||'':db.n||'')+' '+(c.variety||'');
+        }).join(' ')
+      ].join(' ').toLowerCase();
+      return words.every(function(w){return text.indexOf(w)>=0;});
     });
   }
   if(!data.length){
