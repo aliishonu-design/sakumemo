@@ -209,7 +209,7 @@ function makeFarmCard(farm,latestLog){
   html+='</div>';
   if(tags) html+='<div class="crop-tags">'+tags+'</div>';
   html+=makeLatestHtml(latestLog);
-  html+='<div class="farm-footer"><a class="see-btn" href="'+url+'">ノートを見る →</a></div>';
+  html+='<div class="farm-footer"><a class="see-btn" href="'+url+'">サクメモを見る →</a></div>';
   html+='</div>';
   return html;
 }
@@ -308,7 +308,7 @@ function renderFavs(){
         +'<div style="font-size:.72rem;color:#888">🌾 '+(frm.display_name||'農場')+'</div></div>'
         +'<button class="crop-unfav-btn" data-id="'+c.id+'" style="background:none;border:none;font-size:1.1rem;cursor:pointer;padding:4px;color:#f0a500;" title="お気に入りを解除">⭐</button>'
         +'</div>'+lh
-        +'<div class="farm-footer"><a class="see-btn" href="'+url+'">ノートを見る →</a></div></div>';
+        +'<div class="farm-footer"><a class="see-btn" href="'+url+'">サクメモを見る →</a></div></div>';
     }).join('');
     html+=cropHtml;
   }
