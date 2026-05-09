@@ -119,6 +119,117 @@ const CDB = {
   kiwi:         { n:"キウイ",     e:"🥝", d:180, w:4, cat:"果樹/マタタビ科",hs:"果実が硬いまま収穫し追熟させる",        events:["開花","着果","収穫"], maturity:{early:160,mid:180,late:200}, fruit:true },
   biwa:         { n:"ビワ",       e:"🍊", d:150, w:4, cat:"果樹/バラ科",hs:"果皮がオレンジ色になり甘みが出たら",        events:["開花","着果","収穫"], maturity:{early:130,mid:150,late:170}, fruit:true },
 };
+
+// ─── 栽培ガイド: 今日やること推奨 ───────────────────────────
+const getRecommendedTasks = (crop, logs) => {
+  const db = CDB[crop.type] || {};
+  const today = new Date();
+  const month = today.getMonth() + 1; // 1-12
+  const plantDate = crop.plantDate || crop.sowDate;
+  const days = plantDate ? Math.floor((Date.now() - new Date(plantDate)) / 86400000) : null;
+  const harvestD = db.d || 90;
+  const pct = days !== null ? Math.min(100, Math.round(days / harvestD * 100)) : null;
+  const lastLog = logs.length > 0 ? logs.reduce((a,b)=>(a.date||'')>(b.date||'')?a:b) : null;
+  const daysSinceLog = lastLog?.date ? Math.floor((Date.now()-new Date(lastLog.date))/86400000) : 99;
+  const isFruit = db.fruit || false;
+  const tasks = [];
+
+  // ── 果樹 ──
+  if(isFruit){
+    const fruitGuide = {
+      apple:   [{m:[11,12,1,2],t:'剪定'},{m:[4],t:'人工授粉'},{m:[5,6],t:'摘花・摘果'},{m:[6,7],t:'袋かけ'},{m:[7,8],t:'病害虫チェック'},{m:[3,9,10],t:'施肥（追肥）'},{m:[11],t:'落葉後に元肥'}],
+      pear:    [{m:[11,12,1,2],t:'剪定'},{m:[4],t:'人工授粉'},{m:[5,6],t:'摘花・摘果'},{m:[6,7],t:'袋かけ'},{m:[3,9],t:'施肥（追肥）'}],
+      peach:   [{m:[12,1,2],t:'剪定'},{m:[3,4],t:'人工授粉・摘花'},{m:[5,6],t:'摘果・袋かけ'},{m:[8,9],t:'施肥（礼肥）'}],
+      cherry:  [{m:[12,1,2],t:'剪定'},{m:[3,4],t:'人工授粉'},{m:[5,6],t:'収穫'},{m:[9,10],t:'施肥（元肥）'}],
+      plum:    [{m:[12,1],t:'剪定'},{m:[2,3],t:'人工授粉'},{m:[5],t:'摘果'},{m:[9,10],t:'施肥（元肥）'}],
+      mikan:   [{m:[2,3],t:'剪定・施肥'},{m:[6],t:'摘果（生理落果後）'},{m:[9,10],t:'収穫管理'},{m:[11,12],t:'収穫・施肥（礼肥）'}],
+      grape:   [{m:[1,2],t:'剪定'},{m:[4,5],t:'芽かき・誘引'},{m:[5,6],t:'摘花・ジベレリン処理'},{m:[6,7],t:'摘粒・袋かけ'},{m:[8,9],t:'収穫'},{m:[10,11],t:'施肥（礼肥）'}],
+      persimmon:[{m:[12,1,2],t:'剪定'},{m:[5,6],t:'摘花・摘果'},{m:[9,10,11],t:'収穫'},{m:[2,9],t:'施肥'}],
+      blueberry:[{m:[1,2],t:'剪定'},{m:[3,4],t:'施肥（元肥）'},{m:[5,6,7],t:'収穫'},{m:[10,11],t:'施肥（礼肥）'}],
+      fig:     [{m:[1,2],t:'剪定'},{m:[3],t:'施肥（元肥）'},{m:[7,8,9,10],t:'収穫'},{m:[11],t:'施肥（礼肥）'}],
+      lemon:   [{m:[2,3],t:'剪定・施肥'},{m:[5,6],t:'摘花'},{m:[11,12,1],t:'収穫'}],
+      yuzu:    [{m:[1,2],t:'剪定'},{m:[3],t:'施肥（元肥）'},{m:[11,12],t:'収穫・施肥（礼肥）'}],
+      strawberry:[{m:[8,9],t:'ランナーから苗取り・定植'},{m:[10,11],t:'マルチ張り・施肥'},{m:[12,1,2],t:'寒冷紗で防寒・灌水注意'},{m:[3],t:'花芽確認・追肥'},{m:[4,5,6],t:'収穫・ランナー管理'},{m:[7],t:'親株整理'}],
+      kiwi:    [{m:[1,2],t:'剪定'},{m:[5],t:'人工授粉・摘花'},{m:[6],t:'摘果'},{m:[10,11],t:'収穫・施肥（礼肥）'}],
+      biwa:    [{m:[10,11,12],t:'摘花・摘果'},{m:[1,2,3],t:'袋かけ・施肥'},{m:[5,6],t:'収穫'},{m:[7,8],t:'剪定・施肥（礼肥）'}],
+    };
+    const guide = fruitGuide[crop.type] || [];
+    const todayTasks = guide.filter(g=>g.m.includes(month)).map(g=>g.t);
+    if(todayTasks.length > 0) tasks.push(...todayTasks);
+    else tasks.push('定期見回り・病害虫チェック');
+    return tasks.slice(0,3);
+  }
+
+  // ── 一年生野菜・穀物 ──
+  if(days === null){ tasks.push('定植・播種日を記録してください'); return tasks; }
+
+  // 播種直後（0-14日）
+  if(days <= 14){
+    tasks.push('発芽確認・水やり');
+    if(crop.cultivationType !== 'direct') tasks.push('活着確認');
+    return tasks;
+  }
+
+  // 施肥タイミング（追肥目安: 2-3週間ごと）
+  const lastFert = logs.filter(l=>l.work==='fert').sort((a,b)=>(b.date||'')>(a.date||'')?1:-1)[0];
+  const daysSinceFert = lastFert?.date ? Math.floor((Date.now()-new Date(lastFert.date))/86400000) : 99;
+  if(daysSinceFert >= 21) tasks.push('追肥のタイミングです');
+
+  // 防除タイミング（2週間ごと目安）
+  const lastPest = logs.filter(l=>l.work==='pest').sort((a,b)=>(b.date||'')>(a.date||'')?1:-1)[0];
+  const daysSincePest = lastPest?.date ? Math.floor((Date.now()-new Date(lastPest.date))/86400000) : 99;
+  if(daysSincePest >= 14 && pct > 20) tasks.push('病害虫チェック・防除');
+
+  // 生育ステージ別
+  if(pct < 30){
+    tasks.push('生育初期: 水やり・草取り');
+    if(['tomato','eggplant','pepper','cucumber'].includes(crop.type)) tasks.push('支柱立て・誘引');
+  } else if(pct < 60){
+    tasks.push('生育中期: 水やり管理');
+    if(['tomato'].includes(crop.type)) tasks.push('脇芽かき');
+    if(['tomato','eggplant','pepper','cucumber','bitter_gourd'].includes(crop.type)) tasks.push('誘引・整枝');
+    if(['cabbage','hakusai','broccoli'].includes(crop.type)) tasks.push('結球確認');
+  } else if(pct < 90){
+    tasks.push('収穫まで'+Math.max(0,Math.round(harvestD-days))+'日: 水切り管理');
+    if(['tomato','eggplant','pepper','cucumber'].includes(crop.type)) tasks.push('着色・肥大確認');
+  } else {
+    tasks.push('🎉 収穫時期です！');
+  }
+
+  // 作業間隔が長い場合
+  if(daysSinceLog >= 7 && tasks.length < 2) tasks.push('見回り・生育記録を残しましょう');
+
+  // 連作障害注意
+  const rotationRisk = {
+    tomato:7,cherry_tomato:7,eggplant:5,pepper:5,potato:4,
+    cucumber:3,watermelon:5,strawberry:4,spinach:3,burdock:5
+  };
+  if(rotationRisk[crop.type]){
+    tasks.push('連作障害注意: '+rotationRisk[crop.type]+'年以上空けましょう');
+  }
+
+  return tasks.slice(0,3);
+};
+
+// 施肥設計（10㎡あたりの目安）
+const getFertPlan = (cropType) => {
+  const plans = {
+    tomato:    {base:'元肥: 苦土石灰150g→1週間後 牛糞堆肥2kg 化成(N:P:K=8:8:8)150g', chase:'追肥: 2-3週ごと液肥または化成50g', note:'窒素過多に注意'},
+    eggplant:  {base:'元肥: 苦土石灰150g→1週間後 牛糞堆肥3kg 化成200g', chase:'追肥: 収穫始まったら2週ごと化成50g', note:'多肥を好む'},
+    cucumber:  {base:'元肥: 苦土石灰100g→1週間後 牛糞堆肥2kg 化成150g', chase:'追肥: 2週ごと化成50g', note:'窒素多め'},
+    pepper:    {base:'元肥: 苦土石灰150g→1週間後 牛糞堆肥2kg 化成150g', chase:'追肥: 3週ごと化成50g', note:''},
+    potato:    {base:'元肥: 苦土石灰不要(酸性好む) 牛糞堆肥2kg 化成150g', chase:'追肥: 芽かき後に1回 化成50g', note:'石灰はそうか病の原因'},
+    sweetpotato:{base:'元肥: 牛糞堆肥2kg のみ(肥料少なめ)', chase:'追肥: 基本不要', note:'肥料多いと葉ばかり茂る'},
+    onion:     {base:'元肥: 苦土石灰150g→1週間後 牛糞堆肥1kg 化成100g', chase:'追肥: 12月・2月に各50g', note:''},
+    carrot:    {base:'元肥: 苦土石灰100g→2週間後 牛糞堆肥1kg 化成100g', chase:'追肥: 本葉5枚ごろ化成50g', note:'石灰は早めに'},
+    cabbage:   {base:'元肥: 苦土石灰200g→1週間後 牛糞堆肥3kg 化成150g', chase:'追肥: 定植2・4週後に各50g', note:''},
+    broccoli:  {base:'元肥: 苦土石灰200g→1週間後 牛糞堆肥2kg 化成150g', chase:'追肥: 定植3週後 化成50g', note:''},
+    rice:      {base:'元肥: 牛糞堆肥3kg 化成(N:P:K=14:14:14)200g', chase:'追肥: 分けつ期・穂肥に各100g', note:''},
+    strawberry:{base:'元肥: 苦土石灰150g→2週間後 牛糞堆肥2kg 化成100g(Pリン多め)', chase:'追肥: 10月・2月・収穫後に各30g', note:'窒素控えめ'},
+  };
+  return plans[cropType] || {base:'元肥: 苦土石灰100-150g(2週前)→牛糞堆肥2kg+化成100-150g', chase:'追肥: 2-4週ごと化成30-50g', note:''};
+};
+// ─────────────────────────────────────────────────────────────
 // 科別グループ化
 const CROP_CATS = ["イネ科","タデ科","ナス科","ウリ科","アブラナ科","マメ科","キク科","セリ科","ヒガンバナ科","ヤマノイモ科","サトイモ科","ヒルガオ科","バラ科","アカザ科","アオイ科","果樹/バラ科","果樹/ミカン科","果樹/ブドウ科","果樹/カキノキ科","果樹/ツツジ科","果樹/クワ科","果樹/マタタビ科"];
 const CROP_OPTIONS = [
@@ -690,7 +801,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v0.6.3</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v0.6.4</div>
       </div>
     </div>
   );
@@ -831,6 +942,14 @@ function HomeScreen({ fields, crops, logs, costs, onEditCrop }) {
                 <span>{daysToHarvest!==null&&daysToHarvest>=0?"収穫まで約"+daysToHarvest+"日":""}</span>
               </div>
             </>}
+            {(()=>{
+              const tasks=getRecommendedTasks(c, logs.filter(l=>l.cropId===c.id));
+              if(!tasks.length) return null;
+              return <div style={{marginTop:8,padding:"7px 10px",background:"#f0f9f0",borderRadius:8,borderLeft:"3px solid #2d6a3f"}}>
+                <div style={{fontSize:".65rem",color:"#2d6a3f",fontWeight:700,marginBottom:3}}>📋 今日の作業目安</div>
+                {tasks.map((t,i)=><div key={i} style={{fontSize:".72rem",color:"#1c1a14",lineHeight:1.6}}>・{t}</div>)}
+              </div>;
+            })()}
           </div>
         );
       })}
