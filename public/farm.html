@@ -118,7 +118,7 @@ body{font-family:'Hiragino Sans','BIZ UDGothic',sans-serif;background:#f8f5ef;co
   </div>
   <div style="background:#419857;padding:7px 14px;">
     <div style="max-width:680px;margin:0 auto;">
-      <input class="search-bar" id="farm-search" placeholder="🔍 キーワードで検索..." oninput="doSearch()">
+      <input class="search-bar" id="farm-search" placeholder="🔍 キーワードで検索..." autocomplete="off" oninput="doSearch()">
     </div>
   </div>
 </div>
@@ -507,6 +507,10 @@ function submitReport(){
   }).then(function(){closeReport();alert('報告を受け付けました。');}).catch(function(){alert('送信に失敗しました。');});
 }
 
+function toHira(str){return str.replace(/[ァ-ヶ]/g,function(c){return String.fromCharCode(c.charCodeAt(0)-0x60);});}
+function toKata(str){return str.replace(/[ぁ-ゖ]/g,function(c){return String.fromCharCode(c.charCodeAt(0)+0x60);});}
+function matchWord(text,word){var h=toHira(word),k=toKata(word),th=toHira(text),tk=toKata(text);return th.indexOf(h)>=0||tk.indexOf(k)>=0||text.indexOf(word)>=0;}
+
 function doSearch(){
   var q=(document.getElementById('farm-search').value||'').toLowerCase().trim();
   var words=q?q.split(' ').filter(function(w){return w.length>0;}):[]; 
@@ -514,7 +518,7 @@ function doSearch(){
   cards.forEach(function(card){
     if(!words.length){card.style.display='';return;}
     var text=card.textContent.toLowerCase();
-    var match=words.every(function(w){return text.indexOf(w)>=0;});
+    var match=words.every(function(w){return matchWord(text,w);});
     card.style.display=match?'':'none';
   });
 }
