@@ -13,7 +13,6 @@ const dbFetch = async (table, uid) => {
     console.error("DB fetch error:", table, error.code, error.message);
     return [];
   }
-  console.log("DB fetch OK:", table, data?.length, "rows");
   return data || [];
 };
 const dbUpsert = async (table, row) => {
@@ -22,7 +21,6 @@ const dbUpsert = async (table, row) => {
     console.error("DB保存エラー:", table, error.code, error.message);
     // ユーザーに通知（重要なエラーの場合）
     if(error.code === "42703") {
-      alert("データベースエラー: カラムが見つかりません(" + table + ")\nSupabaseのSQL設定を確認してください: " + error.message);
     }
   }
 };
@@ -416,18 +414,14 @@ async function compressImage(file) {
 async function uploadPhoto(blob, userId, filename) {
   try {
     const path = userId + "/" + filename;
-    console.log("Uploading to farm-photos:", path, "size:", blob.size);
     const { data: uploadData, error } = await sb.storage
       .from("farm-photos")
       .upload(path, blob, { contentType:"image/jpeg", upsert:true });
     if (error) {
       console.error("upload error:", error.message, error.statusCode, error);
-      alert("写真のアップロードに失敗しました:\n" + error.message + "\n(Status: " + error.statusCode + ")");
       return null;
     }
-    console.log("Upload success:", uploadData);
     const { data } = sb.storage.from("farm-photos").getPublicUrl(path);
-    console.log("Public URL:", data?.publicUrl);
     return data?.publicUrl || null;
   } catch(e) {
     console.error("uploadPhoto exception:", e.message);
@@ -1317,7 +1311,6 @@ function FieldsScreen({ fields, setFields, setFieldsR, crops, setCrops, setCrops
     if(!mField) return;
     const item={...mField,id:mField.id||uid0()};
     const n=mField._idx!==undefined?fields.map((x,i)=>i===mField._idx?item:x):[...fields,item];
-    console.log("saveField:", {item, idx:mField._idx, fieldsLen:fields.length});
     setFields(n,item);
     setMField(null);
     showToast("保存しました");
@@ -1378,8 +1371,7 @@ function FieldsScreen({ fields, setFields, setFieldsR, crops, setCrops, setCrops
         cropId:entry.id,
         note:mCrop.seedNote||""
       };
-      console.log("Saving seedCost:", seedEntry, "fields:", fields.length);
-      setCosts([...costs,seedEntry],seedEntry);
+        setCosts([...costs,seedEntry],seedEntry);
       showToast("保存しました（種・苗代を費用に追加）");
     } else {
       showToast("保存しました");
@@ -1991,7 +1983,6 @@ function TimelineScreen({ fields, crops, equips, logs, setLogs, showToast, onEdi
 
 // COST
 function CostScreen({ fields, fertMs, pestMs, equips, costs, setCosts, logs, showToast }) {
-  console.log("CostScreen costs:", costs.length, JSON.stringify(costs.map(c=>({id:c.id?.slice(0,8),cropId:c.cropId?.slice(0,8),cat:c.cat,name:c.name,amt:c.amt}))));
   const [mCost,setMCost]=useState(null);
   const empty={id:uid0(),cat:"seed",name:"",amt:"",date:todayStr(),qty:"",qunit:"",fieldIdx:"",note:""};
   const total=costs.reduce((s,c)=>s+(parseFloat(c.amt)||0),0);
@@ -2040,11 +2031,6 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs }) {
 
   // 全品目のデータ集計
   // デバッグ: costs の内容を確認
-  console.log("ReportScreen costs:", costs.length, JSON.stringify(costs.map(c=>({id:c.id?.slice(0,8),cropId:c.cropId?.slice(0,8),cat:c.cat,name:c.name,amt:c.amt}))));
-  crops.forEach(c=>{
-    const sc=costs.filter(co=>co.cropId===c.id||co.cropId===c.id?.toString());
-    console.log("crop:", c.id?.slice(0,8), c.type, "seedCosts:", sc.length, sc.map(s=>s.amt));
-  });
 
   const cropStats = crops.map(c=>{
     const db=CDB[c.type]||{};
@@ -2526,7 +2512,6 @@ export default function App() {
   // Auth
   useEffect(()=>{
     const {data:{subscription}}=sb.auth.onAuthStateChange((event, session)=>{
-      console.log("AUTH EVENT:", event, session?.user?.email);
       if(event==='PASSWORD_RECOVERY'){
         setInviteMode(true);
         setUser(null);
@@ -2563,8 +2548,7 @@ export default function App() {
     setDbLoad(true);
     const uid=user.id;
     Promise.all([dbFetch("fields",uid),dbFetch("crops",uid),dbFetch("logs",uid),dbFetch("fert_masters",uid),dbFetch("pest_masters",uid),dbFetch("equipments",uid),dbFetch("costs",uid)]).then(([f,c,l,fm,pm,eq,co])=>{
-      console.log("LOAD COMPLETE - fields:", f.length, "crops:", c.length, "logs:", l.length, "fertMs:", fm.length, "pestMs:", pm.length, "equips:", eq.length, "costs:", co.length);
-      const rawF=f.map(fieldFromDb);
+        const rawF=f.map(fieldFromDb);
       const rawC=c.map(r=>cropFromDb(r,rawF));
       const rawL=l.map(r=>logFromDb(r,rawF));
       setFieldsR(rawF);setCropsR(rawC);setLogsR(rawL);
@@ -2586,7 +2570,6 @@ export default function App() {
   const dbSaveCost  = o => {
     if(!uid) return;
     const row = costToDb(o, uid, fields);
-    console.log("dbSaveCost:", JSON.stringify(row));
     dbUpsert("costs", row);
   };
 
