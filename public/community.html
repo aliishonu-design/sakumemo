@@ -51,18 +51,20 @@
 <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body>
-<div class="hero">
-  <div class="hero-inner">
-    <h1>🌾 みんなのサクメモ</h1>
-    <button class="fav-btn-top" id="fav-toggle-btn" onclick="toggleFavView()">☆ お気に入り</button>
+<div id="sticky-header" style="position:sticky;top:0;z-index:200;">
+  <div class="hero">
+    <div class="hero-inner">
+      <h1 id="home-title" style="cursor:pointer" onclick="goHome()">🌾 みんなのサクメモ</h1>
+      <button class="fav-btn-top" id="fav-toggle-btn" onclick="toggleFavView()">☆ お気に入り</button>
+    </div>
   </div>
-</div>
-<div class="search-wrap" id="search-wrap">
-  <input class="search-inp" id="search" placeholder="🔍 農場名・作物名で検索..." oninput="renderAll()">
+  <div class="search-wrap" id="search-wrap">
+    <input class="search-inp" id="search" placeholder="🔍 農場名・品目名・品種で検索..." oninput="renderAll()">
+  </div>
 </div>
 <div class="container" id="main-container"><div class="loading">🌱 読み込み中…</div></div>
 <div class="container" id="fav-container" style="display:none"></div>
-<div class="footer" style="text-align:center;padding:20px;font-size:.8rem;color:#aaa;">🌾 サクメモ</div>
+
 <script>
 var SB_URL='https://nlamtphkwdoxtjktkjzo.supabase.co';
 var SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5sYW10cGhrd2RveHRqa3RranpvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3ODI3NzYsImV4cCI6MjA5MzM1ODc3Nn0.8gba30xxu0s132vg_xOA6-Y3XWjR1YhaprIgUYHZO0o';
@@ -125,10 +127,12 @@ function isFav(uid){return getFavs().indexOf(uid)>=0;}
 
 // タブ切り替え
 function goHome(){
-  // 農場・品目ページからホームに戻る
-  if(typeof showHome==='function'){showHome();return;}
-  // community.htmlのトップに戻る（farm.htmlから来た場合）
-  window.location.href='community.html';
+  document.getElementById('search').value='';
+  favMode=false;
+  document.getElementById('fav-toggle-btn').textContent='☆ お気に入り';
+  document.getElementById('main-container').style.display='';
+  document.getElementById('fav-container').style.display='none';
+  renderAll();
 }
 function toggleFavView(){
   favMode=!favMode;
@@ -225,22 +229,22 @@ function renderAll(){
   var q=(document.getElementById('search').value||'').toLowerCase().trim();
   var data=sortedFarms();
   if(q){
-    // スペース区切りで全ワードAND検索
-    var words=q.split(/\s+/).filter(Boolean);
     data=data.filter(function(d){
       var fc=allCrops.filter(function(c){return c.user_id===d.farm.user_id;});
-      var searchText=[
-        d.farm.display_name||'',
-        d.farm.description||'',
-        fc.map(function(c){
-          var db=CDB[c.type]||{};
-          return [c.type==='custom'?c.custom_name||'':db.n||'', c.variety||'', db.e||''].join(' ');
-        }).join(' ')
-      ].join(' ').toLowerCase();
-      return words.every(function(w){return searchText.includes(w);});
+      var names=fc.map(function(c){var db=CDB[c.type]||{};return c.type==='custom'?c.custom_name||'':db.n||'';}).join(' ');
+      return (d.farm.display_name||'').toLowerCase().indexOf(q)>=0||names.toLowerCase().indexOf(q)>=0;
     });
   }
-）
+  if(!data.length){
+    document.getElementById('main-container').innerHTML='<div class="empty">該当する農場はありません</div>';
+    return;
+  }
+  document.getElementById('main-container').innerHTML=data.map(function(d){
+    return makeFarmCard(d.farm,d.latestLog);
+  }).join('');
+}
+
+// お気に入り表示（農場 + 品目）
 function getCropFavs(){try{return JSON.parse(localStorage.getItem('sakumemo_crop_favs')||'[]');}catch{return[];}}
 
 function renderFavs(){
