@@ -212,12 +212,18 @@ function cropEmoji(c){return(CDB[c.type]||{}).e||'🌱';}
 function buildTabs(){
   var inner=document.getElementById('tabs-inner');
 
-  // タイムラインタブ（先頭）
+  // タイムラインタブ
   var tlBtn=document.createElement('button');
   tlBtn.className='tab-timeline'+(currentTab==='timeline'?' active':'');
   tlBtn.textContent='📋 すべての記録';
   tlBtn.addEventListener('click',function(){selectTab('timeline');});
   inner.appendChild(tlBtn);
+
+  // body直下にドロップダウンコンテナを作成
+  var ddContainer=document.createElement('div');
+  ddContainer.id='dd-container';
+  ddContainer.style.cssText='position:fixed;z-index:9000;display:none;';
+  document.body.appendChild(ddContainer);
 
   // 品目タイプでグループ化
   var typeGroups={};
@@ -228,59 +234,68 @@ function buildTabs(){
     typeGroups[key].crops.push(c);
   });
 
-  Object.values(typeGroups).forEach(function(g){
-    var wrap=document.createElement('div');
-    wrap.className='crop-tab-wrap';
+  var currentDDKey=null;
 
+  Object.values(typeGroups).forEach(function(g){
     var btn=document.createElement('button');
     btn.className='crop-tab-btn'+(currentCropId&&g.crops.some(function(c){return c.id===currentCropId;})?' active':'');
     btn.innerHTML=g.emoji+' '+g.key;
     btn.setAttribute('data-key',g.key);
 
-    var dd=document.createElement('div');
-    dd.className='dropdown';
-    dd.innerHTML=g.crops.map(function(c){
-      var label=c.variety?c.variety:(cropName(c)+(c.ended?'（終了）':''));
-      return '<div class="dropdown-item'+(c.id===currentCropId?' active':'')+'" data-id="'+c.id+'">'
-        +cropEmoji(c)+' '+label
-        +(c.ended?'<span style="font-size:.62rem;color:#e67e22;margin-left:4px">終了</span>':'')
-        +'</div>';
-    }).join('');
-
-    // タップ/クリックでドロップダウン
-    function openDropdown(e){
-      if(e) e.stopPropagation();
-      document.querySelectorAll('.dropdown.open').forEach(function(d){
-        if(d!==dd)d.classList.remove('open');
-      });
+    function showDD(){
       if(g.crops.length===1){
         selectCrop(g.crops[0].id);
-      } else {
-        dd.classList.toggle('open');
+        return;
       }
+      // 同じタブを再度押したら閉じる
+      if(currentDDKey===g.key){
+        ddContainer.style.display='none';
+        currentDDKey=null;
+        return;
+      }
+      currentDDKey=g.key;
+      // ドロップダウン内容を作成
+      ddContainer.innerHTML=g.crops.map(function(c){
+        var label=c.variety?c.variety:cropName(c);
+        return '<div style="padding:11px 16px;cursor:pointer;font-size:.84rem;display:flex;align-items:center;gap:8px;border-bottom:1px solid #f0ebe3;background:#fff;" data-id="'+c.id+'">'
+          +cropEmoji(c)+' '+label
+          +(c.ended?'<span style="font-size:.62rem;color:#e67e22;margin-left:4px">終了</span>':'')
+          +'</div>';
+      }).join('');
+      // ボタンの位置を取得してドロップダウンを配置
+      var rect=btn.getBoundingClientRect();
+      ddContainer.style.display='block';
+      ddContainer.style.top=(rect.bottom+4)+'px';
+      ddContainer.style.left=rect.left+'px';
+      ddContainer.style.minWidth='160px';
+      ddContainer.style.background='#fff';
+      ddContainer.style.borderRadius='10px';
+      ddContainer.style.boxShadow='0 4px 20px rgba(0,0,0,.2)';
+      ddContainer.style.overflow='hidden';
     }
-    btn.addEventListener('click', openDropdown);
-    btn.addEventListener('touchend', function(e){
-      e.preventDefault();
-      openDropdown(e);
+
+    btn.addEventListener('click',function(e){
+      e.stopPropagation();
+      showDD();
     });
 
-    dd.addEventListener('click',function(e){
-      var item=e.target.closest('.dropdown-item');
-      if(item){
-        selectCrop(item.dataset.id);
-        dd.classList.remove('open');
-      }
-    });
-
-    wrap.appendChild(btn);
-    wrap.appendChild(dd);
-    inner.appendChild(wrap);
+    inner.appendChild(btn);
   });
 
-  // 外クリックでドロップダウン閉じる
+  // ドロップダウン項目クリック
+  ddContainer.addEventListener('click',function(e){
+    var item=e.target.closest('[data-id]');
+    if(item){
+      selectCrop(item.dataset.id);
+      ddContainer.style.display='none';
+      currentDDKey=null;
+    }
+  });
+
+  // 外クリックで閉じる
   document.addEventListener('click',function(){
-    document.querySelectorAll('.dropdown.open').forEach(function(d){d.classList.remove('open');});
+    ddContainer.style.display='none';
+    currentDDKey=null;
   });
 }
 
