@@ -690,7 +690,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v0.6.1</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v0.6.3</div>
       </div>
     </div>
   );
@@ -784,36 +784,53 @@ function HomeScreen({ fields, crops, logs, costs, onEditCrop }) {
       )}
 
       {/* 栽培中の作物 */}
-      <div style={S.sec}><span>🌾 栽培中の作物</span></div>
+      <div style={S.sec}><span>🌾 栽培中 ({crops.filter(c=>!c.ended).length}品目)</span></div>
       {!crops.filter(c=>!c.ended).length && <div style={{color:TX3,fontSize:".82rem",padding:8,textAlign:"center"}}>品目がまだ登録されていません</div>}
-      {crops.filter(c=>!c.ended).slice(0,8).map(c=>{
+      {crops.filter(c=>!c.ended).map(c=>{
         const db=CDB[c.type]||{}; const f=fields[c.fieldIdx]||{};
-        const days=daysSince(c.plantDate);
+        const days=daysSince(c.plantDate||c.sowDate);
         const harvestD=c.type==="custom"?(parseInt(c.customDays)||90):(db?.maturity?.[c.maturity||"mid"]||db?.d||90);
         const pct=Math.min(100,Math.round(days/harvestD*100));
         const startLabel=c.cultivationType==="direct"?"播種":"定植";
+        const isFruit=db.fruit||false;
         const cl=logs.filter(l=>l.cropId===c.id);
-        const added=cl.filter(l=>l.addCnt).reduce((s,l)=>s+(parseInt(l.addCnt)||0),0);
-        const disc=cl.filter(l=>l.discardCnt).reduce((s,l)=>s+(parseInt(l.discardCnt)||0),0);
-        const stocks=(parseInt(c.stocks)||0)+added-disc;
         const hvKg=cl.reduce((s,l)=>s+(parseFloat(l.hvKg)||0),0);
+        const lastLog=cl.length>0?cl.reduce((a,b)=>(a.date||"")>(b.date||"")?a:b):null;
+        // 作業予定（収穫予定日）
+        const plantD=c.plantDate||c.sowDate;
+        const harvestExpected=plantD?new Date(new Date(plantD).getTime()+harvestD*86400000):null;
+        const daysToHarvest=harvestExpected?Math.ceil((harvestExpected-Date.now())/86400000):null;
+        const scheduleText=isFruit?null:
+          daysToHarvest!==null?(daysToHarvest<0?"収穫時期過ぎ":daysToHarvest===0?"本日収穫予定":daysToHarvest+"日後に収穫予定"):null;
         return (
-          <div key={c.id} style={{...S.card,cursor:"pointer"}} onClick={()=>onEditCrop&&onEditCrop(c)}>
+          <div key={c.id} style={{...S.card,cursor:"pointer",borderLeft:daysToHarvest!==null&&daysToHarvest<=7&&daysToHarvest>=0?"3px solid #f0a500":"none"}} onClick={()=>onEditCrop&&onEditCrop(c)}>
             <div style={{display:"flex",gap:9,alignItems:"center"}}>
               <span style={{fontSize:"1.8rem"}}>{db.e||"🌱"}</span>
-              <div style={{flex:1}}>
-                <div style={{fontWeight:700}}>{c.type==="custom"?c.customName||"カスタム":db.n||c.type}{c.variety?" ("+c.variety+")":""}</div>
-                <div style={{fontSize:".7rem",color:TX3}}>{f.name||"?"} / {c.plantDate?startLabel+days+"日目":"定植日未設定"} / {stocks}株{disc>0?" (廃棄"+disc+"株)":""}</div>
-                {hvKg>0 && <div style={{fontSize:".7rem",color:G}}>累計収穫: {hvKg.toFixed(1)}kg</div>}
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontWeight:700,fontSize:".9rem"}}>
+                  {c.type==="custom"?c.customName||"カスタム":db.n||c.type}
+                  {c.variety&&<span style={{fontWeight:400,color:TX3,fontSize:".8rem"}}> ({c.variety})</span>}
+                </div>
+                <div style={{fontSize:".7rem",color:TX3,marginTop:2}}>
+                  {f.name||""}
+                  {plantD&&<span> · {startLabel}{days}日目</span>}
+                </div>
+                {hvKg>0&&<div style={{fontSize:".7rem",color:G}}>累計収穫 {hvKg.toFixed(1)}kg</div>}
+                {lastLog&&<div style={{fontSize:".7rem",color:TX3}}>最終記録: {lastLog.date}</div>}
               </div>
+              {scheduleText&&<div style={{fontSize:".68rem",background:daysToHarvest<=3?"#fff3cd":"#f0f9f0",color:daysToHarvest<=3?"#92400e":"#2d6a3f",borderRadius:6,padding:"3px 7px",flexShrink:0,textAlign:"center",lineHeight:1.4}}>
+                🗓️<br/>{scheduleText}
+              </div>}
             </div>
-            <div style={{height:5,background:"#eee",borderRadius:999,overflow:"hidden",marginTop:6}}>
-              <div style={{height:"100%",borderRadius:999,background:"linear-gradient(90deg,"+G+","+G2+")",width:pct+"%",transition:"width .7s ease"}}/>
-            </div>
-            <div style={{fontSize:".64rem",color:TX3,marginTop:2,display:"flex",justifyContent:"space-between"}}>
-              <span>生育進捗 {pct}%</span>
-              <span>収穫まで約{Math.max(0,harvestD-days)}日</span>
-            </div>
+            {!isFruit&&plantD&&<>
+              <div style={{height:5,background:"#eee",borderRadius:999,overflow:"hidden",marginTop:6}}>
+                <div style={{height:"100%",borderRadius:999,background:"linear-gradient(90deg,"+G+","+G2+")",width:pct+"%",transition:"width .7s ease"}}/>
+              </div>
+              <div style={{fontSize:".64rem",color:TX3,marginTop:2,display:"flex",justifyContent:"space-between"}}>
+                <span>生育進捗 {pct}%</span>
+                <span>{daysToHarvest!==null&&daysToHarvest>=0?"収穫まで約"+daysToHarvest+"日":""}</span>
+              </div>
+            </>}
           </div>
         );
       })}
@@ -950,7 +967,7 @@ function MasterScreen({ fertMs, setFertMs, pestMs, setPestMs, equips, setEquips,
     <div style={S.scr} className="scr-inner">
       {/* フィルタータブ */}
       <div style={{display:"flex",gap:6,marginBottom:12,overflowX:"auto",WebkitOverflowScrolling:"touch"}}>
-        {[{k:"all",l:"すべて"},{k:"fert",l:"🌿 肥料"},{k:"pest",l:"🐛 農薬"},{k:"equip",l:"🏗️ 設備"}].map(t=>(
+        {[{k:"all",l:"すべて"},{k:"fert",l:"🌿 肥料"},{k:"pest",l:"🐛 農薬"},{k:"equip",l:"🏗️ 設備・資材"}].map(t=>(
           <button key={t.k} onClick={()=>setFilter(t.k)}
             style={{flexShrink:0,padding:"6px 14px",borderRadius:999,border:"1.5px solid "+(filter===t.k?G:BD),
               background:filter===t.k?G:"#fff",color:filter===t.k?"#fff":"#5a5040",
@@ -964,7 +981,7 @@ function MasterScreen({ fertMs, setFertMs, pestMs, setPestMs, equips, setEquips,
         <button style={{...S.btn,background:"#fffde7",color:"#92400e",border:"1px solid #f9e4a0",borderRadius:999,padding:"6px 14px",fontSize:".78rem",fontWeight:700,width:"auto",flexShrink:0}}
           onClick={()=>setMItem({...newPest,_idx:undefined})}>＋ 農薬</button>
         <button style={{...S.btn,background:"#ede9fe",color:"#5b21b6",border:"1px solid #c4b5fd",borderRadius:999,padding:"6px 14px",fontSize:".78rem",fontWeight:700,width:"auto",flexShrink:0}}
-          onClick={()=>setMItem({...newEquip,_idx:undefined})}>＋ 資材</button>
+          onClick={()=>setMItem({...newEquip,_idx:undefined})}>＋ 資材・設備を登録</button>
       </div>
 
       {!filtered.length&&<div style={{color:TX3,fontSize:".82rem",padding:16,textAlign:"center"}}>資材がまだ登録されていません</div>}
@@ -2313,7 +2330,7 @@ function SettingsScreen({ showToast, user, uid, signOut, fields, crops, logs, fe
 // ============================================================
 const SCREENS = [
   { key:"home",    label:"ホーム",     icon:"🏡" },
-  { key:"master",  label:"マスター",   icon:"📦" },
+  { key:"master",  label:"資材・設備", icon:"📦" },
   { key:"fields",  label:"圃場・品目", icon:"🌾" },
   { key:"log",     label:"作業記録",   icon:"📝" },
   { key:"cost",    label:"費用",       icon:"💰" },
