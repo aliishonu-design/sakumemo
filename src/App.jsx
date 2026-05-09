@@ -121,6 +121,56 @@ const CDB = {
 };
 
 // ─── 栽培ガイド: 今日やること推奨 ───────────────────────────
+
+// ─── 科別・連作障害DB ────────────────────────────────────────
+const FAMILY_DB={
+  tomato:"ナス科",cherry_tomato:"ナス科",eggplant:"ナス科",pepper:"ナス科",potato:"ナス科",
+  cucumber:"ウリ科",pumpkin:"ウリ科",watermelon:"ウリ科",bitter_gourd:"ウリ科",zucchini:"ウリ科",
+  cabbage:"アブラナ科",broccoli:"アブラナ科",hakusai:"アブラナ科",radish:"アブラナ科",komatsuna:"アブラナ科",
+  lettuce:"キク科",edamame:"マメ科",green_bean:"マメ科",azuki:"マメ科",spinach:"ヒユ科",
+  onion:"ユリ科",leek:"ユリ科",garlic:"ユリ科",carrot:"セリ科",jinenjo:"ヤマノイモ科",
+  taro:"サトイモ科",strawberry:"バラ科",apple:"バラ科",pear:"バラ科",peach:"バラ科",
+  cherry:"バラ科",plum:"バラ科",biwa:"バラ科",mikan:"ミカン科",lemon:"ミカン科",
+  yuzu:"ミカン科",grape:"ブドウ科",persimmon:"カキノキ科",kiwi:"マタタビ科",fig:"クワ科",
+  blueberry:"ツツジ科",rice:"イネ科",wheat:"イネ科",sweet_corn:"イネ科",soba:"タデ科",
+  sweetpotato:"ヒルガオ科",okra:"アオイ科",
+};
+const ROTATION_DB={
+  tomato:      {years:5,ng:["ナス科"],ok:["アブラナ科","マメ科","ウリ科","イネ科"]},
+  cherry_tomato:{years:5,ng:["ナス科"],ok:["アブラナ科","マメ科","ウリ科"]},
+  eggplant:    {years:5,ng:["ナス科"],ok:["アブラナ科","マメ科","ウリ科"]},
+  pepper:      {years:5,ng:["ナス科"],ok:["アブラナ科","マメ科","ウリ科"]},
+  potato:      {years:4,ng:["ナス科"],ok:["マメ科","イネ科","アブラナ科"]},
+  cucumber:    {years:3,ng:["ウリ科"],ok:["ナス科","アブラナ科","マメ科"]},
+  pumpkin:     {years:3,ng:["ウリ科"],ok:["ナス科","アブラナ科","マメ科"]},
+  watermelon:  {years:5,ng:["ウリ科"],ok:["アブラナ科","ナス科"]},
+  bitter_gourd:{years:3,ng:["ウリ科"],ok:["ナス科","アブラナ科"]},
+  cabbage:     {years:3,ng:["アブラナ科"],ok:["ナス科","ウリ科","マメ科"]},
+  broccoli:    {years:3,ng:["アブラナ科"],ok:["ナス科","ウリ科","マメ科"]},
+  hakusai:     {years:3,ng:["アブラナ科"],ok:["ナス科","ウリ科","マメ科"]},
+  spinach:     {years:3,ng:["ヒユ科"],ok:["ナス科","ウリ科","マメ科","アブラナ科"]},
+  strawberry:  {years:4,ng:["バラ科"],ok:["イネ科","アブラナ科","マメ科"]},
+  onion:       {years:2,ng:["ユリ科"],ok:["ナス科","ウリ科","アブラナ科"]},
+  carrot:      {years:4,ng:["セリ科"],ok:["ナス科","ウリ科","アブラナ科","マメ科"]},
+  sweet_corn:  {years:1,ng:[],ok:["ナス科","ウリ科","アブラナ科","マメ科"]},
+  edamame:     {years:3,ng:["マメ科"],ok:["ナス科","ウリ科","アブラナ科","イネ科"]},
+};
+const getFertSchedule=(cropType,plantTargetDate)=>{
+  if(!plantTargetDate)return null;
+  const target=new Date(plantTargetDate);
+  const fmt=d=>`${d.getMonth()+1}/${d.getDate()}`;
+  const d1=new Date(target);d1.setDate(d1.getDate()-21);
+  const d2=new Date(target);d2.setDate(d2.getDate()-14);
+  const d3=new Date(target);d3.setDate(d3.getDate()-7);
+  const plan=getFertPlan(cropType);
+  return[
+    {date:fmt(d1),work:"苦土石灰散布",note:"pH調整（10㎡あたり150-200g）"},
+    {date:fmt(d2),work:"牛糞堆肥投入",note:"10㎡あたり2-3kg・耕耺"},
+    {date:fmt(d3),work:"元肥投入",note:plan.base},
+    {date:fmt(target),work:"定植・播種",note:""},
+  ];
+};
+// ─────────────────────────────────────────────────────────────
 const getRecommendedTasks = (crop, logs) => {
   const db = CDB[crop.type] || {};
   const today = new Date();
@@ -267,7 +317,7 @@ const COST_CATS = [
   { value:"seed",  label:"🌱 種・苗" },
   { value:"fert",  label:"🌿 肥料" },
   { value:"pest",  label:"🐛 農薬" },
-  { value:"equip", label:"🏗️ 設備・資材" },
+  { value:"equip", label:"🏗️ 資材・設備" },
   { value:"labor", label:"👷 労務費" },
   { value:"other", label:"📦 その他" },
 ];
@@ -801,7 +851,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v0.6.4</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v0.6.5</div>
       </div>
     </div>
   );
@@ -912,7 +962,8 @@ function HomeScreen({ fields, crops, logs, costs, onEditCrop }) {
         const harvestExpected=plantD?new Date(new Date(plantD).getTime()+harvestD*86400000):null;
         const daysToHarvest=harvestExpected?Math.ceil((harvestExpected-Date.now())/86400000):null;
         const scheduleText=isFruit?null:
-          daysToHarvest!==null?(daysToHarvest<0?"収穫時期過ぎ":daysToHarvest===0?"本日収穫予定":daysToHarvest+"日後に収穫予定"):null;
+          daysToHarvest!==null?(daysToHarvest<-14?"片付け時期":daysToHarvest<0?"収穫時期過ぎ":daysToHarvest===0?"本日収穫予定":daysToHarvest+"日後に収穫予定"):null;
+        const isPastHarvest=!isFruit&&daysToHarvest!==null&&daysToHarvest<0;
         return (
           <div key={c.id} style={{...S.card,cursor:"pointer",borderLeft:daysToHarvest!==null&&daysToHarvest<=7&&daysToHarvest>=0?"3px solid #f0a500":"none"}} onClick={()=>onEditCrop&&onEditCrop(c)}>
             <div style={{display:"flex",gap:9,alignItems:"center"}}>
@@ -943,7 +994,25 @@ function HomeScreen({ fields, crops, logs, costs, onEditCrop }) {
               </div>
             </>}
             {(()=>{
-              const tasks=getRecommendedTasks(c, logs.filter(l=>l.cropId===c.id));
+              const cropLogs=logs.filter(l=>l.cropId===c.id);
+              const rot=ROTATION_DB[c.type];
+              const family=FAMILY_DB[c.type]||"";
+              if(isPastHarvest){
+                return <div style={{marginTop:8}}>
+                  <div style={{padding:"7px 10px",background:"#fff3cd",borderRadius:8,borderLeft:"3px solid #f0a500",marginBottom:6}}>
+                    <div style={{fontSize:".65rem",color:"#92400e",fontWeight:700,marginBottom:2}}>🧹 次の作業: 片付け</div>
+                    <div style={{fontSize:".72rem",color:"#1c1a14"}}>・収穫残渣を除去・土づくり開始</div>
+                  </div>
+                  {rot&&<div style={{padding:"7px 10px",background:"#fef2f2",borderRadius:8,borderLeft:"3px solid #dc2626"}}>
+                    <div style={{fontSize:".65rem",color:"#dc2626",fontWeight:700,marginBottom:4}}>🔄 連作障害（{family}・{rot.years}年空ける）</div>
+                    <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
+                      {rot.ng.map(f=><span key={f} style={{fontSize:".65rem",background:"#fee2e2",color:"#dc2626",borderRadius:4,padding:"2px 6px"}}>✗ {f}</span>)}
+                      {rot.ok.slice(0,3).map(f=><span key={f} style={{fontSize:".65rem",background:"#dcfce7",color:"#166534",borderRadius:4,padding:"2px 6px"}}>○ {f}</span>)}
+                    </div>
+                  </div>}
+                </div>;
+              }
+              const tasks=getRecommendedTasks(c, cropLogs);
               if(!tasks.length) return null;
               return <div style={{marginTop:8,padding:"7px 10px",background:"#f0f9f0",borderRadius:8,borderLeft:"3px solid #2d6a3f"}}>
                 <div style={{fontSize:".65rem",color:"#2d6a3f",fontWeight:700,marginBottom:3}}>📋 今日の作業目安</div>
@@ -1086,7 +1155,7 @@ function MasterScreen({ fertMs, setFertMs, pestMs, setPestMs, equips, setEquips,
     <div style={S.scr} className="scr-inner">
       {/* フィルタータブ */}
       <div style={{display:"flex",gap:6,marginBottom:12,overflowX:"auto",WebkitOverflowScrolling:"touch"}}>
-        {[{k:"all",l:"すべて"},{k:"fert",l:"🌿 肥料"},{k:"pest",l:"🐛 農薬"},{k:"equip",l:"🏗️ 設備・資材"}].map(t=>(
+        {[{k:"all",l:"すべて"},{k:"fert",l:"🌿 肥料"},{k:"pest",l:"🐛 農薬"},{k:"equip",l:"🏗️ 資材・設備"}].map(t=>(
           <button key={t.k} onClick={()=>setFilter(t.k)}
             style={{flexShrink:0,padding:"6px 14px",borderRadius:999,border:"1.5px solid "+(filter===t.k?G:BD),
               background:filter===t.k?G:"#fff",color:filter===t.k?"#fff":"#5a5040",
@@ -1832,7 +1901,7 @@ function LogScreen({ fields, crops, setCrops, fertMs, pestMs, equips, costs, set
           </R2>
           <div style={{fontSize:".72rem",color:TX3}}>メモ欄に植え替え理由など記録してください</div>
         </div>}
-        {work==="equip"&&<div style={panelStyle("#f5f0ff","#c4b5fd")}><div style={ctitleStyle}>🏗️ 設備・資材作業</div><FG label="設備を選ぶ（複数可）"><select multiple size={4} value={equipSel.map(String)} onChange={e=>setEquipSel(Array.from(e.target.selectedOptions).map(o=>parseInt(o.value)))} style={{...S.inp,height:100}}>{equips.map((e,i)=><option key={i} value={i}>{e.name}（{e.cat}）</option>)}</select></FG><FG label="作業種別"><Sel value={equipAct} onChange={setEquipAct} options={["設置","撤去","着用","脱去","点検","修理","その他"].map(v=>({value:v,label:v}))}/></FG></div>}
+        {work==="equip"&&<div style={panelStyle("#f5f0ff","#c4b5fd")}><div style={ctitleStyle}>🏗️ 資材・設備作業</div><FG label="設備を選ぶ（複数可）"><select multiple size={4} value={equipSel.map(String)} onChange={e=>setEquipSel(Array.from(e.target.selectedOptions).map(o=>parseInt(o.value)))} style={{...S.inp,height:100}}>{equips.map((e,i)=><option key={i} value={i}>{e.name}（{e.cat}）</option>)}</select></FG><FG label="作業種別"><Sel value={equipAct} onChange={setEquipAct} options={["設置","撤去","着用","脱去","点検","修理","その他"].map(v=>({value:v,label:v}))}/></FG></div>}
         <FG label="📷 生育状況の写真（撮影日時を自動取得）">
           <div style={{border:"2px dashed "+BD,borderRadius:10,padding:14,textAlign:"center",cursor:"pointer",background:"#fafafa"}} onClick={()=>document.getElementById("logImgInp").click()}>
             <input id="logImgInp" type="file" accept="image/" style={{display:"none"}} onChange={handleLogImg}/>
