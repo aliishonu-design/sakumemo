@@ -12,14 +12,15 @@
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:'Hiragino Sans','BIZ UDGothic',sans-serif;background:#f8f5ef;color:#1c1a14;min-height:100svh;}
 .photo-img{-webkit-user-drag:none;user-select:none;-webkit-touch-callout:none;} #lightbox-img{-webkit-user-drag:none;user-select:none;-webkit-touch-callout:none;pointer-events:none;}
-.top-bar{background:linear-gradient(135deg,#2d6a3f,#419857);padding:10px 14px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:200;}
-.top-bar a{color:#fff;text-decoration:none;font-size:.84rem;font-weight:700;white-space:nowrap;}
+.top-bar{background:linear-gradient(135deg,#2d6a3f,#419857);padding:10px 16px;display:flex;align-items:center;justify-content:center;position:sticky;top:0;z-index:200;}
+.search-bar{background:#fff;border:none;border-radius:20px;padding:7px 14px;font-size:15px;font-family:inherit;width:100%;max-width:680px;outline:none;color:#1c1a14;}
+.search-bar::placeholder{color:#aaa;}
 .farm-header{max-width:680px;margin:0 auto;padding:14px 14px 6px;}
 .farm-title{font-family:'Shippori Mincho B1',serif;font-size:1.3rem;margin-bottom:3px;}
 .farm-desc{font-size:.78rem;color:#888;}
 
 /* タブバー */
-.tab-bar{background:#fff;border-bottom:2px solid #e0d9ce;position:sticky;top:44px;z-index:199;overflow:visible;}
+.tab-bar{background:#fff;border-bottom:2px solid #e0d9ce;position:sticky;top:88px;z-index:199;overflow:visible;}
 .tab-bar-inner{max-width:680px;margin:0 auto;display:flex;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;overflow-y:visible;position:relative;}
 .tab-bar-inner::-webkit-scrollbar{display:none;}
 
@@ -111,8 +112,15 @@ body{font-family:'Hiragino Sans','BIZ UDGothic',sans-serif;background:#f8f5ef;co
 </style>
 </head>
 <body>
-<div class="top-bar">
-  <span style="color:#fff;font-family:'Shippori Mincho B1',serif;font-size:.95rem;font-weight:700;cursor:pointer;flex:1;text-align:center" onclick="window.location.href='community.html'">🌾 みんなのサクメモ</span>
+<div style="position:sticky;top:0;z-index:200;">
+  <div class="top-bar" style="padding:10px 16px;justify-content:center;">
+    <span style="color:#fff;font-family:'Shippori Mincho B1',serif;font-size:.95rem;font-weight:700;cursor:pointer;text-align:center;flex:1;" onclick="window.location.href='community.html'">🌾 みんなのサクメモ</span>
+  </div>
+  <div style="background:#419857;padding:7px 14px;">
+    <div style="max-width:680px;margin:0 auto;">
+      <input class="search-bar" id="farm-search" placeholder="🔍 キーワードで検索..." oninput="doSearch()">
+    </div>
+  </div>
 </div>
 <div id="farm-header-wrap"></div>
 <div class="tab-bar" id="tab-bar" style="display:none">
@@ -497,6 +505,18 @@ function submitReport(){
   fetch(SB_URL+'/rest/v1/reports',{method:'POST',headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY,'Content-Type':'application/json',Prefer:'return=minimal'},
     body:JSON.stringify({log_id:reportTarget.logId||null,img_src:reportTarget.imgSrc||null,reason:document.getElementById('report-reason').value+(document.getElementById('report-detail').value?': '+document.getElementById('report-detail').value:''),created_at:new Date().toISOString()})
   }).then(function(){closeReport();alert('報告を受け付けました。');}).catch(function(){alert('送信に失敗しました。');});
+}
+
+function doSearch(){
+  var q=(document.getElementById('farm-search').value||'').toLowerCase().trim();
+  var words=q?q.split(' ').filter(function(w){return w.length>0;}):[]; 
+  var cards=document.querySelectorAll('.log-card,.crop-hero');
+  cards.forEach(function(card){
+    if(!words.length){card.style.display='';return;}
+    var text=card.textContent.toLowerCase();
+    var match=words.every(function(w){return text.indexOf(w)>=0;});
+    card.style.display=match?'':'none';
+  });
 }
 
 async function main(){
