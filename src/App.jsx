@@ -866,6 +866,161 @@ function HomeScreen({ fields, crops, logs, costs, onEditCrop }) {
   useEffect(() => { fetchWeather(addr0).then(setWx); }, [addr0]);
 
 
+  return (
+    <div style={{padding:"10px 12px 16px"}}>
+
+      {wx && (
+        <div style={{background:"linear-gradient(135deg,#1565a8,#3498db)",borderRadius:14,padding:"13px 15px",color:"#fff",marginBottom:9}}>
+          {fields.length > 1 && (
+            <div style={{display:"flex",gap:5,marginBottom:10,flexWrap:"wrap"}}>
+              {fields.map((f,i)=>(
+                <button key={f.id} onClick={()=>setWxFieldIdx(i)}
+                  style={{background:wxFieldIdx===i?"rgba(255,255,255,.9)":"rgba(255,255,255,.18)",color:wxFieldIdx===i?"#1565a8":"#fff",border:"1px solid rgba(255,255,255,.3)",borderRadius:999,padding:"3px 10px",fontSize:".71rem",cursor:"pointer",fontFamily:"inherit",fontWeight:wxFieldIdx===i?700:400}}>
+                  {f.name}
+                </button>
+              ))}
+            </div>
+          )}
+          <div style={{display:"flex",alignItems:"center",gap:11,flexWrap:"wrap"}}>
+            <span style={{fontSize:"2.3rem"}}>{wxIcon(wx.code)}</span>
+            <div>
+              <div style={{fontSize:"1.8rem",fontWeight:700,lineHeight:1}}>{wx.temp}°C</div>
+              <div style={{fontSize:".72rem",opacity:.8,marginTop:2}}>{wx.label} / {wxLabel(wx.code)}</div>
+              <div style={{display:"flex",gap:8,marginTop:3,fontSize:".68rem",opacity:.78}}><span>💧{wx.rain}mm</span><span>💨{wx.wind}m/s</span><span>💦{wx.humid}%</span></div>
+            </div>
+            <div style={{background:"rgba(255,255,255,.19)",borderRadius:9,padding:"7px 11px",fontSize:".73rem",lineHeight:1.4,textAlign:"center",marginLeft:"auto"}}>{wxAdvice(wx)}</div>
+          </div>
+          {/* 時間別予報 */}
+          {wx.hourly && wx.hourly.length > 0 && (
+            <div style={{marginTop:10}}>
+              <div style={{fontSize:".63rem",opacity:.6,marginBottom:5}}>時間別予報</div>
+              <div style={{display:"flex",gap:5,overflowX:"auto",paddingBottom:4,WebkitOverflowScrolling:"touch"}}>
+                {wx.hourly.filter((_,i)=>i%2===0).slice(0,12).map((h,i)=>(
+                  <div key={i} style={{flexShrink:0,background:"rgba(255,255,255,.13)",borderRadius:9,padding:"5px 7px",textAlign:"center",minWidth:44}}>
+                    <div style={{fontSize:".6rem",opacity:.7}}>{h.hour}時</div>
+                    <div style={{fontSize:"1rem",margin:"2px 0"}}>{wxIcon(h.code)}</div>
+                    <div style={{fontSize:".7rem",fontWeight:700}}>{h.temp}°</div>
+                    {h.pop>0&&<div style={{fontSize:".58rem",opacity:.8,color:"#90caf9"}}>💧{h.pop}%</div>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {/* 3日間予報 */}
+          {wx.daily && (
+            <div style={{display:"flex",gap:6,marginTop:8}}>
+              {[0,1,2,3].map(i=>{
+                const now=new Date();
+                const d=new Date(now); d.setDate(d.getDate()+i);
+                const label=i===0?"今日":i===1?"明日":i===2?"明後日":"3日後";
+                return(
+                  <div key={i} style={{flex:1,background:"rgba(255,255,255,.13)",borderRadius:9,padding:5,textAlign:"center",fontSize:".67rem"}}>
+                    <div style={{opacity:.7,marginBottom:1}}>{label}</div>
+                    <div style={{fontSize:"1.1rem"}}>{wxIcon(wx.daily.weathercode[i])}</div>
+                    <div style={{fontWeight:700,marginTop:1}}>{Math.round(wx.daily.temperature_2m_max[i])}°/<span style={{opacity:.7}}>{Math.round(wx.daily.temperature_2m_min[i])}°</span></div>
+                    {wx.daily.precipitation_probability_max&&<div style={{fontSize:".58rem",opacity:.8,color:"#90caf9"}}>💧{wx.daily.precipitation_probability_max[i]}%</div>}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 栽培中の作物 */}
+      <div style={S.sec}><span>🌾 栽培中 ({crops.filter(c=>!c.ended).length}品目)</span></div>
+      {!crops.filter(c=>!c.ended).length && <div style={{color:TX3,fontSize:".82rem",padding:8,textAlign:"center"}}>品目がまだ登録されていません</div>}
+      {crops.filter(c=>!c.ended).map(c=>{
+        const db=CDB[c.type]||{}; const f=fields[c.fieldIdx]||{};
+        const days=daysSince(c.plantDate||c.sowDate);
+        const harvestD=c.type==="custom"?(parseInt(c.customDays)||90):(db?.maturity?.[c.maturity||"mid"]||db?.d||90);
+        const pct=Math.min(100,Math.round(days/harvestD*100));
+        const startLabel=c.cultivationType==="direct"?"播種":"定植";
+        const isFruit=db.fruit||false;
+        const cl=logs.filter(l=>l.cropId===c.id);
+        const hvKg=cl.reduce((s,l)=>s+(parseFloat(l.hvKg)||0),0);
+        const lastLog=cl.length>0?cl.reduce((a,b)=>(a.date||"")>(b.date||"")?a:b):null;
+        // 作業予定（収穫予定日）
+        const plantD=c.plantDate||c.sowDate;
+        const harvestExpected=plantD?new Date(new Date(plantD).getTime()+harvestD*86400000):null;
+        const daysToHarvest=harvestExpected?Math.ceil((harvestExpected-Date.now())/86400000):null;
+        const scheduleText=isFruit?null:
+          daysToHarvest!==null?(daysToHarvest<-14?"片付け時期":daysToHarvest<0?"収穫時期過ぎ":daysToHarvest===0?"本日収穫予定":daysToHarvest+"日後に収穫予定"):null;
+        const isPastHarvest=!isFruit&&daysToHarvest!==null&&daysToHarvest<0;
+        return (
+          <div key={c.id} style={{...S.card,cursor:"pointer",borderLeft:daysToHarvest!==null&&daysToHarvest<=7&&daysToHarvest>=0?"3px solid #f0a500":"none"}} onClick={()=>onEditCrop&&onEditCrop(c)}>
+            <div style={{display:"flex",gap:9,alignItems:"center"}}>
+              <span style={{fontSize:"1.8rem"}}>{db.e||"🌱"}</span>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontWeight:700,fontSize:".9rem"}}>
+                  {c.type==="custom"?c.customName||"カスタム":db.n||c.type}
+                  {c.variety&&<span style={{fontWeight:400,color:TX3,fontSize:".8rem"}}> ({c.variety})</span>}
+                </div>
+                <div style={{fontSize:".7rem",color:TX3,marginTop:2}}>
+                  {f.name||""}
+                  {plantD&&<span> · {startLabel}{days}日目</span>}
+                </div>
+                {hvKg>0&&<div style={{fontSize:".7rem",color:G}}>累計収穫 {hvKg.toFixed(1)}kg</div>}
+                {lastLog&&<div style={{fontSize:".7rem",color:TX3}}>最終記録: {lastLog.date}</div>}
+              </div>
+              {scheduleText&&<div style={{fontSize:".68rem",background:daysToHarvest<=3?"#fff3cd":"#f0f9f0",color:daysToHarvest<=3?"#92400e":"#2d6a3f",borderRadius:6,padding:"3px 7px",flexShrink:0,textAlign:"center",lineHeight:1.4}}>
+                🗓️<br/>{scheduleText}
+              </div>}
+            </div>
+            {!isFruit&&plantD&&<>
+              <div style={{height:5,background:"#eee",borderRadius:999,overflow:"hidden",marginTop:6}}>
+                <div style={{height:"100%",borderRadius:999,background:"linear-gradient(90deg,"+G+","+G2+")",width:pct+"%",transition:"width .7s ease"}}/>
+              </div>
+              <div style={{fontSize:".64rem",color:TX3,marginTop:2,display:"flex",justifyContent:"space-between"}}>
+                <span>生育進捗 {pct}%</span>
+                <span>{daysToHarvest!==null&&daysToHarvest>=0?"収穫まで約"+daysToHarvest+"日":""}</span>
+              </div>
+            </>}
+            {(()=>{
+              const cropLogs=logs.filter(l=>l.cropId===c.id);
+              const rot=ROTATION_DB[c.type];
+              const family=FAMILY_DB[c.type]||"";
+              const tasks=getRecommendedTasks(c, cropLogs);
+              return <>
+                {isPastHarvest&&<div style={{marginTop:8}}>
+                  <div style={{padding:"7px 10px",background:"#fff3cd",borderRadius:8,borderLeft:"3px solid #f0a500",marginBottom:6}}>
+                    <div style={{fontSize:".65rem",color:"#92400e",fontWeight:700,marginBottom:2}}>🧹 次の作業: 片付け</div>
+                    <div style={{fontSize:".72rem",color:"#1c1a14"}}>・収穫残渣を除去・土づくり開始</div>
+                  </div>
+                  {rot&&<div style={{padding:"7px 10px",background:"#fef2f2",borderRadius:8,borderLeft:"3px solid #dc2626"}}>
+                    <div style={{fontSize:".65rem",color:"#dc2626",fontWeight:700,marginBottom:4}}>🔄 連作障害（{family}・{rot.years}年空ける）</div>
+                    <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
+                      {rot.ng.map(f=><span key={f} style={{fontSize:".65rem",background:"#fee2e2",color:"#dc2626",borderRadius:4,padding:"2px 6px"}}>✗ {f}</span>)}
+                      {rot.ok.slice(0,3).map(f=><span key={f} style={{fontSize:".65rem",background:"#dcfce7",color:"#166534",borderRadius:4,padding:"2px 6px"}}>○ {f}</span>)}
+                    </div>
+                  </div>}
+                </div>}
+                {!isPastHarvest&&tasks.length>0&&<div style={{marginTop:8,padding:"7px 10px",background:"#f0f9f0",borderRadius:8,borderLeft:"3px solid #2d6a3f"}}>
+                  <div style={{fontSize:".65rem",color:"#2d6a3f",fontWeight:700,marginBottom:3}}>📋 今日の作業目安</div>
+                  {tasks.map((t,i)=><div key={i} style={{fontSize:".72rem",color:"#1c1a14",lineHeight:1.6}}>・{t}</div>)}
+                </div>}
+              </>;
+            })()}
+          </div>
+        );
+      })}
+
+      {/* みんなのサクメモ */}
+      <a href="/community.html" style={{display:"flex",alignItems:"center",justifyContent:"space-between",background:"linear-gradient(135deg,#2d6a3f,#419857)",borderRadius:14,padding:"13px 16px",marginBottom:9,textDecoration:"none"}}>
+        <div>
+          <div style={{color:"#fff",fontWeight:700,fontSize:".9rem",fontFamily:"'Shippori Mincho B1',serif"}}>🌾 みんなのサクメモ</div>
+          <div style={{color:"rgba(255,255,255,.8)",fontSize:".74rem",marginTop:3}}>公開中の農場記録を見る</div>
+        </div>
+        <span style={{color:"#fff",fontSize:"1.3rem"}}>›</span>
+      </a>
+
+
+    </div>
+  );
+}
+
+// MASTER
+function MasterScreen({ fertMs, setFertMs, pestMs, setPestMs, equips, setEquips, costs, setCosts, showToast }) {
   // 全資材を統合して管理
   const [filter, setFilter] = useState("all"); // all / fert / pest / equip
   const [mItem,  setMItem]  = useState(null);  // 編集モーダル
