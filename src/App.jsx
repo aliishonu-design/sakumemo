@@ -851,7 +851,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v0.6.5</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v0.6.6</div>
       </div>
     </div>
   );
@@ -994,29 +994,21 @@ function HomeScreen({ fields, crops, logs, costs, onEditCrop }) {
               </div>
             </>}
             {(()=>{
-              const cropLogs=logs.filter(l=>l.cropId===c.id);
               const rot=ROTATION_DB[c.type];
               const family=FAMILY_DB[c.type]||"";
-              if(isPastHarvest){
-                return <div style={{marginTop:8}}>
-                  <div style={{padding:"7px 10px",background:"#fff3cd",borderRadius:8,borderLeft:"3px solid #f0a500",marginBottom:6}}>
-                    <div style={{fontSize:".65rem",color:"#92400e",fontWeight:700,marginBottom:2}}>🧹 次の作業: 片付け</div>
-                    <div style={{fontSize:".72rem",color:"#1c1a14"}}>・収穫残渣を除去・土づくり開始</div>
+              if(!isPastHarvest) return null;
+              return <div style={{marginTop:8}}>
+                <div style={{padding:"7px 10px",background:"#fff3cd",borderRadius:8,borderLeft:"3px solid #f0a500",marginBottom:6}}>
+                  <div style={{fontSize:".65rem",color:"#92400e",fontWeight:700,marginBottom:2}}>🧹 次の作業: 片付け</div>
+                  <div style={{fontSize:".72rem",color:"#1c1a14"}}>・収穫残渣を除去・土づくり開始</div>
+                </div>
+                {rot&&<div style={{padding:"7px 10px",background:"#fef2f2",borderRadius:8,borderLeft:"3px solid #dc2626"}}>
+                  <div style={{fontSize:".65rem",color:"#dc2626",fontWeight:700,marginBottom:4}}>🔄 連作障害（{family}・{rot.years}年空ける）</div>
+                  <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
+                    {rot.ng.map(f=><span key={f} style={{fontSize:".65rem",background:"#fee2e2",color:"#dc2626",borderRadius:4,padding:"2px 6px"}}>✗ {f}</span>)}
+                    {rot.ok.slice(0,3).map(f=><span key={f} style={{fontSize:".65rem",background:"#dcfce7",color:"#166534",borderRadius:4,padding:"2px 6px"}}>○ {f}</span>)}
                   </div>
-                  {rot&&<div style={{padding:"7px 10px",background:"#fef2f2",borderRadius:8,borderLeft:"3px solid #dc2626"}}>
-                    <div style={{fontSize:".65rem",color:"#dc2626",fontWeight:700,marginBottom:4}}>🔄 連作障害（{family}・{rot.years}年空ける）</div>
-                    <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
-                      {rot.ng.map(f=><span key={f} style={{fontSize:".65rem",background:"#fee2e2",color:"#dc2626",borderRadius:4,padding:"2px 6px"}}>✗ {f}</span>)}
-                      {rot.ok.slice(0,3).map(f=><span key={f} style={{fontSize:".65rem",background:"#dcfce7",color:"#166534",borderRadius:4,padding:"2px 6px"}}>○ {f}</span>)}
-                    </div>
-                  </div>}
-                </div>;
-              }
-              const tasks=getRecommendedTasks(c, cropLogs);
-              if(!tasks.length) return null;
-              return <div style={{marginTop:8,padding:"7px 10px",background:"#f0f9f0",borderRadius:8,borderLeft:"3px solid #2d6a3f"}}>
-                <div style={{fontSize:".65rem",color:"#2d6a3f",fontWeight:700,marginBottom:3}}>📋 今日の作業目安</div>
-                {tasks.map((t,i)=><div key={i} style={{fontSize:".72rem",color:"#1c1a14",lineHeight:1.6}}>・{t}</div>)}
+                </div>}
               </div>;
             })()}
           </div>
