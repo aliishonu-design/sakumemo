@@ -845,7 +845,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v0.6.8</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v0.6.9</div>
       </div>
     </div>
   );
@@ -1723,7 +1723,7 @@ function LogScreen({ fields, crops, setCrops, fertMs, pestMs, equips, costs, set
   const doSave = async () => {
     setSaving(true);
     // 写真をStorageにアップロード（既存URLはそのまま使用）
-    let imgUrl = null, hvImgUrl = null;
+    let imgUrl = null, imgUrl2 = null, imgUrl3 = null;
     if(logImg) {
       if(logImg.existing) {
         imgUrl = logImg.base64; // 既存URLをそのまま使う
