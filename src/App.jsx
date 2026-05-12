@@ -845,7 +845,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v0.7.0</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v0.7.1</div>
       </div>
     </div>
   );
@@ -1953,7 +1953,7 @@ function TimelineScreen({ fields, crops, equips, logs, setLogs, showToast, onEdi
                   <span style={{fontSize:".66rem",color:G,fontWeight:700}}>{f.name||"?"}</span>
                 </div>
                 <Tag type={w?.tag||"gray"}>{w?.icon||""} {w?.label||l.work}</Tag>
-                {" "}<span style={{fontSize:".7rem",color:G}}>{db.e||""} {db.n||cr.type||""}</span>
+                {" "}<span style={{fontSize:".7rem",color:G}}>{db.e||""} {cr.type==="custom"?cr.customName||"その他":db.n||cr.type||""}{cr.variety?" ("+cr.variety+")":""}</span>
                 {l.memo&&<div style={{fontSize:".78rem",color:"#5a5040",marginTop:3,lineHeight:1.5}}>{l.memo}</div>}
                 {l.sowQty&&<div style={{fontSize:".72rem",borderRadius:8,padding:"3px 7px",marginTop:4,display:"inline-block",background:"#d1fae5",color:"#065f46"}}>播種: {l.sowQty}粒</div>}
                 {l.germinationCnt&&<div style={{fontSize:".72rem",borderRadius:8,padding:"3px 7px",marginTop:4,display:"inline-block",background:"#d1fae5",color:"#065f46"}}>発芽: {l.germinationCnt}株</div>}
