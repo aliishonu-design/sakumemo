@@ -5,5 +5,11 @@
       "destination": "/community.html",
       "permanent": false
     }
+  ],
+  "rewrites": [
+    {
+      "source": "/app",
+      "destination": "/index.html"
+    }
   ]
 }
