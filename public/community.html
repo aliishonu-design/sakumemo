@@ -190,7 +190,7 @@ function makeLatestHtml(l){
   return html;
 }
 
-// 農場カードHTML生成
+// サクメモカードHTML生成
 function makeFarmCard(farm,latestLog){
   var fc=allCrops.filter(function(c){return c.user_id===farm.user_id;});
   var url=farm.slug?('farm.html?u='+farm.slug):('farm.html?uid='+farm.user_id);
@@ -202,7 +202,7 @@ function makeFarmCard(farm,latestLog){
   html+='<div class="farm-header">';
   html+='<span style="font-size:1.8rem">🌾</span>';
   html+='<div style="flex:1;min-width:0">';
-  html+='<div class="farm-name">'+(farm.display_name||'農場')+'</div>';
+  html+='<div class="farm-name">'+(farm.display_name||'さくめも')+'</div>';
   if(farm.description) html+='<div style="font-size:.74rem;color:#888;margin-top:2px">'+farm.description+'</div>';
   html+='</div>';
   html+='<button class="star-btn" onclick="toggleFav(\''+farm.user_id+'\');event.stopPropagation();">'+(fav?'⭐':'☆')+'</button>';
@@ -214,7 +214,7 @@ function makeFarmCard(farm,latestLog){
   return html;
 }
 
-// 農場を最新ログ順にソート
+// 最新ログ順にソート
 function sortedFarms(){
   return allFarms.map(function(farm){
     var logs=allLogs.filter(function(l){return l.user_id===farm.user_id;});
@@ -257,7 +257,7 @@ function renderAll(){
     });
   }
   if(!data.length){
-    document.getElementById('main-container').innerHTML='<div class="empty">該当する農場はありません</div>';
+    document.getElementById('main-container').innerHTML='<div class="empty">該当するサクメモはありません</div>';
     return;
   }
   document.getElementById('main-container').innerHTML=data.map(function(d){
@@ -265,7 +265,7 @@ function renderAll(){
   }).join('');
 }
 
-// お気に入り表示（農場 + 品目）
+// お気に入り表示（サクメモ + 品目）
 function getCropFavs(){try{return JSON.parse(localStorage.getItem('sakumemo_crop_favs')||'[]');}catch{return[];}}
 
 function renderFavs(){
@@ -273,16 +273,16 @@ function renderFavs(){
   var fc=document.getElementById('fav-container');
 
   if(!farmFavs.length&&!cropFavs.length){
-    fc.innerHTML='<div class="fav-empty"><div class="fav-empty-icon">☆</div><p>お気に入りはまだありません<br><small>農場カードの☆で農場を登録<br>各農場ページの☆で品目を登録</small></p></div>';
+    fc.innerHTML='<div class="fav-empty"><div class="fav-empty-icon">☆</div><p>お気に入りはまだありません<br><small>サクメモカードの☆ または 各サクメモページの☆で登録<br>※ ログイン不要・このブラウザに保存されます</small></p></div>';
     return;
   }
 
   var html='';
 
-  // 農場お気に入り
+  // サクメモお気に入り
   var fd=sortedFarms().filter(function(d){return farmFavs.indexOf(d.farm.user_id)>=0;});
   if(fd.length){
-    html+='<div style="font-size:.8rem;font-weight:700;color:#2d6a3f;margin-bottom:8px;padding:4px 0;border-bottom:2px solid #e0d9ce;">🌾 お気に入りの農場</div>';
+    html+='<div style="font-size:.8rem;font-weight:700;color:#2d6a3f;margin-bottom:8px;padding:4px 0;border-bottom:2px solid #e0d9ce;">🌾 お気に入りのサクメモ</div>';
     html+=fd.map(function(d){return makeFarmCard(d.farm,d.latestLog);}).join('');
   }
 
@@ -315,7 +315,7 @@ function renderFavs(){
         +'<div class="farm-header"><span style="font-size:1.5rem">'+em+'</span>'
         +'<div style="flex:1;min-width:0">'
         +'<div class="farm-name" style="font-size:.88rem">'+nm+(c.variety?' ('+c.variety+')':'')+'</div>'
-        +'<div style="font-size:.72rem;color:#888">🌾 '+(frm.display_name||'農場')+'</div></div>'
+        +'<div style="font-size:.72rem;color:#888">🌾 '+(frm.display_name||'さくめも')+'</div></div>'
         +'<button class="crop-unfav-btn" data-id="'+c.id+'" style="background:none;border:none;font-size:1.1rem;cursor:pointer;padding:4px;color:#f0a500;" title="お気に入りを解除">⭐</button>'
         +'</div>'+lh
         +'<div class="farm-footer"><a class="see-btn" href="'+url+'">サクメモを見る →</a></div></div>';
