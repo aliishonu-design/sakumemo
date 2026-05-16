@@ -414,9 +414,7 @@ const WORK_TYPES = [
   { value:"event",      label:"生育記録",     tag:"pink",   icon:"📋" },
   { value:"harvest",    label:"収穫",         tag:"pink",   icon:"🧺" },
   { value:"discard",    label:"廃棄・株調整", tag:"gray",   icon:"♻️" },
-  { value:"equip",      label:"資材作業",     tag:"gray",   icon:"🏗️" },
-  { value:"repot",      label:"植え替え",     tag:"purple", icon:"🪴" },
-  { value:"check",      label:"見回り",       tag:"gray",   icon:"👀" },
+  { value:"equip",      label:"資材作業",     tag:"gray",   icon:"🏗️" },  { value:"check",      label:"見回り",       tag:"gray",   icon:"👀" },
   { value:"other",      label:"その他",       tag:"gray",   icon:"✏️" },
 ];
 const COST_CATS = [
@@ -908,7 +906,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v0.8.9</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v0.9.7</div>
       </div>
     </div>
   );
