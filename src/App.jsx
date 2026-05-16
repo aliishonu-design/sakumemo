@@ -906,7 +906,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v0.9.9</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.0.0</div>
       </div>
     </div>
   );
@@ -1935,9 +1935,10 @@ function LogScreen({ fields, crops, setCrops, fertMs, pestMs, equips, costs, set
         }
         extraEntries.push(extra);
         allNewLogs = [...allNewLogs, extra];
-        dbSaveLog(extra);
       }
-      setLogsR(allNewLogs);
+      setLogs(allNewLogs, extraEntries[extraEntries.length-1]||null);
+      // 追加分をDB保存
+      extraEntries.forEach(e=>setLogs(allNewLogs, e));
       showToast("記録を更新しました！");
     } else {
       // 新規追加
@@ -1970,9 +1971,9 @@ function LogScreen({ fields, crops, setCrops, fertMs, pestMs, equips, costs, set
         }
         extraEntries.push(extra);
         allNewLogs = [...allNewLogs, extra];
-        dbSaveLog(extra);
       }
-      setLogsR(allNewLogs);
+      setLogs(allNewLogs);
+      extraEntries.forEach(e=>setLogs(allNewLogs,e));
     }
     setSaving(false);
     const kd=keepDate,kc=keepCrop,kf=keepField;
