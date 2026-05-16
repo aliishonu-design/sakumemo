@@ -908,7 +908,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v0.7.7</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v0.7.9</div>
       </div>
     </div>
   );
@@ -2210,7 +2210,24 @@ function CostScreen({ fields, fertMs, pestMs, equips, costs, setCosts, logs, sho
 
 // CHAT
 function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs }) {
-  const [selCropId,setSelCropId]=useState("all");
+  const [selCropId, setSelCropId] = useState("all");
+  const [period,    setPeriod]    = useState("year");  // "year" or "month"
+  const [selYear,   setSelYear]   = useState(new Date().getFullYear());
+  const [selMonth,  setSelMonth]  = useState(new Date().getMonth()+1);
+
+  // 利用可能な年・月リスト
+  const allDates = [...logs, ...costs].map(x=>x.date||'').filter(Boolean);
+  const years = [...new Set(allDates.map(d=>d.slice(0,4)).filter(Boolean))].sort().reverse();
+  const months = period==="month" ? [...new Set(
+    allDates.filter(d=>d.startsWith(String(selYear))).map(d=>d.slice(5,7))
+  )].sort().reverse().map(Number) : [];
+
+  // 期間フィルター関数
+  const inPeriod = date => {
+    if(!date) return false;
+    if(period==="year") return date.startsWith(String(selYear));
+    return date.startsWith(String(selYear)+"-"+String(selMonth).padStart(2,"0"));
+  };
 
   // 全品目のデータ集計
   // デバッグ: costs の内容を確認
@@ -2218,7 +2235,7 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs }) {
   const cropStats = crops.map(c=>{
     const db=CDB[c.type]||{};
     const f=fields[c.fieldIdx]||{};
-    const cl=logs.filter(l=>l.cropId===c.id);
+    const cl=logs.filter(l=>l.cropId===c.id && inPeriod(l.date));
     const kg=cl.reduce((s,l)=>s+(parseFloat(l.hvKg)||0),0);
     const cnt=cl.reduce((s,l)=>s+(parseInt(l.hvCnt)||0),0);
     const rev=cl.reduce((s,l)=>s+(parseFloat(l.hvKg)||0)*(parseFloat(l.hvPrice)||0),0);
@@ -2232,6 +2249,7 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs }) {
     // 種・苗費用（この品目に直接紐づくもの、またはcropIdがない場合は品目名で照合）
     const cropName0 = c.type==="custom"?(c.customName||"カスタム"):(CDB[c.type]?.n||c.type);
     const seedCosts = costs.filter(co=>
+      inPeriod(co.date) &&
       co.cat==="seed" && (
         co.cropId===c.id ||
         co.cropId===c.id.toString() ||
@@ -2289,13 +2307,13 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs }) {
 
   // 選択中の品目データ
   const sel = selCropId==="all" ? null : cropStats.find(c=>c.id===selCropId);
-  const dispLogs = selCropId==="all" ? logs : logs.filter(l=>l.cropId===selCropId);
+  const dispLogs = (selCropId==="all" ? logs : logs.filter(l=>l.cropId===selCropId)).filter(l=>inPeriod(l.date));
 
   // 全体集計
   const totalKg  = cropStats.reduce((s,c)=>s+c.kg,0);
   const totalRev = cropStats.reduce((s,c)=>s+c.rev,0);
-  const totalCost= costs.reduce((s,c)=>s+(parseFloat(c.amt)||0),0);
-  const totalMin = logs.reduce((s,l)=>s+(parseInt(l.duration)||0),0);
+  const totalCost= costs.filter(c=>inPeriod(c.date)).reduce((s,c)=>s+(parseFloat(c.amt)||0),0);
+  const totalMin = logs.filter(l=>inPeriod(l.date)).reduce((s,l)=>s+(parseInt(l.duration)||0),0);
   const th=Math.floor(totalMin/60),tm=totalMin%60;
   const totalTimeStr=totalMin>0?(th>0?th+"時間"+tm+"分":tm+"分"):"0分";
 
