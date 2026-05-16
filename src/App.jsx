@@ -906,7 +906,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.0.3</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.0.5</div>
       </div>
     </div>
   );
@@ -1672,7 +1672,7 @@ function FieldsScreen({ fields, setFields, setFieldsR, crops, setCrops, setCrops
 }
 
 // LOG
-function LogScreen({ fields, crops, setCrops, fertMs, pestMs, equips, costs, setCosts, logs, setLogs, showToast, initialWork, editLog, uid, onDone }) {
+function LogScreen({ fields, crops, setCrops, fertMs, pestMs, equips, costs, setCosts, logs, setLogs, showToast, initialWork, editLog, editLogs=[], uid, onDone }) {
   const [fieldIdx, setFieldIdx] = useState(0);
   const [cropId,   setCropId]   = useState("");
   const [works,    setWorks]    = useState(initialWork?new Set([initialWork]):new Set()); // 複数作業
@@ -1751,7 +1751,11 @@ function LogScreen({ fields, crops, setCrops, fertMs, pestMs, equips, costs, set
     setEditId(editLog.id);
     setFieldIdx(editLog.fieldIdx||0);
     setCropId(editLog.cropId||"");
-    setWorks(editLog.work?new Set([editLog.work]):new Set());
+    // 複数作業を復元
+    const _allWorks = (editLogs&&editLogs.length>1)
+      ? new Set(editLogs.map(l=>l.work).filter(Boolean))
+      : new Set(editLog.work?[editLog.work]:[]);
+    setWorks(_allWorks);
     setMemo(editLog.memo||"");
     setDate(editLog.date||todayStr());
     setTime(editLog.time||nowTime());
@@ -1809,7 +1813,7 @@ function LogScreen({ fields, crops, setCrops, fertMs, pestMs, equips, costs, set
     if(editLog.imgSrc)   setLogImg({ base64:editLog.imgSrc, blob:null, name:"", existing:true });
     else setLogImg(null);
 
-  },[editLog]);
+  },[editLog, editLogs]);
 
   const toggleVoice = () => {
     if(!("webkitSpeechRecognition" in window||"SpeechRecognition" in window)){showToast("このブラウザは音声入力非対応です");return;}
@@ -1823,9 +1827,10 @@ function LogScreen({ fields, crops, setCrops, fertMs, pestMs, equips, costs, set
 
   // 写真一括選択（1枚目からEXIF取得、最大3枚）
   const handleLogImg = async e => {
-    const files = Array.from(e.target.files).slice(0,3);
+    const allFiles = Array.from(e.target.files);
+    if(allFiles.length > 3){ showToast("写真は3枚までです"); e.target.value=""; return; }
+    const files = allFiles.slice(0,3);
     if(!files.length) return;
-    // 1枚目からEXIF日時取得
     const exif = await extractExifDate(files[0]);
     if(exif){setDate(exif.date);setTime(exif.time);showToast("写真から日時を取得しました");}
     const setters = [setLogImg, setLogImg2, setLogImg3];
@@ -1920,25 +1925,38 @@ function LogScreen({ fields, crops, setCrops, fertMs, pestMs, equips, costs, set
     // 編集モードか新規か
     let newLogs;
     if(editId) {
-      // 既存ログを更新
-      entry.id = editId;
-      newLogs = logs.map(l=>l.id===editId?entry:l);
-      // 追加作業エントリ（2つ目以降）を保存
-      let allNewLogs = newLogs;
-      const extraEntries = [];
-      for(let wi=1;wi<workList.length;wi++){
-        const extra = { ...baseEntry, id:uid0(), work:workList[wi],
-          imgSrc:null, imgSrc2:null, imgSrc3:null }; // 写真は1つ目のみ
-        // 収穫以外の作業は収穫データをクリア
-        if(workList[wi]!=="harvest"){
-          extra.hvKg=""; extra.hvCnt=""; extra.hvQ="秀品"; extra.hvPrice=""; extra.hvGradeStr="";
+      // 複数作業の更新: editLogsの各IDに対してworkListを割り当て
+      const editLogIds = (editLogs&&editLogs.length>0) ? editLogs.map(l=>l.id) : [editId];
+      let allNewLogs = [...logs];
+      // 既存ログを削除（後で再追加）
+      const existingIds = new Set(editLogIds);
+      allNewLogs = allNewLogs.filter(l=>!existingIds.has(l.id));
+      // workListの各作業を更新または新規作成
+      const updatedEntries = workList.map((w,wi)=>{
+        const baseW = {...baseEntry, work:w};
+        if(wi===0){
+          // 1つ目は詳細データを含める
+          if(w==="fert") Object.assign(baseW,{fertName,fertAmt,fertUnit,fertMethod:fertMeth,fertCost});
+          if(w==="pest") Object.assign(baseW,{pestName,pestDil,pestAmt,pestUnit,pestTarget:pestTgt,pestCost});
+          if(w==="harvest"){
+            const grades=Object.entries(hvGrades).filter(([,v])=>v.kg||v.cnt);
+            const tKg=grades.reduce((s,[,v])=>s+(parseFloat(v.kg)||0),0);
+            const tCnt=grades.reduce((s,[,v])=>s+(parseInt(v.cnt)||0),0);
+            const gradeStr=grades.map(([q,v])=>`${q}:${v.kg?v.kg+'kg':''}${v.cnt?v.cnt+'個':''}`).join(' / ');
+            Object.assign(baseW,{hvKg:tKg>0?String(tKg):hvKg,hvCnt:tCnt>0?String(tCnt):hvCnt,hvQ:grades.length>1?'品質別':grades.length===1?grades[0][0]:hvQ,hvPrice,hvGradeStr:grades.length>0?gradeStr:''});
+          }
+          if(w==="discard") Object.assign(baseW,{discardCnt,addCnt});
+          if(w==="sow") Object.assign(baseW,{sowQty,germinationCnt:germCnt,germinationDate:germDate});
+          if(w==="transplant") Object.assign(baseW,{transplantQty});
+          if(w==="event") Object.assign(baseW,{eventType,eventNote});
         }
-        extraEntries.push(extra);
-        allNewLogs = [...allNewLogs, extra];
-      }
-      setLogs(allNewLogs, extraEntries[extraEntries.length-1]||null);
-      // 追加分をDB保存
-      extraEntries.forEach(e=>setLogs(allNewLogs, e));
+        // IDは既存のものを再利用（なければ新規）
+        baseW.id = editLogIds[wi] || uid0();
+        return baseW;
+      });
+      allNewLogs = [...allNewLogs, ...updatedEntries];
+      setLogs(allNewLogs);
+      updatedEntries.forEach(e=>setLogs(allNewLogs,e));
       showToast("記録を更新しました！");
     } else {
       // 新規追加
@@ -2319,7 +2337,7 @@ function TimelineScreen({ fields, crops, equips, logs, setLogs, showToast, onEdi
                   <button style={{...S.btn,...S.btnS,...S.btnSm}} onClick={()=>onEdit(card.logs)}>✏️ 編集</button>
                   {card.logs.length===1
                     ?<button style={{...S.btn,...S.btnR,...S.btnSm}} onClick={()=>{if(!window.confirm('削除?'))return;dbDelete('logs',card.logs[0].id);setLogs(logs.filter(x=>x.id!==card.logs[0].id));showToast('削除しました');}}>削除</button>
-                    :<button style={{...S.btn,...S.btnR,...S.btnSm}} onClick={()=>{if(!window.confirm(card.logs.length+'件まとめて削除しますか?'))return;card.logs.forEach(l=>dbDelete('logs',l.id));const ids=new Set(card.logs.map(l=>l.id));setLogs(logs.filter(x=>!ids.has(x.id)));showToast('削除しました');}}>削除({card.logs.length})</button>
+                    :<button style={{...S.btn,...S.btnR,...S.btnSm}} onClick={()=>{if(!window.confirm('この日の作業をまとめて削除しますか?'))return;card.logs.forEach(l=>dbDelete('logs',l.id));const ids=new Set(card.logs.map(l=>l.id));setLogs(logs.filter(x=>!ids.has(x.id)));showToast('削除しました');}}>削除</button>
                   }
                 </div>
               </div>
