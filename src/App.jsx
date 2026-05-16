@@ -2408,20 +2408,34 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs }) {
         </select>}
       </div>
 
-      {/* 品目リスト */}
-      <div style={{display:"flex",flexDirection:"column",gap:5,marginBottom:10}}>
-        <button onClick={()=>setSelCropId("all")}
-          style={{padding:"10px 14px",borderRadius:10,border:"1.5px solid "+(selCropId==="all"?G:BD),background:selCropId==="all"?G:"#fff",color:selCropId==="all"?"#fff":"#5a5040",fontSize:".84rem",fontWeight:700,cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>
-          📊 すべての品目
-        </button>
-        {cropStats.map(c=>(
-          <button key={c.id} onClick={()=>setSelCropId(c.id)}
-            style={{padding:"10px 14px",borderRadius:10,border:"1.5px solid "+(selCropId===c.id?G:BD),background:selCropId===c.id?G:"#fff",color:selCropId===c.id?"#fff":"#5a5040",fontSize:".84rem",fontWeight:700,cursor:"pointer",fontFamily:"inherit",textAlign:"left",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-            <span>{c.emoji} {c.name}{c.variety?" ("+c.variety+")":""}{c.ended?" 【終了】":""}</span>
-            <span style={{fontSize:".72rem",fontWeight:400,opacity:.85}}>{c.kg>0?c.kg.toFixed(1)+"kg · ":""}{c.logCount}件</span>
-          </button>
-        ))}
-      </div>
+      {/* 品目リスト（折りたたみ） */}
+      {(()=>{
+        const [listOpen, setListOpen] = React.useState(false);
+        const selLabel = selCropId==="all" ? "📊 すべての品目" :
+          (()=>{const c=cropStats.find(x=>x.id===selCropId);return c?c.emoji+" "+c.name+(c.variety?" ("+c.variety+")":""):"";})();
+        return (
+          <div style={{marginBottom:10}}>
+            <button onClick={()=>setListOpen(o=>!o)}
+              style={{width:"100%",padding:"10px 14px",borderRadius:10,border:"1.5px solid "+G,background:G,color:"#fff",fontSize:".84rem",fontWeight:700,cursor:"pointer",fontFamily:"inherit",textAlign:"left",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <span>{selLabel}</span>
+              <span style={{fontSize:".8rem"}}>{listOpen?"▲":"▼"}</span>
+            </button>
+            {listOpen&&<div style={{marginTop:4,display:"flex",flexDirection:"column",gap:4}}>
+              <button onClick={()=>{setSelCropId("all");setListOpen(false);}}
+                style={{padding:"9px 14px",borderRadius:9,border:"1.5px solid "+(selCropId==="all"?G:BD),background:selCropId==="all"?G:"#fff",color:selCropId==="all"?"#fff":"#5a5040",fontSize:".82rem",fontWeight:700,cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>
+                📊 すべての品目
+              </button>
+              {cropStats.map(c=>(
+                <button key={c.id} onClick={()=>{setSelCropId(c.id);setListOpen(false);}}
+                  style={{padding:"9px 14px",borderRadius:9,border:"1.5px solid "+(selCropId===c.id?G:BD),background:selCropId===c.id?G:"#fff",color:selCropId===c.id?"#fff":"#5a5040",fontSize:".82rem",fontWeight:700,cursor:"pointer",fontFamily:"inherit",textAlign:"left",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                  <span>{c.emoji} {c.name}{c.variety?" ("+c.variety+")":""}{c.ended?" 【終了】":""}</span>
+                  <span style={{fontSize:".7rem",fontWeight:400,opacity:.85}}>{c.kg>0?c.kg.toFixed(1)+"kg · ":""}{c.logCount}件</span>
+                </button>
+              ))}
+            </div>}
+          </div>
+        );
+      })()}
 
       {/* 選択品目の詳細 or 全体サマリー */}
       {sel ? (
@@ -2450,6 +2464,50 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs }) {
             </div>
           </div>
 
+          {/* 品質別円グラフ */}
+          {(()=>{
+            const hvLogs=dispLogs.filter(l=>l.hvKg||l.hvGradeStr);
+            const grades=["秀品","優品","良品","規格外"];
+            const GCOL={"秀品":"#2d6a3f","優品":"#52b788","良品":"#95d5b2","規格外":"#aaa"};
+            const gKg={};grades.forEach(g=>{gKg[g]=0;});
+            hvLogs.forEach(l=>{
+              if(l.hvGradeStr){l.hvGradeStr.split('/').forEach(s=>{const m=s.trim().match(/^(秀品|優品|良品|規格外):.*?([0-9.]+)kg/);if(m)gKg[m[1]]=(gKg[m[1]]||0)+parseFloat(m[2]);});}
+              else{const q=l.hvQ&&grades.includes(l.hvQ)?l.hvQ:"秀品";gKg[q]=(gKg[q]||0)+(parseFloat(l.hvKg)||0);}
+            });
+            const tot=grades.reduce((s,g)=>s+(gKg[g]||0),0);
+            if(tot<=0)return null;
+            const cx=65,cy=65,r=55;
+            const toXY=(deg,rad)=>{const a=(deg-90)*Math.PI/180;return[cx+rad*Math.cos(a),cy+rad*Math.sin(a)];};
+            let cum=0;
+            const slices=grades.filter(g=>gKg[g]>0).map(g=>{const s=cum;cum+=gKg[g]/tot*360;return{g,s,e:cum};});
+            return(
+              <div style={{...S.card,marginBottom:9}}>
+                <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".82rem",color:"#5c3d1e",marginBottom:10}}>🥧 品質別収穫割合（kg）</div>
+                <div style={{display:"flex",gap:16,alignItems:"center",flexWrap:"wrap"}}>
+                  <svg width="130" height="130" viewBox="0 0 130 130">
+                    {slices.length===1
+                      ?<circle cx={cx} cy={cy} r={r} fill={GCOL[slices[0].g]}/>
+                      :slices.map((sl,i)=>{
+                        const large=sl.e-sl.s>180?1:0;
+                        const [x1,y1]=toXY(sl.s,r),[x2,y2]=toXY(sl.e,r);
+                        const dd="M"+cx+","+cy+" L"+x1+","+y1+" A"+r+","+r+" 0 "+large+",1 "+x2+","+y2+" Z";
+                        return <path key={i} d={dd} fill={GCOL[sl.g]}/>;
+                      })
+                    }
+                  </svg>
+                  <div>
+                    {grades.filter(g=>gKg[g]>0).map(g=>(
+                      <div key={g} style={{display:"flex",alignItems:"center",gap:6,marginBottom:5}}>
+                        <div style={{width:12,height:12,borderRadius:2,background:GCOL[g],flexShrink:0}}/>
+                        <span style={{fontSize:".76rem"}}><b>{g}</b> {gKg[g].toFixed(1)}kg ({Math.round(gKg[g]/tot*100)}%)</span>
+                      </div>
+                    ))}
+                    <div style={{borderTop:"1px solid #e0d9ce",marginTop:5,paddingTop:5,fontSize:".76rem",fontWeight:700}}>合計 {tot.toFixed(1)}kg</div>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
           {/* 費用内訳 */}
           {sel.costTotal>0&&(
             <div style={S.card}>
