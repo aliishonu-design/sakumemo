@@ -906,7 +906,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.0.0</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.0.1</div>
       </div>
     </div>
   );
@@ -2076,7 +2076,7 @@ function LogScreen({ fields, crops, setCrops, fertMs, pestMs, equips, costs, set
         {works.has("equip")&&<div style={panelStyle("#f5f0ff","#c4b5fd")}><div style={ctitleStyle}>🏗️ 資材・設備作業</div><FG label="設備を選ぶ（複数可）"><select multiple size={4} value={equipSel.map(String)} onChange={e=>setEquipSel(Array.from(e.target.selectedOptions).map(o=>parseInt(o.value)))} style={{...S.inp,height:100}}>{equips.map((e,i)=><option key={i} value={i}>{e.name}（{e.cat}）</option>)}</select></FG><FG label="作業種別"><Sel value={equipAct} onChange={setEquipAct} options={["設置","撤去","着用","脱去","点検","修理","その他"].map(v=>({value:v,label:v}))}/></FG></div>}
         <FG label="📷 生育状況の写真（撮影日時を自動取得）">
           <div style={{border:"2px dashed "+BD,borderRadius:10,padding:14,textAlign:"center",cursor:"pointer",background:"#fafafa"}} onClick={()=>document.getElementById("logImgInp").click()}>
-            <input id="logImgInp" type="file" accept="image/" multiple style={{display:"none"}} onChange={handleLogImg}/>
+            <input id="logImgInp" type="file" accept="image/" multiple style={{display:"none"}} onChange={e=>{if(Array.from(e.target.files).length>3){showToast("写真は3枚まで選択できます");e.target.value="";return;}handleLogImg(e);}}/>
             <div style={{fontSize:"1.5rem",marginBottom:2}}>📷</div>
             <p style={{fontSize:".72rem",color:TX3}}>タップして写真を追加（撮影日時を自動取得）</p>
           </div>
@@ -2155,6 +2155,7 @@ function TimelineScreen({ fields, crops, equips, logs, setLogs, showToast, onEdi
   }).sort((a,b)=>((b.date||'')+(b.time||''))>((a.date||'')+(a.time||''))?1:-1);
 
   // 日付でグループ化
+  // 日付でグループ化
   const grouped = [];
   filtered.forEach(l=>{
     const d = l.date||'日付なし';
@@ -2162,6 +2163,17 @@ function TimelineScreen({ fields, crops, equips, logs, setLogs, showToast, onEdi
     if(last && last.date===d) last.logs.push(l);
     else grouped.push({date:d, logs:[l]});
   });
+  // 同じ日・同じ品目・同じ圃場のログをカードグループ化
+  const groupDayLogs = (logs) => {
+    const cards = [];
+    logs.forEach(l=>{
+      const key = l.cropId+':'+l.fieldIdx;
+      const last = cards[cards.length-1];
+      if(last && last.key===key) last.logs.push(l);
+      else cards.push({key, logs:[l]});
+    });
+    return cards;
+  };
 
   // 品目タイプでグループ化（ドロップダウン用）
   const cropGroups = {};
@@ -2256,46 +2268,63 @@ function TimelineScreen({ fields, crops, equips, logs, setLogs, showToast, onEdi
           <div style={{fontSize:'.72rem',fontWeight:700,color:'#5c3d1e',padding:'4px 2px',borderBottom:'2px solid #e0d9ce',marginBottom:8}}>
             📅 {g.date}
           </div>
-          {/* その日のログ */}
-          {g.logs.map(l=>{
-            const cr=crops.find(c=>c.id===l.cropId)||{};
+          {/* 品目・圃場でグループ化して表示 */}
+          {groupDayLogs(g.logs).map(card=>{
+            const l0=card.logs[0];
+            const cr=crops.find(c=>c.id===l0.cropId)||{};
             const db=CDB[cr.type]||{};
-            const f=fields[l.fieldIdx]||{};
-            const w=WORK[l.work]||{label:l.work,tag:'gray',icon:'📝'};
+            const f=fields[l0.fieldIdx]||{};
             const cropLabel=(cr.type==='custom'?cr.customName||'その他':db.n||cr.type||'')+(cr.variety?' ('+cr.variety+')':'');
+            const photos=[l0.imgSrc,l0.imgSrc2,l0.imgSrc3].filter(Boolean);
             return (
-              <div key={l.id} style={{...S.card,padding:'9px 11px',marginBottom:8}}>
-                {/* 品目名 → 作業名の順 */}
+              <div key={card.key} style={{...S.card,padding:'9px 11px',marginBottom:8}}>
                 <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:5,flexWrap:'wrap'}}>
-                  {cropLabel&&<span style={{fontSize:'.8rem',fontWeight:700,color:'#1c1a14'}}>{db.e||'🌱'} {cropLabel}</span>}
-                  <Tag type={w?.tag||'gray'}>{w?.icon||''} {w?.label||l.work}</Tag>
-                  <span style={{fontSize:'.66rem',color:TX3,marginLeft:'auto'}}>{l.time||''}</span>
+                  {cropLabel&&<span style={{fontSize:'.84rem',fontWeight:700,color:'#1c1a14'}}>{db.e||'🌱'} {cropLabel}</span>}
+                  {f.name&&<span style={{fontSize:'.7rem',color:TX3,background:'#f0ebe3',borderRadius:4,padding:'1px 6px'}}>{f.name}</span>}
+                  <span style={{fontSize:'.66rem',color:TX3,marginLeft:'auto'}}>{l0.time||''}</span>
                 </div>
-                {/* 詳細 */}
-                {l.memo&&<div style={{fontSize:'.78rem',color:'#5a5040',marginBottom:3,lineHeight:1.5}}>{l.memo}</div>}
-                {l.fertName&&<div style={{fontSize:'.75rem',color:'#065f46'}}>🌿 {l.fertName}{l.fertAmt?' '+l.fertAmt+(l.fertUnit||''):''}</div>}
-                {l.pestName&&<div style={{fontSize:'.75rem',color:'#92400e'}}>🐛 {l.pestName}{l.pestDil?' '+l.pestDil+'倍':''}</div>}
-                {(l.hvKg||l.hvCnt||l.hvGradeStr)&&<div style={{fontSize:'.75rem',color:G}}>
-                  🧺 {l.hvGradeStr?(
-                    <>合計: {l.hvKg?l.hvKg+'kg ':''}{l.hvCnt?l.hvCnt+'個':''}<br/>
-                    <span style={{fontSize:'.7rem',color:'#888'}}>{l.hvGradeStr}</span></>
-                  ):(
-                    <>{l.hvKg?l.hvKg+'kg ':''}{l.hvCnt?l.hvCnt+'個':''}{l.hvQ&&l.hvQ!=='秀品'?' '+l.hvQ:''}</>
-                  )}
-                </div>}
-                {/* 写真 */}
-                {[l.imgSrc,l.imgSrc2,l.imgSrc3].filter(Boolean).length>0&&(
+                <div style={{display:'flex',gap:4,flexWrap:'wrap',marginBottom:5}}>
+                  {card.logs.map((l,i)=>{
+                    const w=WORK[l.work]||{label:l.work||'',tag:'gray',icon:'📝'};
+                    return <Tag key={i} type={w.tag}>{w.icon} {w.label}</Tag>;
+                  })}
+                </div>
+                {card.logs.map((l,li)=>(
+                  <div key={li}>
+                    {l.memo&&<div style={{fontSize:'.78rem',color:'#5a5040',marginBottom:3,lineHeight:1.5}}>{l.memo}</div>}
+                    {l.fertName&&<div style={{fontSize:'.75rem',color:'#065f46'}}>🌿 {l.fertName}{l.fertAmt?' '+l.fertAmt+(l.fertUnit||''):''}</div>}
+                    {l.pestName&&<div style={{fontSize:'.75rem',color:'#92400e'}}>🐛 {l.pestName}{l.pestDil?' '+l.pestDil+'倍':''}</div>}
+                    {(l.hvKg||l.hvCnt||l.hvGradeStr)&&<div style={{fontSize:'.75rem',color:G}}>
+                      🧺 {l.hvGradeStr
+                        ?<>合計: {l.hvKg?l.hvKg+'kg ':''}{l.hvCnt?l.hvCnt+'個':''} <span style={{color:'#888',fontSize:'.7rem'}}>{l.hvGradeStr}</span></>
+                        :<>{l.hvKg?l.hvKg+'kg ':''}{l.hvCnt?l.hvCnt+'個':''}{l.hvQ&&l.hvQ!=='秀品'?' '+l.hvQ:''}</>
+                      }
+                    </div>}
+                    {(l.addCnt||l.discardCnt)&&<div style={{fontSize:'.75rem',color:'#5a5040'}}>
+                      📊 株数調整{l.addCnt?<span style={{color:G}}>　+{l.addCnt}株</span>:''}{l.discardCnt?<span style={{color:'#dc2626'}}>　-{l.discardCnt}株（廃棄）</span>:''}
+                    </div>}
+                    {l.sowQty&&<div style={{fontSize:'.75rem',color:'#5a5040'}}>🌱 播種 {l.sowQty}粒</div>}
+                    {l.transplantQty&&<div style={{fontSize:'.75rem',color:'#5a5040'}}>🪴 定植 {l.transplantQty}株</div>}
+                  </div>
+                ))}
+                {photos.length>0&&(
                   <div style={{display:'flex',gap:4,marginTop:6,flexWrap:'wrap'}}>
-                    {[l.imgSrc,l.imgSrc2,l.imgSrc3].filter(Boolean).map((src,i)=>(
+                    {photos.map((src,i)=>(
                       <img key={i} src={src} alt="" style={{width:72,height:72,objectFit:'cover',borderRadius:6,cursor:'zoom-in'}}
                         onClick={()=>window.open(src,'_blank')}/>
                     ))}
                   </div>
                 )}
-                {/* 編集・削除 */}
-                <div style={{display:'flex',gap:6,marginTop:6,justifyContent:'flex-end'}}>
-                  <button style={{...S.btn,...S.btnS,...S.btnSm}} onClick={()=>onEdit(l)}>✏️ 編集</button>
-                  <button style={{...S.btn,...S.btnR,...S.btnSm}} onClick={()=>{if(!window.confirm('削除しますか?'))return;dbDelete('logs',l.id);setLogs(logs.filter(x=>x.id!==l.id));showToast('削除しました');}}>削除</button>
+                <div style={{display:'flex',gap:4,marginTop:6,justifyContent:'flex-end',flexWrap:'wrap'}}>
+                  {card.logs.map((l,i)=>{
+                    const w2=WORK[l.work]||{label:l.work||''};
+                    return (
+                      <span key={l.id} style={{display:'flex',gap:3}}>
+                        <button style={{...S.btn,...S.btnS,...S.btnSm,fontSize:'.65rem'}} onClick={()=>onEdit(l)}>✏️ {w2.label}</button>
+                        <button style={{...S.btn,...S.btnR,...S.btnSm,fontSize:'.65rem'}} onClick={()=>{if(!window.confirm('削除?'))return;dbDelete('logs',l.id);setLogs(logs.filter(x=>x.id!==l.id));showToast('削除しました');}}>✕</button>
+                      </span>
+                    );
+                  })}
                 </div>
               </div>
             );
