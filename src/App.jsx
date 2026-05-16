@@ -908,7 +908,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v0.9.0</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v0.9.1</div>
       </div>
     </div>
   );
@@ -2472,7 +2472,7 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs }) {
                 <div style={{display:"flex",gap:16,alignItems:"center",flexWrap:"wrap"}}>
                   <svg width="130" height="130" viewBox="0 0 130 130">
                     {slices.length===1?<circle cx={cx} cy={cy} r={r} fill={GCOL[slices[0].g]}/>
-                      :slices.map((sl,i)=>{const[x1,y1]=toXY(sl.s,r),[x2,y2]=toXY(sl.e,r);return<path key={i} d={`M${cx},${cy} L${x1},${y1} A${r},${r} 0 ${sl.e-sl.s>180?1:0},1 ${x2},${y2} Z`} fill={GCOL[sl.g]}/>;})
+                      :slices.map((sl,i)=>{const[x1,y1]=toXY(sl.s,r),[x2,y2]=toXY(sl.e,r);const large=sl.e-sl.s>180?1:0;const d2=`M${cx},${cy} L${x1},${y1} A${r},${r} 0 ${large},1 ${x2},${y2} Z`;return<path key={i} d={d2} fill={GCOL[sl.g]}/>;})
                     }
                   </svg>
                   <div>
