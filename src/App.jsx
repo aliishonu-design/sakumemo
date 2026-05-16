@@ -981,7 +981,6 @@ function MasterScreen({ fertMs, setFertMs, pestMs, setPestMs, equips, setEquips,
     ...pestMs.map((p,i)=>({...p, _type:"pest",  _idx:i, _label:"農薬",   _color:"#fef3c7", _tc:"#92400e", _icon:"🐛"})),
     ...equips.map((e,i)=>({...e, _type:"equip", _idx:i, _label:"設備・資材", _color:"#ede9fe", _tc:"#5b21b6", _icon:"🏗️"})),
   ];
-  const filtered = filter==="all" ? allItems : allItems.filter(x=>x._type===filter);
 
   // 保存
   const saveItem = () => {
@@ -1076,15 +1075,7 @@ function MasterScreen({ fertMs, setFertMs, pestMs, setPestMs, equips, setEquips,
     <div style={S.scr} className="scr-inner">
       {/* フィルタータブ */}
       <div style={{display:"flex",gap:6,marginBottom:12,overflowX:"auto",WebkitOverflowScrolling:"touch"}}>
-        {[{k:"all",l:"すべて"},{k:"fert",l:"🌿 肥料"},{k:"pest",l:"🐛 農薬"},{k:"equip",l:"🏗️ 資材・設備"}].map(t=>(
-          <button key={t.k} onClick={()=>setFilter(t.k)}
-            style={{flexShrink:0,padding:"6px 14px",borderRadius:999,border:"1.5px solid "+(filter===t.k?G:BD),
-              background:filter===t.k?G:"#fff",color:filter===t.k?"#fff":"#5a5040",
-              fontSize:".78rem",fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
-            {t.l}
-          </button>
-        ))}
-        <div style={{flex:1}}/>
+                <div style={{flex:1}}/>
         <button style={{...S.btn,background:G3,color:G,border:"1px solid "+G,borderRadius:999,padding:"6px 14px",fontSize:".78rem",fontWeight:700,width:"auto",flexShrink:0}}
           onClick={()=>setMItem({...newFert,_idx:undefined})}>＋ 肥料</button>
         <button style={{...S.btn,background:"#fffde7",color:"#92400e",border:"1px solid #f9e4a0",borderRadius:999,padding:"6px 14px",fontSize:".78rem",fontWeight:700,width:"auto",flexShrink:0}}
@@ -1872,34 +1863,23 @@ function LogScreen({ fields, crops, setCrops, fertMs, pestMs, equips, costs, set
 
 // TIMELINE
 function TimelineScreen({ fields, crops, equips, logs, setLogs, showToast, onEdit, onNew }) {
-  const [q,         setQ]         = useState("");
-  const [selCropId, setSelCropId] = useState("");
-  const [openDd,    setOpenDd]    = useState(false);
-
-  // 定数定義（filterより前に必ず定義）
-  const WORK_LABELS = {sow:'播種',germinated:'発芽確認',transplant:'定植',water:'水やり',fert:'施肥',pest:'防除',pruning:'剪定',thinning:'摘果・摘花',sideshot:'脇芽かき',repot:'植え替え',event:'生育記録',harvest:'収穫',discard:'廃棄',equip:'資材作業',check:'見回り',other:'その他'};
-  const WORK_MAP = {
-    sow:{label:'播種',tag:'green',icon:'🌱'}, germinated:{label:'発芽確認',tag:'green',icon:'🌿'},
-    transplant:{label:'定植',tag:'purple',icon:'🪴'}, water:{label:'水やり',tag:'blue',icon:'💧'},
-    fert:{label:'施肥',tag:'teal',icon:'🌿'}, pest:{label:'防除',tag:'yellow',icon:'🐛'},
-    pruning:{label:'剪定',tag:'gray',icon:'✂️'}, thinning:{label:'摘果・摘花',tag:'gray',icon:'🌸'},
-    sideshot:{label:'脇芽かき',tag:'gray',icon:'🌿'}, repot:{label:'植え替え',tag:'purple',icon:'🪴'},
-    event:{label:'生育記録',tag:'gray',icon:'📝'}, harvest:{label:'収穫',tag:'blue',icon:'🧺'},
-    discard:{label:'廃棄',tag:'gray',icon:'🗑️'}, equip:{label:'資材作業',tag:'gray',icon:'🔧'},
-    check:{label:'見回り',tag:'gray',icon:'👁️'}, other:{label:'その他',tag:'gray',icon:'📝'},
-  };
+  const [q,    setQ]    = useState("");
+  const [fW,   setFW]   = useState("");
+  const [selCropId, setSelCropId] = useState(""); // 品目フィルタ
+  const [openDd, setOpenDd] = useState(false);    // 品目ドロップダウン
 
   // ひらがな↔カタカナ変換
-  const toHira = s => (s||'').replace(/[ァ-ヶ]/g, c=>String.fromCharCode(c.charCodeAt(0)-0x60));
-  const toKata = s => (s||'').replace(/[ぁ-ゖ]/g, c=>String.fromCharCode(c.charCodeAt(0)+0x60));
+  const toHira = s => s.replace(/[\u30a1-\u30f6]/g, c=>String.fromCharCode(c.charCodeAt(0)-0x60));
+  const toKata = s => s.replace(/[\u3041-\u3096]/g, c=>String.fromCharCode(c.charCodeAt(0)+0x60));
   const matchQ = (text, word) => {
-    const t=(text||'').toLowerCase(), w=(word||'').toLowerCase();
+    const t=text.toLowerCase(), w=word.toLowerCase();
     return toHira(t).includes(toHira(w)) || toKata(t).includes(toKata(w)) || t.includes(w);
   };
 
-  // フィルタ
+  // フィルタ済みログ
   const filtered = logs.filter(l=>{
     if(selCropId && l.cropId !== selCropId) return false;
+    if(fW && l.work !== fW) return false;
     if(q){
       const cr=crops.find(c=>c.id===l.cropId)||{};
       const db=CDB[cr.type]||{};
@@ -1928,78 +1908,110 @@ function TimelineScreen({ fields, crops, equips, logs, setLogs, showToast, onEdi
   });
 
   const selCrop = selCropId ? crops.find(c=>c.id===selCropId) : null;
-  const selDb   = selCrop ? CDB[selCrop.type]||{} : {};
-  const selLabel = selCrop
-    ? (selDb.e||'🌱')+' '+(selCrop.type==='custom'?selCrop.customName||'その他':selDb.n||selCrop.type)+(selCrop.variety?' ('+selCrop.variety+')':'')
-    : '🌱 すべての品目';
+  const selDb = selCrop ? CDB[selCrop.type]||{} : {};
+  const selLabel = selCrop ? (selDb.e||'🌱')+' '+(selCrop.type==='custom'?selCrop.customName||'その他':selDb.n||selCrop.type)+(selCrop.variety?' ('+selCrop.variety+')':'') : '🌱 すべての品目';
+
+  const WORK_LABELS = {sow:'播種',germinated:'発芽確認',transplant:'定植',water:'水やり',fert:'施肥',pest:'防除',pruning:'剪定',thinning:'摘果・摘花',sideshot:'脇芽かき',repot:'植え替え',event:'生育記録',harvest:'収穫',discard:'廃棄',equip:'資材作業',check:'見回り',other:'その他'};
+  const WORK = {
+    sow:{label:'播種',tag:'green',icon:'🌱'},
+    germinated:{label:'発芽確認',tag:'green',icon:'🌿'},
+    transplant:{label:'定植',tag:'purple',icon:'🪴'},
+    water:{label:'水やり',tag:'blue',icon:'💧'},
+    fert:{label:'施肥',tag:'teal',icon:'🌿'},
+    pest:{label:'防除',tag:'yellow',icon:'🐛'},
+    pruning:{label:'剪定',tag:'gray',icon:'✂️'},
+    thinning:{label:'摘果・摘花',tag:'gray',icon:'🌸'},
+    sideshot:{label:'脇芽かき',tag:'gray',icon:'🌿'},
+    repot:{label:'植え替え',tag:'purple',icon:'🪴'},
+    event:{label:'生育記録',tag:'gray',icon:'📝'},
+    harvest:{label:'収穫',tag:'blue',icon:'🧺'},
+    discard:{label:'廃棄',tag:'gray',icon:'🗑️'},
+    equip:{label:'資材作業',tag:'gray',icon:'🔧'},
+    check:{label:'見回り',tag:'gray',icon:'👁️'},
+    other:{label:'その他',tag:'gray',icon:'📝'},
+  };
 
   return (
     <div style={S.scr} className="scr-inner">
-      <div style={{...S.sec}}>
+      {/* ヘッダー */}
+      <div style={{...S.sec,flexWrap:'wrap',gap:6}}>
         <span>📋 作業記録</span>
         <button onClick={onNew} style={{...S.btn,...S.btnP,...S.btnSm,marginLeft:'auto'}}>＋ 記録する</button>
       </div>
 
-      {/* フィルター行 */}
-      <div style={{padding:'0 0 8px',display:'flex',gap:6,alignItems:'center',flexWrap:'wrap'}}>
+      {/* フィルター */}
+      <div style={{padding:'0 0 8px',display:'flex',gap:6,flexWrap:'wrap',alignItems:'center'}}>
         {/* 品目ドロップダウン */}
-        <div style={{position:'relative',flexShrink:0}}>
+        <div style={{position:'relative'}}>
           <button onClick={()=>setOpenDd(d=>!d)}
-            style={{...S.btn,...S.btnSm,background:selCropId?G:'#f0f0eb',color:selCropId?'#fff':'#5a5040',border:'1px solid #e0d9ce',fontSize:'.72rem',maxWidth:140,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+            style={{...S.btn,...S.btnSm,background:selCropId?G:'#f0f0eb',color:selCropId?'#fff':'#5a5040',border:'1px solid #e0d9ce',fontSize:'.72rem',maxWidth:160,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
             {selLabel} ▾
           </button>
-          {openDd&&<div style={{position:'fixed',zIndex:9999,background:'#fff',borderRadius:10,boxShadow:'0 4px 20px rgba(0,0,0,.15)',minWidth:180,maxHeight:300,overflowY:'auto'}}>
-            <div style={{padding:'10px 14px',cursor:'pointer',fontSize:'.82rem',borderBottom:'1px solid #f0ebe3',background:!selCropId?'#f0f9f0':''}}
+          {openDd&&<div style={{position:'fixed',zIndex:9999,background:'#fff',borderRadius:10,boxShadow:'0 4px 20px rgba(0,0,0,.15)',minWidth:180,maxHeight:280,overflowY:'auto'}}
+            onClick={e=>e.stopPropagation()}>
+            <div style={{padding:'10px 14px',cursor:'pointer',fontSize:'.82rem',borderBottom:'1px solid #f0ebe3'}}
               onClick={()=>{setSelCropId('');setOpenDd(false);}}>
               🌱 すべての品目
             </div>
             {Object.values(cropGroups).map(g=>(
               <div key={g.key}>
-                {g.crops.length===1
-                  ?<div style={{padding:'10px 14px',cursor:'pointer',fontSize:'.82rem',borderBottom:'1px solid #f0ebe3',background:selCropId===g.crops[0].id?'#f0f9f0':''}}
+                {g.crops.length===1?(
+                  <div style={{padding:'10px 14px',cursor:'pointer',fontSize:'.82rem',borderBottom:'1px solid #f0ebe3',background:selCropId===g.crops[0].id?'#f0f9f0':''}}
                     onClick={()=>{setSelCropId(g.crops[0].id);setOpenDd(false);}}>
                     {g.emoji} {g.key}{g.crops[0].variety?' ('+g.crops[0].variety+')':''}
                   </div>
-                  :g.crops.map(c=>(
+                ):(
+                  g.crops.map(c=>(
                     <div key={c.id} style={{padding:'10px 14px 10px 24px',cursor:'pointer',fontSize:'.82rem',borderBottom:'1px solid #f0ebe3',background:selCropId===c.id?'#f0f9f0':''}}
                       onClick={()=>{setSelCropId(c.id);setOpenDd(false);}}>
                       {g.emoji} {g.key}{c.variety?' ('+c.variety+')':''}
                     </div>
                   ))
-                }
+                )}
               </div>
             ))}
           </div>}
         </div>
+
         {/* 検索 */}
         <input value={q} onChange={e=>setQ(e.target.value)} placeholder="🔍 キーワード検索..."
-          style={{flex:1,minWidth:80,padding:'6px 10px',border:'1px solid #e0d9ce',borderRadius:8,fontSize:'16px',fontFamily:'inherit',outline:'none'}}/>
+          style={{flex:1,minWidth:100,padding:'6px 10px',border:'1px solid #e0d9ce',borderRadius:8,fontSize:'16px',fontFamily:'inherit',outline:'none'}}/>
       </div>
 
-      <div style={{fontSize:'.72rem',color:TX3,marginBottom:6}}>{filtered.length}件</div>
+      {/* 件数 */}
+      <div style={{fontSize:'.72rem',color:TX3,marginBottom:6}}>
+        {filtered.length}件の記録
+      </div>
 
+      {/* 日付グループ別表示 */}
       {!grouped.length&&<div style={{color:TX3,fontSize:'.82rem',padding:16,textAlign:'center'}}>記録がありません</div>}
       {grouped.map(g=>(
         <div key={g.date} style={{marginBottom:16}}>
+          {/* 日付ヘッダー */}
           <div style={{fontSize:'.72rem',fontWeight:700,color:'#5c3d1e',padding:'4px 2px',borderBottom:'2px solid #e0d9ce',marginBottom:8}}>
             📅 {g.date}
           </div>
+          {/* その日のログ */}
           {g.logs.map(l=>{
             const cr=crops.find(c=>c.id===l.cropId)||{};
             const db=CDB[cr.type]||{};
-            const w=WORK_MAP[l.work]||{label:l.work||'',tag:'gray',icon:'📝'};
+            const f=fields[l.fieldIdx]||{};
+            const w=WORK[l.work]||{label:l.work,tag:'gray',icon:'📝'};
             const cropLabel=(cr.type==='custom'?cr.customName||'その他':db.n||cr.type||'')+(cr.variety?' ('+cr.variety+')':'');
             return (
               <div key={l.id} style={{...S.card,padding:'9px 11px',marginBottom:8}}>
-                <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:4,flexWrap:'wrap'}}>
-                  {cropLabel&&<span style={{fontSize:'.82rem',fontWeight:700,color:'#1c1a14'}}>{db.e||'🌱'} {cropLabel}</span>}
-                  <Tag type={w.tag}>{w.icon} {w.label}</Tag>
+                {/* 品目名 → 作業名の順 */}
+                <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:5,flexWrap:'wrap'}}>
+                  {cropLabel&&<span style={{fontSize:'.8rem',fontWeight:700,color:'#1c1a14'}}>{db.e||'🌱'} {cropLabel}</span>}
+                  <Tag type={w?.tag||'gray'}>{w?.icon||''} {w?.label||l.work}</Tag>
                   <span style={{fontSize:'.66rem',color:TX3,marginLeft:'auto'}}>{l.time||''}</span>
                 </div>
+                {/* 詳細 */}
                 {l.memo&&<div style={{fontSize:'.78rem',color:'#5a5040',marginBottom:3,lineHeight:1.5}}>{l.memo}</div>}
                 {l.fertName&&<div style={{fontSize:'.75rem',color:'#065f46'}}>🌿 {l.fertName}{l.fertAmt?' '+l.fertAmt+(l.fertUnit||''):''}</div>}
                 {l.pestName&&<div style={{fontSize:'.75rem',color:'#92400e'}}>🐛 {l.pestName}{l.pestDil?' '+l.pestDil+'倍':''}</div>}
-                {(l.hvKg||l.hvCnt)&&<div style={{fontSize:'.75rem',color:G}}>🧺 {l.hvKg?l.hvKg+'kg':''}{l.hvCnt?' '+l.hvCnt+'個':''}</div>}
+                {l.hvKg&&<div style={{fontSize:'.75rem',color:G}}>🧺 {l.hvKg}kg{l.hvCnt?' '+l.hvCnt+'個':''}</div>}
+                {/* 写真 */}
                 {[l.imgSrc,l.imgSrc2,l.imgSrc3].filter(Boolean).length>0&&(
                   <div style={{display:'flex',gap:4,marginTop:6,flexWrap:'wrap'}}>
                     {[l.imgSrc,l.imgSrc2,l.imgSrc3].filter(Boolean).map((src,i)=>(
@@ -2008,6 +2020,7 @@ function TimelineScreen({ fields, crops, equips, logs, setLogs, showToast, onEdi
                     ))}
                   </div>
                 )}
+                {/* 編集・削除 */}
                 <div style={{display:'flex',gap:6,marginTop:6,justifyContent:'flex-end'}}>
                   <button style={{...S.btn,...S.btnS,...S.btnSm}} onClick={()=>onEdit(l)}>✏️ 編集</button>
                   <button style={{...S.btn,...S.btnR,...S.btnSm}} onClick={()=>{if(!window.confirm('削除しますか?'))return;dbDelete('logs',l.id);setLogs(logs.filter(x=>x.id!==l.id));showToast('削除しました');}}>削除</button>
@@ -2017,6 +2030,8 @@ function TimelineScreen({ fields, crops, equips, logs, setLogs, showToast, onEdi
           })}
         </div>
       ))}
+
+      {/* 外クリックでドロップダウン閉じる */}
       {openDd&&<div style={{position:'fixed',top:0,left:0,right:0,bottom:0,zIndex:9998}} onClick={()=>setOpenDd(false)}/>}
     </div>
   );
