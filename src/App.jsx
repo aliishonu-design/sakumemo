@@ -2410,7 +2410,7 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs }) {
 
       {/* 品目リスト（折りたたみ） */}
       {(()=>{
-        const [listOpen, setListOpen] = React.useState(false);
+        const [listOpen, setListOpen] = useState(false);
         const selLabel = selCropId==="all" ? "📊 すべての品目" :
           (()=>{const c=cropStats.find(x=>x.id===selCropId);return c?c.emoji+" "+c.name+(c.variety?" ("+c.variety+")":""):"";})();
         return (
