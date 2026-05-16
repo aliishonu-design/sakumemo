@@ -906,7 +906,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.0.1</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.0.3</div>
       </div>
     </div>
   );
@@ -2315,16 +2315,12 @@ function TimelineScreen({ fields, crops, equips, logs, setLogs, showToast, onEdi
                     ))}
                   </div>
                 )}
-                <div style={{display:'flex',gap:4,marginTop:6,justifyContent:'flex-end',flexWrap:'wrap'}}>
-                  {card.logs.map((l,i)=>{
-                    const w2=WORK[l.work]||{label:l.work||''};
-                    return (
-                      <span key={l.id} style={{display:'flex',gap:3}}>
-                        <button style={{...S.btn,...S.btnS,...S.btnSm,fontSize:'.65rem'}} onClick={()=>onEdit(l)}>✏️ {w2.label}</button>
-                        <button style={{...S.btn,...S.btnR,...S.btnSm,fontSize:'.65rem'}} onClick={()=>{if(!window.confirm('削除?'))return;dbDelete('logs',l.id);setLogs(logs.filter(x=>x.id!==l.id));showToast('削除しました');}}>✕</button>
-                      </span>
-                    );
-                  })}
+                <div style={{display:'flex',gap:6,marginTop:6,justifyContent:'flex-end'}}>
+                  <button style={{...S.btn,...S.btnS,...S.btnSm}} onClick={()=>onEdit(card.logs)}>✏️ 編集</button>
+                  {card.logs.length===1
+                    ?<button style={{...S.btn,...S.btnR,...S.btnSm}} onClick={()=>{if(!window.confirm('削除?'))return;dbDelete('logs',card.logs[0].id);setLogs(logs.filter(x=>x.id!==card.logs[0].id));showToast('削除しました');}}>削除</button>
+                    :<button style={{...S.btn,...S.btnR,...S.btnSm}} onClick={()=>{if(!window.confirm(card.logs.length+'件まとめて削除しますか?'))return;card.logs.forEach(l=>dbDelete('logs',l.id));const ids=new Set(card.logs.map(l=>l.id));setLogs(logs.filter(x=>!ids.has(x.id)));showToast('削除しました');}}>削除({card.logs.length})</button>
+                  }
                 </div>
               </div>
             );
@@ -2956,6 +2952,7 @@ export default function App() {
   const [toast,    setToast]   = useState("");
   const [initWork,     setInitWork]    = useState("");
   const [initLog,      setInitLog]     = useState(null);
+  const [initLogs,     setInitLogs]    = useState([]);   // 複数作業編集用
   const [logModal,     setLogModal]    = useState(false);
   const [pendingEditCrop, setPendingEditCrop] = useState(null); // ホームから品目編集
   const toastTimer = useRef(null);
@@ -3085,7 +3082,7 @@ export default function App() {
         {scr==="home"    &&<HomeScreen    fields={fields} crops={crops} logs={logs} costs={costs} onEditCrop={c=>{setPendingEditCrop(c);setScr("fields");}}/>}
         {scr==="master"  &&<MasterScreen  fertMs={fertMs} setFertMs={setFertMs} pestMs={pestMs} setPestMs={setPestMs} equips={equips} setEquips={setEquips} costs={costs} setCosts={setCosts} showToast={showToast}/>}
         {scr==="fields"  &&<FieldsScreen  fields={fields} setFields={setFields} setFieldsR={setFieldsR} crops={crops} setCrops={setCrops} setCropsR={setCropsR} costs={costs} setCosts={setCosts} logs={logs} showToast={showToast} editCrop={pendingEditCrop}/>}
-        {scr==="log" && <TimelineScreen fields={fields} crops={crops} equips={equips} logs={logs} setLogs={setLogs} showToast={showToast} onEdit={l=>{setInitLog(l);setLogModal(true);}} onNew={()=>{setInitLog(null);setLogModal(true);}}/> }
+        {scr==="log" && <TimelineScreen fields={fields} crops={crops} equips={equips} logs={logs} setLogs={setLogs} showToast={showToast} onEdit={ls=>{setInitLog(Array.isArray(ls)?ls[0]:ls);setInitLogs(Array.isArray(ls)?ls:[ls]);setLogModal(true);}} onNew={()=>{setInitLog(null);setLogModal(true);}}/> }
         
         {scr==="cost"    &&<CostScreen    fields={fields} fertMs={fertMs} pestMs={pestMs} equips={equips} costs={costs} setCosts={setCosts} logs={logs} showToast={showToast}/>}
 
@@ -3106,7 +3103,7 @@ export default function App() {
             <button onClick={()=>{setLogModal(false);setInitLog(null);}} style={{background:"rgba(255,255,255,.2)",border:"1px solid rgba(255,255,255,.3)",color:"#fff",borderRadius:8,padding:"6px 14px",fontSize:".82rem",fontWeight:700,cursor:"pointer"}}>✕</button>
           </div>
           <div style={{flex:1,overflowY:"auto",WebkitOverflowScrolling:"touch"}}>
-            <LogScreen uid={uid} fields={fields} crops={crops} setCrops={setCrops} fertMs={fertMs} pestMs={pestMs} equips={equips} costs={costs} setCosts={setCosts} logs={logs} setLogs={setLogs} showToast={showToast} initialWork={initWork} editLog={initLog} onDone={()=>{setLogModal(false);setInitLog(null);}}/>
+            <LogScreen uid={uid} fields={fields} crops={crops} setCrops={setCrops} fertMs={fertMs} pestMs={pestMs} equips={equips} costs={costs} setCosts={setCosts} logs={logs} setLogs={setLogs} showToast={showToast} initialWork={initWork} editLog={initLog} editLogs={initLogs} onDone={()=>{setLogModal(false);setInitLog(null);}}/>
           </div>
         </div>
       {dbLoad && (
