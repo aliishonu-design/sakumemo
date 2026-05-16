@@ -908,7 +908,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v0.8.5</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v0.8.6</div>
       </div>
     </div>
   );
@@ -2267,7 +2267,7 @@ function CostScreen({ fields, fertMs, pestMs, equips, costs, setCosts, logs, sho
 // CHAT
 function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs }) {
   const [selCropId, setSelCropId] = useState("all");
-  const [period,    setPeriod]    = useState("year");  // "year" or "month"
+  const [period,    setPeriod]    = useState("year");  // "year" / "month" / "crop"
   const [selYear,   setSelYear]   = useState(new Date().getFullYear());
   const [selMonth,  setSelMonth]  = useState(new Date().getMonth()+1);
 
@@ -2279,8 +2279,13 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs }) {
   )].sort().reverse().map(Number) : [];
 
   // 期間フィルター関数
-  const inPeriod = date => {
+  const inPeriod = (date, cropId) => {
     if(!date) return false;
+    if(period==="crop"){
+      // 選択品種の栽培期間のみ（全期間）
+      if(selCropId==="all") return true;
+      return cropId===selCropId || !cropId;
+    }
     if(period==="year") return date.startsWith(String(selYear));
     return date.startsWith(String(selYear)+"-"+String(selMonth).padStart(2,"0"));
   };
@@ -2291,7 +2296,7 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs }) {
   const cropStats = crops.map(c=>{
     const db=CDB[c.type]||{};
     const f=fields[c.fieldIdx]||{};
-    const cl=logs.filter(l=>l.cropId===c.id && inPeriod(l.date));
+    const cl=logs.filter(l=>l.cropId===c.id && inPeriod(l.date, c.id));
     const kg=cl.reduce((s,l)=>s+(parseFloat(l.hvKg)||0),0);
     const cnt=cl.reduce((s,l)=>s+(parseInt(l.hvCnt)||0),0);
     const rev=cl.reduce((s,l)=>s+(parseFloat(l.hvKg)||0)*(parseFloat(l.hvPrice)||0),0);
@@ -2305,7 +2310,7 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs }) {
     // 種・苗費用（この品目に直接紐づくもの、またはcropIdがない場合は品目名で照合）
     const cropName0 = c.type==="custom"?(c.customName||"カスタム"):(CDB[c.type]?.n||c.type);
     const seedCosts = costs.filter(co=>
-      inPeriod(co.date) &&
+      inPeriod(co.date, c.id) &&
       co.cat==="seed" && (
         co.cropId===c.id ||
         co.cropId===c.id.toString() ||
@@ -2363,13 +2368,13 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs }) {
 
   // 選択中の品目データ
   const sel = selCropId==="all" ? null : cropStats.find(c=>c.id===selCropId);
-  const dispLogs = (selCropId==="all" ? logs : logs.filter(l=>l.cropId===selCropId)).filter(l=>inPeriod(l.date));
+  const dispLogs = (selCropId==="all" ? logs : logs.filter(l=>l.cropId===selCropId)).filter(l=>inPeriod(l.date,l.cropId));
 
   // 全体集計
   const totalKg  = cropStats.reduce((s,c)=>s+c.kg,0);
   const totalRev = cropStats.reduce((s,c)=>s+c.rev,0);
-  const totalCost= costs.filter(c=>inPeriod(c.date)).reduce((s,c)=>s+(parseFloat(c.amt)||0),0);
-  const totalMin = logs.filter(l=>inPeriod(l.date)).reduce((s,l)=>s+(parseInt(l.duration)||0),0);
+  const totalCost= costs.filter(c=>inPeriod(c.date,c.cropId)).reduce((s,c)=>s+(parseFloat(c.amt)||0),0);
+  const totalMin = logs.filter(l=>inPeriod(l.date,l.cropId)).reduce((s,l)=>s+(parseInt(l.duration)||0),0);
   const th=Math.floor(totalMin/60),tm=totalMin%60;
   const totalTimeStr=totalMin>0?(th>0?th+"時間"+tm+"分":tm+"分"):"0分";
 
@@ -2380,7 +2385,8 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs }) {
       {/* 期間セレクター */}
       <div style={{display:"flex",gap:6,marginBottom:10,alignItems:"center",flexWrap:"wrap"}}>
         <div style={{display:"flex",borderRadius:8,overflow:"hidden",border:"1px solid #e0d9ce",flexShrink:0}}>
-          {[["year","年単位"],["month","月単位"]].map(([v,l])=>(
+          {[["year","年単位"],["month","月単位"],...(selCropId!=="all"?[["crop","栽培期間"]]:[])]
+            .map(([v,l])=>(
             <button key={v} onClick={()=>setPeriod(v)}
               style={{padding:"6px 12px",border:"none",background:period===v?G:"#fff",color:period===v?"#fff":"#888",fontWeight:period===v?700:400,fontSize:".78rem",cursor:"pointer",fontFamily:"inherit"}}>
               {l}
@@ -2497,7 +2503,84 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs }) {
         </>
       ) : (
         <>
-          {/* 全体サマリー */}
+    
+      {/* 品質別円グラフ（品種選択時のみ） */}
+      {selCropId!=="all"&&(()=>{
+        const hvLogs = dispLogs.filter(l=>l.hvGradeStr||(l.hvKg||l.hvCnt));
+        const grades = ["秀品","優品","良品","規格外"];
+        const GCOL = {"秀品":"#2d6a3f","優品":"#52b788","良品":"#95d5b2","規格外":"#aaa"};
+        // 品質別kg集計
+        const gradeKg = {};
+        grades.forEach(g=>gradeKg[g]=0);
+        hvLogs.forEach(l=>{
+          if(l.hvGradeStr){
+            // "秀品:10kg / 優品:5kg" 形式を解析
+            l.hvGradeStr.split('/').forEach(s=>{
+              const m=s.trim().match(/^(秀品|優品|良品|規格外):(.*)$/);
+              if(m){
+                const kgM=m[2].match(/([0-9.]+)kg/);
+                if(kgM)gradeKg[m[1]]=(gradeKg[m[1]]||0)+parseFloat(kgM[1]);
+              }
+            });
+          } else if(l.hvKg&&l.hvQ&&grades.includes(l.hvQ)){
+            gradeKg[l.hvQ]=(gradeKg[l.hvQ]||0)+parseFloat(l.hvKg||0);
+          } else if(l.hvKg){
+            gradeKg["秀品"]=(gradeKg["秀品"]||0)+parseFloat(l.hvKg||0);
+          }
+        });
+        const totalKgG = grades.reduce((s,g)=>s+(gradeKg[g]||0),0);
+        if(totalKgG<=0) return null;
+        // SVG円グラフ
+        let cumAngle=0;
+        const radius=60,cx=80,cy=80;
+        const slices=grades.filter(g=>gradeKg[g]>0).map(g=>{
+          const pct=gradeKg[g]/totalKgG;
+          const startAngle=cumAngle;
+          cumAngle+=pct*360;
+          return {g,pct,startAngle,endAngle:cumAngle,kg:gradeKg[g]};
+        });
+        const polarToXY=(angle,r)=>{
+          const rad=(angle-90)*Math.PI/180;
+          return {x:cx+r*Math.cos(rad),y:cy+r*Math.sin(rad)};
+        };
+        const makeArc=(s,e,r)=>{
+          const start=polarToXY(s,r);
+          const end=polarToXY(e,r);
+          const large=e-s>180?1:0;
+          return `M${cx},${cy} L${start.x},${start.y} A${r},${r} 0 ${large},1 ${end.x},${end.y} Z`;
+        };
+        return (
+          <div style={{...S.card,marginBottom:10}}>
+            <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".82rem",color:"#5c3d1e",marginBottom:10}}>品質別収穫割合（kg）</div>
+            <div style={{display:"flex",gap:12,alignItems:"center",flexWrap:"wrap"}}>
+              <svg width="160" height="160" viewBox="0 0 160 160">
+                {slices.length===1
+                  ?<circle cx={cx} cy={cy} r={radius} fill={GCOL[slices[0].g]}/>
+                  :slices.map((s,i)=>(
+                    <path key={i} d={makeArc(s.startAngle,s.endAngle,radius)} fill={GCOL[s.g]}/>
+                  ))
+                }
+              </svg>
+              <div style={{flex:1}}>
+                {grades.filter(g=>gradeKg[g]>0).map(g=>(
+                  <div key={g} style={{display:"flex",alignItems:"center",gap:6,marginBottom:5}}>
+                    <div style={{width:12,height:12,borderRadius:2,background:GCOL[g],flexShrink:0}}/>
+                    <div style={{fontSize:".76rem"}}>
+                      <span style={{fontWeight:700}}>{g}</span>
+                      <span style={{color:TX3,marginLeft:4}}>{gradeKg[g].toFixed(1)}kg</span>
+                      <span style={{color:TX3,marginLeft:4}}>({Math.round(gradeKg[g]/totalKgG*100)}%)</span>
+                    </div>
+                  </div>
+                ))}
+                <div style={{borderTop:"1px solid #e0d9ce",marginTop:6,paddingTop:6,fontSize:".76rem",fontWeight:700}}>
+                  合計 {totalKgG.toFixed(1)}kg
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+      {/* 全体サマリー */}
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:7,marginBottom:9}}>
             {[
               {n:totalKg.toFixed(1)+"kg",l:"累計収穫量",c:G},
