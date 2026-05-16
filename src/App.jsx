@@ -1686,6 +1686,9 @@ function LogScreen({ fields, crops, setCrops, fertMs, pestMs, equips, costs, set
   const [logImg2,  setLogImg2]  = useState(null);
   const [logImg3,  setLogImg3]  = useState(null);
   const [saving,   setSaving]   = useState(false);
+  const [keepDate, setKeepDate] = useState("");   // 連続追加時に日付を保持
+  const [keepCrop, setKeepCrop] = useState("");   // 連続追加時に品目を保持
+  const [keepField,setKeepField]= useState(null); // 連続追加時に圃場を保持
   const [sowQty,   setSowQty]   = useState("");
   const [germCnt,  setGermCnt]  = useState("");
   const [germDate, setGermDate] = useState(todayStr());
@@ -1913,9 +1916,14 @@ function LogScreen({ fields, crops, setCrops, fertMs, pestMs, equips, costs, set
       setLogs(newLogs, entry);
     }
     setSaving(false);
+    const kd=keepDate,kc=keepCrop,kf=keepField;
     setWork("");setMemo("");setLogImg(null);setLogImg2(null);setLogImg3(null);setHvGrades({秀品:{kg:"",cnt:"",price:""},優品:{kg:"",cnt:"",price:""},良品:{kg:"",cnt:"",price:""},規格外:{kg:"",cnt:"",price:""}});
     setSowQty("");setGermCnt("");setTranspQty("");
-    if(onDone) setTimeout(()=>onDone(), 600); // 保存後モーダルを閉じる
+    setHvKg("");setHvCnt("");setHvQ("秀品");setHvPrice("");
+    setFertName("");setFertAmt("");setPestName("");setPestDil("");setPestAmt("");
+    if(kd){setDate(kd);setCropId(kc);if(kf!==null)setFieldIdx(kf);}
+    setKeepDate("");setKeepCrop("");setKeepField(null);
+    if(!kd&&onDone) setTimeout(()=>onDone(), 600);モーダルを閉じる
     setFertName("");setFertAmt("");setPestName("");setPestDil("");setPestAmt("");setPestTgt("");
     setDiscardCnt("");setAddCnt("");setEventType("");setEventNote("");
   };
@@ -1923,7 +1931,14 @@ function LogScreen({ fields, crops, setCrops, fertMs, pestMs, equips, costs, set
   const panelStyle = (bg,bc) => ({...S.card,background:bg,borderColor:bc,marginBottom:7});
   const ctitleStyle = {fontFamily:"'Shippori Mincho B1',serif",fontSize:".86rem",color:"#5c3d1e",marginBottom:8};
 
-  return (
+  const doSaveAndAdd = () => {
+    setKeepDate(date);
+    setKeepCrop(cropId);
+    setKeepField(fieldIdx);
+    doSave();
+  };
+
+    return (
     <div style={S.scr} className="scr-inner">
       <div style={S.sec}>
         <span>作業内容を選択してください</span>
