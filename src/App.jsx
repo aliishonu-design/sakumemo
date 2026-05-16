@@ -908,7 +908,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v0.8.3</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v0.8.4</div>
       </div>
     </div>
   );
@@ -1758,6 +1758,20 @@ function LogScreen({ fields, crops, setCrops, fertMs, pestMs, equips, costs, set
     setHvCnt(editLog.hvCnt||"");
     setHvQ(editLog.hvQ||"秀品");
     setHvPrice(editLog.hvPrice||"");
+    // 品質別収穫データを復元
+    if(editLog.hvGradeStr && editLog.hvGradeStr!==""){
+      // hvGradeStrから品質別データを復元できない場合はhvKg/hvCntをデフォルトに
+      // 品質が1つの場合は既存のhvQ/hvKg/hvCntで復元
+      const singleQ = editLog.hvQ&&editLog.hvQ!=='品質別' ? editLog.hvQ : '秀品';
+      setHvGrades({
+        秀品:{kg:singleQ==='秀品'?editLog.hvKg||'':'',cnt:singleQ==='秀品'?editLog.hvCnt||'':'',price:editLog.hvPrice||''},
+        優品:{kg:singleQ==='優品'?editLog.hvKg||'':'',cnt:singleQ==='優品'?editLog.hvCnt||'':'',price:''},
+        良品:{kg:singleQ==='良品'?editLog.hvKg||'':'',cnt:singleQ==='良品'?editLog.hvCnt||'':'',price:''},
+        規格外:{kg:singleQ==='規格外'?editLog.hvKg||'':'',cnt:singleQ==='規格外'?editLog.hvCnt||'':'',price:''},
+      });
+    } else {
+      setHvGrades({秀品:{kg:'',cnt:'',price:''},優品:{kg:'',cnt:'',price:''},良品:{kg:'',cnt:'',price:''},規格外:{kg:'',cnt:'',price:''}});
+    }
     setDiscardCnt(editLog.discardCnt||"");
     setAddCnt(editLog.addCnt||"");
     setEquipAct(editLog.equipAct||"設置");
