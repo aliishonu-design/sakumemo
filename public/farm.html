@@ -478,6 +478,22 @@ function lightboxNext(e){e.stopPropagation();lbIdx=(lbIdx+1)%lbPhotos.length;doc
 document.addEventListener('contextmenu',function(e){if(e.target.tagName==='IMG')e.preventDefault();});
 
 
+function toHira(str){return str.replace(/[ァ-ヶ]/g,function(c){return String.fromCharCode(c.charCodeAt(0)-0x60);});}
+function toKata(str){return str.replace(/[ぁ-ゖ]/g,function(c){return String.fromCharCode(c.charCodeAt(0)+0x60);});}
+function matchWord(text,word){var h=toHira(word),k=toKata(word),th=toHira(text),tk=toKata(text);return th.indexOf(h)>=0||tk.indexOf(k)>=0||text.indexOf(word)>=0;}
+
+function doSearch(){
+  var q=(document.getElementById('farm-search').value||'').toLowerCase().trim();
+  var words=q?q.split(' ').filter(function(w){return w.length>0;}):[]; 
+  var cards=document.querySelectorAll('.log-card,.crop-hero');
+  cards.forEach(function(card){
+    if(!words.length){card.style.display='';return;}
+    var text=card.textContent.toLowerCase();
+    var match=words.every(function(w){return matchWord(text,w);});
+    card.style.display=match?'':'none';
+  });
+}
+
 async function main(){
   var params=new URLSearchParams(location.search);
   var uidParam=params.get('uid'),slugParam=params.get('u'),cropParam=params.get('crop');
