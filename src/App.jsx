@@ -908,7 +908,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v0.7.6</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v0.7.7</div>
       </div>
     </div>
   );
@@ -2053,7 +2053,7 @@ function TimelineScreen({ fields, crops, equips, logs, setLogs, showToast, onEdi
     repot:{label:'植え替え',tag:'purple',icon:'🪴'},
     event:{label:'生育記録',tag:'gray',icon:'📝'},
     harvest:{label:'収穫',tag:'blue',icon:'🧺'},
-    discard:{label:'廃棄',tag:'gray',icon:'🗑️'},
+    discard:{label:'廃棄・株数調整',tag:'gray',icon:'📊'},
     equip:{label:'資材作業',tag:'gray',icon:'🔧'},
     check:{label:'見回り',tag:'gray',icon:'👁️'},
     other:{label:'その他',tag:'gray',icon:'📝'},
