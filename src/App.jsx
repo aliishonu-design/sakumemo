@@ -908,7 +908,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v0.7.9</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v0.8.0</div>
       </div>
     </div>
   );
@@ -2321,6 +2321,26 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs }) {
 
   return (
     <div style={S.scr} className="scr-inner">
+      {/* 期間セレクター */}
+      <div style={{display:"flex",gap:6,marginBottom:10,alignItems:"center",flexWrap:"wrap"}}>
+        <div style={{display:"flex",borderRadius:8,overflow:"hidden",border:"1px solid #e0d9ce",flexShrink:0}}>
+          {[["year","年単位"],["month","月単位"]].map(([v,l])=>(
+            <button key={v} onClick={()=>setPeriod(v)}
+              style={{padding:"6px 12px",border:"none",background:period===v?G:"#fff",color:period===v?"#fff":"#888",fontWeight:period===v?700:400,fontSize:".78rem",cursor:"pointer",fontFamily:"inherit"}}>
+              {l}
+            </button>
+          ))}
+        </div>
+        <select value={selYear} onChange={e=>setSelYear(Number(e.target.value))}
+          style={{padding:"5px 8px",border:"1px solid #e0d9ce",borderRadius:8,fontSize:"15px",fontFamily:"inherit",background:"#fff",flexShrink:0}}>
+          {(years.length?years:[new Date().getFullYear()]).map(y=><option key={y} value={y}>{y}年</option>)}
+        </select>
+        {period==="month"&&<select value={selMonth} onChange={e=>setSelMonth(Number(e.target.value))}
+          style={{padding:"5px 8px",border:"1px solid #e0d9ce",borderRadius:8,fontSize:"15px",fontFamily:"inherit",background:"#fff",flexShrink:0}}>
+          {(months.length?months:[1,2,3,4,5,6,7,8,9,10,11,12]).map(m=><option key={m} value={m}>{m}月</option>)}
+        </select>}
+      </div>
+
       {/* 品目タブ */}
       <div style={{marginBottom:10}}>
         <div style={{display:"flex",gap:5,overflowX:"auto",paddingBottom:4,WebkitOverflowScrolling:"touch"}}>
