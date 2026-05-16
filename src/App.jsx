@@ -51,17 +51,17 @@ const CDB = {
   // ─── イネ科 ───
   rice:         { n:"水稲",       e:"🌾", d:150, w:2, cat:"イネ科",   hs:"穂が黄金色になり、籾が硬くなったら",          events:["穂ばらみ","出穂","収穫"], maturity:{early:130,mid:150,late:170} },
   wheat:        { n:"麦",         e:"🌾", d:240, w:5, cat:"イネ科",   hs:"穂が黄色くなり茎が枯れてきたら",              events:["出穂","収穫"], maturity:{early:210,mid:240,late:270} },
-  corn:         { n:"トウモロコシ",e:"🌽", d:80,  w:2, cat:"イネ科",   hs:"絹糸が茶色になり、押すと乳液が出る状態",      events:["雄穂開花","絹糸出現","収穫"], maturity:{early:70,mid:80,late:95} },
+  corn:         { n:"トウモロコシ",e:"🌽", d:80, hd:14,  w:2, cat:"イネ科",   hs:"絹糸が茶色になり、押すと乳液が出る状態",      events:["雄穂開花","絹糸出現","収穫"], maturity:{early:70,mid:80,late:95} },
   soba:         { n:"そば",       e:"🌿", d:75,  w:3, cat:"タデ科",   hs:"実の7〜8割が黒褐色になったら",                events:["開花","収穫"], maturity:{early:65,mid:75,late:85} },
   // ─── ナス科 ───
-  tomato:       { n:"トマト",     e:"🍅", d:90,  w:2, cat:"ナス科",   hs:"果皮が均一に赤くなりヘタが反り返ったら",      events:["開花","着果","収穫"], maturity:{early:75,mid:90,late:110} },
+  tomato:       { n:"トマト",     e:"🍅", d:90, hd:60,  w:2, cat:"ナス科",   hs:"果皮が均一に赤くなりヘタが反り返ったら",      events:["開花","着果","収穫"], maturity:{early:75,mid:90,late:110} },
   cherry_tomato:{ n:"ミニトマト", e:"🍅", d:75,  w:2, cat:"ナス科",   hs:"鮮やかな赤になりわずかに柔らかくなったら",    events:["開花","着果","収穫"], maturity:{early:60,mid:75,late:90} },
-  eggplant:     { n:"ナス",       e:"🍆", d:75,  w:1, cat:"ナス科",   hs:"果皮に光沢・ガクのとげが鋭い状態",            events:["開花","収穫"], maturity:{early:65,mid:75,late:90} },
-  pepper:       { n:"ピーマン",   e:"🫑", d:70,  w:2, cat:"ナス科",   hs:"長さ6〜7cm・果肉が厚くなったら",              events:["開花","収穫"], maturity:{early:60,mid:70,late:85} },
+  eggplant:     { n:"ナス",       e:"🍆", d:75, hd:90,  w:1, cat:"ナス科",   hs:"果皮に光沢・ガクのとげが鋭い状態",            events:["開花","収穫"], maturity:{early:65,mid:75,late:90} },
+  pepper:       { n:"ピーマン",   e:"🫑", d:70, hd:90,  w:2, cat:"ナス科",   hs:"長さ6〜7cm・果肉が厚くなったら",              events:["開花","収穫"], maturity:{early:60,mid:70,late:85} },
   potato:       { n:"ジャガイモ", e:"🥔", d:90,  w:3, cat:"ナス科",   hs:"地上部の葉が黄化・枯死したら掘る",            events:["萌芽","開花","地上部枯死"], maturity:{early:75,mid:90,late:110} },
   // ─── ウリ科 ───
-  cucumber:     { n:"キュウリ",   e:"🥒", d:55,  w:1, cat:"ウリ科",   hs:"長さ18〜22cm・イボが鮮明で張りがあるうちに",  events:["開花","収穫"], maturity:{early:45,mid:55,late:65} },
-  zucchini:     { n:"ズッキーニ", e:"🥒", d:55,  w:1, cat:"ウリ科",   hs:"長さ20cm前後・果皮にツヤがあるうちに",        events:["開花","収穫"], maturity:{early:45,mid:55,late:65} },
+  cucumber:     { n:"キュウリ",   e:"🥒", d:55, hd:60,  w:1, cat:"ウリ科",   hs:"長さ18〜22cm・イボが鮮明で張りがあるうちに",  events:["開花","収穫"], maturity:{early:45,mid:55,late:65} },
+  zucchini:     { n:"ズッキーニ", e:"🥒", d:55, hd:60,  w:1, cat:"ウリ科",   hs:"長さ20cm前後・果皮にツヤがあるうちに",        events:["開花","収穫"], maturity:{early:45,mid:55,late:65} },
   pumpkin:      { n:"カボチャ",   e:"🎃", d:100, w:3, cat:"ウリ科",   hs:"ヘタがコルク化し葉が枯れ始めたら",            events:["開花","受粉","着果","収穫"], maturity:{early:85,mid:100,late:120} },
   watermelon:   { n:"スイカ",     e:"🍉", d:85,  w:3, cat:"ウリ科",   hs:"ヘタの巻きひげが枯れ叩くと濁音がする状態",    events:["開花","受粉","着果","収穫"], maturity:{early:75,mid:85,late:100} },
   melon:        { n:"メロン",     e:"🍈", d:90,  w:3, cat:"ウリ科",   hs:"ヘタの周りが黄色くなり香りが出たら",          events:["開花","受粉","着果","収穫"], maturity:{early:75,mid:90,late:110} },
@@ -70,16 +70,16 @@ const CDB = {
   cabbage:      { n:"キャベツ",   e:"🥬", d:90,  w:2, cat:"アブラナ科",hs:"結球が固く締まり外葉に張りがある状態",        events:["結球開始","収穫"], maturity:{early:70,mid:90,late:120} },
   hakusai:      { n:"白菜",       e:"🥬", d:90,  w:2, cat:"アブラナ科",hs:"頭部を押して固く締まっていたら",              events:["結球開始","収穫"], maturity:{early:70,mid:90,late:110} },
   broccoli:     { n:"ブロッコリー",e:"🥦", d:90,  w:2, cat:"アブラナ科",hs:"花蕾が緊密で15〜18cm・黄色くなる前に",       events:["頂花蕾形成","収穫"], maturity:{early:75,mid:90,late:110} },
-  radish:       { n:"ダイコン",   e:"🌰", d:60,  w:2, cat:"アブラナ科",hs:"根が地表に出て肩の直径6〜8cm",               events:["間引き完了","収穫"], maturity:{early:50,mid:60,late:75} },
-  komatsuna:    { n:"小松菜",     e:"🥬", d:35,  w:1, cat:"アブラナ科",hs:"草丈20〜25cmで収穫",                         events:["収穫"], maturity:{early:30,mid:35,late:45} },
+  radish:       { n:"ダイコン",   e:"🌰", d:60, hd:30,  w:2, cat:"アブラナ科",hs:"根が地表に出て肩の直径6〜8cm",               events:["間引き完了","収穫"], maturity:{early:50,mid:60,late:75} },
+  komatsuna:    { n:"小松菜",     e:"🥬", d:35, hd:14,  w:1, cat:"アブラナ科",hs:"草丈20〜25cmで収穫",                         events:["収穫"], maturity:{early:30,mid:35,late:45} },
   // ─── マメ科 ───
   edamame:      { n:"枝豆",       e:"🫘", d:70,  w:2, cat:"マメ科",   hs:"さやが膨らんで豆の形がはっきりわかる状態",    events:["開花","さや形成","収穫"], maturity:{early:60,mid:70,late:85} },
-  green_bean:   { n:"インゲン",   e:"🫘", d:55,  w:2, cat:"マメ科",   hs:"さやが膨らむ前・すじが出る前に収穫",          events:["開花","さや形成","収穫"], maturity:{early:45,mid:55,late:65} },
+  green_bean:   { n:"インゲン",   e:"🫘", d:55, hd:30,  w:2, cat:"マメ科",   hs:"さやが膨らむ前・すじが出る前に収穫",          events:["開花","さや形成","収穫"], maturity:{early:45,mid:55,late:65} },
   azuki:        { n:"小豆",       e:"🫘", d:100, w:3, cat:"マメ科",   hs:"さやが黄褐色になり乾燥してきたら",            events:["開花","さや形成","収穫"], maturity:{early:90,mid:100,late:115} },
   // ─── キク科 ───
   lettuce:      { n:"レタス",     e:"🥬", d:55,  w:1, cat:"キク科",   hs:"結球部を押して固くなったら",                  events:["結球開始","収穫"], maturity:{early:45,mid:55,late:70} },
   // ─── セリ科 ───
-  carrot:       { n:"ニンジン",   e:"🥕", d:100, w:2, cat:"セリ科",   hs:"根頭部の直径2.5〜3cm・根長12〜15cm",          events:["間引き完了","収穫"], maturity:{early:85,mid:100,late:120} },
+  carrot:       { n:"ニンジン",   e:"🥕", d:100, hd:30, w:2, cat:"セリ科",   hs:"根頭部の直径2.5〜3cm・根長12〜15cm",          events:["間引き完了","収穫"], maturity:{early:85,mid:100,late:120} },
   // ─── ヒガンバナ科 ───
   onion:        { n:"タマネギ",   e:"🧅", d:210, w:4, cat:"ヒガンバナ科",hs:"葉の80%が倒伏し始めてから1週間後",         events:["葉鞘肥大","倒伏開始","収穫"], maturity:{early:180,mid:210,late:240} },
   leek:         { n:"ネギ",       e:"🌿", d:100, w:3, cat:"ヒガンバナ科",hs:"白根部が20〜25cmになったら",               events:["土寄せ","収穫"], maturity:{early:85,mid:100,late:120} },
@@ -91,12 +91,12 @@ const CDB = {
   // ─── ヒルガオ科 ───
   sweetpotato:  { n:"サツマイモ", e:"🍠", d:120, w:4, cat:"ヒルガオ科",hs:"定植後120〜130日・試し掘りで確認",           events:["活着","収穫"], maturity:{early:110,mid:120,late:140} },
   // ─── バラ科 ───
-  strawberry:   { n:"イチゴ",     e:"🍓", d:180, w:1, cat:"バラ科",   hs:"果実全体が赤く着色しヘタが反り返ったら",      events:["開花","着果","収穫"], maturity:{early:160,mid:180,late:210} },
+  strawberry:   { n:"イチゴ",     e:"🍓", d:180, hd:60, w:1, cat:"バラ科",   hs:"果実全体が赤く着色しヘタが反り返ったら",      events:["開花","着果","収穫"], maturity:{early:160,mid:180,late:210} },
   // ─── アカザ科 ───
   spinach:      { n:"ほうれん草", e:"🌿", d:40,  w:1, cat:"アカザ科",  hs:"草丈20〜25cm・本葉がしっかり展開したら",      events:["本葉展開","収穫"], maturity:{early:35,mid:40,late:50} },
   // ─── タデ科 ───
   // ─── オクラ（アオイ科）───
-  okra:         { n:"オクラ",     e:"🌿", d:60,  w:1, cat:"アオイ科",  hs:"長さ7〜8cm・開花後4〜5日で収穫",              events:["開花","収穫"], maturity:{early:55,mid:60,late:70} },
+  okra:         { n:"オクラ",     e:"🌿", d:60, hd:60,  w:1, cat:"アオイ科",  hs:"長さ7〜8cm・開花後4〜5日で収穫",              events:["開花","収穫"], maturity:{early:55,mid:60,late:70} },
   // ─── 果樹（バラ科）───
   apple:        { n:"リンゴ",     e:"🍎", d:150, w:5, cat:"果樹/バラ科",hs:"品種固有の色に着色し、甘みが出たら",        events:["開花","摘果","着色","収穫"], maturity:{early:120,mid:150,late:180}, fruit:true },
   pear:         { n:"ナシ",       e:"🍐", d:140, w:5, cat:"果樹/バラ科",hs:"果皮が品種特有の色になり香りが出たら",       events:["開花","摘果","収穫"], maturity:{early:120,mid:140,late:160}, fruit:true },
@@ -167,6 +167,114 @@ const getFertSchedule=(cropType,plantTargetDate)=>{
     {date:fmt(d3),work:"元肥投入",note:plan.base},
     {date:fmt(target),work:"定植・播種",note:""},
   ];
+};
+// ─────────────────────────────────────────────────────────────
+
+// ─── 施肥ガイドDB (10㎡あたり・NPK8-8-8換算) ───────────────
+const FERT_GUIDE = {
+  // ナス科
+  tomato:      { base:"定植1週前: 苦土石灰150g→堆肥2kg→化成(8-8-8)150g", chase:[
+    {timing:"第1花房着果後（花が咲いて2週間）",amt:"株元から20cm離して化成30g/株"},
+    {timing:"その後2〜3週間ごと",amt:"化成30g/株 または液肥1000倍希釈"},
+    {timing:"収穫最盛期",amt:"やや増量して40g/株・カリ多めが効果的"},
+  ], tip:"窒素多すぎると茎葉が茂り着果しない。花が落ちたら追肥を疑って" },
+  eggplant:    { base:"定植1週前: 苦土石灰150g→堆肥3kg→化成200g", chase:[
+    {timing:"定植3週後（活着後）",amt:"化成40g/株"},
+    {timing:"収穫始まったら2週ごと",amt:"化成40g/株（多肥好む）"},
+    {timing:"更新剪定後",amt:"即座に化成50g/株・液肥も効果的"},
+  ], tip:"多肥を好む。葉色が薄くなったらすぐ追肥" },
+  pepper:      { base:"定植1週前: 苦土石灰150g→堆肥2kg→化成150g", chase:[
+    {timing:"定植4週後",amt:"化成30g/株"},
+    {timing:"その後3週間ごと",amt:"化成30g/株"},
+  ], tip:"肥料切れすると着果不良に" },
+  potato:      { base:"植付時: 堆肥2kg→化成150g（苦土石灰不要・そうか病の原因）", chase:[
+    {timing:"芽かき後（萌芽2〜3週後）",amt:"化成50g/株・土寄せと同時に"},
+  ], tip:"元肥にリン酸多めが芋の肥大に効果的" },
+  // ウリ科
+  cucumber:    { base:"定植1週前: 苦土石灰100g→堆肥2kg→化成150g", chase:[
+    {timing:"定植2週後",amt:"化成30g/株"},
+    {timing:"収穫始まったら10〜14日ごと",amt:"化成30g/株または液肥"},
+    {timing:"収穫最盛期",amt:"液肥を週1回追加"},
+  ], tip:"肥料切れが早い。葉色が薄くなる前に追肥" },
+  zucchini:    { base:"定植1週前: 苦土石灰100g→堆肥2kg→化成150g", chase:[
+    {timing:"開花始まったら（定植3週後頃）",amt:"化成30g/株"},
+    {timing:"その後2週間ごと",amt:"化成30g/株"},
+  ], tip:"大型になりやすいので肥料は控えめに" },
+  pumpkin:     { base:"定植1週前: 苦土石灰100g→堆肥2kg→化成100g", chase:[
+    {timing:"果実が卵大になった頃",amt:"化成30g/株"},
+  ], tip:"窒素多いと茎葉が茂り実がならない" },
+  watermelon:  { base:"定植2週前: 苦土石灰100g→堆肥2kg→化成100g", chase:[
+    {timing:"着果確認後（果実が鶏卵大）",amt:"化成30g/株"},
+  ], tip:"着果前の追肥は禁物。着果後に1回のみ" },
+  bitter_gourd:{ base:"定植1週前: 苦土石灰100g→堆肥2kg→化成150g", chase:[
+    {timing:"定植2週後",amt:"化成30g/株"},
+    {timing:"収穫始まったら2週ごと",amt:"化成30g/株"},
+  ], tip:"" },
+  // アブラナ科
+  cabbage:     { base:"定植1週前: 苦土石灰200g→堆肥3kg→化成150g", chase:[
+    {timing:"定植2週後（活着後）",amt:"化成50g/㎡"},
+    {timing:"結球開始時（外葉10枚頃）",amt:"化成50g/㎡・重要な追肥"},
+  ], tip:"結球開始時の追肥が最重要" },
+  broccoli:    { base:"定植1週前: 苦土石灰200g→堆肥2kg→化成150g", chase:[
+    {timing:"定植3週後",amt:"化成50g/㎡"},
+    {timing:"頂花蕾収穫後（側花蕾を増やす）",amt:"化成30g/㎡"},
+  ], tip:"頂花蕾収穫後も追肥して側花蕾を収穫" },
+  hakusai:     { base:"播種3週前: 苦土石灰150g→堆肥3kg→化成150g", chase:[
+    {timing:"定植2週後",amt:"化成40g/㎡"},
+    {timing:"結球開始時",amt:"化成50g/㎡・重要"},
+  ], tip:"結球期に肥料切れすると中が詰まらない" },
+  komatsuna:   { base:"播種1週前: 苦土石灰100g→堆肥1kg→化成100g", chase:[
+    {timing:"本葉2〜3枚（間引き後）",amt:"化成30g/㎡"},
+  ], tip:"短期作物なので元肥主体" },
+  // 根菜
+  carrot:      { base:"2週前: 苦土石灰100g→堆肥1kg→化成100g（石灰は早めに）", chase:[
+    {timing:"本葉5〜6枚（間引き後）",amt:"化成40g/㎡"},
+    {timing:"本葉10枚頃",amt:"化成40g/㎡"},
+  ], tip:"カリを多めに。窒素多いと又根になりやすい" },
+  radish:      { base:"播種2週前: 苦土石灰100g→堆肥1kg→化成100g", chase:[
+    {timing:"本葉4〜5枚（間引き後）",amt:"化成40g/㎡"},
+  ], tip:"短期作物。過剰施肥は又根・空洞の原因" },
+  sweetpotato: { base:"植付前: 堆肥2kg（元肥は少なめ）", chase:[
+    {timing:"基本不要",amt:"肥料多いと葉ばかり茂り芋がつかない"},
+  ], tip:"やせた土でも育つ。肥料のやりすぎに注意" },
+  onion:       { base:"定植3週前: 苦土石灰150g→堆肥1kg→化成100g", chase:[
+    {timing:"12月初旬（越冬前）",amt:"化成50g/㎡"},
+    {timing:"2月下旬〜3月（玉肥大期）",amt:"化成50g/㎡（最重要）"},
+    {timing:"3月下旬以降は追肥禁止",amt:"貯蔵性が下がるためNG"},
+  ], tip:"3月下旬以降の追肥は厳禁" },
+  garlic:      { base:"植付前: 苦土石灰100g→堆肥1kg→化成100g", chase:[
+    {timing:"12月（休眠前）",amt:"化成50g/㎡"},
+    {timing:"2月（萌芽後）",amt:"化成50g/㎡"},
+    {timing:"4月（鱗茎肥大期）",amt:"化成50g/㎡"},
+  ], tip:"" },
+  leek:        { base:"定植前: 苦土石灰150g→堆肥2kg→化成150g", chase:[
+    {timing:"定植1ヶ月後",amt:"化成50g/㎡・土寄せと同時に"},
+    {timing:"その後1ヶ月ごと（土寄せのたびに）",amt:"化成50g/㎡"},
+  ], tip:"土寄せのたびに追肥" },
+  // 葉物
+  lettuce:     { base:"播種2週前: 苦土石灰150g→堆肥1kg→化成100g", chase:[
+    {timing:"本葉5〜6枚",amt:"化成30g/㎡"},
+  ], tip:"短期なので元肥主体。結球前に肥料切れ注意" },
+  spinach:     { base:"播種2週前: 苦土石灰200g→堆肥1kg→化成100g（酸性に弱い）", chase:[
+    {timing:"本葉2〜3枚（間引き後）",amt:"化成30g/㎡"},
+  ], tip:"苦土石灰は必須。酸性土壌では発芽しない" },
+  edamame:     { base:"播種前: 苦土石灰100g→堆肥1kg→化成50g（少なめ）", chase:[
+    {timing:"開花始まった頃",amt:"化成30g/㎡（カリ多めで莢が充実）"},
+  ], tip:"マメ科なので窒素は少なめ。根粒菌が固定する" },
+  strawberry:  { base:"定植3週前: 苦土石灰150g→堆肥2kg→化成100g（リン多め）", chase:[
+    {timing:"10月中旬（活着後）",amt:"化成30g/株"},
+    {timing:"2月（花芽形成期）",amt:"化成20g/株（控えめに）"},
+    {timing:"収穫後（ランナー育成期）",amt:"化成30g/株"},
+  ], tip:"窒素多すぎると葉ばかり茂り甘くならない" },
+  // 果樹
+  apple:       { base:"落葉後11〜12月: 堆肥5kg→化成200g/㎡", chase:[
+    {timing:"6月（生理落果後）",amt:"化成100g/㎡（果実肥大）"},
+    {timing:"収穫後（礼肥）",amt:"化成100g/㎡"},
+  ], tip:"" },
+  blueberry:   { base:"2〜3月: 硫安または専用肥料（酸性好む・苦土石灰不要）", chase:[
+    {timing:"5月（果実肥大期）",amt:"専用肥料50g/株"},
+    {timing:"収穫後（礼肥）",amt:"専用肥料50g/株"},
+  ], tip:"pH4.5〜5.5の酸性土壌が必要。苦土石灰はNG" },
 };
 // ─────────────────────────────────────────────────────────────
 const getRecommendedTasks = (crop, logs) => {
@@ -800,7 +908,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v0.7.5</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v0.7.6</div>
       </div>
     </div>
   );
@@ -893,9 +1001,15 @@ function HomeScreen({ fields, crops, logs, costs, onEditCrop }) {
         const plantD=c.plantDate||c.sowDate;
         const harvestExpected=plantD?new Date(new Date(plantD).getTime()+harvestD*86400000):null;
         const daysToHarvest=harvestExpected?Math.ceil((harvestExpected-Date.now())/86400000):null;
-        const scheduleText=isFruit?null:
-          daysToHarvest!==null?(daysToHarvest<-14?"片付け時期":daysToHarvest<0?"収穫時期過ぎ":daysToHarvest===0?"本日収穫予定":daysToHarvest+"日後に収穫予定"):null;
-        const isPastHarvest=!isFruit&&daysToHarvest!==null&&daysToHarvest<0;
+        const hd = db.hd||0; // 収穫継続期間(日)
+        const inHarvestPeriod = !isFruit && daysToHarvest!==null && daysToHarvest<=0 && daysToHarvest>=-hd;
+        const isPastHarvest = !isFruit && daysToHarvest!==null && daysToHarvest<-hd;
+        const scheduleText = isFruit?null:
+          daysToHarvest===null?null:
+          isPastHarvest?"片付け時期":
+          inHarvestPeriod?"🎉 収穫期（"+Math.abs(daysToHarvest)+"日目）":
+          daysToHarvest===0?"本日収穫開始":
+          daysToHarvest+"日後に収穫開始";
         return (
           <div key={c.id} style={{...S.card,cursor:"pointer",borderLeft:daysToHarvest!==null&&daysToHarvest<=7&&daysToHarvest>=0?"3px solid #f0a500":"none"}} onClick={()=>onEditCrop&&onEditCrop(c)}>
             <div style={{display:"flex",gap:9,alignItems:"center"}}>
@@ -947,6 +1061,15 @@ function HomeScreen({ fields, crops, logs, costs, onEditCrop }) {
                 {!isPastHarvest&&tasks.length>0&&<div style={{marginTop:8,padding:"7px 10px",background:"#f0f9f0",borderRadius:8,borderLeft:"3px solid #2d6a3f"}}>
                   <div style={{fontSize:".65rem",color:"#2d6a3f",fontWeight:700,marginBottom:3}}>📋 今日の作業目安</div>
                   {tasks.map((t,i)=><div key={i} style={{fontSize:".72rem",color:"#1c1a14",lineHeight:1.6}}>・{t}</div>)}
+                  {FERT_GUIDE[c.type]&&<div style={{marginTop:5,paddingTop:5,borderTop:"1px solid #e0f0e0"}}>
+                    <div style={{fontSize:".65rem",color:"#2d6a3f",fontWeight:700,marginBottom:3}}>🌿 施肥ガイド</div>
+                    {FERT_GUIDE[c.type].chase.map((f,i)=>(
+                      <div key={i} style={{fontSize:".7rem",color:"#1c1a14",lineHeight:1.7}}>
+                        <span style={{color:"#5c3d1e",fontWeight:600}}>・{f.timing}：</span>{f.amt}
+                      </div>
+                    ))}
+                    {FERT_GUIDE[c.type].tip&&<div style={{fontSize:".68rem",color:"#888",marginTop:3}}>💡 {FERT_GUIDE[c.type].tip}</div>}
+                  </div>}
                 </div>}
               </>;
             })()}
