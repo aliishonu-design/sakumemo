@@ -1084,9 +1084,9 @@ function MasterScreen({ fertMs, setFertMs, pestMs, setPestMs, equips, setEquips,
           onClick={()=>setMItem({...newEquip,_idx:undefined})}>＋ 資材・設備を登録</button>
       </div>
 
-      {!filtered.length&&<div style={{color:TX3,fontSize:".82rem",padding:16,textAlign:"center"}}>資材がまだ登録されていません</div>}
+      {!shown.length&&<div style={{color:TX3,fontSize:".82rem",padding:16,textAlign:"center"}}>資材がまだ登録されていません</div>}
 
-      {filtered.map((item,i)=>(
+      {shown.map((item,i)=>(
         <div key={item.id||i} style={{...S.card,borderLeft:"4px solid "+(item._type==="fert"?"#6ee7b7":item._type==="pest"?"#fcd34d":"#a78bfa")}}>
           <div style={{display:"flex",alignItems:"flex-start",gap:10}}>
             <span style={{fontSize:"1.6rem",lineHeight:1.2}}>{item._icon}</span>
