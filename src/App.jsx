@@ -2408,20 +2408,19 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs }) {
         </select>}
       </div>
 
-      {/* 品目タブ */}
-      <div style={{marginBottom:10}}>
-        <div style={{display:"flex",gap:5,overflowX:"auto",paddingBottom:4,WebkitOverflowScrolling:"touch"}}>
-          <button onClick={()=>setSelCropId("all")}
-            style={{flexShrink:0,padding:"6px 12px",borderRadius:999,border:"1.5px solid "+(selCropId==="all"?G:BD),background:selCropId==="all"?G:"#fff",color:selCropId==="all"?"#fff":"#5a5040",fontSize:".75rem",fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
-            全体
+      {/* 品目リスト */}
+      <div style={{display:"flex",flexDirection:"column",gap:5,marginBottom:10}}>
+        <button onClick={()=>setSelCropId("all")}
+          style={{padding:"10px 14px",borderRadius:10,border:"1.5px solid "+(selCropId==="all"?G:BD),background:selCropId==="all"?G:"#fff",color:selCropId==="all"?"#fff":"#5a5040",fontSize:".84rem",fontWeight:700,cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>
+          📊 すべての品目
+        </button>
+        {cropStats.map(c=>(
+          <button key={c.id} onClick={()=>setSelCropId(c.id)}
+            style={{padding:"10px 14px",borderRadius:10,border:"1.5px solid "+(selCropId===c.id?G:BD),background:selCropId===c.id?G:"#fff",color:selCropId===c.id?"#fff":"#5a5040",fontSize:".84rem",fontWeight:700,cursor:"pointer",fontFamily:"inherit",textAlign:"left",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <span>{c.emoji} {c.name}{c.variety?" ("+c.variety+")":""}{c.ended?" 【終了】":""}</span>
+            <span style={{fontSize:".72rem",fontWeight:400,opacity:.85}}>{c.kg>0?c.kg.toFixed(1)+"kg · ":""}{c.logCount}件</span>
           </button>
-          {cropStats.map(c=>(
-            <button key={c.id} onClick={()=>setSelCropId(c.id)}
-              style={{flexShrink:0,padding:"6px 12px",borderRadius:999,border:"1.5px solid "+(selCropId===c.id?G:BD),background:selCropId===c.id?G:"#fff",color:selCropId===c.id?"#fff":"#5a5040",fontSize:".75rem",fontWeight:600,cursor:"pointer",fontFamily:"inherit",opacity:c.ended?.7:1}}>
-              {c.emoji} {c.name}{c.ended?" 【終了】":""}
-            </button>
-          ))}
-        </div>
+        ))}
       </div>
 
       {/* 選択品目の詳細 or 全体サマリー */}
