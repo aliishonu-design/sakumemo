@@ -908,7 +908,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v0.8.2</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v0.8.3</div>
       </div>
     </div>
   );
@@ -1849,18 +1849,19 @@ function LogScreen({ fields, crops, setCrops, fertMs, pestMs, equips, costs, set
       Object.assign(entry,{pestName,pestDil,pestAmt,pestUnit,pestTarget:pestTgt,pestCost});
       // 農薬費用はレポートで品目別集計するのみ（費用一覧には追加しない）
     }
-    if(work==="harvest") const grades = Object.entries(hvGrades).filter(([,v])=>v.kg||v.cnt);
-    const totalHvKg = grades.reduce((s,[,v])=>s+(parseFloat(v.kg)||0),0);
-    const totalHvCnt = grades.reduce((s,[,v])=>s+(parseInt(v.cnt)||0),0);
-    const gradeStr = grades.map(([q,v])=>`${q}:${v.kg?v.kg+'kg':''}${v.cnt?v.cnt+'個':''}`).join(',');
-    Object.assign(entry,{
-      hvKg: totalHvKg||hvKg,
-      hvCnt: totalHvCnt||hvCnt,
-      hvQ: grades.length>1?'品質別':hvQ,
-      hvPrice,
-      hvGrades: grades.length>0?hvGrades:null,
-      hvGradeStr: grades.length>0?gradeStr:'',
-    });
+    if(work==="harvest") {
+      const grades = Object.entries(hvGrades).filter(([,v])=>v.kg||v.cnt);
+      const totalHvKg = grades.reduce((s,[,v])=>s+(parseFloat(v.kg)||0),0);
+      const totalHvCnt = grades.reduce((s,[,v])=>s+(parseInt(v.cnt)||0),0);
+      const gradeStr = grades.map(([q,v])=>`${q}:${v.kg?v.kg+'kg':''}${v.cnt?v.cnt+'個':''}`).join(' / ');
+      Object.assign(entry,{
+        hvKg: totalHvKg>0?String(totalHvKg):hvKg,
+        hvCnt: totalHvCnt>0?String(totalHvCnt):hvCnt,
+        hvQ: grades.length>1?'品質別':grades.length===1?grades[0][0]:hvQ,
+        hvPrice,
+        hvGradeStr: grades.length>0?gradeStr:'',
+      });
+    }
     if(work==="equip")   Object.assign(entry,{equipIds:equipSel,equipAct});
     // 編集モードか新規か
     let newLogs;
