@@ -906,7 +906,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v0.9.8</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v0.9.9</div>
       </div>
     </div>
   );
@@ -1776,15 +1776,31 @@ function LogScreen({ fields, crops, setCrops, fertMs, pestMs, equips, costs, set
     setHvCnt(editLog.hvCnt||"");
     setHvQ(editLog.hvQ||"秀品");
     setHvPrice(editLog.hvPrice||"");
-    // 品質別収穫データを復元（常にhvQ/hvKg/hvCntから復元）
+    // 品質別収穫データを復元
     {
-      const q = editLog.hvQ&&editLog.hvQ!=='品質別' ? editLog.hvQ : '秀品';
-      setHvGrades({
-        秀品:{kg:q==='秀品'?editLog.hvKg||'':'', cnt:q==='秀品'?editLog.hvCnt||'':'', price:q==='秀品'?editLog.hvPrice||'':''},
-        優品:{kg:q==='優品'?editLog.hvKg||'':'', cnt:q==='優品'?editLog.hvCnt||'':'', price:q==='優品'?editLog.hvPrice||'':''},
-        良品:{kg:q==='良品'?editLog.hvKg||'':'', cnt:q==='良品'?editLog.hvCnt||'':'', price:q==='良品'?editLog.hvPrice||'':''},
-        規格外:{kg:q==='規格外'?editLog.hvKg||'':'', cnt:q==='規格外'?editLog.hvCnt||'':'', price:q==='規格外'?editLog.hvPrice||'':''},
-      });
+      const grades = ['秀品','優品','良品','規格外'];
+      const restored = {};
+      grades.forEach(g=>{restored[g]={kg:'',cnt:'',price:''};});
+      if(editLog.hvGradeStr){
+        // hvGradeStr: "秀品:10kg15個 / 優品:5kg10個" をパース
+        editLog.hvGradeStr.split('/').forEach(s=>{
+          const s2=s.trim();
+          const grade=grades.find(g=>s2.startsWith(g));
+          if(grade){
+            const kgM=s2.match(/([0-9.]+)kg/);
+            const cntM=s2.match(/([0-9]+)個/);
+            if(kgM) restored[grade].kg=kgM[1];
+            if(cntM) restored[grade].cnt=cntM[1];
+          }
+        });
+      } else {
+        // 旧データ: hvQ/hvKg/hvCntから復元
+        const q=editLog.hvQ&&grades.includes(editLog.hvQ)?editLog.hvQ:'秀品';
+        restored[q].kg=editLog.hvKg||'';
+        restored[q].cnt=editLog.hvCnt||'';
+        restored[q].price=editLog.hvPrice||'';
+      }
+      setHvGrades(restored);
     }
     setDiscardCnt(editLog.discardCnt||"");
     setAddCnt(editLog.addCnt||"");
@@ -1805,22 +1821,28 @@ function LogScreen({ fields, crops, setCrops, fertMs, pestMs, equips, costs, set
     r.start();recogRef.current=r;setIsRec(true);
   };
 
+  // 写真一括選択（1枚目からEXIF取得、最大3枚）
   const handleLogImg = async e => {
-    const f=e.target.files[0]; if(!f) return;
-    const exif = await extractExifDate(f);
+    const files = Array.from(e.target.files).slice(0,3);
+    if(!files.length) return;
+    // 1枚目からEXIF日時取得
+    const exif = await extractExifDate(files[0]);
     if(exif){setDate(exif.date);setTime(exif.time);showToast("写真から日時を取得しました");}
-    const { base64, blob } = await compressImage(f);
-    setLogImg({ base64, blob, name: uid0()+".jpg" });
+    const setters = [setLogImg, setLogImg2, setLogImg3];
+    for(let i=0;i<files.length;i++){
+      const {base64,blob} = await compressImage(files[i]);
+      setters[i]({base64, blob, name:uid0()+".jpg"});
+    }
   };
   const handleLogImg2 = async e => {
     const f=e.target.files[0]; if(!f) return;
-    const { base64, blob } = await compressImage(f);
-    setLogImg2({ base64, blob, name: uid0()+".jpg" });
+    const {base64,blob} = await compressImage(f);
+    setLogImg2({base64,blob,name:uid0()+".jpg"});
   };
   const handleLogImg3 = async e => {
     const f=e.target.files[0]; if(!f) return;
-    const { base64, blob } = await compressImage(f);
-    setLogImg3({ base64, blob, name: uid0()+".jpg" });
+    const {base64,blob} = await compressImage(f);
+    setLogImg3({base64,blob,name:uid0()+".jpg"});
   };
 
 
@@ -2053,7 +2075,7 @@ function LogScreen({ fields, crops, setCrops, fertMs, pestMs, equips, costs, set
         {works.has("equip")&&<div style={panelStyle("#f5f0ff","#c4b5fd")}><div style={ctitleStyle}>🏗️ 資材・設備作業</div><FG label="設備を選ぶ（複数可）"><select multiple size={4} value={equipSel.map(String)} onChange={e=>setEquipSel(Array.from(e.target.selectedOptions).map(o=>parseInt(o.value)))} style={{...S.inp,height:100}}>{equips.map((e,i)=><option key={i} value={i}>{e.name}（{e.cat}）</option>)}</select></FG><FG label="作業種別"><Sel value={equipAct} onChange={setEquipAct} options={["設置","撤去","着用","脱去","点検","修理","その他"].map(v=>({value:v,label:v}))}/></FG></div>}
         <FG label="📷 生育状況の写真（撮影日時を自動取得）">
           <div style={{border:"2px dashed "+BD,borderRadius:10,padding:14,textAlign:"center",cursor:"pointer",background:"#fafafa"}} onClick={()=>document.getElementById("logImgInp").click()}>
-            <input id="logImgInp" type="file" accept="image/" style={{display:"none"}} onChange={handleLogImg}/>
+            <input id="logImgInp" type="file" accept="image/" multiple style={{display:"none"}} onChange={handleLogImg}/>
             <div style={{fontSize:"1.5rem",marginBottom:2}}>📷</div>
             <p style={{fontSize:".72rem",color:TX3}}>タップして写真を追加（撮影日時を自動取得）</p>
           </div>
@@ -3050,7 +3072,7 @@ export default function App() {
       {/* 作業記録モーダル - 常にDOMに存在させて入力内容を保持 */}
       <div style={{position:"fixed",top:52,left:0,right:0,bottom:0,zIndex:9999,background:"#f8f5ef",display:"flex",flexDirection:"column",visibility:logModal?"visible":"hidden",pointerEvents:logModal?"auto":"none"}}>
           <div style={{background:GD,color:"#fff",padding:"11px 13px",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
-            <span style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".95rem",fontWeight:700}}>{initLog?"✏️ 作業を編集":works.size>0?[...works].map(w=>WORK_TYPES.find(x=>x.value===w)?.label||w).join(" / "):"📝 作業を選択"}</span>
+            <span style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".95rem",fontWeight:700}}>{initLog?"✏️ 作業を編集":"📝 記録する"}</span>
             <button onClick={()=>{setLogModal(false);setInitLog(null);}} style={{background:"rgba(255,255,255,.2)",border:"1px solid rgba(255,255,255,.3)",color:"#fff",borderRadius:8,padding:"6px 14px",fontSize:".82rem",fontWeight:700,cursor:"pointer"}}>✕</button>
           </div>
           <div style={{flex:1,overflowY:"auto",WebkitOverflowScrolling:"touch"}}>
