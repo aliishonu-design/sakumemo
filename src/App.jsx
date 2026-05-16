@@ -971,7 +971,7 @@ function HomeScreen({ fields, crops, logs, costs, onEditCrop }) {
 // MASTER
 function MasterScreen({ fertMs, setFertMs, pestMs, setPestMs, equips, setEquips, costs, setCosts, showToast }) {
   // 全資材を統合して管理
-  const [srchM,  setSrchM]  = useState("");
+  const [srchM, setSrchM] = useState("");
   const [mItem,  setMItem]  = useState(null);  // 編集モーダル
   const [mBuy,   setMBuy]   = useState(null);  // 購入モーダル
 
@@ -981,6 +981,10 @@ function MasterScreen({ fertMs, setFertMs, pestMs, setPestMs, equips, setEquips,
     ...pestMs.map((p,i)=>({...p, _type:"pest",  _idx:i, _label:"農薬",   _color:"#fef3c7", _tc:"#92400e", _icon:"🐛"})),
     ...equips.map((e,i)=>({...e, _type:"equip", _idx:i, _label:"設備・資材", _color:"#ede9fe", _tc:"#5b21b6", _icon:"🏗️"})),
   ];
+  const toHiraM=s=>(s||'').replace(/[ァ-ヶ]/g,c=>String.fromCharCode(c.charCodeAt(0)-0x60));
+  const toKataM=s=>(s||'').replace(/[ぁ-ゖ]/g,c=>String.fromCharCode(c.charCodeAt(0)+0x60));
+  const matchM=(t,w)=>{const a=(t||'').toLowerCase(),b=w.toLowerCase();return toHiraM(a).includes(toHiraM(b))||toKataM(a).includes(toKataM(b))||a.includes(b);};
+  const shown = srchM ? allItems.filter(x=>matchM(x.name,srchM)||matchM(x._label,srchM)||matchM(x.note,srchM)) : allItems;
 
   // 保存
   const saveItem = () => {
@@ -1075,7 +1079,8 @@ function MasterScreen({ fertMs, setFertMs, pestMs, setPestMs, equips, setEquips,
     <div style={S.scr} className="scr-inner">
       {/* フィルタータブ */}
       <div style={{display:"flex",gap:6,marginBottom:12,overflowX:"auto",WebkitOverflowScrolling:"touch"}}>
-                <div style={{flex:1}}/>
+        
+        <div style={{flex:1}}/>
         <button style={{...S.btn,background:G3,color:G,border:"1px solid "+G,borderRadius:999,padding:"6px 14px",fontSize:".78rem",fontWeight:700,width:"auto",flexShrink:0}}
           onClick={()=>setMItem({...newFert,_idx:undefined})}>＋ 肥料</button>
         <button style={{...S.btn,background:"#fffde7",color:"#92400e",border:"1px solid #f9e4a0",borderRadius:999,padding:"6px 14px",fontSize:".78rem",fontWeight:700,width:"auto",flexShrink:0}}
