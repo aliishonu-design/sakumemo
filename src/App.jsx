@@ -906,7 +906,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.0.7</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.0.8</div>
       </div>
     </div>
   );
@@ -1672,7 +1672,7 @@ function FieldsScreen({ fields, setFields, setFieldsR, crops, setCrops, setCrops
 }
 
 // LOG
-function LogScreen({ fields, crops, setCrops, fertMs, pestMs, equips, costs, setCosts, logs, setLogs, showToast, initialWork, editLog, editLogs=[], uid, onDone }) {
+function LogScreen({ fields, crops, setCrops, fertMs, pestMs, equips, costs, setCosts, logs, setLogs, dbSaveLog, setLogsR, showToast, initialWork, editLog, editLogs=[], uid, onDone }) {
   const [fieldIdx, setFieldIdx] = useState(0);
   const [cropId,   setCropId]   = useState("");
   const [works,    setWorks]    = useState(initialWork?new Set([initialWork]):new Set()); // 複数作業
