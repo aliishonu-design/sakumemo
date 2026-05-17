@@ -371,8 +371,8 @@ function makeGroupCard(card,showCropTag){
   var photoHtml='';
   if(photos.length){
     var pc='p'+Math.min(photos.length,3);
-    photoHtml='<div class="log-photos '+pc+'">'+photos.slice(0,3).map(function(src){
-      return '<img src="'+src+'" alt="" loading="lazy">';
+    photoHtml='<div class="log-photos-wrap '+pc+'">'+photos.slice(0,3).map(function(src){
+      return '<img src="'+src+'" alt="" loading="lazy" style="pointer-events:none">';
     }).join('')+'</div>';
   }
 
