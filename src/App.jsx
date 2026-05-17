@@ -906,7 +906,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.0.5</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.0.6</div>
       </div>
     </div>
   );
@@ -2001,7 +2001,7 @@ function LogScreen({ fields, crops, setCrops, fertMs, pestMs, equips, costs, set
     setFertName("");setFertAmt("");setPestName("");setPestDil("");setPestAmt("");
     if(kd){setDate(kd);setCropId(kc);if(kf!==null)setFieldIdx(kf);}
     setKeepDate("");setKeepCrop("");setKeepField(null);
-    if(!kd&&onDone) setTimeout(()=>onDone(), 600);モーダルを閉じる
+    if(!kd&&onDone) setTimeout(()=>onDone(), 600);
     setFertName("");setFertAmt("");setPestName("");setPestDil("");setPestAmt("");setPestTgt("");
     setDiscardCnt("");setAddCnt("");setEventType("");setEventNote("");
   };
@@ -2185,7 +2185,7 @@ function TimelineScreen({ fields, crops, equips, logs, setLogs, showToast, onEdi
   const groupDayLogs = (logs) => {
     const cards = [];
     logs.forEach(l=>{
-      const key = l.cropId+':'+l.fieldIdx;
+      const key = l.cropId+':'+l.fieldIdx+':'+l.date;
       const last = cards[cards.length-1];
       if(last && last.key===key) last.logs.push(l);
       else cards.push({key, logs:[l]});
@@ -2326,9 +2326,9 @@ function TimelineScreen({ fields, crops, equips, logs, setLogs, showToast, onEdi
                   </div>
                 ))}
                 {photos.length>0&&(
-                  <div style={{display:'flex',gap:4,marginTop:6,flexWrap:'wrap'}}>
+                  <div style={{display:'grid',gridTemplateColumns:photos.length===1?'1fr':photos.length===2?'1fr 1fr':'1fr 1fr 1fr',gap:3,marginTop:6,borderRadius:8,overflow:'hidden'}}>
                     {photos.map((src,i)=>(
-                      <img key={i} src={src} alt="" style={{width:72,height:72,objectFit:'cover',borderRadius:6,cursor:'zoom-in'}}
+                      <img key={i} src={src} alt="" style={{width:'100%',aspectRatio:'1/1',objectFit:'cover',cursor:'zoom-in',display:'block'}}
                         onClick={()=>window.open(src,'_blank')}/>
                     ))}
                   </div>
