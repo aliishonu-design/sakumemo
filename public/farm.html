@@ -314,6 +314,79 @@ function selectCrop(cropId){
 }
 
 // ログカード生成（旧スタイル）
+// 同日・同品目でログをグループ化
+function groupLogs(logs){
+  var cards=[];
+  logs.forEach(function(l){
+    var key=l.crop_id+':'+l.field_id;
+    var last=cards[cards.length-1];
+    if(last&&last.key===key&&last.date===l.date) last.logs.push(l);
+    else cards.push({key:key,date:l.date,logs:[l]});
+  });
+  return cards;
+}
+
+function makeGroupCard(card,showCropTag){
+  var l0=card.logs[0];
+  var crop=allCrops.find(function(c){return c.id===l0.crop_id;})||{};
+  var db=CDB[crop.type]||{};
+  var photos=[l0.img_src,l0.img2_src,l0.img3_src].filter(Boolean);
+
+  // 作業タグ
+  var tagHtml=card.logs.map(function(l){
+    var w=WORK[l.work]||{l:l.work||'',cls:'other'};
+    return '<span class="wt '+w.cls+'">'+w.l+'</span>';
+  }).join(' ');
+
+  // 品目タグ（タイムライン時）
+  var cropTagHtml='';
+  if(showCropTag&&crop.type){
+    var cname=crop.type==='custom'?(crop.custom_name||'その他'):(db.n||crop.type);
+    if(crop.variety)cname+=' ('+crop.variety+')';
+    cropTagHtml='<span class="log-crop-tag" onclick="selectCrop(''+crop.id+'')" style="cursor:pointer">'+(db.e||'🌱')+' '+cname+'</span>';
+  }
+
+  // 各作業の詳細
+  var detailHtml=card.logs.map(function(l){
+    var detail='';
+    if(l.fert_name)detail=l.fert_name+(l.fert_amt?' '+l.fert_amt+(l.fert_unit||''):'');
+    if(l.pest_name)detail=l.pest_name+(l.pest_dil?' '+l.pest_dil+'倍':'');
+    if(l.transplant_qty)detail='定植 '+l.transplant_qty+'株';
+    if(l.sow_qty)detail='播種 '+l.sow_qty+'粒';
+    if(l.event_type)detail=l.event_type+(l.event_note?' · '+l.event_note:'');
+    var hvStr='';
+    if(l.hv_grade_str){
+      hvStr='<div class="hv-box"><div><div class="hv-n">合計: '+(l.hv_kg?l.hv_kg+'kg ':'')+( l.hv_cnt?l.hv_cnt+'個':'')+'</div><div class="hv-l" style="font-size:.68rem">'+l.hv_grade_str+'</div></div></div>';
+    } else if(l.hv_kg||l.hv_cnt){
+      hvStr='<div class="hv-box">'+(l.hv_kg?'<div><div class="hv-n">'+l.hv_kg+'kg</div><div class="hv-l">収穫量</div></div>':'')+(l.hv_cnt?'<div><div class="hv-n">'+l.hv_cnt+'個</div><div class="hv-l">個数</div></div>':'')+'</div>';
+    }
+    return (detail?'<div class="log-detail">'+detail+'</div>':'')
+      +(l.memo?'<div class="log-memo">'+l.memo+'</div>':'')
+      +hvStr;
+  }).join('');
+
+  // 写真
+  var photoHtml='';
+  if(photos.length){
+    var pc='p'+Math.min(photos.length,3);
+    photoHtml='<div class="log-photos '+pc+'">'+photos.slice(0,3).map(function(src){
+      return '<img src="'+src+'" alt="" loading="lazy">';
+    }).join('')+'</div>';
+  }
+
+  return '<div class="log-card">'
+    +photoHtml
+    +'<div class="log-body">'
+    +'<div class="log-meta">'
+    +tagHtml
+    +cropTagHtml
+    +'<span class="log-date">'+fmtDate(l0.date)+'</span>'
+    +'</div>'
+    +detailHtml
+    +'</div>'
+    +'</div>';
+}
+
 function makeLogCard(l,showCropTag){
   var w=WORK[l.work]||{l:l.work||'',cls:'other'};
   var detail='';
@@ -385,7 +458,8 @@ function renderTimeline(){
     el.innerHTML='<div class="empty"><div class="empty-icon">📝</div><p>作業記録がまだありません</p></div>';
     return;
   }
-  el.innerHTML=logs.map(function(l){return makeLogCard(l,true);}).join('');
+  var cards=groupLogs(logs);
+  el.innerHTML=cards.map(function(card){return makeGroupCard(card,true);}).join('');
 }
 
 function renderCrop(cropId){
@@ -423,7 +497,7 @@ function renderCrop(cropId){
   var on=isFav(cropId);
   var logsHtml=cropLogs.length===0
     ?'<div class="empty"><div class="empty-icon">📝</div><p>作業記録がまだありません</p></div>'
-    :cropLogs.map(function(l){return makeLogCard(l,false);}).join('');
+    :groupLogs(cropLogs).map(function(card){return makeGroupCard(card,false);}).join('');
 
   el.innerHTML='<div class="crop-hero">'
     +'<div class="crop-hero-top">'
