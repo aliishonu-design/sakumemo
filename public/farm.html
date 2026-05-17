@@ -371,8 +371,9 @@ function makeGroupCard(card,showCropTag){
   var photoHtml='';
   if(photos.length){
     var pc='p'+Math.min(photos.length,3);
-    photoHtml='<div class="log-photos-wrap '+pc+'">'+photos.slice(0,3).map(function(src){
-      return '<img src="'+src+'" alt="" loading="lazy" style="pointer-events:none">';
+    var photosJson=JSON.stringify(photos);
+    photoHtml='<div class="log-photos-wrap '+pc+'">'+photos.slice(0,3).map(function(src,i){
+      return '<img src="'+src+'" alt="" loading="lazy" class="photo-img" onclick="openLightbox('+photosJson+','+i+')">';
     }).join('')+'</div>';
   }
 
