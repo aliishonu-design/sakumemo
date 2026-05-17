@@ -314,11 +314,11 @@ function selectCrop(cropId){
 }
 
 // ログカード生成（旧スタイル）
-// 同日・同品目でログをグループ化
+
 function groupLogs(logs){
   var cards=[];
   logs.forEach(function(l){
-    var key=l.crop_id+':'+l.field_id;
+    var key=(l.crop_id||'')+(l.field_idx||'');
     var last=cards[cards.length-1];
     if(last&&last.key===key&&last.date===l.date) last.logs.push(l);
     else cards.push({key:key,date:l.date,logs:[l]});
@@ -338,31 +338,33 @@ function makeGroupCard(card,showCropTag){
     return '<span class="wt '+w.cls+'">'+w.l+'</span>';
   }).join(' ');
 
-  // 品目タグ（タイムライン時）
+  // 品目タグ
   var cropTagHtml='';
   if(showCropTag&&crop.type){
     var cname=crop.type==='custom'?(crop.custom_name||'その他'):(db.n||crop.type);
     if(crop.variety)cname+=' ('+crop.variety+')';
-    cropTagHtml='<span class="log-crop-tag" onclick="selectCrop(''+crop.id+'')" style="cursor:pointer">'+(db.e||'🌱')+' '+cname+'</span>';
+    cropTagHtml='<span class="log-crop-tag" onclick="selectCrop(\''+crop.id+'\')" style="cursor:pointer">'+(db.e||'🌱')+' '+cname+'</span>';
   }
 
   // 各作業の詳細
   var detailHtml=card.logs.map(function(l){
-    var detail='';
-    if(l.fert_name)detail=l.fert_name+(l.fert_amt?' '+l.fert_amt+(l.fert_unit||''):'');
-    if(l.pest_name)detail=l.pest_name+(l.pest_dil?' '+l.pest_dil+'倍':'');
-    if(l.transplant_qty)detail='定植 '+l.transplant_qty+'株';
-    if(l.sow_qty)detail='播種 '+l.sow_qty+'粒';
-    if(l.event_type)detail=l.event_type+(l.event_note?' · '+l.event_note:'');
-    var hvStr='';
+    var parts=[];
+    if(l.fert_name) parts.push('<div class="log-detail">🌿 '+l.fert_name+(l.fert_amt?' '+l.fert_amt+(l.fert_unit||''):'')+'</div>');
+    if(l.pest_name) parts.push('<div class="log-detail">🐛 '+l.pest_name+(l.pest_dil?' '+l.pest_dil+'倍':'')+'</div>');
+    if(l.transplant_qty) parts.push('<div class="log-detail">🪴 定植 '+l.transplant_qty+'株</div>');
+    if(l.sow_qty) parts.push('<div class="log-detail">🌱 播種 '+l.sow_qty+'粒</div>');
+    if(l.event_type) parts.push('<div class="log-detail">'+l.event_type+(l.event_note?' · '+l.event_note:'')+'</div>');
+    if(l.memo) parts.push('<div class="log-memo">'+l.memo+'</div>');
     if(l.hv_grade_str){
-      hvStr='<div class="hv-box"><div><div class="hv-n">合計: '+(l.hv_kg?l.hv_kg+'kg ':'')+( l.hv_cnt?l.hv_cnt+'個':'')+'</div><div class="hv-l" style="font-size:.68rem">'+l.hv_grade_str+'</div></div></div>';
+      parts.push('<div class="hv-box"><div><div class="hv-n">🧺 合計: '+(l.hv_kg?l.hv_kg+'kg ':''+(l.hv_cnt?l.hv_cnt+'個':''))+'</div><div class="hv-l" style="font-size:.68rem">'+l.hv_grade_str+'</div></div></div>');
     } else if(l.hv_kg||l.hv_cnt){
-      hvStr='<div class="hv-box">'+(l.hv_kg?'<div><div class="hv-n">'+l.hv_kg+'kg</div><div class="hv-l">収穫量</div></div>':'')+(l.hv_cnt?'<div><div class="hv-n">'+l.hv_cnt+'個</div><div class="hv-l">個数</div></div>':'')+'</div>';
+      var hv='<div class="hv-box">';
+      if(l.hv_kg) hv+='<div><div class="hv-n">'+l.hv_kg+'kg</div><div class="hv-l">収穫量</div></div>';
+      if(l.hv_cnt) hv+='<div><div class="hv-n">'+l.hv_cnt+'個</div><div class="hv-l">個数</div></div>';
+      hv+='</div>';
+      parts.push(hv);
     }
-    return (detail?'<div class="log-detail">'+detail+'</div>':'')
-      +(l.memo?'<div class="log-memo">'+l.memo+'</div>':'')
-      +hvStr;
+    return parts.join('');
   }).join('');
 
   // 写真
