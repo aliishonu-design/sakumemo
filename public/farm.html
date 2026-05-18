@@ -389,7 +389,7 @@ function makeGroupCard(card,showCropTag){
   var photoHtml='';
   if(photos.length){
     var pc='p'+Math.min(photos.length,3);
-    var photosJson=JSON.stringify(photos);
+    var photosJson=JSON.stringify(photos).replace(/"/g,"'");
     photoHtml='<div class="log-photos-wrap '+pc+'">'+photos.slice(0,3).map(function(src,i){
       return '<img src="'+src+'" alt="" loading="lazy" class="photo-img" onclick="openLightbox('+photosJson+','+i+')">';
     }).join('')+'</div>';
