@@ -119,7 +119,10 @@ body{font-family:'Hiragino Sans','BIZ UDGothic',sans-serif;background:#f8f5ef;co
 </div>
 <div id="farm-header-wrap"></div>
 <div class="tab-bar" id="tab-bar" style="display:none">
-  <div class="tab-bar-inner" id="tabs-inner"></div>
+  <div style="max-width:680px;margin:0 auto;position:relative;display:flex;align-items:center;">
+    <div class="tab-bar-inner" id="tabs-inner" style="flex:1"></div>
+    <button id="tab-scroll-btn" onclick="scrollTabsRight()" style="display:none;flex-shrink:0;background:linear-gradient(to right,transparent,#fff 40%);border:none;padding:8px 6px 8px 14px;cursor:pointer;font-size:.9rem;color:#888;position:absolute;right:0;top:0;bottom:0;">▶</button>
+  </div>
 </div>
 <div class="main" id="main"><div class="loading">🌾 読み込み中…</div></div>
 
@@ -332,7 +335,11 @@ function makeGroupCard(card,showCropTag){
   var l0=card.logs[0];
   var crop=allCrops.find(function(c){return c.id===l0.crop_id;})||{};
   var db=CDB[crop.type]||{};
-  var photos=[l0.img_src,l0.img2_src,l0.img3_src].filter(Boolean);
+  // 全ログから写真を収集（最大3枚）
+  var photos=[];
+  card.logs.forEach(function(l){
+    [l.img_src,l.img2_src,l.img3_src].forEach(function(s){if(s&&photos.length<3)photos.push(s);});
+  });
 
   // 作業タグ
   var tagHtml=card.logs.map(function(l){
@@ -571,6 +578,18 @@ function doSearch(){
     var match=words.every(function(w){return matchWord(text,w);});
     card.style.display=match?'':'none';
   });
+}
+
+function scrollTabsRight(){
+  var inner=document.getElementById('tabs-inner');
+  inner.scrollBy({left:120,behavior:'smooth'});
+}
+function updateScrollBtn(){
+  var inner=document.getElementById('tabs-inner');
+  var btn=document.getElementById('tab-scroll-btn');
+  if(!inner||!btn)return;
+  var hasMore=inner.scrollWidth > inner.clientWidth + inner.scrollLeft + 10;
+  btn.style.display=hasMore?'block':'none';
 }
 
 async function main(){
