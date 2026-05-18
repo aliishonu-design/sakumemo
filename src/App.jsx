@@ -906,7 +906,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.0.9</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.1.0</div>
       </div>
     </div>
   );
@@ -1947,7 +1947,7 @@ function LogScreen({ fields, crops, setCrops, fertMs, pestMs, equips, costs, set
           }
           if(w==="discard") Object.assign(baseW,{discardCnt,addCnt});
           if(w==="sow") Object.assign(baseW,{sowQty,germinationCnt:germCnt,germinationDate:germDate});
-          if(w==="transplant") Object.assign(baseW,{transplantQty});
+          if(w==="transplant") Object.assign(baseW,{transplantQty:transpQty});
           if(w==="event") Object.assign(baseW,{eventType,eventNote});
         }
         // IDは既存のものを再利用（なければ新規）
