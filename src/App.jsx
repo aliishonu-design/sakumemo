@@ -906,7 +906,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.1.3</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.1.4</div>
       </div>
     </div>
   );
@@ -2302,9 +2302,17 @@ function TimelineScreen({ fields, crops, equips, logs, setLogs, showToast, onEdi
                   </div>
                 ))}
                 {photos.length>0&&(
-                  <div style={{display:'grid',gridTemplateColumns:photos.length===1?'120px':photos.length===2?'1fr 1fr':'1fr 1fr 1fr',gap:3,marginTop:6,borderRadius:8,overflow:'hidden',maxWidth:'100%'}}>
+                  <div style={{
+                    display:'grid',
+                    gridTemplateColumns:photos.length===1?'1fr':photos.length===2?'1fr 1fr':'1fr 1fr 1fr',
+                    gap:2,marginTop:6,borderRadius:8,overflow:'hidden'
+                  }}>
                     {photos.map((src,i)=>(
-                      <img key={i} src={src} alt="" style={{width:'100%',aspectRatio:'1/1',objectFit:'cover',display:'block',cursor:'pointer'}}
+                      <img key={i} src={src} alt="" style={{
+                        width:'100%',
+                        height:photos.length===1?'200px':photos.length===2?'150px':'110px',
+                        objectFit:'cover',display:'block',cursor:'pointer'
+                      }}
                         onClick={()=>{
                           const lb=document.createElement('div');
                           lb.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.92);z-index:99999;display:flex;align-items:center;justify-content:center;cursor:pointer';
