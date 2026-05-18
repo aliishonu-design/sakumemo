@@ -906,7 +906,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.1.0</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.1.1</div>
       </div>
     </div>
   );
@@ -1858,165 +1858,128 @@ function LogScreen({ fields, crops, setCrops, fertMs, pestMs, equips, costs, set
 
   const doSave = async () => {
     setSaving(true);
-    // 写真をStorageにアップロード（既存URLはそのまま使用）
-    let imgUrl = null, imgUrl2 = null, imgUrl3 = null;
-    if(logImg) {
-      if(logImg.existing) {
-        imgUrl = logImg.base64; // 既存URLをそのまま使う
-      } else if(logImg.blob && uid) {
-        try {
-          imgUrl = await Promise.race([
-            uploadPhoto(logImg.blob, uid, logImg.name),
-            new Promise(r => setTimeout(()=>r(null), 10000))
-          ]);
-        } catch(e) { console.error("logImg upload failed:", e); }
-      }
+    // 写真アップロード
+    let imgUrl=null, imgUrl2=null, imgUrl3=null;
+    if(logImg){
+      if(logImg.existing) imgUrl=logImg.base64;
+      else if(logImg.blob&&uid) try{ imgUrl=await Promise.race([uploadPhoto(logImg.blob,uid,logImg.name),new Promise(r=>setTimeout(()=>r(null),10000))]); }catch(e){}
     }
-        if(logImg2) {
-      if(logImg2.existing) { imgUrl2 = logImg2.base64; }
-      else if(logImg2.blob && uid) {
-        try {
-          [imgUrl2] = await Promise.all([
-            uploadPhoto(logImg2.blob, uid, logImg2.name),
-            new Promise(r => setTimeout(r, 0))
-          ]);
-        } catch(e) { console.error("img2 upload failed:", e); }
-      }
+    if(logImg2){
+      if(logImg2.existing) imgUrl2=logImg2.base64;
+      else if(logImg2.blob&&uid) try{ [imgUrl2]=await Promise.all([uploadPhoto(logImg2.blob,uid,logImg2.name),new Promise(r=>setTimeout(r,0))]); }catch(e){}
     }
-    if(logImg3) {
-      if(logImg3.existing) { imgUrl3 = logImg3.base64; }
-      else if(logImg3.blob && uid) {
-        try {
-          [imgUrl3] = await Promise.all([
-            uploadPhoto(logImg3.blob, uid, logImg3.name),
-            new Promise(r => setTimeout(r, 0))
-          ]);
-        } catch(e) { console.error("img3 upload failed:", e); }
-      }
+    if(logImg3){
+      if(logImg3.existing) imgUrl3=logImg3.base64;
+      else if(logImg3.blob&&uid) try{ [imgUrl3]=await Promise.all([uploadPhoto(logImg3.blob,uid,logImg3.name),new Promise(r=>setTimeout(r,0))]); }catch(e){}
     }
 
-    // 複数作業対応: works の各作業をエントリ化
-    const workList = works.size>0 ? [...works] : (work?[work]:["other"]);
-    const baseEntry = { fieldIdx, cropId, memo, date, time, duration:dur, imgSrc:imgUrl||null, imgSrc2:imgUrl2||null, imgSrc3:imgUrl3||null, sowQty, germinationCnt:germCnt, germinationDate:germDate, transplantQty:transpQty, discardCnt, addCnt, eventType, eventNote };
-    // 最初の作業エントリ（編集時はIDを維持）
-    const entry = { ...baseEntry, id:editId||uid0(), work:workList[0] };
-    if(work==="fert") {
-      Object.assign(entry,{fertName,fertAmt,fertUnit,fertMethod:fertMeth,fertCost});
-      // 施肥費用はレポートで品目別集計するのみ（費用一覧には追加しない）
-    }
-    if(work==="pest") {
-      Object.assign(entry,{pestName,pestDil,pestAmt,pestUnit,pestTarget:pestTgt,pestCost});
-      // 農薬費用はレポートで品目別集計するのみ（費用一覧には追加しない）
-    }
-    if(work==="harvest") {
-      const grades = Object.entries(hvGrades).filter(([,v])=>v.kg||v.cnt);
-      const totalHvKg = grades.reduce((s,[,v])=>s+(parseFloat(v.kg)||0),0);
-      const totalHvCnt = grades.reduce((s,[,v])=>s+(parseInt(v.cnt)||0),0);
-      const gradeStr = grades.map(([q,v])=>`${q}:${v.kg?v.kg+'kg':''}${v.cnt?v.cnt+'個':''}`).join(' / ');
-      Object.assign(entry,{
-        hvKg: totalHvKg>0?String(totalHvKg):hvKg,
-        hvCnt: totalHvCnt>0?String(totalHvCnt):hvCnt,
-        hvQ: grades.length>1?'品質別':grades.length===1?grades[0][0]:hvQ,
-        hvPrice,
-        hvGradeStr: grades.length>0?gradeStr:'',
+    // 作業リスト（複数選択対応）
+    const workList = works.size>0 ? [...works] : ['other'];
+
+    // 収穫データ計算
+    const hvGradeEntries = Object.entries(hvGrades).filter(([,v])=>v.kg||v.cnt);
+    const totalHvKg = hvGradeEntries.reduce((s,[,v])=>s+(parseFloat(v.kg)||0),0);
+    const totalHvCnt = hvGradeEntries.reduce((s,[,v])=>s+(parseInt(v.cnt)||0),0);
+    const gradeStr = hvGradeEntries.map(([q,v])=>q+':'+(v.kg?v.kg+'kg':'')+(v.cnt?v.cnt+'個':'')).join(' / ');
+
+    // 各作業のエントリを生成する関数
+    const makeEntry = (w, isFirst, existingId) => {
+      const e = {
+        id: existingId || uid0(),
+        fieldIdx, cropId, date, time, duration:dur, work:w,
+        // メモ・写真は1件目のみ
+        memo: isFirst ? memo : '',
+        imgSrc: isFirst ? imgUrl||null : null,
+        imgSrc2: isFirst ? imgUrl2||null : null,
+        imgSrc3: isFirst ? imgUrl3||null : null,
+        // 共通データ（全作業）
+        sowQty:'', germinationCnt:'', germinationDate:'',
+        transplantQty:'', discardCnt:'', addCnt:'',
+        eventType:'', eventNote:'',
+        fertName:'', fertAmt:'', fertUnit:'', fertMethod:'', fertCost:'',
+        pestName:'', pestDil:'', pestAmt:'', pestUnit:'', pestTarget:'', pestCost:'',
+        hvKg:'', hvCnt:'', hvQ:'秀品', hvPrice:'', hvGradeStr:'',
+        equipIds:[], equipAct:'',
+      };
+      // 作業固有の詳細データ
+      if(w==='fert') Object.assign(e,{fertName,fertAmt,fertUnit,fertMethod:fertMeth,fertCost});
+      if(w==='pest') Object.assign(e,{pestName,pestDil,pestAmt,pestUnit,pestTarget:pestTgt,pestCost});
+      if(w==='harvest') Object.assign(e,{
+        hvKg:totalHvKg>0?String(totalHvKg):hvKg,
+        hvCnt:totalHvCnt>0?String(totalHvCnt):hvCnt,
+        hvQ:hvGradeEntries.length>1?'品質別':hvGradeEntries.length===1?hvGradeEntries[0][0]:hvQ,
+        hvPrice, hvGradeStr:hvGradeEntries.length>0?gradeStr:'',
       });
-    }
-    if(work==="equip")   Object.assign(entry,{equipIds:equipSel,equipAct});
-    // 編集モードか新規か
-    let newLogs;
+      if(w==='equip') Object.assign(e,{equipIds:equipSel,equipAct});
+      if(w==='discard') Object.assign(e,{discardCnt,addCnt});
+      if(w==='sow') Object.assign(e,{sowQty,germinationCnt:germCnt,germinationDate:germDate});
+      if(w==='transplant') Object.assign(e,{transplantQty:transpQty});
+      if(w==='event') Object.assign(e,{eventType,eventNote});
+      return e;
+    };
+
     if(editId) {
-      // 複数作業の更新: editLogsの各IDに対してworkListを割り当て
+      // 編集: editLogsの各IDをworkListに対応
       const editLogIds = (editLogs&&editLogs.length>0) ? editLogs.map(l=>l.id) : [editId];
-      let allNewLogs = [...logs];
-      // 既存ログを削除（後で再追加）
-      const existingIds = new Set(editLogIds);
-      allNewLogs = allNewLogs.filter(l=>!existingIds.has(l.id));
-      // workListの各作業を更新または新規作成
-      const updatedEntries = workList.map((w,wi)=>{
-        const baseW = {...baseEntry, work:w};
-        if(wi===0){
-          // 1つ目は詳細データを含める
-          if(w==="fert") Object.assign(baseW,{fertName,fertAmt,fertUnit,fertMethod:fertMeth,fertCost});
-          if(w==="pest") Object.assign(baseW,{pestName,pestDil,pestAmt,pestUnit,pestTarget:pestTgt,pestCost});
-          if(w==="harvest"){
-            const grades=Object.entries(hvGrades).filter(([,v])=>v.kg||v.cnt);
-            const tKg=grades.reduce((s,[,v])=>s+(parseFloat(v.kg)||0),0);
-            const tCnt=grades.reduce((s,[,v])=>s+(parseInt(v.cnt)||0),0);
-            const gradeStr=grades.map(([q,v])=>`${q}:${v.kg?v.kg+'kg':''}${v.cnt?v.cnt+'個':''}`).join(' / ');
-            Object.assign(baseW,{hvKg:tKg>0?String(tKg):hvKg,hvCnt:tCnt>0?String(tCnt):hvCnt,hvQ:grades.length>1?'品質別':grades.length===1?grades[0][0]:hvQ,hvPrice,hvGradeStr:grades.length>0?gradeStr:''});
-          }
-          if(w==="discard") Object.assign(baseW,{discardCnt,addCnt});
-          if(w==="sow") Object.assign(baseW,{sowQty,germinationCnt:germCnt,germinationDate:germDate});
-          if(w==="transplant") Object.assign(baseW,{transplantQty:transpQty});
-          if(w==="event") Object.assign(baseW,{eventType,eventNote});
-        }
-        // IDは既存のものを再利用（なければ新規）
-        baseW.id = editLogIds[wi] || uid0();
-        // 2件目以降は詳細データをクリア
-        if(wi > 0){
-          baseW.memo=''; baseW.fertName=''; baseW.pestName='';
-          baseW.hvKg=''; baseW.hvCnt=''; baseW.hvQ='秀品'; baseW.hvPrice=''; baseW.hvGradeStr='';
-          baseW.sowQty=''; baseW.transplantQty=''; baseW.discardCnt=''; baseW.addCnt='';
-          baseW.eventType=''; baseW.eventNote='';
-        }
-        return baseW;
-      });
-      allNewLogs = [...allNewLogs, ...updatedEntries];
+      // 既存ログを削除してから再追加
+      const removeIds = new Set(editLogIds);
+      let allNewLogs = logs.filter(l=>!removeIds.has(l.id));
+      const newEntries = workList.map((w,i) => makeEntry(w, i===0, editLogIds[i]));
+      allNewLogs = [...allNewLogs, ...newEntries];
       setLogsR(allNewLogs);
-      updatedEntries.forEach(e=>dbSaveLog(e));
-      showToast("記録を更新しました！");
+      newEntries.forEach(e=>dbSaveLog(e));
+      // 削除されたエントリをDBから削除
+      editLogIds.slice(newEntries.length).forEach(id=>dbDelete('logs',id));
+      // 費用更新（施肥/農薬）
+      if(workList[0]==='fert'&&fertCost) {
+        const existing=costs.find(co=>co.cropId===cropId&&co.cat==='fert'&&co.logId===editId);
+        if(existing) setCosts(costs.map(co=>co.logId===editId?{...co,amt:fertCost}:co),{...existing,amt:fertCost});
+      }
+      if(workList[0]==='pest'&&pestCost) {
+        const existing=costs.find(co=>co.cropId===cropId&&co.cat==='pest'&&co.logId===editId);
+        if(existing) setCosts(costs.map(co=>co.logId===editId?{...co,amt:pestCost}:co),{...existing,amt:pestCost});
+      }
+      showToast('記録を更新しました！');
     } else {
-      // 新規追加
-      newLogs = [...logs, entry];
-      // 定植作業の場合、品目の定植日を自動更新
-      if(work==="transplant" && cropId && date) {
-        const updatedCrops = crops.map(c => {
-          if(c.id===cropId && !c.plantDate) return {...c, plantDate:date};
-          return c;
-        });
-        if(JSON.stringify(updatedCrops)!==JSON.stringify(crops)) {
-          const changedCrop=updatedCrops.find(c=>c.id===cropId);
-          setCrops(updatedCrops,changedCrop);
-          showToast("記録しました！（定植日を品目に反映しました）");
-        } else {
-          showToast("記録しました！");
-        }
-      } else {
-        showToast("記録しました！");
-      }
-      // 追加作業エントリ（2つ目以降）を保存
-      let allNewLogs = newLogs;
-      const extraEntries = [];
-      for(let wi=1;wi<workList.length;wi++){
-        const extra = { ...baseEntry, id:uid0(), work:workList[wi],
-          imgSrc:null, imgSrc2:null, imgSrc3:null }; // 写真は1つ目のみ
-        // 収穫以外の作業は収穫データをクリア
-        if(workList[wi]!=="harvest"){
-          extra.hvKg=""; extra.hvCnt=""; extra.hvQ="秀品"; extra.hvPrice=""; extra.hvGradeStr="";
-        }
-        extraEntries.push(extra);
-        allNewLogs = [...allNewLogs, extra];
-      }
+      // 新規
+      const newEntries = workList.map((w,i) => makeEntry(w, i===0, null));
+      const allNewLogs = [...logs, ...newEntries];
       setLogsR(allNewLogs);
-      dbSaveLog(entry);
-      extraEntries.forEach(e=>dbSaveLog(e));
+      newEntries.forEach(e=>dbSaveLog(e));
+      // 費用自動追加（施肥/農薬）
+      if(workList[0]==='fert'&&fertName&&fertCost&&cropId) {
+        const fc={id:uid0(),cat:'fert',cropId,name:fertName,amt:fertCost,date,qty:'1',qunit:'式',fieldIdx,fieldId:fields[fieldIdx]?.id||'',logId:newEntries[0].id,note:''};
+        setCosts([...costs,fc],fc);
+      }
+      if(workList[0]==='pest'&&pestName&&pestCost&&cropId) {
+        const pc={id:uid0(),cat:'pest',cropId,name:pestName,amt:pestCost,date,qty:'1',qunit:'式',fieldIdx,fieldId:fields[fieldIdx]?.id||'',logId:newEntries[0].id,note:''};
+        setCosts([...costs,pc],pc);
+      }
+      // 定植日更新
+      if(workList.includes('transplant')&&cropId&&date) {
+        const updatedCrops=crops.map(c=>c.id===cropId&&!c.plantDate?{...c,plantDate:date}:c);
+        if(JSON.stringify(updatedCrops)!==JSON.stringify(crops)){
+          const changed=updatedCrops.find(c=>c.id===cropId);
+          setCrops(updatedCrops,changed);
+        }
+      }
+      showToast('記録しました！');
     }
     setSaving(false);
     const kd=keepDate,kc=keepCrop,kf=keepField;
-    setWork("");setMemo("");setLogImg(null);setLogImg2(null);setLogImg3(null);setHvGrades({秀品:{kg:"",cnt:"",price:""},優品:{kg:"",cnt:"",price:""},良品:{kg:"",cnt:"",price:""},規格外:{kg:"",cnt:"",price:""}});
-    setSowQty("");setGermCnt("");setTranspQty("");
-    setHvKg("");setHvCnt("");setHvQ("秀品");setHvPrice("");
-    setFertName("");setFertAmt("");setPestName("");setPestDil("");setPestAmt("");
+    setWorks(new Set());setMemo('');setLogImg(null);setLogImg2(null);setLogImg3(null);
+    setHvGrades({秀品:{kg:'',cnt:'',price:''},優品:{kg:'',cnt:'',price:''},良品:{kg:'',cnt:'',price:''},規格外:{kg:'',cnt:'',price:''}});
+    setHvKg('');setHvCnt('');setHvQ('秀品');setHvPrice('');
+    setSowQty('');setGermCnt('');setTranspQty('');
+    setFertName('');setFertAmt('');setPestName('');setPestDil('');setPestAmt('');
+    setDiscardCnt('');setAddCnt('');setEquipSel([]);setEquipAct('設置');
+    setEventType('');setEventNote('');setDur('');
     if(kd){setDate(kd);setCropId(kc);if(kf!==null)setFieldIdx(kf);}
-    setKeepDate("");setKeepCrop("");setKeepField(null);
-    if(!kd&&onDone) setTimeout(()=>onDone(), 600);
-    setFertName("");setFertAmt("");setPestName("");setPestDil("");setPestAmt("");setPestTgt("");
-    setDiscardCnt("");setAddCnt("");setEventType("");setEventNote("");
+    setKeepDate('');setKeepCrop('');setKeepField(null);
+    if(!kd&&onDone) setTimeout(()=>onDone(),600);
   };
 
-  const panelStyle = (bg,bc) => ({...S.card,background:bg,borderColor:bc,marginBottom:7});
-  const ctitleStyle = {fontFamily:"'Shippori Mincho B1',serif",fontSize:".86rem",color:"#5c3d1e",marginBottom:8};
-
+  
   const doSaveAndAdd = () => {
     setKeepDate(date);
     setKeepCrop(cropId);
@@ -2195,7 +2158,10 @@ function TimelineScreen({ fields, crops, equips, logs, setLogs, showToast, onEdi
     logs.forEach(l=>{
       const key = l.cropId+':'+l.fieldIdx+':'+l.date;
       const last = cards[cards.length-1];
-      if(last && last.key===key) last.logs.push(l);
+      // 同じ日・品目・圃場で、かつ時間も同じかmemoが同じ場合にグループ化
+      const sameGroup = last && last.key===key &&
+        (last.logs[0].time===l.time || (!last.logs[0].time && !l.time));
+      if(sameGroup) last.logs.push(l);
       else cards.push({key, logs:[l]});
     });
     return cards;
