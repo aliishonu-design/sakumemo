@@ -120,9 +120,10 @@ body{font-family:'Hiragino Sans','BIZ UDGothic',sans-serif;background:#f8f5ef;co
 </div>
 <div id="farm-header-wrap"></div>
 <div class="tab-bar" id="tab-bar" style="display:none">
-  <div style="max-width:680px;margin:0 auto;position:relative;display:flex;align-items:center;">
-    <div class="tab-bar-inner" id="tabs-inner" style="flex:1"></div>
-    <button id="tab-scroll-btn" onclick="scrollTabsRight()" style="display:none;flex-shrink:0;background:linear-gradient(to right,transparent,#fff 40%);border:none;padding:8px 6px 8px 14px;cursor:pointer;font-size:.9rem;color:#888;position:absolute;right:0;top:0;bottom:0;">▶</button>
+  <div style="max-width:680px;margin:0 auto;display:flex;align-items:center;">
+    <button id="tab-scroll-left" onclick="scrollTabsLeft()" style="display:none;flex-shrink:0;background:#fff;border:none;border-right:1px solid #e0d9ce;padding:6px 10px;cursor:pointer;font-size:.82rem;color:#5a5040;font-weight:700;">◀</button>
+    <div class="tab-bar-inner" id="tabs-inner" style="flex:1;overflow-x:auto;"></div>
+    <button id="tab-scroll-right" onclick="scrollTabsRight()" style="display:none;flex-shrink:0;background:#fff;border:none;border-left:1px solid #e0d9ce;padding:6px 10px;cursor:pointer;font-size:.82rem;color:#5a5040;font-weight:700;">▶</button>
   </div>
 </div>
 <div class="main" id="main"><div class="loading">🌾 読み込み中…</div></div>
@@ -625,6 +626,8 @@ async function main(){
     document.getElementById('tab-bar').style.display='';
     buildTabs();
     setTimeout(updateScrollBtn,300);
+    var inner2=document.getElementById('tabs-inner');
+    if(inner2) inner2.addEventListener('scroll',updateScrollBtn);
 
     if(cropParam&&allCrops.find(function(c){return c.id===cropParam;})){
       selectCrop(cropParam);
