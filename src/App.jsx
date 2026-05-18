@@ -34,8 +34,8 @@ const fieldToDb   = (o, uid) => ({ id:o.id, user_id:uid, name:o.name||"", area:o
 const fieldFromDb = r => ({ id:r.id, name:r.name||"", area:r.area||"", soil:r.soil||"", addr:r.addr||"", memo:r.memo||"" });
 const cropToDb    = (o, uid) => ({ id:o.id, user_id:uid, field_id:o.fieldId||null, type:o.type||null, variety:o.variety||null, germ_rate:o.germRate||null, stocks:o.stocks||null, ridge_w:o.ridgeW||null, ridge_h:o.ridgeH||null, rows:o.rows||null, row_space:o.rowSpace||null, plant_space:o.plantSpace||null, sow_date:o.sowDate||null, plant_date:o.plantDate||null, memo:o.memo||null, cultivation_type:o.cultivationType||null, seed_cost:o.seedCost||null, seed_note:o.seedNote||null, custom_name:o.customName||null, ended:o.ended||false, end_date:o.endDate||null, maturity:o.maturity||null, custom_days:o.customDays||null, custom_water:o.customWater||null, pot_size:o.potSize||null, pot_volume:o.potVolume||null, pot_count:o.potCount||null, grow_env:o.growEnv||null, agri_month_start:o.agriMonthStart||null });
 const cropFromDb  = (r, fields) => { const fi = fields.findIndex(f=>f.id===r.field_id); return { id:r.id, fieldId:r.field_id||"", fieldIdx:fi>=0?fi:0, type:r.type||"", variety:r.variety||"", germRate:r.germ_rate||"", stocks:r.stocks||"", ridgeW:r.ridge_w||"", ridgeH:r.ridge_h||"", rows:r.rows||"", rowSpace:r.row_space||"", plantSpace:r.plant_space||"", sowDate:r.sow_date||"", plantDate:r.plant_date||"", memo:r.memo||"", cultivationType:r.cultivation_type||"transplant", seedCost:r.seed_cost||"", seedNote:r.seed_note||"", customName:r.custom_name||"", ended:r.ended||false, endDate:r.end_date||"", maturity:r.maturity||"mid", customDays:r.custom_days||"", customWater:r.custom_water||"", potSize:r.pot_size||"", potVolume:r.pot_volume||"", potCount:r.pot_count||"", growEnv:r.grow_env||"field", agriMonthStart:r.agri_month_start||"" }; };
-const logToDb     = (o, uid, fields) => ({ id:o.id, user_id:uid, field_id:fields[o.fieldIdx]?.id||o.fieldId||null, crop_id:o.cropId||null, work:o.work||null, memo:o.memo||null, date:o.date||null, time:o.time||null, duration:o.duration||null, img_src:o.imgSrc||null, img2_src:o.imgSrc2||null, img3_src:o.imgSrc3||null, fert_name:o.fertName||null, fert_amt:o.fertAmt||null, fert_unit:o.fertUnit||null, fert_method:o.fertMethod||null, fert_cost:o.fertCost||null, pest_name:o.pestName||null, pest_dil:o.pestDil||null, pest_amt:o.pestAmt||null, pest_unit:o.pestUnit||null, pest_tgt:o.pestTarget||null, pest_cost:o.pestCost||null, hv_kg:o.hvKg||null, hv_cnt:o.hvCnt||null, hv_q:o.hvQ||null, hv_price:o.hvPrice||null, equip_ids:o.equipIds||null, equip_act:o.equipAct||null, sow_qty:o.sowQty||null, germination_cnt:o.germinationCnt||null, germ_date:o.germinationDate||null, transplant_qty:o.transplantQty||null, discard_cnt:o.discardCnt||null, add_cnt:o.addCnt||null, event_type:o.eventType||null, event_note:o.eventNote||null });
-const logFromDb   = (r, fields) => { const fi=fields.findIndex(f=>f.id===r.field_id); return { id:r.id, fieldId:r.field_id||"", fieldIdx:fi>=0?fi:0, cropId:r.crop_id||"", work:r.work||"", memo:r.memo||"", date:r.date||"", time:r.time||"", duration:r.duration||"", imgSrc:r.img_src||null, imgSrc2:r.img2_src||null, imgSrc3:r.img3_src||null, aiReply:"", fertName:r.fert_name||"", fertAmt:r.fert_amt||"", fertUnit:r.fert_unit||"", fertMethod:r.fert_method||"", fertCost:r.fert_cost||"", pestName:r.pest_name||"", pestDil:r.pest_dil||"", pestAmt:r.pest_amt||"", pestUnit:r.pest_unit||"", pestTarget:r.pest_target||"", pestCost:r.pest_cost||"", hvKg:r.hv_kg||"", hvCnt:r.hv_cnt||"", hvQ:r.hv_q||"", hvPrice:r.hv_price||"", hvImgSrc:r.hv_img_src||null, equipIds:r.equip_ids||[], equipAct:r.equip_act||"", hvGradeStr:r.hv_grade_str||"", sowQty:r.sow_qty||"", germinationCnt:r.germination_cnt||"", germinationDate:r.germination_date||"", transplantQty:r.transplant_qty||"", discardCnt:r.discard_cnt||"", addCnt:r.add_cnt||"", eventType:r.event_type||"", eventNote:r.event_note||"" }; };
+const logToDb     = (o, uid, fields) => ({ id:o.id, user_id:uid, field_id:fields[o.fieldIdx]?.id||o.fieldId||null, crop_id:o.cropId||null, work:o.work||null, memo:o.memo||null, date:o.date||null, time:o.time||null, duration:o.duration||null, img_src:o.imgSrc||null, img2_src:o.imgSrc2||null, img3_src:o.imgSrc3||null, fert_name:o.fertName||null, fert_amt:o.fertAmt||null, fert_unit:o.fertUnit||null, fert_method:o.fertMethod||null, fert_cost:o.fertCost||null, pest_name:o.pestName||null, pest_dil:o.pestDil||null, pest_amt:o.pestAmt||null, pest_unit:o.pestUnit||null, pest_tgt:o.pestTarget||null, pest_cost:o.pestCost||null, hv_kg:o.hvKg||null, hv_cnt:o.hvCnt||null, hv_q:o.hvQ||null, hv_price:o.hvPrice||null, equip_ids:o.equipIds||null, equip_act:o.equipAct||null, sow_qty:o.sowQty||null, germination_cnt:o.germinationCnt||null, germ_date:o.germinationDate||null, transplant_qty:o.transplantQty||null, discard_cnt:o.discardCnt||null, add_cnt:o.addCnt||null, event_type:o.eventType||null, event_note:o.eventNote||null, hv_grade_str:o.hvGradeStr||null });
+const logFromDb   = (r, fields) => { const fi=fields.findIndex(f=>f.id===r.field_id); return { id:r.id, fieldId:r.field_id||"", fieldIdx:fi>=0?fi:0, cropId:r.crop_id||"", work:r.work||"", memo:r.memo||"", date:r.date||"", time:r.time||"", duration:r.duration||"", imgSrc:r.img_src||null, imgSrc2:r.img2_src||null, imgSrc3:r.img3_src||null, aiReply:"", fertName:r.fert_name||"", fertAmt:r.fert_amt||"", fertUnit:r.fert_unit||"", fertMethod:r.fert_method||"", fertCost:r.fert_cost||"", pestName:r.pest_name||"", pestDil:r.pest_dil||"", pestAmt:r.pest_amt||"", pestUnit:r.pest_unit||"", pestTarget:r.pest_target||"", pestCost:r.pest_cost||"", hvKg:r.hv_kg!=null?String(r.hv_kg):"", hvCnt:r.hv_cnt!=null?String(r.hv_cnt):"", hvQ:r.hv_q||"", hvPrice:r.hv_price||"", hvImgSrc:r.hv_img_src||null, equipIds:r.equip_ids||[], equipAct:r.equip_act||"", hvGradeStr:r.hv_grade_str||"", sowQty:r.sow_qty||"", germinationCnt:r.germination_cnt||"", germinationDate:r.germination_date||"", transplantQty:r.transplant_qty||"", discardCnt:r.discard_cnt||"", addCnt:r.add_cnt||"", eventType:r.event_type||"", eventNote:r.event_note||"" }; };
 const fertMToDb   = (o, uid) => ({ id:o.id, user_id:uid, name:o.name||null, type:o.type||null, price:o.price||null, capacity:o.capacity||null, cunit:o.cunit||null, note:o.note||null });
 const fertMFromDb = r => ({ id:r.id, name:r.name||"", type:r.type||"", price:r.price||"", capacity:r.capacity||"", cunit:r.cunit||"", note:r.note||"" });
 const pestMToDb   = (o, uid) => ({ id:o.id, user_id:uid, name:o.name||null, type:o.type||null, target:o.target||null, capacity:o.capacity||null, sunit:o.sunit||null, price:o.price||null, note:o.note||null });const pestMFromDb = r => ({ id:r.id, name:r.name||"", type:r.type||"", target:r.target||"", capacity:r.capacity||"", sunit:r.sunit||"", price:r.price||"", note:r.note||"" });
@@ -906,7 +906,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.0.8</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.0.9</div>
       </div>
     </div>
   );
@@ -1791,8 +1791,8 @@ function LogScreen({ fields, crops, setCrops, fertMs, pestMs, equips, costs, set
           const s2=s.trim();
           const grade=grades.find(g=>s2.startsWith(g));
           if(grade){
-            const kgM=s2.match(/([0-9.]+)kg/);
-            const cntM=s2.match(/([0-9]+)個/);
+            const kgM=s2.match(/([0-9.]+)\s*kg/);
+            const cntM=s2.match(/([0-9]+)\s*個/);
             if(kgM) restored[grade].kg=kgM[1];
             if(cntM) restored[grade].cnt=cntM[1];
           }
@@ -1952,6 +1952,13 @@ function LogScreen({ fields, crops, setCrops, fertMs, pestMs, equips, costs, set
         }
         // IDは既存のものを再利用（なければ新規）
         baseW.id = editLogIds[wi] || uid0();
+        // 2件目以降は詳細データをクリア
+        if(wi > 0){
+          baseW.memo=''; baseW.fertName=''; baseW.pestName='';
+          baseW.hvKg=''; baseW.hvCnt=''; baseW.hvQ='秀品'; baseW.hvPrice=''; baseW.hvGradeStr='';
+          baseW.sowQty=''; baseW.transplantQty=''; baseW.discardCnt=''; baseW.addCnt='';
+          baseW.eventType=''; baseW.eventNote='';
+        }
         return baseW;
       });
       allNewLogs = [...allNewLogs, ...updatedEntries];
@@ -1990,8 +1997,9 @@ function LogScreen({ fields, crops, setCrops, fertMs, pestMs, equips, costs, set
         extraEntries.push(extra);
         allNewLogs = [...allNewLogs, extra];
       }
-      setLogs(allNewLogs);
-      extraEntries.forEach(e=>setLogs(allNewLogs,e));
+      setLogsR(allNewLogs);
+      dbSaveLog(entry);
+      extraEntries.forEach(e=>dbSaveLog(e));
     }
     setSaving(false);
     const kd=keepDate,kc=keepCrop,kf=keepField;
