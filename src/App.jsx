@@ -906,7 +906,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.1.2</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.1.3</div>
       </div>
     </div>
   );
@@ -1866,11 +1866,11 @@ function LogScreen({ fields, crops, setCrops, fertMs, pestMs, equips, costs, set
     }
     if(logImg2){
       if(logImg2.existing) imgUrl2=logImg2.base64;
-      else if(logImg2.blob&&uid) try{ [imgUrl2]=await Promise.all([uploadPhoto(logImg2.blob,uid,logImg2.name),new Promise(r=>setTimeout(r,0))]); }catch(e){}
+      else if(logImg2.blob&&uid) try{ imgUrl2=await uploadPhoto(logImg2.blob,uid,logImg2.name); }catch(e){}
     }
     if(logImg3){
       if(logImg3.existing) imgUrl3=logImg3.base64;
-      else if(logImg3.blob&&uid) try{ [imgUrl3]=await Promise.all([uploadPhoto(logImg3.blob,uid,logImg3.name),new Promise(r=>setTimeout(r,0))]); }catch(e){}
+      else if(logImg3.blob&&uid) try{ imgUrl3=await uploadPhoto(logImg3.blob,uid,logImg3.name); }catch(e){}
     }
 
     // 作業リスト（複数選択対応）
