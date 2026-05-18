@@ -906,7 +906,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.1.1</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.1.2</div>
       </div>
     </div>
   );
@@ -1980,6 +1980,8 @@ function LogScreen({ fields, crops, setCrops, fertMs, pestMs, equips, costs, set
   };
 
   
+  const panelStyle = (bg,bc) => ({...S.card,background:bg,borderColor:bc,marginBottom:7});
+  const ctitleStyle = {fontFamily:"'Shippori Mincho B1',serif",fontSize:".86rem",color:"#5c3d1e",marginBottom:8};
   const doSaveAndAdd = () => {
     setKeepDate(date);
     setKeepCrop(cropId);
