@@ -101,6 +101,8 @@ body{font-family:'Hiragino Sans','BIZ UDGothic',sans-serif;background:#f8f5ef;co
 .lightbox-prev{left:12px;}
 .lightbox-next{right:12px;}
 
+
+.date-header{font-size:.72rem;font-weight:700;color:#5c3d1e;padding:4px 2px;border-bottom:2px solid #e0d9ce;margin:12px 0 8px;}
 .empty{text-align:center;padding:48px 20px;color:#aaa;}
 .empty-icon{font-size:2.2rem;margin-bottom:10px;}
 .loading{text-align:center;padding:48px;color:#aaa;}
@@ -318,6 +320,18 @@ function selectCrop(cropId){
 
 // ログカード生成（旧スタイル）
 
+function groupByDate(logs){
+  var days=[];
+  var grouped=groupLogs(logs);
+  grouped.forEach(function(card){
+    var d=card.date||'日付なし';
+    var last=days[days.length-1];
+    if(last&&last.date===d) last.cards.push(card);
+    else days.push({date:d,cards:[card]});
+  });
+  return days;
+}
+
 function groupLogs(logs){
   var cards=[];
   logs.forEach(function(l){
@@ -470,8 +484,11 @@ function renderTimeline(){
     el.innerHTML='<div class="empty"><div class="empty-icon">📝</div><p>作業記録がまだありません</p></div>';
     return;
   }
-  var cards=groupLogs(logs);
-  el.innerHTML=cards.map(function(card){return makeGroupCard(card,true);}).join('');
+  var days=groupByDate(logs);
+  el.innerHTML=days.map(function(day){
+    return '<div class="date-header">📅 '+day.date+'</div>'
+      +day.cards.map(function(card){return makeGroupCard(card,true);}).join('');
+  }).join('');
 }
 
 function renderCrop(cropId){
@@ -509,7 +526,10 @@ function renderCrop(cropId){
   var on=isFav(cropId);
   var logsHtml=cropLogs.length===0
     ?'<div class="empty"><div class="empty-icon">📝</div><p>作業記録がまだありません</p></div>'
-    :groupLogs(cropLogs).map(function(card){return makeGroupCard(card,false);}).join('');
+    :groupByDate(cropLogs).map(function(day){
+      return '<div class="date-header">📅 '+day.date+'</div>'
+        +day.cards.map(function(card){return makeGroupCard(card,false);}).join('');
+    }).join('');
 
   el.innerHTML='<div class="crop-hero">'
     +'<div class="crop-hero-top">'
