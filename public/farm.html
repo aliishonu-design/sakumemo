@@ -11,7 +11,7 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:'Hiragino Sans','BIZ UDGothic',sans-serif;background:#f8f5ef;color:#1c1a14;min-height:100svh;}
-.photo-img{-webkit-user-drag:none;user-select:none;-webkit-touch-callout:none;cursor:pointer;pointer-events:auto;} #lightbox-img{-webkit-user-drag:none;user-select:none;-webkit-touch-callout:none;pointer-events:none;}
+.photo-img{-webkit-user-drag:none;user-select:none;-webkit-touch-callout:none;} #lightbox-img{-webkit-user-drag:none;user-select:none;-webkit-touch-callout:none;pointer-events:none;}
 .top-bar{background:linear-gradient(135deg,#2d6a3f,#419857);padding:10px 16px;display:flex;align-items:center;justify-content:center;position:sticky;top:0;z-index:200;}
 .search-bar{background:#fff;border:none;border-radius:20px;padding:7px 14px;font-size:15px;font-family:inherit;width:100%;max-width:680px;outline:none;color:#1c1a14;}
 .search-bar::placeholder{color:#aaa;}
@@ -100,7 +100,6 @@ body{font-family:'Hiragino Sans','BIZ UDGothic',sans-serif;background:#f8f5ef;co
 .lightbox-prev,.lightbox-next{position:absolute;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.15);border:none;color:#fff;width:40px;height:40px;border-radius:50%;font-size:1.2rem;cursor:pointer;display:flex;align-items:center;justify-content:center;}
 .lightbox-prev{left:12px;}
 .lightbox-next{right:12px;}
-
 
 .date-header{font-size:.72rem;font-weight:700;color:#5c3d1e;padding:4px 2px;border-bottom:2px solid #e0d9ce;margin:12px 0 8px;}
 .empty{text-align:center;padding:48px 20px;color:#aaa;}
@@ -319,100 +318,6 @@ function selectCrop(cropId){
 }
 
 // ログカード生成（旧スタイル）
-
-function groupByDate(logs){
-  var days=[];
-  var grouped=groupLogs(logs);
-  grouped.forEach(function(card){
-    var d=card.date||'日付なし';
-    var last=days[days.length-1];
-    if(last&&last.date===d) last.cards.push(card);
-    else days.push({date:d,cards:[card]});
-  });
-  return days;
-}
-
-function groupLogs(logs){
-  var cards=[];
-  logs.forEach(function(l){
-    var key=(l.crop_id||'')+(l.field_id||'')+(l.date||'');
-    var last=cards[cards.length-1];
-    var sameGroup=last&&last.key===key&&
-      (last.logs[0].time===l.time||(!last.logs[0].time&&!l.time));
-    if(sameGroup) last.logs.push(l);
-    else cards.push({key:key,date:l.date,logs:[l]});
-  });
-  return cards;
-}
-
-function makeGroupCard(card,showCropTag){
-  var l0=card.logs[0];
-  var crop=allCrops.find(function(c){return c.id===l0.crop_id;})||{};
-  var db=CDB[crop.type]||{};
-  // 全ログから写真を収集（最大3枚）
-  var photos=[];
-  card.logs.forEach(function(l){
-    [l.img_src,l.img2_src,l.img3_src].forEach(function(s){if(s&&photos.length<3)photos.push(s);});
-  });
-
-  // 作業タグ
-  var tagHtml=card.logs.map(function(l){
-    var w=WORK[l.work]||{l:l.work||'',cls:'other'};
-    return '<span class="wt '+w.cls+'">'+w.l+'</span>';
-  }).join(' ');
-
-  // 品目タグ
-  var cropTagHtml='';
-  if(showCropTag&&crop.type){
-    var cname=crop.type==='custom'?(crop.custom_name||'その他'):(db.n||crop.type);
-    if(crop.variety)cname+=' ('+crop.variety+')';
-    cropTagHtml='<span class="log-crop-tag" onclick="selectCrop(\''+crop.id+'\')" style="cursor:pointer">'+(db.e||'🌱')+' '+cname+'</span>';
-  }
-
-  // 各作業の詳細
-  var detailHtml=card.logs.map(function(l){
-    var parts=[];
-    if(l.fert_name) parts.push('<div class="log-detail">🌿 '+l.fert_name+(l.fert_amt?' '+l.fert_amt+(l.fert_unit||''):'')+'</div>');
-    if(l.pest_name) parts.push('<div class="log-detail">🐛 '+l.pest_name+(l.pest_dil?' '+l.pest_dil+'倍':'')+'</div>');
-    if(l.transplant_qty) parts.push('<div class="log-detail">🪴 定植 '+l.transplant_qty+'株</div>');
-    if(l.sow_qty) parts.push('<div class="log-detail">🌱 播種 '+l.sow_qty+'粒</div>');
-    if(l.event_type) parts.push('<div class="log-detail">'+l.event_type+(l.event_note?' · '+l.event_note:'')+'</div>');
-    if(l.memo) parts.push('<div class="log-memo">'+l.memo+'</div>');
-    if(l.hv_grade_str){
-      parts.push('<div class="hv-box"><div><div class="hv-n">🧺 合計: '+(l.hv_kg?l.hv_kg+'kg ':''+(l.hv_cnt?l.hv_cnt+'個':''))+'</div><div class="hv-l" style="font-size:.68rem">'+l.hv_grade_str+'</div></div></div>');
-    } else if(l.hv_kg||l.hv_cnt){
-      var hv='<div class="hv-box">';
-      if(l.hv_kg) hv+='<div><div class="hv-n">'+l.hv_kg+'kg</div><div class="hv-l">収穫量</div></div>';
-      if(l.hv_cnt) hv+='<div><div class="hv-n">'+l.hv_cnt+'個</div><div class="hv-l">個数</div></div>';
-      hv+='</div>';
-      parts.push(hv);
-    }
-    return parts.join('');
-  }).join('');
-
-  // 写真
-  var photoHtml='';
-  if(photos.length){
-    var pc='p'+Math.min(photos.length,3);
-    var photosJson=JSON.stringify(photos);
-    photoHtml='<div class="log-photos-wrap '+pc+'">'+photos.slice(0,3).map(function(src,i){
-      return '<img src="'+src+'" alt="" loading="lazy" class="photo-img" onclick="openLightbox('+photosJson+','+i+')">';
-    }).join('')+'</div>';
-  }
-
-  return '<div class="log-card">'
-    +photoHtml
-    +'<div class="log-body">'
-    +'<div class="log-meta">'
-    +tagHtml
-    +cropTagHtml
-    +''
-    +'</div>'
-    +detailHtml
-    +'</div>'
-    +'</div>';
-}
-
 function makeLogCard(l,showCropTag){
   var w=WORK[l.work]||{l:l.work||'',cls:'other'};
   var detail='';
@@ -484,11 +389,7 @@ function renderTimeline(){
     el.innerHTML='<div class="empty"><div class="empty-icon">📝</div><p>作業記録がまだありません</p></div>';
     return;
   }
-  var days=groupByDate(logs);
-  el.innerHTML=days.map(function(day){
-    return '<div class="date-header">📅 '+day.date+'</div>'
-      +day.cards.map(function(card){return makeGroupCard(card,true);}).join('');
-  }).join('');
+  el.innerHTML=logs.map(function(l){return makeLogCard(l,true);}).join('');
 }
 
 function renderCrop(cropId){
@@ -526,10 +427,7 @@ function renderCrop(cropId){
   var on=isFav(cropId);
   var logsHtml=cropLogs.length===0
     ?'<div class="empty"><div class="empty-icon">📝</div><p>作業記録がまだありません</p></div>'
-    :groupByDate(cropLogs).map(function(day){
-      return '<div class="date-header">📅 '+day.date+'</div>'
-        +day.cards.map(function(card){return makeGroupCard(card,false);}).join('');
-    }).join('');
+    :cropLogs.map(function(l){return makeLogCard(l,false);}).join('');
 
   el.innerHTML='<div class="crop-hero">'
     +'<div class="crop-hero-top">'
@@ -608,7 +506,7 @@ function updateScrollBtn(){
   var inner=document.getElementById('tabs-inner');
   var btn=document.getElementById('tab-scroll-btn');
   if(!inner||!btn)return;
-  var hasMore=inner.scrollWidth > inner.clientWidth + inner.scrollLeft + 10;
+  var hasMore=inner.scrollWidth>inner.clientWidth+inner.scrollLeft+10;
   btn.style.display=hasMore?'block':'none';
 }
 
