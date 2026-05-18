@@ -318,9 +318,11 @@ function selectCrop(cropId){
 function groupLogs(logs){
   var cards=[];
   logs.forEach(function(l){
-    var key=(l.crop_id||'')+(l.field_idx||'');
+    var key=(l.crop_id||'')+(l.field_id||'')+(l.date||'');
     var last=cards[cards.length-1];
-    if(last&&last.key===key&&last.date===l.date) last.logs.push(l);
+    var sameGroup=last&&last.key===key&&
+      (last.logs[0].time===l.time||(!last.logs[0].time&&!l.time));
+    if(sameGroup) last.logs.push(l);
     else cards.push({key:key,date:l.date,logs:[l]});
   });
   return cards;
