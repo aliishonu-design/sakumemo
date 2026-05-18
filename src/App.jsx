@@ -906,7 +906,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.1.4</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.1.5</div>
       </div>
     </div>
   );
@@ -2814,9 +2814,9 @@ function PublicSettings({ uid, crops, showToast }) {
       </>}
       <Btn style={S.btnG} onClick={save} disabled={saving}>{saving?"保存中…":"保存する"}</Btn>
       {isPublic&&(
-        <a href="/community.html"
+        <a href={"/farm.html?uid="+uid} target="_blank" rel="noopener noreferrer"
           style={{display:"flex",alignItems:"center",justifyContent:"center",gap:6,background:"#f0f9f0",border:"1.5px solid #6ee7b7",borderRadius:10,padding:"10px",marginTop:8,textDecoration:"none",color:G,fontWeight:700,fontSize:".82rem"}}>
-          🌾 みんなのサクメモを確認する →
+          🌾 自分のサクメモページを見る →
         </a>
       )}
     </div>
