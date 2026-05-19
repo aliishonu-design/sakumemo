@@ -906,7 +906,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.3.1</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.3.2</div>
       </div>
     </div>
   );
@@ -1704,6 +1704,9 @@ function LogScreen({ fields, crops, setCrops, fertMs, pestMs, equips, costs, set
   const [fertUnit, setFertUnit] = useState("kg");
   const [fertMeth, setFertMeth] = useState("追肥");
   const [fertCost, setFertCost] = useState("");
+  // 施肥複数登録用
+  const emptyFert = () => ({name:"",amt:"",unit:"kg",meth:"追肥",cost:""});
+  const [fertEntries, setFertEntries] = useState([]);
   const [pestIdx,  setPestIdx]  = useState("");
   const [pestName, setPestName] = useState("");
   const [pestDil,  setPestDil]  = useState("");
@@ -1776,9 +1779,12 @@ setEditId(null);setWorks(new Set());setMemo("");setLogImg(null);setLogImg2(null)
     const pestLog = (editLogs&&editLogs.find(l=>l.work==='pest'))    || editLog;
     const discLog = (editLogs&&editLogs.find(l=>l.work==='discard')) || editLog;
     const equipLog= (editLogs&&editLogs.find(l=>l.work==='equip'))   || editLog;
-    // 施肥
+    // 施肥（複数エントリ対応）
     setFertName(fertLog.fertName||"");setFertAmt(fertLog.fertAmt||"");
     setFertUnit(fertLog.fertUnit||"kg");setFertMeth(fertLog.fertMethod||"追肥");setFertCost(fertLog.fertCost||"");
+    // 追加施肥エントリ復元
+    const extraFerts=(editLogs||[]).filter(l=>l.work==='fert').slice(1);
+    setFertEntries(extraFerts.map(l=>({name:l.fertName||"",amt:l.fertAmt||"",unit:l.fertUnit||"kg",meth:l.fertMethod||"追肥",cost:l.fertCost||""})));
     // 農薬
     setPestName(pestLog.pestName||"");setPestDil(pestLog.pestDil||"");
     setPestAmt(pestLog.pestAmt||"");setPestUnit(pestLog.pestUnit||"L");
@@ -1896,11 +1902,24 @@ setEditId(null);setWorks(new Set());setMemo("");setLogImg(null);setLogImg2(null)
       // 既存ログを削除してから再追加
       const removeIds = new Set(editLogIds);
       let allNewLogs = logs.filter(l=>!removeIds.has(l.id));
-      const newEntries = workList.map((w,i) => makeEntry(w, i===0, editLogIds[i]));
+      // 編集: 施肥複数対応
+      const editEntriesAll = [];
+      for(let wi=0;wi<workList.length;wi++){
+        const w=workList[wi];
+        editEntriesAll.push(makeEntry(w, wi===0, editLogIds[wi]));
+        if(w==='fert' && fertEntries.length>0){
+          fertEntries.forEach((fe,fi)=>{
+            const ex=makeEntry('fert',false,editLogIds[workList.length+fi]);
+            ex.fertName=fe.name;ex.fertAmt=fe.amt;ex.fertUnit=fe.unit;ex.fertMethod=fe.meth;ex.fertCost=fe.cost;
+            editEntriesAll.push(ex);
+          });
+        }
+      }
+      const newEntries = editEntriesAll;
       allNewLogs = [...allNewLogs, ...newEntries];
       setLogsR(allNewLogs);
       newEntries.forEach(e=>dbSaveLog(e));
-      // 削除されたエントリをDBから削除
+      // 削除された余分なエントリをDBから削除
       editLogIds.slice(newEntries.length).forEach(id=>dbDelete('logs',id));
       // 費用更新（施肥/農薬）
       if(workList[0]==='fert'&&fertCost) {
@@ -1914,7 +1933,24 @@ setEditId(null);setWorks(new Set());setMemo("");setLogImg(null);setLogImg2(null)
       showToast('記録を更新しました！');
     } else {
       // 新規
-      const newEntries = workList.map((w,i) => makeEntry(w, i===0, null));
+      // 施肥は複数エントリ対応
+      const baselist = [...workList];
+      const allEntriesNew = [];
+      let firstDone = false;
+      for(let wi=0;wi<baselist.length;wi++){
+        const w=baselist[wi];
+        const isFirst=wi===0;
+        allEntriesNew.push(makeEntry(w, isFirst, null));
+        // 施肥の追加エントリ
+        if(w==='fert' && fertEntries.length>0){
+          fertEntries.forEach(fe=>{
+            const ex=makeEntry('fert',false,null);
+            ex.fertName=fe.name;ex.fertAmt=fe.amt;ex.fertUnit=fe.unit;ex.fertMethod=fe.meth;ex.fertCost=fe.cost;
+            allEntriesNew.push(ex);
+          });
+        }
+      }
+      const newEntries = allEntriesNew;
       const allNewLogs = [...logs, ...newEntries];
       setLogsR(allNewLogs);
       newEntries.forEach(e=>dbSaveLog(e));
@@ -2010,7 +2046,29 @@ setEditId(null);setWorks(new Set());setMemo("");setLogImg(null);setLogImg2(null)
           <div style={{fontSize:".72rem",color:TX3,marginTop:4}}>メモ欄に植え替え情報が自動入力されます</div>
         </div>}
         {works.has("event")&&<div style={panelStyle("#fff7ed","#fdba74")}><div style={ctitleStyle}>📋 生育イベント</div><FG label="イベント種別"><Sel value={eventType} onChange={setEventType} options={[{value:"",label:"選択してください"},...eventOpts.map(v=>({value:v,label:v}))]}/></FG><FG label="メモ"><Inp value={eventNote} onChange={setEventNote} placeholder="例：1番花開花、受粉実施"/></FG></div>}
-        {works.has("fert")&&<div style={panelStyle("#f9fff9","#b2dfdb")}><div style={ctitleStyle}>🌿 施肥詳細</div><FG label="肥料マスターから選ぶ"><Sel value={fertIdx} onChange={v=>{setFertIdx(v);const fm=v&&fertMs[parseInt(v)];if(fm){setFertName(fm.name);if(fm.cunit||fm.sunit)setFertUnit(fm.cunit||fm.sunit);}}} options={[{value:"",label:"手動入力"},...fertMs.map((f,i)=>({value:i,label:f.name}))]}/></FG><R2><FG label="肥料名"><Inp value={fertName} onChange={setFertName} placeholder="肥料名"/></FG><FG label="施用量"><div style={{display:"flex",gap:4}}><Inp type="number" value={fertAmt} onChange={setFertAmt} style={{flex:1}}/><Sel value={fertUnit} onChange={setFertUnit} options={["kg","g","L","ml"].map(v=>({value:v,label:v}))} style={{width:60,flex:"none"}}/></div></FG></R2><R2><FG label="施用方法"><Sel value={fertMeth} onChange={setFertMeth} options={["元肥","追肥","葉面散布","かん注"].map(v=>({value:v,label:v}))}/></FG></R2></div>}
+        {works.has("fert")&&<div style={panelStyle("#f9fff9","#b2dfdb")}>
+          <div style={{...ctitleStyle,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+            <span>🌿 施肥詳細</span>
+            <button onClick={()=>setFertEntries(prev=>[...prev,emptyFert()])}
+              style={{...S.btn,...S.btnSm,background:G,color:"#fff",fontSize:".72rem"}}>＋ 資材追加</button>
+          </div><FG label="肥料マスターから選ぶ"><Sel value={fertIdx} onChange={v=>{setFertIdx(v);const fm=v&&fertMs[parseInt(v)];if(fm){setFertName(fm.name);if(fm.cunit||fm.sunit)setFertUnit(fm.cunit||fm.sunit);}}} options={[{value:"",label:"手動入力"},...fertMs.map((f,i)=>({value:i,label:f.name}))]}/></FG><R2><FG label="肥料名"><Inp value={fertName} onChange={setFertName} placeholder="肥料名"/></FG><FG label="施用量"><div style={{display:"flex",gap:4}}><Inp type="number" value={fertAmt} onChange={setFertAmt} style={{flex:1}}/><Sel value={fertUnit} onChange={setFertUnit} options={["kg","g","L","ml"].map(v=>({value:v,label:v}))} style={{width:60,flex:"none"}}/></div></FG></R2><R2><FG label="施用方法"><Sel value={fertMeth} onChange={setFertMeth} options={["元肥","追肥","葉面散布","かん注"].map(v=>({value:v,label:v}))}/></FG></R2>          {fertEntries.map((fe,fi)=>(
+            <div key={fi} style={{background:"#f0faf0",borderRadius:8,padding:"8px 10px",marginTop:6,border:"1px solid #b2dfdb"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+                <span style={{fontSize:".72rem",fontWeight:700,color:"#2d6a3f"}}>資材 {fi+2}</span>
+                <button onClick={()=>setFertEntries(prev=>prev.filter((_,i)=>i!==fi))}
+                  style={{...S.btn,...S.btnR,...S.btnSm,fontSize:".65rem",padding:"2px 8px"}}>✕</button>
+              </div>
+              <R2>
+                <FG label="肥料名"><Inp value={fe.name} onChange={v=>setFertEntries(p=>p.map((x,i)=>i===fi?{...x,name:v}:x))} placeholder="肥料名"/></FG>
+                <FG label="量"><Inp type="number" value={fe.amt} onChange={v=>setFertEntries(p=>p.map((x,i)=>i===fi?{...x,amt:v}:x))} placeholder="0"/></FG>
+              </R2>
+              <R2>
+                <FG label="単位"><Sel value={fe.unit} onChange={v=>setFertEntries(p=>p.map((x,i)=>i===fi?{...x,unit:v}:x))} options={["kg","g","L","ml","袋","本"].map(v=>({value:v,label:v}))}/></FG>
+                <FG label="方法"><Sel value={fe.meth} onChange={v=>setFertEntries(p=>p.map((x,i)=>i===fi?{...x,meth:v}:x))} options={["追肥","元肥","葉面散布","液肥"].map(v=>({value:v,label:v}))}/></FG>
+              </R2>
+            </div>
+          ))}
+        </div>}
         {works.has("pest")&&<div style={panelStyle("#fffdf0","#f9e4a0")}><div style={ctitleStyle}>🐛 農薬詳細</div>
               <div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:8,padding:"8px 10px",marginBottom:9,fontSize:".72rem",color:"#856404",lineHeight:1.6}}>
                 ⚠️ 農薬の使用記録は農薬取締法により保管義務があります。本アプリの記録は補助的なものです。法的義務の履行は別途ご確認ください。
@@ -3094,13 +3152,13 @@ export default function App() {
       {/* 作業記録モーダル - 常にDOMに存在させて入力内容を保持 */}
       {logModal&&<div style={{position:"fixed",top:52,left:0,right:0,bottom:0,zIndex:9999,background:"#f8f5ef",display:"flex",flexDirection:"column"}}>
           <div style={{background:GD,color:"#fff",padding:"11px 13px",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
-            <span style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".95rem",fontWeight:700}}>{initLog?"✏️ 作業を編集":"📝 記録する"}</span>
+            <span style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".92rem",fontWeight:700,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{initLog?"✏️ 作業を編集":"📝 記録する"}</span>
             <div style={{display:"flex",gap:6}}>
+              <button onClick={()=>{setLogModal(false);}} style={{background:"rgba(255,255,255,.18)",border:"1px solid rgba(255,255,255,.25)",color:"#fff",borderRadius:8,padding:"6px 12px",fontSize:".8rem",cursor:"pointer",flexShrink:0,minWidth:40,minHeight:40}}>✕</button>
               <button onClick={()=>logScreenSaveRef.current&&logScreenSaveRef.current()}
-                style={{background:"rgba(255,255,255,.9)",border:"none",color:GD,borderRadius:8,padding:"6px 14px",fontSize:".82rem",fontWeight:700,cursor:"pointer"}}>
+                style={{background:"#fff",border:"none",color:G,borderRadius:8,padding:"6px 14px",fontSize:".8rem",fontWeight:700,cursor:"pointer",flexShrink:0,minWidth:60,minHeight:40}}>
                 保存 ✓
               </button>
-              <button onClick={()=>{setLogModal(false);}} style={{background:"rgba(255,255,255,.2)",border:"1px solid rgba(255,255,255,.3)",color:"#fff",borderRadius:8,padding:"6px 14px",fontSize:".82rem",fontWeight:700,cursor:"pointer"}}>✕</button>
             </div>
           </div>
           <div style={{flex:1,overflowY:"auto",WebkitOverflowScrolling:"touch"}}>
