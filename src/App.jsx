@@ -908,7 +908,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.4.1</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.4.2</div>
       </div>
     </div>
   );
@@ -2254,17 +2254,13 @@ function TimelineScreen({ fields, crops, equips, logs, setLogs, showToast, onEdi
   });
   // 同じ日・同じ品目・同じ圃場のログをカードグループ化
   const groupDayLogs = (logs) => {
-    const cards = [];
+    const map={}, order=[];
     logs.forEach(l=>{
-      const key = l.cropId+':'+l.fieldIdx+':'+l.date;
-      const last = cards[cards.length-1];
-      // 同じ日・品目・圃場で、かつ時間も同じかmemoが同じ場合にグループ化
-      const sameGroup = last && last.key===key &&
-        (last.logs[0].time===l.time || (!last.logs[0].time && !l.time));
-      if(sameGroup) last.logs.push(l);
-      else cards.push({key, logs:[l]});
+      const key = l.cropId+':'+l.fieldIdx+':'+l.date+':'+(l.time||'');
+      if(!map[key]){ map[key]={key,logs:[]}; order.push(key); }
+      map[key].logs.push(l);
     });
-    return cards;
+    return order.map(k=>map[k]);
   };
 
   // 品目タイプでグループ化（ドロップダウン用）
