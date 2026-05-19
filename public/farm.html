@@ -390,7 +390,8 @@ function makeGroupCard(card,showCropTag){
   });
 
   // メモ（後方・1件目のみ）
-  var memoHtml=l0.memo?'<div style="font-size:.78rem;color:#5a5040;margin-top:4px;line-height:1.5">'+l0.memo+'</div>':'';
+  var memoLog=card.logs.find(function(l){return l.memo;});
+  var memoHtml=memoLog?'<div style="font-size:.78rem;color:#5a5040;margin-top:4px;line-height:1.5">'+memoLog.memo+'</div>':'';
 
   // 写真
   var photoHtml='';
