@@ -906,7 +906,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.1.5</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.1.7</div>
       </div>
     </div>
   );
@@ -1810,10 +1810,14 @@ function LogScreen({ fields, crops, setCrops, fertMs, pestMs, equips, costs, set
     setAddCnt(editLog.addCnt||"");
     setEquipAct(editLog.equipAct||"設置");
     // 既存写真をプレビューとして保持
-    if(editLog.imgSrc)   setLogImg({ base64:editLog.imgSrc, blob:null, name:"", existing:true });
+    if(editLog.imgSrc)  setLogImg({ base64:editLog.imgSrc,  blob:null, name:"", existing:true });
     else setLogImg(null);
+    if(editLog.imgSrc2) setLogImg2({ base64:editLog.imgSrc2, blob:null, name:"", existing:true });
+    else setLogImg2(null);
+    if(editLog.imgSrc3) setLogImg3({ base64:editLog.imgSrc3, blob:null, name:"", existing:true });
+    else setLogImg3(null);
 
-  },[editLog, editLogs]);
+  },[editLog]);
 
   const toggleVoice = () => {
     if(!("webkitSpeechRecognition" in window||"SpeechRecognition" in window)){showToast("このブラウザは音声入力非対応です");return;}
@@ -1858,8 +1862,10 @@ function LogScreen({ fields, crops, setCrops, fertMs, pestMs, equips, costs, set
 
   const doSave = async () => {
     setSaving(true);
-    // 写真アップロード
-    let imgUrl=null, imgUrl2=null, imgUrl3=null;
+    // 写真アップロード（編集時は既存URLをデフォルトとして保持）
+    let imgUrl  = editId ? (editLog?.imgSrc ||null) : null;
+    let imgUrl2 = editId ? (editLog?.imgSrc2||null) : null;
+    let imgUrl3 = editId ? (editLog?.imgSrc3||null) : null;
     if(logImg){
       if(logImg.existing) imgUrl=logImg.base64;
       else if(logImg.blob&&uid) try{ imgUrl=await Promise.race([uploadPhoto(logImg.blob,uid,logImg.name),new Promise(r=>setTimeout(()=>r(null),10000))]); }catch(e){}
@@ -3093,7 +3099,7 @@ export default function App() {
         {scr==="home"    &&<HomeScreen    fields={fields} crops={crops} logs={logs} costs={costs} onEditCrop={c=>{setPendingEditCrop(c);setScr("fields");}}/>}
         {scr==="master"  &&<MasterScreen  fertMs={fertMs} setFertMs={setFertMs} pestMs={pestMs} setPestMs={setPestMs} equips={equips} setEquips={setEquips} costs={costs} setCosts={setCosts} showToast={showToast}/>}
         {scr==="fields"  &&<FieldsScreen  fields={fields} setFields={setFields} setFieldsR={setFieldsR} crops={crops} setCrops={setCrops} setCropsR={setCropsR} costs={costs} setCosts={setCosts} logs={logs} showToast={showToast} editCrop={pendingEditCrop}/>}
-        {scr==="log" && <TimelineScreen fields={fields} crops={crops} equips={equips} logs={logs} setLogs={setLogs} showToast={showToast} onEdit={ls=>{setInitLog(Array.isArray(ls)?ls[0]:ls);setInitLogs(Array.isArray(ls)?ls:[ls]);setLogModal(true);}} onNew={()=>{setInitLog(null);setLogModal(true);}}/> }
+        {scr==="log" && <TimelineScreen fields={fields} crops={crops} equips={equips} logs={logs} setLogs={setLogs} showToast={showToast} onEdit={ls=>{const _ls=Array.isArray(ls)?ls:[ls];setInitLogs(_ls);setInitLog(_ls[0]);setLogModal(true);}} onNew={()=>{setInitLog(null);setLogModal(true);}}/> }
         
         {scr==="cost"    &&<CostScreen    fields={fields} fertMs={fertMs} pestMs={pestMs} equips={equips} costs={costs} setCosts={setCosts} logs={logs} showToast={showToast}/>}
 
