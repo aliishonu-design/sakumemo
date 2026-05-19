@@ -908,7 +908,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.3.9</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.4.0</div>
       </div>
     </div>
   );
@@ -2027,7 +2027,9 @@ setEditId(null);setWorks(new Set());setMemo("");setLogImg(null);setLogImg2(null)
     for(let i=0;i<files.length;i++){
       const {base64,blob} = await compressImage(files[i]);
       console.log("[handleLogImg] file",i,"blob:",blob?.size,"base64:",base64?.length);
-      setters[i]({base64, blob, name:uid0()+".jpg"});
+      // blobがnullの場合はbase64からblobを生成
+      const finalBlob = blob || await fetch(base64).then(r=>r.blob());
+      setters[i]({base64, blob:finalBlob, name:uid0()+".jpg"});
     }
   };
   const handleLogImg2 = async e => {
@@ -2164,7 +2166,7 @@ setEditId(null);setWorks(new Set());setMemo("");setLogImg(null);setLogImg2(null)
         {works.has("equip")&&<div style={panelStyle("#f5f0ff","#c4b5fd")}><div style={ctitleStyle}>🏗️ 資材・設備作業</div><FG label="設備を選ぶ（複数可）"><select multiple size={4} value={equipSel.map(String)} onChange={e=>setEquipSel(Array.from(e.target.selectedOptions).map(o=>parseInt(o.value)))} style={{...S.inp,height:100}}>{equips.map((e,i)=><option key={i} value={i}>{e.name}（{e.cat}）</option>)}</select></FG><FG label="作業種別"><Sel value={equipAct} onChange={setEquipAct} options={["設置","撤去","着用","脱去","点検","修理","その他"].map(v=>({value:v,label:v}))}/></FG></div>}
         <FG label="📷 生育状況の写真（撮影日時を自動取得）">
           <div style={{border:"2px dashed "+BD,borderRadius:10,padding:14,textAlign:"center",cursor:"pointer",background:"#fafafa"}} onClick={()=>document.getElementById("logImgInp").click()}>
-            <input id="logImgInp" type="file" accept="image/" multiple style={{display:"none"}} onChange={e=>{if(Array.from(e.target.files).length>3){showToast("写真は3枚まで選択できます");e.target.value="";return;}handleLogImg(e);}}/>
+            <input id="logImgInp" type="file" accept="image/*" multiple style={{display:"none"}} onChange={e=>{if(Array.from(e.target.files).length>3){showToast("写真は3枚まで選択できます");e.target.value="";return;}handleLogImg(e);}}/>
             <div style={{fontSize:"1.5rem",marginBottom:2}}>📷</div>
             <p style={{fontSize:".72rem",color:TX3}}>タップして写真を追加（撮影日時を自動取得）</p>
           </div>
@@ -2177,7 +2179,7 @@ setEditId(null);setWorks(new Set());setMemo("");setLogImg(null);setLogImg2(null)
           {logImg&&!logImg2&&(
             <div onClick={()=>document.getElementById("logImgInp2").click()}
               style={{marginTop:6,padding:"8px",border:"1.5px dashed #ccc",borderRadius:8,textAlign:"center",cursor:"pointer",fontSize:".72rem",color:TX3}}>
-              <input id="logImgInp2" type="file" accept="image/" style={{display:"none"}} onChange={handleLogImg2}/>
+              <input id="logImgInp2" type="file" accept="image/*" style={{display:"none"}} onChange={handleLogImg2}/>
               ＋ 写真2枚目を追加
             </div>
           )}
@@ -2190,7 +2192,7 @@ setEditId(null);setWorks(new Set());setMemo("");setLogImg(null);setLogImg2(null)
           {logImg2&&!logImg3&&(
             <div onClick={()=>document.getElementById("logImgInp3").click()}
               style={{marginTop:6,padding:"8px",border:"1.5px dashed #ccc",borderRadius:8,textAlign:"center",cursor:"pointer",fontSize:".72rem",color:TX3}}>
-              <input id="logImgInp3" type="file" accept="image/" style={{display:"none"}} onChange={handleLogImg3}/>
+              <input id="logImgInp3" type="file" accept="image/*" style={{display:"none"}} onChange={handleLogImg3}/>
               ＋ 写真3枚目を追加
             </div>
           )}
