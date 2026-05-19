@@ -344,6 +344,8 @@ function groupLogs(logs){
   return cards;
 }
 
+var WORK_ORDER=['sow','germinated','transplant','water','fert','pest','pruning','thinning','sideshot','repot','event','harvest','discard','equip','check','other'];
+
 function makeGroupCard(card,showCropTag){
   var l0=card.logs[0];
   var crop=allCrops.find(function(c){return c.id===l0.crop_id;})||{};
@@ -351,8 +353,15 @@ function makeGroupCard(card,showCropTag){
   var photos=[];
   card.logs.forEach(function(l){[l.img_src,l.img2_src,l.img3_src].forEach(function(s){if(s&&photos.length<3)photos.push(s);});});
 
-  // 作業タグ
-  var tagHtml=card.logs.map(function(l){
+  // 作業タグ: work種別でユニーク化しWORK_ORDER順に並べる
+  var seenWorks={};
+  var sortedLogs=[].concat(card.logs).sort(function(a,b){
+    var oa=WORK_ORDER.indexOf(a.work); var ob=WORK_ORDER.indexOf(b.work);
+    return (oa<0?99:oa)-(ob<0?99:ob);
+  });
+  var tagHtml=sortedLogs.filter(function(l){
+    if(seenWorks[l.work])return false; seenWorks[l.work]=true; return true;
+  }).map(function(l){
     var w=WORK[l.work]||{l:l.work||'',cls:'other'};
     return '<span class="wt '+w.cls+'">'+w.l+'</span>';
   }).join(' ');
@@ -365,7 +374,7 @@ function makeGroupCard(card,showCropTag){
     cropTagHtml='<span class="log-crop-tag" onclick="selectCrop(\''+crop.id+'\')" style="cursor:pointer">'+(db.e||'🌱')+' '+cname+'</span>';
   }
 
-  // 各作業の詳細
+  // 各作業の詳細（施肥は複数あっても全て表示、その他workはユニーク化）
   var detailHtml=card.logs.map(function(l){
     var parts=[];
     if(l.fert_name) parts.push('<div class="log-detail">🌿 '+l.fert_name+(l.fert_amt?' '+l.fert_amt+(l.fert_unit||''):'')+'</div>');
