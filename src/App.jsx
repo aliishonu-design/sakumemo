@@ -906,7 +906,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.3.3</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.3.4</div>
       </div>
     </div>
   );
@@ -1839,15 +1839,15 @@ setEditId(null);setWorks(new Set());setMemo("");setLogImg(null);setLogImg2(null)
     let imgUrl3 = editId ? (editLog?.imgSrc3||null) : null;
     if(logImg){
       if(logImg.existing) imgUrl=logImg.base64;
-      else if(logImg.blob&&uid) try{ imgUrl=await uploadPhoto(logImg.blob,uid,logImg.name)||null; }catch(e){console.error('img1 upload error:',e);}
+      else if(logImg.blob&&uid) try{ imgUrl=await uploadPhoto(logImg.blob,uid,logImg.name||uid0()+'.jpg')||null; }catch(e){console.error('img1 upload error:',e);}
     }
     if(logImg2){
       if(logImg2.existing) imgUrl2=logImg2.base64;
-      else if(logImg2.blob&&uid) try{ imgUrl2=await uploadPhoto(logImg2.blob,uid,logImg2.name); }catch(e){}
+      else if(logImg2.blob&&uid) try{ imgUrl2=await uploadPhoto(logImg2.blob,uid,logImg2.name||uid0()+'.jpg'); }catch(e){console.error('img2:',e);}
     }
     if(logImg3){
       if(logImg3.existing) imgUrl3=logImg3.base64;
-      else if(logImg3.blob&&uid) try{ imgUrl3=await uploadPhoto(logImg3.blob,uid,logImg3.name); }catch(e){}
+      else if(logImg3.blob&&uid) try{ imgUrl3=await uploadPhoto(logImg3.blob,uid,logImg3.name||uid0()+'.jpg'); }catch(e){console.error('img3:',e);}
     }
 
     // 作業リスト（複数選択対応）
@@ -1997,6 +1997,8 @@ setEditId(null);setWorks(new Set());setMemo("");setLogImg(null);setLogImg2(null)
 
   const fieldCrops = crops.filter(c=>c.fieldIdx===fieldIdx);
   const cropObj    = crops.find(c=>c.id===cropId)||{};
+  const cropDb     = CDB[cropObj.type]||{};
+  const eventOpts  = cropDb.events||["開花","着果","収穫開始","生育確認","異常発生","その他"];
 
   const doSaveAndAdd = () => {
     setKeepDate(date);
@@ -2065,25 +2067,22 @@ setEditId(null);setWorks(new Set());setMemo("");setLogImg(null);setLogImg2(null)
               <FG label="施用方法"><Sel value={fertMeth} onChange={setFertMeth} options={["元肥","追肥","葉面散布","かん注"].map(v=>({value:v,label:v}))}/></FG>
             </R2>
           </div>          {fertEntries.map((fe,fi)=>(
-            <div key={fi} style={{background:"#f0faf0",borderRadius:8,padding:"8px 10px",marginTop:6,border:"1px solid #b2dfdb"}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+            <div key={fi} style={{background:"#fffdf5",border:"1px solid #b2dfdb",borderRadius:8,padding:"8px 10px",marginTop:6}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5}}>
                 <span style={{fontSize:".72rem",fontWeight:700,color:"#2d6a3f"}}>資材 {fi+2}</span>
                 <button onClick={()=>setFertEntries(prev=>prev.filter((_,i)=>i!==fi))}
                   style={{...S.btn,...S.btnR,...S.btnSm,fontSize:".65rem",padding:"2px 8px"}}>✕</button>
               </div>
-              <R2>
-                <FG label="肥料名">
+              <FG label="肥料名">
                 <Sel value={fe.name} onChange={v=>{
                   setFertEntries(p=>p.map((x,i)=>i===fi?{...x,name:v}:x));
                   const fm2=fertMs.find(f=>f.name===v);
                   if(fm2)setFertEntries(p=>p.map((x,i)=>i===fi?{...x,unit:fm2.cunit||fm2.sunit||x.unit}:x));
                 }} options={[{value:"",label:"（選択）"},...fertMs.map(f=>({value:f.name,label:f.name}))]}/>
               </FG>
-                <FG label="量"><Inp type="number" value={fe.amt} onChange={v=>setFertEntries(p=>p.map((x,i)=>i===fi?{...x,amt:v}:x))} placeholder="0"/></FG>
-              </R2>
               <R2>
-                <FG label="単位"><Sel value={fe.unit} onChange={v=>setFertEntries(p=>p.map((x,i)=>i===fi?{...x,unit:v}:x))} options={["kg","g","L","ml","袋","本"].map(v=>({value:v,label:v}))}/></FG>
-                <FG label="方法"><Sel value={fe.meth} onChange={v=>setFertEntries(p=>p.map((x,i)=>i===fi?{...x,meth:v}:x))} options={["追肥","元肥","葉面散布","液肥"].map(v=>({value:v,label:v}))}/></FG>
+                <FG label="施用量"><div style={{display:"flex",gap:4}}><Inp type="number" value={fe.amt} onChange={v=>setFertEntries(p=>p.map((x,i)=>i===fi?{...x,amt:v}:x))} style={{flex:1}}/><Sel value={fe.unit} onChange={v=>setFertEntries(p=>p.map((x,i)=>i===fi?{...x,unit:v}:x))} options={["kg","g","L","ml","袋"].map(v=>({value:v,label:v}))} style={{width:60,flex:"none"}}/></div></FG>
+                <FG label="施用方法"><Sel value={fe.meth} onChange={v=>setFertEntries(p=>p.map((x,i)=>i===fi?{...x,meth:v}:x))} options={["元肥","追肥","葉面散布","かん注"].map(v=>({value:v,label:v}))}/></FG>
               </R2>
             </div>
           ))}
