@@ -540,6 +540,32 @@ function renderCrop(cropId){
     +'<button class="fav-btn'+(on?' on':'')+'" id="crop-fav-btn" onclick="toggleFav(\''+cropId+'\')">'+(on?'⭐ お気に入り':'☆ お気に入り')+'</button>'
     +'</div>'
     +'</div>'
+    +(function(){
+      var info='';
+      var rows=[];
+      if(crop.variety)rows.push(['品種',crop.variety]);
+      if(crop.sow_date)rows.push(['播種日',crop.sow_date]);
+      if(crop.plant_date)rows.push([(crop.cultivation_type==='direct'?'直播':'定植日'),crop.plant_date]);
+      if(crop.cultivation_type)rows.push(['作型',crop.cultivation_type==='direct'?'直播':'育苗移植']);
+      if(crop.grow_env)rows.push(['栽培環境',{field:'露地',greenhouse:'ハウス',pot:'鉢/コンテナ'}[crop.grow_env]||crop.grow_env]);
+      if(crop.stocks)rows.push(['株数',crop.stocks+'株']);
+      if(crop.ridge_w)rows.push(['畝幅',crop.ridge_w+'cm']);
+      if(crop.ridge_h)rows.push(['畝高',crop.ridge_h+'cm']);
+      if(crop.ridge_len)rows.push(['畝長',crop.ridge_len+'m']);
+      if(crop.cultivation_area)rows.push(['作付け面積',crop.cultivation_area+'㎡']);
+      if(crop.row_space)rows.push(['条間',crop.row_space+'cm']);
+      if(crop.plant_space)rows.push(['株間',crop.plant_space+'cm']);
+      if(crop.memo)rows.push(['メモ',crop.memo]);
+      if(!rows.length)return '';
+      return '<div style="background:#fff;border-radius:12px;box-shadow:0 1px 6px rgba(0,0,0,.07);margin:0 0 12px;overflow:hidden">'
+        +'<div style="padding:10px 14px 4px;font-family:Shippori Mincho B1,serif;font-size:.82rem;font-weight:700;color:#5c3d1e;border-bottom:1px solid #f0ebe3">📋 栽培情報</div>'
+        +'<table style="width:100%;border-collapse:collapse">'
+        +rows.map(function(r){
+          return '<tr><td style="padding:7px 14px;font-size:.75rem;color:#888;width:40%;border-bottom:1px solid #f8f5ef">'+r[0]+'</td>'
+            +'<td style="padding:7px 14px;font-size:.78rem;color:#1c1a14;border-bottom:1px solid #f8f5ef">'+r[1]+'</td></tr>';
+        }).join('')
+        +'</table></div>';
+    })()
     +logsHtml;
 
   // ビューカウント
