@@ -906,7 +906,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.1.7</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.1.8</div>
       </div>
     </div>
   );
@@ -1736,8 +1736,13 @@ function LogScreen({ fields, crops, setCrops, fertMs, pestMs, equips, costs, set
 
   // 編集モード: editLog が渡されたら各フィールドを初期化
   // editLogがnullのとき（新規作成）は全フィールドをリセット
+  // editLogの前の値を記憶して余分なリセットを防ぐ
+  const prevEditLogRef = React.useRef(null);
   useEffect(()=>{
     if(!editLog) {
+      // editLogが意図的にnullになった場合のみリセット
+      // (prevがnullでない場合 = 編集後に閉じた場合)
+      prevEditLogRef.current = null;
       setEditId(null);setWorks(new Set());setMemo("");setLogImg(null);setLogImg2(null);setLogImg3(null);setHvGrades({秀品:{kg:"",cnt:"",price:""},優品:{kg:"",cnt:"",price:""},良品:{kg:"",cnt:"",price:""},規格外:{kg:"",cnt:"",price:""}});
       setFieldIdx(0);setCropId("");setDate(todayStr());setTime(nowTime());setDur("");
       setSowQty("");setGermCnt("");setGermDate(todayStr());setTranspQty("");
@@ -1816,6 +1821,7 @@ function LogScreen({ fields, crops, setCrops, fertMs, pestMs, equips, costs, set
     else setLogImg2(null);
     if(editLog.imgSrc3) setLogImg3({ base64:editLog.imgSrc3, blob:null, name:"", existing:true });
     else setLogImg3(null);
+    prevEditLogRef.current = editLog;
 
   },[editLog]);
 
@@ -3117,10 +3123,10 @@ export default function App() {
       <div style={{position:"fixed",top:52,left:0,right:0,bottom:0,zIndex:9999,background:"#f8f5ef",display:"flex",flexDirection:"column",visibility:logModal?"visible":"hidden",pointerEvents:logModal?"auto":"none"}}>
           <div style={{background:GD,color:"#fff",padding:"11px 13px",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
             <span style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".95rem",fontWeight:700}}>{initLog?"✏️ 作業を編集":"📝 記録する"}</span>
-            <button onClick={()=>{setLogModal(false);setInitLog(null);}} style={{background:"rgba(255,255,255,.2)",border:"1px solid rgba(255,255,255,.3)",color:"#fff",borderRadius:8,padding:"6px 14px",fontSize:".82rem",fontWeight:700,cursor:"pointer"}}>✕</button>
+            <button onClick={()=>{setLogModal(false);}} style={{background:"rgba(255,255,255,.2)",border:"1px solid rgba(255,255,255,.3)",color:"#fff",borderRadius:8,padding:"6px 14px",fontSize:".82rem",fontWeight:700,cursor:"pointer"}}>✕</button>
           </div>
           <div style={{flex:1,overflowY:"auto",WebkitOverflowScrolling:"touch"}}>
-            <LogScreen uid={uid} fields={fields} crops={crops} setCrops={setCrops} fertMs={fertMs} pestMs={pestMs} equips={equips} costs={costs} setCosts={setCosts} logs={logs} setLogs={setLogs} dbSaveLog={dbSaveLog} setLogsR={setLogsR} showToast={showToast} initialWork={initWork} editLog={initLog} editLogs={initLogs} onDone={()=>{setLogModal(false);setInitLog(null);}}/>
+            <LogScreen uid={uid} fields={fields} crops={crops} setCrops={setCrops} fertMs={fertMs} pestMs={pestMs} equips={equips} costs={costs} setCosts={setCosts} logs={logs} setLogs={setLogs} dbSaveLog={dbSaveLog} setLogsR={setLogsR} showToast={showToast} initialWork={initWork} editLog={initLog} editLogs={initLogs} onDone={()=>{setLogModal(false);}}/>
           </div>
         </div>
       {dbLoad && (
