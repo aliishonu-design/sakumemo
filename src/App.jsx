@@ -521,13 +521,15 @@ async function compressImage(file) {
 async function uploadPhoto(blob, userId, filename) {
   try {
     const path = userId + "/" + filename;
+    console.log("[uploadPhoto] path:", path, "blobSize:", blob?.size);
     const { data: uploadData, error } = await sb.storage
       .from("farm-photos")
       .upload(path, blob, { contentType:"image/jpeg", upsert:true });
     if (error) {
-      console.error("upload error:", error.message, error.statusCode, error);
+      console.error("[uploadPhoto] error:", error.message, error.statusCode, JSON.stringify(error));
       return null;
     }
+    console.log("[uploadPhoto] success:", uploadData?.path);
     const { data } = sb.storage.from("farm-photos").getPublicUrl(path);
     return data?.publicUrl || null;
   } catch(e) {
@@ -907,7 +909,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.3.6</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.3.7</div>
       </div>
     </div>
   );
@@ -2012,6 +2014,7 @@ setEditId(null);setWorks(new Set());setMemo("");setLogImg(null);setLogImg2(null)
     const setters = [setLogImg, setLogImg2, setLogImg3];
     for(let i=0;i<files.length;i++){
       const {base64,blob} = await compressImage(files[i]);
+      console.log("[handleLogImg] file",i,"blob:",blob?.size,"base64:",base64?.length);
       setters[i]({base64, blob, name:uid0()+".jpg"});
     }
   };
