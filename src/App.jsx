@@ -32,8 +32,8 @@ const dbDelete = async (table, id) => {
 // Converters
 const fieldToDb   = (o, uid) => ({ id:o.id, user_id:uid, name:o.name||"", area:o.area||null, soil:o.soil||null, addr:o.addr||null, memo:o.memo||null });
 const fieldFromDb = r => ({ id:r.id, name:r.name||"", area:r.area||"", soil:r.soil||"", addr:r.addr||"", memo:r.memo||"" });
-const cropToDb    = (o, uid) => ({ id:o.id, user_id:uid, field_id:o.fieldId||null, type:o.type||null, variety:o.variety||null, germ_rate:o.germRate||null, stocks:o.stocks||null, ridge_w:o.ridgeW||null, ridge_h:o.ridgeH||null, rows:o.rows||null, row_space:o.rowSpace||null, plant_space:o.plantSpace||null, sow_date:o.sowDate||null, plant_date:o.plantDate||null, memo:o.memo||null, cultivation_type:o.cultivationType||null, seed_cost:o.seedCost||null, seed_note:o.seedNote||null, custom_name:o.customName||null, ended:o.ended||false, end_date:o.endDate||null, maturity:o.maturity||null, custom_days:o.customDays||null, custom_water:o.customWater||null, pot_size:o.potSize||null, pot_volume:o.potVolume||null, pot_count:o.potCount||null, grow_env:o.growEnv||null, agri_month_start:o.agriMonthStart||null });
-const cropFromDb  = (r, fields) => { const fi = fields.findIndex(f=>f.id===r.field_id); return { id:r.id, fieldId:r.field_id||"", fieldIdx:fi>=0?fi:0, type:r.type||"", variety:r.variety||"", germRate:r.germ_rate||"", stocks:r.stocks||"", ridgeW:r.ridge_w||"", ridgeH:r.ridge_h||"", rows:r.rows||"", rowSpace:r.row_space||"", plantSpace:r.plant_space||"", sowDate:r.sow_date||"", plantDate:r.plant_date||"", memo:r.memo||"", cultivationType:r.cultivation_type||"transplant", seedCost:r.seed_cost||"", seedNote:r.seed_note||"", customName:r.custom_name||"", ended:r.ended||false, endDate:r.end_date||"", maturity:r.maturity||"mid", customDays:r.custom_days||"", customWater:r.custom_water||"", potSize:r.pot_size||"", potVolume:r.pot_volume||"", potCount:r.pot_count||"", growEnv:r.grow_env||"field", agriMonthStart:r.agri_month_start||"" }; };
+const cropToDb    = (o, uid) => ({ id:o.id, user_id:uid, field_id:o.fieldId||null, type:o.type||null, variety:o.variety||null, germ_rate:o.germRate||null, stocks:o.stocks||null, ridge_w:o.ridgeW||null, ridge_h:o.ridgeH||null, rows:o.rows||null, row_space:o.rowSpace||null, plant_space:o.plantSpace||null, sow_date:o.sowDate||null, plant_date:o.plantDate||null, memo:o.memo||null, cultivation_type:o.cultivationType||null, seed_cost:o.seedCost||null, seed_note:o.seedNote||null, custom_name:o.customName||null, ended:o.ended||false, end_date:o.endDate||null, maturity:o.maturity||null, custom_days:o.customDays||null, custom_water:o.customWater||null, pot_size:o.potSize||null, pot_volume:o.potVolume||null, pot_count:o.potCount||null, grow_env:o.growEnv||null, agri_month_start:o.agriMonthStart||null, ridge_len:o.ridgeLen||null, cultivation_area:o.cultivationArea||null });
+const cropFromDb  = (r, fields) => { const fi = fields.findIndex(f=>f.id===r.field_id); return { id:r.id, fieldId:r.field_id||"", fieldIdx:fi>=0?fi:0, type:r.type||"", variety:r.variety||"", germRate:r.germ_rate||"", stocks:r.stocks||"", ridgeW:r.ridge_w||"", ridgeH:r.ridge_h||"", rows:r.rows||"", rowSpace:r.row_space||"", plantSpace:r.plant_space||"", sowDate:r.sow_date||"", plantDate:r.plant_date||"", memo:r.memo||"", cultivationType:r.cultivation_type||"transplant", seedCost:r.seed_cost||"", seedNote:r.seed_note||"", customName:r.custom_name||"", ended:r.ended||false, endDate:r.end_date||"", maturity:r.maturity||"mid", customDays:r.custom_days||"", customWater:r.custom_water||"", potSize:r.pot_size||"", potVolume:r.pot_volume||"", potCount:r.pot_count||"", growEnv:r.grow_env||"field", agriMonthStart:r.agri_month_start||"", ridgeLen:r.ridge_len||"", cultivationArea:r.cultivation_area||"" }; };
 const logToDb     = (o, uid, fields) => ({ id:o.id, user_id:uid, field_id:fields[o.fieldIdx]?.id||o.fieldId||null, crop_id:o.cropId||null, work:o.work||null, memo:o.memo||null, date:o.date||null, time:o.time||null, duration:o.duration||null, img_src:o.imgSrc||null, img2_src:o.imgSrc2||null, img3_src:o.imgSrc3||null, fert_name:o.fertName||null, fert_amt:o.fertAmt||null, fert_unit:o.fertUnit||null, fert_method:o.fertMethod||null, fert_cost:o.fertCost||null, pest_name:o.pestName||null, pest_dil:o.pestDil||null, pest_amt:o.pestAmt||null, pest_unit:o.pestUnit||null, pest_tgt:o.pestTarget||null, pest_cost:o.pestCost||null, hv_kg:o.hvKg||null, hv_cnt:o.hvCnt||null, hv_q:o.hvQ||null, hv_price:o.hvPrice||null, equip_ids:o.equipIds||null, equip_act:o.equipAct||null, sow_qty:o.sowQty||null, germination_cnt:o.germinationCnt||null, germ_date:o.germinationDate||null, transplant_qty:o.transplantQty||null, discard_cnt:o.discardCnt||null, add_cnt:o.addCnt||null, event_type:o.eventType||null, event_note:o.eventNote||null, hv_grade_str:o.hvGradeStr||null, other_note:o.otherNote||null });
 const logFromDb   = (r, fields) => { const fi=fields.findIndex(f=>f.id===r.field_id); return { id:r.id, fieldId:r.field_id||"", fieldIdx:fi>=0?fi:0, cropId:r.crop_id||"", work:r.work||"", memo:r.memo||"", date:r.date||"", time:r.time||"", duration:r.duration||"", imgSrc:r.img_src||null, imgSrc2:r.img2_src||null, imgSrc3:r.img3_src||null, aiReply:"", fertName:r.fert_name||"", fertAmt:r.fert_amt||"", fertUnit:r.fert_unit||"", fertMethod:r.fert_method||"", fertCost:r.fert_cost||"", pestName:r.pest_name||"", pestDil:r.pest_dil||"", pestAmt:r.pest_amt||"", pestUnit:r.pest_unit||"", pestTarget:r.pest_target||"", pestCost:r.pest_cost||"", hvKg:r.hv_kg!=null?String(r.hv_kg):"", hvCnt:r.hv_cnt!=null?String(r.hv_cnt):"", hvQ:r.hv_q||"", hvPrice:r.hv_price||"", hvImgSrc:r.hv_img_src||null, equipIds:r.equip_ids||[], equipAct:r.equip_act||"", hvGradeStr:r.hv_grade_str||"", otherNote:r.other_note||"", sowQty:r.sow_qty||"", germinationCnt:r.germination_cnt||"", germinationDate:r.germination_date||"", transplantQty:r.transplant_qty||"", discardCnt:r.discard_cnt||"", addCnt:r.add_cnt||"", eventType:r.event_type||"", eventNote:r.event_note||"" }; };
 const fertMToDb   = (o, uid) => ({ id:o.id||uid0(), user_id:uid, name:o.name||null, type:o.type||null, price:o.price||null, punit:o.punit||null, capacity:o.capacity||null, cunit:o.cunit||null, npk:o.npk||null, stock:o.stock||null, sunit:o.sunit||null, note:o.note||null });
@@ -906,7 +906,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.3.2</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.3.3</div>
       </div>
     </div>
   );
@@ -1378,7 +1378,7 @@ function FieldsScreen({ fields, setFields, setFieldsR, crops, setCrops, setCrops
     }
   },[editCrop]);
   const eF={ id:uid0(),name:"",area:"",soil:"砂壌土",addr:"",memo:"" };
-  const eC={ id:uid0(),fieldId:"",fieldIdx:0,type:"",variety:"",germRate:"",stocks:"",ridgeW:"",ridgeH:"",rows:"",rowSpace:"",plantSpace:"",sowDate:"",plantDate:"",memo:"",cultivationType:"nursery",growEnv:"field",seedCost:"",seedNote:"",customName:"",potSize:"",potVolume:"",potCount:"", agriMonthStart:"" };
+  const eC={ id:uid0(),fieldId:"",fieldIdx:0,type:"",variety:"",germRate:"",stocks:"",ridgeW:"",ridgeH:"",ridgeLen:"",rows:"",rowSpace:"",plantSpace:"",cultivationArea:"",sowDate:"",plantDate:"",memo:"",cultivationType:"nursery",growEnv:"field",seedCost:"",seedNote:"",customName:"",potSize:"",potVolume:"",potCount:"", agriMonthStart:"" };
   const saveField=()=>{
     if(!mField) return;
     const item={...mField,id:mField.id||uid0()};
@@ -1640,7 +1640,7 @@ function FieldsScreen({ fields, setFields, setFieldsR, crops, setCrops, setCrops
 
                 {/* 畑の詳細 */}
                 {(mCrop.growEnv==="field"||!mCrop.growEnv)&&<>
-                  <R2><FG label="畝幅（cm）"><Inp type="number" value={mCrop.ridgeW} onChange={v=>setMCrop({...mCrop,ridgeW:v})}/></FG><FG label="畝高（cm）"><Inp type="number" value={mCrop.ridgeH} onChange={v=>setMCrop({...mCrop,ridgeH:v})}/></FG></R2>
+                  <R2><FG label="畝幅（cm）"><Inp type="number" value={mCrop.ridgeW} onChange={v=>setMCrop({...mCrop,ridgeW:v})}/></FG><FG label="畝高（cm）"><Inp type="number" value={mCrop.ridgeH} onChange={v=>setMCrop({...mCrop,ridgeH:v})}/></FG><FG label="畝長（m）"><Inp type="number" value={mCrop.ridgeLen||""} onChange={v=>setMCrop({...mCrop,ridgeLen:v})}/></FG><FG label="作付け面積（㎡）"><Inp type="number" value={mCrop.cultivationArea||""} onChange={v=>setMCrop({...mCrop,cultivationArea:v})}/></FG></R2>
                   <R3><FG label="条数"><Inp type="number" value={mCrop.rows} onChange={v=>setMCrop({...mCrop,rows:v})}/></FG><FG label="条間（cm）"><Inp type="number" value={mCrop.rowSpace} onChange={v=>setMCrop({...mCrop,rowSpace:v})}/></FG><FG label="株間（cm）"><Inp type="number" value={mCrop.plantSpace} onChange={v=>setMCrop({...mCrop,plantSpace:v})}/></FG></R3>
                 </>}
 
@@ -2051,7 +2051,20 @@ setEditId(null);setWorks(new Set());setMemo("");setLogImg(null);setLogImg2(null)
             <span>🌿 施肥詳細</span>
             <button onClick={()=>setFertEntries(prev=>[...prev,emptyFert()])}
               style={{...S.btn,...S.btnSm,background:G,color:"#fff",fontSize:".72rem"}}>＋ 資材追加</button>
-          </div><FG label="肥料マスターから選ぶ"><Sel value={fertIdx} onChange={v=>{setFertIdx(v);const fm=v&&fertMs[parseInt(v)];if(fm){setFertName(fm.name);if(fm.cunit||fm.sunit)setFertUnit(fm.cunit||fm.sunit);}}} options={[{value:"",label:"手動入力"},...fertMs.map((f,i)=>({value:i,label:f.name}))]}/></FG><R2><FG label="肥料名"><Inp value={fertName} onChange={setFertName} placeholder="肥料名"/></FG><FG label="施用量"><div style={{display:"flex",gap:4}}><Inp type="number" value={fertAmt} onChange={setFertAmt} style={{flex:1}}/><Sel value={fertUnit} onChange={setFertUnit} options={["kg","g","L","ml"].map(v=>({value:v,label:v}))} style={{width:60,flex:"none"}}/></div></FG></R2><R2><FG label="施用方法"><Sel value={fertMeth} onChange={setFertMeth} options={["元肥","追肥","葉面散布","かん注"].map(v=>({value:v,label:v}))}/></FG></R2>          {fertEntries.map((fe,fi)=>(
+          </div>          <div style={{background:"#fffdf5",border:"1px solid #b2dfdb",borderRadius:8,padding:"8px 10px",marginBottom:6}}>
+            <div style={{fontSize:".72rem",fontWeight:700,color:"#2d6a3f",marginBottom:5}}>資材 1</div>
+            <FG label="肥料名">
+              <Sel value={fertName} onChange={v=>{
+                setFertName(v);
+                const fm=fertMs.find(f=>f.name===v);
+                if(fm){if(fm.cunit||fm.sunit)setFertUnit(fm.cunit||fm.sunit);}
+              }} options={[{value:"",label:"（選択）"},...fertMs.map(f=>({value:f.name,label:f.name}))]}/>
+            </FG>
+            <R2>
+              <FG label="施用量"><div style={{display:"flex",gap:4}}><Inp type="number" value={fertAmt} onChange={setFertAmt} style={{flex:1}}/><Sel value={fertUnit} onChange={setFertUnit} options={["kg","g","L","ml","袋"].map(v=>({value:v,label:v}))} style={{width:60,flex:"none"}}/></div></FG>
+              <FG label="施用方法"><Sel value={fertMeth} onChange={setFertMeth} options={["元肥","追肥","葉面散布","かん注"].map(v=>({value:v,label:v}))}/></FG>
+            </R2>
+          </div>          {fertEntries.map((fe,fi)=>(
             <div key={fi} style={{background:"#f0faf0",borderRadius:8,padding:"8px 10px",marginTop:6,border:"1px solid #b2dfdb"}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
                 <span style={{fontSize:".72rem",fontWeight:700,color:"#2d6a3f"}}>資材 {fi+2}</span>
@@ -2059,7 +2072,13 @@ setEditId(null);setWorks(new Set());setMemo("");setLogImg(null);setLogImg2(null)
                   style={{...S.btn,...S.btnR,...S.btnSm,fontSize:".65rem",padding:"2px 8px"}}>✕</button>
               </div>
               <R2>
-                <FG label="肥料名"><Inp value={fe.name} onChange={v=>setFertEntries(p=>p.map((x,i)=>i===fi?{...x,name:v}:x))} placeholder="肥料名"/></FG>
+                <FG label="肥料名">
+                <Sel value={fe.name} onChange={v=>{
+                  setFertEntries(p=>p.map((x,i)=>i===fi?{...x,name:v}:x));
+                  const fm2=fertMs.find(f=>f.name===v);
+                  if(fm2)setFertEntries(p=>p.map((x,i)=>i===fi?{...x,unit:fm2.cunit||fm2.sunit||x.unit}:x));
+                }} options={[{value:"",label:"（選択）"},...fertMs.map(f=>({value:f.name,label:f.name}))]}/>
+              </FG>
                 <FG label="量"><Inp type="number" value={fe.amt} onChange={v=>setFertEntries(p=>p.map((x,i)=>i===fi?{...x,amt:v}:x))} placeholder="0"/></FG>
               </R2>
               <R2>
