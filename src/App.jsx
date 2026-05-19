@@ -906,7 +906,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.2.5</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.2.6</div>
       </div>
     </div>
   );
@@ -1113,13 +1113,14 @@ function MasterScreen({ fertMs, setFertMs, pestMs, setPestMs, equips, setEquips,
     const isEdit = mItem._idx !== undefined;
     const item = {...mItem, id:mItem.id||uid0()};
     if(item._type==="fert"){
-      const n=isEdit?fertMs.map((x,i)=>i===item._idx?item:x):[...fertMs,item];
+      // idベースで更新（_idxよりも確実）
+      const n=isEdit?fertMs.map(x=>x.id===item.id?{...item}:x):[...fertMs,item];
       setFertMs(n,item);
     } else if(item._type==="pest"){
-      const n=isEdit?pestMs.map((x,i)=>i===item._idx?item:x):[...pestMs,item];
+      const n=isEdit?pestMs.map(x=>x.id===item.id?{...item}:x):[...pestMs,item];
       setPestMs(n,item);
     } else {
-      const n=isEdit?equips.map((x,i)=>i===item._idx?item:x):[...equips,item];
+      const n=isEdit?equips.map(x=>x.id===item.id?{...item}:x):[...equips,item];
       setEquips(n,item);
     }
     // マスター編集時に連動費用の名前も更新
@@ -1672,7 +1673,7 @@ function FieldsScreen({ fields, setFields, setFieldsR, crops, setCrops, setCrops
 }
 
 // LOG
-function LogScreen({ fields, crops, setCrops, fertMs, pestMs, equips, costs, setCosts, logs, setLogs, dbSaveLog, setLogsR, showToast, initialWork, editLog, editLogs=[], uid, onDone }) {
+function LogScreen({ fields, crops, setCrops, fertMs, pestMs, equips, costs, setCosts, logs, setLogs, dbSaveLog, setLogsR, showToast, initialWork, editLog, editLogs=[], uid, saveRef, onDone }) {
   const [fieldIdx, setFieldIdx] = useState(0);
   const [cropId,   setCropId]   = useState("");
   const [works,    setWorks]    = useState(initialWork?new Set([initialWork]):new Set()); // 複数作業
@@ -1953,6 +1954,11 @@ setEditId(null);setWorks(new Set());setMemo("");setLogImg(null);setLogImg2(null)
   
   const panelStyle = (bg,bc) => ({...S.card,background:bg,borderColor:bc,marginBottom:7});
   const ctitleStyle = {fontFamily:"'Shippori Mincho B1',serif",fontSize:".86rem",color:"#5c3d1e",marginBottom:8};
+  // 親コンポーネントからdoSaveを呼べるようにrefに登録
+  useEffect(()=>{
+    if(saveRef) saveRef.current = doSave;
+  });
+
   const doSaveAndAdd = () => {
     setKeepDate(date);
     setKeepCrop(cropId);
@@ -2939,6 +2945,7 @@ export default function App() {
   const [initLog,      setInitLog]     = useState(null);
   const [initLogs,     setInitLogs]    = useState([]);   // 複数作業編集用
   const [logModal,     setLogModal]    = useState(false);
+  const logScreenSaveRef = useRef(null); // LogScreenのdoSave参照
   const [pendingEditCrop, setPendingEditCrop] = useState(null); // ホームから品目編集
   const toastTimer = useRef(null);
   const showToast = msg => { setToast(msg); clearTimeout(toastTimer.current); toastTimer.current=setTimeout(()=>setToast(""),2400); };
@@ -3086,15 +3093,15 @@ export default function App() {
           <div style={{background:GD,color:"#fff",padding:"11px 13px",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
             <span style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".95rem",fontWeight:700}}>{initLog?"✏️ 作業を編集":"📝 記録する"}</span>
             <div style={{display:"flex",gap:6}}>
-              <button onClick={doSave} disabled={saving}
+              <button onClick={()=>logScreenSaveRef.current&&logScreenSaveRef.current()}
                 style={{background:"rgba(255,255,255,.9)",border:"none",color:GD,borderRadius:8,padding:"6px 14px",fontSize:".82rem",fontWeight:700,cursor:"pointer"}}>
-                {saving?"保存中…":initLog?"更新 ✓":"保存 ✓"}
+                保存 ✓
               </button>
               <button onClick={()=>{setLogModal(false);}} style={{background:"rgba(255,255,255,.2)",border:"1px solid rgba(255,255,255,.3)",color:"#fff",borderRadius:8,padding:"6px 14px",fontSize:".82rem",fontWeight:700,cursor:"pointer"}}>✕</button>
             </div>
           </div>
           <div style={{flex:1,overflowY:"auto",WebkitOverflowScrolling:"touch"}}>
-            <LogScreen key={(initLog?.id||"new")+String(logModal)} uid={uid} fields={fields} crops={crops} setCrops={setCrops} fertMs={fertMs} pestMs={pestMs} equips={equips} costs={costs} setCosts={setCosts} logs={logs} setLogs={setLogs} dbSaveLog={dbSaveLog} setLogsR={setLogsR} showToast={showToast} initialWork={initWork} editLog={initLog} editLogs={initLogs} onDone={()=>{setLogModal(false);}}/>
+            <LogScreen key={(initLog?.id||"new")+String(logModal)} saveRef={logScreenSaveRef} uid={uid} fields={fields} crops={crops} setCrops={setCrops} fertMs={fertMs} pestMs={pestMs} equips={equips} costs={costs} setCosts={setCosts} logs={logs} setLogs={setLogs} dbSaveLog={dbSaveLog} setLogsR={setLogsR} showToast={showToast} initialWork={initWork} editLog={initLog} editLogs={initLogs} onDone={()=>{setLogModal(false);}}/>
           </div>
         </div>}
       {dbLoad && (
