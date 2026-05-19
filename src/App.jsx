@@ -16,9 +16,10 @@ const dbFetch = async (table, uid) => {
   return data || [];
 };
 const dbUpsert = async (table, row) => {
-  const { error } = await sb.from(table).upsert(row, { onConflict: "id" });
+  console.log("[dbUpsert] table:", table, "id:", row?.id, "keys:", row?Object.keys(row).join(","):"none");
+  const { data, error } = await sb.from(table).upsert(row, { onConflict: "id" }).select();
   if (error) {
-    console.error("DB保存エラー:", table, error.code, error.message);
+    console.error("DB保存エラー:", table, error.code, error.message, JSON.stringify(error));
     // ユーザーに通知（重要なエラーの場合）
     if(error.code === "42703") {
     }
@@ -906,7 +907,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.3.5</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.3.6</div>
       </div>
     </div>
   );
@@ -3114,7 +3115,7 @@ export default function App() {
   // ── DB保存ヘルパー（1件だけ保存・非同期） ──
   const dbSaveField = o => { if(!uid) return; const item = {...o, id:o.id||uid0()}; dbUpsert("fields", fieldToDb(item, uid)); return item; };
   const dbSaveCrop  = (o, flds) => { if(!uid) return; const fId = (flds||fields)[o.fieldIdx]?.id || o.fieldId || null; dbUpsert("crops", cropToDb({...o, fieldId:fId}, uid)); };
-  const dbSaveLog   = o => { if(!uid) return; dbUpsert("logs", logToDb(o, uid, fields)); };
+  const dbSaveLog   = o => { if(!uid){console.error('dbSaveLog: no uid');return;} console.log('[dbSaveLog] work:',o.work,'img:',o.imgSrc?'yes':'no'); dbUpsert("logs", logToDb(o, uid, fields)); };
   const dbSaveFertM = o => { if(!uid){console.error("dbSaveFertM: no uid");return;} dbUpsert("fert_masters", fertMToDb(o, uid)).catch(e=>console.error("fertM save err:",e)); };
   const dbSavePestM = o => { if(!uid) return; dbUpsert("pest_masters", pestMToDb(o, uid)); };
   const dbSaveEquip = o => { if(!uid) return; dbUpsert("equipments",   equipToDb(o, uid)); };
