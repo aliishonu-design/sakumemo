@@ -332,16 +332,13 @@ function groupByDate(logs){
 }
 
 function groupLogs(logs){
-  var cards=[];
+  var map={},order=[];
   logs.forEach(function(l){
-    var key=(l.crop_id||'')+(l.field_id||'')+(l.date||'');
-    var last=cards[cards.length-1];
-    var sameGroup=last&&last.key===key&&
-      (last.logs[0].time===l.time||(!last.logs[0].time&&!l.time));
-    if(sameGroup) last.logs.push(l);
-    else cards.push({key:key,date:l.date,logs:[l]});
+    var key=(l.crop_id||'')+'_'+(l.field_id||'')+'_'+(l.date||'')+'_'+(l.time||'');
+    if(!map[key]){map[key]={key:key,date:l.date,logs:[]};order.push(key);}
+    map[key].logs.push(l);
   });
-  return cards;
+  return order.map(function(k){return map[k];});
 }
 
 var WORK_ORDER=['sow','germinated','transplant','water','fert','pest','pruning','thinning','sideshot','repot','event','harvest','discard','equip','check','other'];
