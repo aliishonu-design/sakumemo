@@ -908,7 +908,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.3.8</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.3.9</div>
       </div>
     </div>
   );
@@ -1918,7 +1918,13 @@ setEditId(null);setWorks(new Set());setMemo("");setLogImg(null);setLogImg2(null)
         }
       }
       const newEntries = editEntriesAll;
-      allNewLogs = [...allNewLogs, ...newEntries];
+      const displayEditEntries = newEntries.map((e,i)=>({
+        ...e,
+        imgSrc:  e.imgSrc  || (i===0&&logImg  ?logImg.base64 :null),
+        imgSrc2: e.imgSrc2 || (i===0&&logImg2 ?logImg2.base64:null),
+        imgSrc3: e.imgSrc3 || (i===0&&logImg3 ?logImg3.base64:null),
+      }));
+      allNewLogs = [...allNewLogs, ...displayEditEntries];
       setLogsR(allNewLogs);
       newEntries.forEach(e=>dbSaveLog(e));
       // 削除された余分なエントリをDBから削除
@@ -1953,7 +1959,14 @@ setEditId(null);setWorks(new Set());setMemo("");setLogImg(null);setLogImg2(null)
         }
       }
       const newEntries = allEntriesNew;
-      const allNewLogs = [...logs, ...newEntries];
+      // ローカル表示用: imgUrlがnullの場合はbase64プレビューを使う
+      const displayEntries = newEntries.map((e,i)=>({
+        ...e,
+        imgSrc:  e.imgSrc  || (i===0&&logImg  ?logImg.base64 :null),
+        imgSrc2: e.imgSrc2 || (i===0&&logImg2 ?logImg2.base64:null),
+        imgSrc3: e.imgSrc3 || (i===0&&logImg3 ?logImg3.base64:null),
+      }));
+      const allNewLogs = [...logs, ...displayEntries];
       setLogsR(allNewLogs);
       newEntries.forEach(e=>dbSaveLog(e));
       // 費用自動追加（施肥/農薬）
