@@ -908,7 +908,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.4.0</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.4.1</div>
       </div>
     </div>
   );
@@ -2393,7 +2393,6 @@ function TimelineScreen({ fields, crops, equips, logs, setLogs, showToast, onEdi
                 </div>
                 {card.logs.map((l,li)=>(
                   <div key={li}>
-                    {l.memo&&<div style={{fontSize:'.78rem',color:'#5a5040',marginBottom:3,lineHeight:1.5}}>{l.memo}</div>}
                     {l.fertName&&<div style={{fontSize:'.75rem',color:'#065f46'}}>🌿 {l.fertName}{l.fertAmt?' '+l.fertAmt+(l.fertUnit||''):''}</div>}
                     {l.pestName&&<div style={{fontSize:'.75rem',color:'#92400e'}}>🐛 {l.pestName}{l.pestDil?' '+l.pestDil+'倍':''}</div>}
                     {(l.hvKg||l.hvCnt||l.hvGradeStr)&&<div style={{fontSize:'.75rem',color:G}}>
@@ -2407,6 +2406,7 @@ function TimelineScreen({ fields, crops, equips, logs, setLogs, showToast, onEdi
                     </div>}
                     {l.sowQty&&<div style={{fontSize:'.75rem',color:'#5a5040'}}>🌱 播種 {l.sowQty}粒</div>}
                     {l.transplantQty&&<div style={{fontSize:'.75rem',color:'#5a5040'}}>🪴 定植 {l.transplantQty}株</div>}
+                    {l.memo&&<div style={{fontSize:'.78rem',color:'#5a5040',marginTop:3,lineHeight:1.5}}>{l.memo}</div>}
                   </div>
                 ))}
                 {photos.length>0&&(
