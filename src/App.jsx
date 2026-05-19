@@ -906,7 +906,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.1.8</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.1.9</div>
       </div>
     </div>
   );
@@ -1737,7 +1737,7 @@ function LogScreen({ fields, crops, setCrops, fertMs, pestMs, equips, costs, set
   // 編集モード: editLog が渡されたら各フィールドを初期化
   // editLogがnullのとき（新規作成）は全フィールドをリセット
   // editLogの前の値を記憶して余分なリセットを防ぐ
-  const prevEditLogRef = React.useRef(null);
+  const prevEditLogRef = useRef(null);
   useEffect(()=>{
     if(!editLog) {
       // editLogが意図的にnullになった場合のみリセット
