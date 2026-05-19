@@ -906,7 +906,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.3.4</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.3.5</div>
       </div>
     </div>
   );
@@ -2000,6 +2000,31 @@ setEditId(null);setWorks(new Set());setMemo("");setLogImg(null);setLogImg2(null)
   const cropDb     = CDB[cropObj.type]||{};
   const eventOpts  = cropDb.events||["開花","着果","収穫開始","生育確認","異常発生","その他"];
 
+  // 写真一括選択（1枚目からEXIF取得、最大3枚）
+  const handleLogImg = async e => {
+    const allFiles = Array.from(e.target.files);
+    if(allFiles.length > 3){ showToast("写真は3枚までです"); e.target.value=""; return; }
+    const files = allFiles.slice(0,3);
+    if(!files.length) return;
+    const exif = await extractExifDate(files[0]);
+    if(exif){setDate(exif.date);setTime(exif.time);showToast("写真から日時を取得しました");}
+    const setters = [setLogImg, setLogImg2, setLogImg3];
+    for(let i=0;i<files.length;i++){
+      const {base64,blob} = await compressImage(files[i]);
+      setters[i]({base64, blob, name:uid0()+".jpg"});
+    }
+  };
+  const handleLogImg2 = async e => {
+    const f=e.target.files[0]; if(!f) return;
+    const {base64,blob} = await compressImage(f);
+    setLogImg2({base64,blob,name:uid0()+".jpg"});
+  };
+  const handleLogImg3 = async e => {
+    const f=e.target.files[0]; if(!f) return;
+    const {base64,blob} = await compressImage(f);
+    setLogImg3({base64,blob,name:uid0()+".jpg"});
+  };
+
   const doSaveAndAdd = () => {
     setKeepDate(date);
     setKeepCrop(cropId);
@@ -2333,14 +2358,20 @@ function TimelineScreen({ fields, crops, equips, logs, setLogs, showToast, onEdi
                   <span style={{fontSize:'.66rem',color:TX3,marginLeft:'auto'}}>{l0.time||''}</span>
                 </div>
                 <div style={{display:'flex',gap:4,flexWrap:'wrap',marginBottom:5}}>
-                  {[...card.logs].sort((a,b)=>{
-                    const order=WORK_TYPES.findIndex(w=>w.value===a.work);
-                    const orderB=WORK_TYPES.findIndex(w=>w.value===b.work);
-                    return (order<0?99:order)-(orderB<0?99:orderB);
-                  }).map((l,i)=>{
-                    const w=WORK[l.work]||{label:l.work||'',tag:'gray',icon:'📝'};
-                    return <Tag key={i} type={w.tag}>{w.icon} {w.label}{l.otherNote?' '+l.otherNote:''}</Tag>;
-                  })}
+                  {(()=>{
+                    const seen=new Set();
+                    return [...card.logs]
+                      .sort((a,b)=>{
+                        const oa=WORK_TYPES.findIndex(w=>w.value===a.work);
+                        const ob=WORK_TYPES.findIndex(w=>w.value===b.work);
+                        return (oa<0?99:oa)-(ob<0?99:ob);
+                      })
+                      .filter(l=>{ if(seen.has(l.work))return false; seen.add(l.work); return true; })
+                      .map((l,i)=>{
+                        const w=WORK[l.work]||{label:l.work||'',tag:'gray',icon:'📝'};
+                        return <Tag key={i} type={w.tag}>{w.icon} {w.label}{l.otherNote?' '+l.otherNote:''}</Tag>;
+                      });
+                  })()}
                 </div>
                 {card.logs.map((l,li)=>(
                   <div key={li}>
