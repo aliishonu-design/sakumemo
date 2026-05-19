@@ -906,7 +906,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.2.1</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.2.4</div>
       </div>
     </div>
   );
@@ -1765,52 +1765,53 @@ setEditId(null);setWorks(new Set());setMemo("");setLogImg(null);setLogImg2(null)
     setSowQty(editLog.sowQty||"");
     setGermCnt(editLog.germinationCnt||"");
     setTranspQty(editLog.transplantQty||"");
-    setFertName(editLog.fertName||"");
-    setFertAmt(editLog.fertAmt||"");
-    setFertUnit(editLog.fertUnit||"kg");
-    setFertMeth(editLog.fertMethod||"追肥");
-    setFertCost(editLog.fertCost||"");
-    setPestName(editLog.pestName||"");
-    setPestDil(editLog.pestDil||"");
-    setPestAmt(editLog.pestAmt||"");
-    setPestUnit(editLog.pestUnit||"L");
-    setPestTgt(editLog.pestTarget||"");
-    setPestCost(editLog.pestCost||"");
+
     setEventType(editLog.eventType||"");
     setEventNote(editLog.eventNote||"");
-    setHvKg(editLog.hvKg||"");
-    setHvCnt(editLog.hvCnt||"");
-    setHvQ(editLog.hvQ||"秀品");
-    setHvPrice(editLog.hvPrice||"");
-    // 品質別収穫データを復元
+    // editLogs内から各作業データを探して復元
+    const hvLog   = (editLogs&&editLogs.find(l=>l.work==='harvest')) || editLog;
+    const fertLog = (editLogs&&editLogs.find(l=>l.work==='fert'))    || editLog;
+    const pestLog = (editLogs&&editLogs.find(l=>l.work==='pest'))    || editLog;
+    const discLog = (editLogs&&editLogs.find(l=>l.work==='discard')) || editLog;
+    const equipLog= (editLogs&&editLogs.find(l=>l.work==='equip'))   || editLog;
+    // 施肥
+    setFertName(fertLog.fertName||"");setFertAmt(fertLog.fertAmt||"");
+    setFertUnit(fertLog.fertUnit||"kg");setFertMeth(fertLog.fertMethod||"追肥");setFertCost(fertLog.fertCost||"");
+    // 農薬
+    setPestName(pestLog.pestName||"");setPestDil(pestLog.pestDil||"");
+    setPestAmt(pestLog.pestAmt||"");setPestUnit(pestLog.pestUnit||"L");
+    setPestTgt(pestLog.pestTarget||"");setPestCost(pestLog.pestCost||"");
+    // 収穫
+    setHvKg(hvLog.hvKg||"");
+    setHvCnt(hvLog.hvCnt||"");
+    setHvQ(hvLog.hvQ||"秀品");
+    setHvPrice(hvLog.hvPrice||"");
     {
-      const grades = ['秀品','優品','良品','規格外'];
-      const restored = {};
+      const grades=['秀品','優品','良品','規格外'];
+      const restored={};
       grades.forEach(g=>{restored[g]={kg:'',cnt:'',price:''};});
-      if(editLog.hvGradeStr){
-        // hvGradeStr: "秀品:10kg15個 / 優品:5kg10個" をパース
-        editLog.hvGradeStr.split('/').forEach(s=>{
+      if(hvLog.hvGradeStr){
+        hvLog.hvGradeStr.split('/').forEach(s=>{
           const s2=s.trim();
           const grade=grades.find(g=>s2.startsWith(g));
           if(grade){
             const kgM=s2.match(/([0-9.]+)\s*kg/);
             const cntM=s2.match(/([0-9]+)\s*個/);
-            if(kgM) restored[grade].kg=kgM[1];
-            if(cntM) restored[grade].cnt=cntM[1];
+            if(kgM)restored[grade].kg=kgM[1];
+            if(cntM)restored[grade].cnt=cntM[1];
           }
         });
       } else {
-        // 旧データ: hvQ/hvKg/hvCntから復元
-        const q=editLog.hvQ&&grades.includes(editLog.hvQ)?editLog.hvQ:'秀品';
-        restored[q].kg=editLog.hvKg||'';
-        restored[q].cnt=editLog.hvCnt||'';
-        restored[q].price=editLog.hvPrice||'';
+        const q=hvLog.hvQ&&grades.includes(hvLog.hvQ)?hvLog.hvQ:'秀品';
+        restored[q].kg=hvLog.hvKg||'';
+        restored[q].cnt=hvLog.hvCnt||'';
+        restored[q].price=hvLog.hvPrice||'';
       }
       setHvGrades(restored);
     }
-    setDiscardCnt(editLog.discardCnt||"");
-    setAddCnt(editLog.addCnt||"");
-    setEquipAct(editLog.equipAct||"設置");
+    setDiscardCnt(discLog.discardCnt||"");
+    setAddCnt(discLog.addCnt||"");
+    setEquipAct(equipLog.equipAct||"設置");
     // 既存写真をプレビューとして保持
     if(editLog.imgSrc)  setLogImg({ base64:editLog.imgSrc,  blob:null, name:"", existing:true });
     else setLogImg(null);
@@ -1818,7 +1819,7 @@ setEditId(null);setWorks(new Set());setMemo("");setLogImg(null);setLogImg2(null)
     else setLogImg2(null);
     if(editLog.imgSrc3) setLogImg3({ base64:editLog.imgSrc3, blob:null, name:"", existing:true });
     else setLogImg3(null);
-  },[editLog]);
+  },[editLog, editLogs]);
 
   const toggleVoice = () => {
     if(!("webkitSpeechRecognition" in window||"SpeechRecognition" in window)){showToast("このブラウザは音声入力非対応です");return;}
