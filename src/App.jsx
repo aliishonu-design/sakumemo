@@ -20,9 +20,8 @@ const dbUpsert = async (table, row) => {
   const { data, error } = await sb.from(table).upsert(row, { onConflict: "id" }).select();
   if (error) {
     console.error("DB保存エラー:", table, error.code, error.message, JSON.stringify(error));
-    // ユーザーに通知（重要なエラーの場合）
-    if(error.code === "42703") {
-    }
+  } else {
+    console.log("[dbUpsert] 成功:", table, "rows:", data?.length, "id:", data?.[0]?.id);
   }
 };
 const dbDelete = async (table, id) => {
@@ -909,7 +908,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.3.7</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.3.8</div>
       </div>
     </div>
   );
