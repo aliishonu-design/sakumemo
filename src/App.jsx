@@ -906,7 +906,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.2.7</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.2.9</div>
       </div>
     </div>
   );
@@ -1131,7 +1131,6 @@ function MasterScreen({ fertMs, setFertMs, pestMs, setPestMs, equips, setEquips,
         }
         return c;
       });
-      setCostsR(updatedCosts);
     }
     // 費用自動追加（価格が入力されている場合）
     if(item.price && parseFloat(item.price) > 0) {
@@ -1958,6 +1957,9 @@ setEditId(null);setWorks(new Set());setMemo("");setLogImg(null);setLogImg2(null)
   useEffect(()=>{
     if(saveRef) saveRef.current = doSave;
   });
+
+  const fieldCrops = crops.filter(c=>c.fieldIdx===fieldIdx);
+  const cropObj    = crops.find(c=>c.id===cropId)||{};
 
   const doSaveAndAdd = () => {
     setKeepDate(date);
