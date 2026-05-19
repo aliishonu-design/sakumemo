@@ -908,7 +908,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.4.2</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.4.3</div>
       </div>
     </div>
   );
@@ -1920,9 +1920,9 @@ setEditId(null);setWorks(new Set());setMemo("");setLogImg(null);setLogImg2(null)
       const newEntries = editEntriesAll;
       const displayEditEntries = newEntries.map((e,i)=>({
         ...e,
-        imgSrc:  e.imgSrc  || (i===0&&logImg  ?logImg.base64 :null),
-        imgSrc2: e.imgSrc2 || (i===0&&logImg2 ?logImg2.base64:null),
-        imgSrc3: e.imgSrc3 || (i===0&&logImg3 ?logImg3.base64:null),
+        imgSrc:  e.imgSrc  || (i===0 ? (logImg  ?.base64||editLog?.imgSrc ||null) : null),
+        imgSrc2: e.imgSrc2 || (i===0 ? (logImg2 ?.base64||editLog?.imgSrc2||null) : null),
+        imgSrc3: e.imgSrc3 || (i===0 ? (logImg3 ?.base64||editLog?.imgSrc3||null) : null),
       }));
       allNewLogs = [...allNewLogs, ...displayEditEntries];
       setLogsR(allNewLogs);
@@ -1962,9 +1962,9 @@ setEditId(null);setWorks(new Set());setMemo("");setLogImg(null);setLogImg2(null)
       // ローカル表示用: imgUrlがnullの場合はbase64プレビューを使う
       const displayEntries = newEntries.map((e,i)=>({
         ...e,
-        imgSrc:  e.imgSrc  || (i===0&&logImg  ?logImg.base64 :null),
-        imgSrc2: e.imgSrc2 || (i===0&&logImg2 ?logImg2.base64:null),
-        imgSrc3: e.imgSrc3 || (i===0&&logImg3 ?logImg3.base64:null),
+        imgSrc:  e.imgSrc  || (i===0 ? logImg  ?.base64||null : null),
+        imgSrc2: e.imgSrc2 || (i===0 ? logImg2 ?.base64||null : null),
+        imgSrc3: e.imgSrc3 || (i===0 ? logImg3 ?.base64||null : null),
       }));
       const allNewLogs = [...logs, ...displayEntries];
       setLogsR(allNewLogs);
@@ -2206,9 +2206,6 @@ setEditId(null);setWorks(new Set());setMemo("");setLogImg(null);setLogImg2(null)
         <R2><FG label="作業日"><Inp type="date" value={date} onChange={setDate}/></FG><FG label="作業時刻"><Inp type="time" value={time} onChange={setTime}/></FG></R2>
         <FG label="作業時間（分）"><Inp type="number" value={dur} onChange={setDur} placeholder="30"/></FG>
         <FG label="メモ・気づき"><TA value={memo} onChange={setMemo} placeholder="天候・生育状態・気づいたことなど…"/></FG>
-        <Btn style={S.btnG} onClick={doSave} disabled={saving}>
-          {saving?"保存中…":editId?"更新する ✓":works.size>1?"記録を保存する（"+works.size+"件） ✓":"記録を保存する ✓"}
-        </Btn>
 
       </div>
     </div>
@@ -2301,7 +2298,7 @@ function TimelineScreen({ fields, crops, equips, logs, setLogs, showToast, onEdi
       {/* ヘッダー */}
       <div style={{...S.sec,flexWrap:'wrap',gap:6}}>
         <span>📋 作業記録</span>
-        <button onClick={onNew} style={{...S.btn,...S.btnP,...S.btnSm,marginLeft:'auto'}}>＋ 記録する</button>
+        <button onClick={onNew} style={S.secBtn}>＋ 記録する</button>
       </div>
 
       {/* フィルター */}
