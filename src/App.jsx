@@ -530,7 +530,7 @@ async function uploadPhoto(blob, userId, filename) {
     }
     console.log("[uploadPhoto] success:", uploadData?.path);
     const { data } = sb.storage.from("farm-photos").getPublicUrl(path);
-    return data?.publicUrl || null;
+    if(!data?.publicUrl) return null; return data.publicUrl+'?t='+Date.now();
   } catch(e) {
     console.error("uploadPhoto exception:", e.message);
     return null;
@@ -908,7 +908,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.4.3</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.4.4</div>
       </div>
     </div>
   );
@@ -1841,7 +1841,10 @@ setEditId(null);setWorks(new Set());setMemo("");setLogImg(null);setLogImg2(null)
     let imgUrl3 = editId ? (editLog?.imgSrc3||null) : null;
     if(logImg){
       if(logImg.existing) imgUrl=logImg.base64;
-      else if(logImg.blob&&uid) try{ imgUrl=await uploadPhoto(logImg.blob,uid,logImg.name||uid0()+'.jpg')||null; }catch(e){console.error('img1 upload error:',e);}
+      else if(logImg.blob&&uid) try{
+        imgUrl=await uploadPhoto(logImg.blob,uid,logImg.name||uid0()+'.jpg');
+        if(!imgUrl){ console.error('img1 upload returned null'); imgUrl=logImg.base64||null; }
+      }catch(e){ console.error('img1 upload error:',e); imgUrl=logImg.base64||null; }
     }
     if(logImg2){
       if(logImg2.existing) imgUrl2=logImg2.base64;
@@ -2029,7 +2032,7 @@ setEditId(null);setWorks(new Set());setMemo("");setLogImg(null);setLogImg2(null)
       console.log("[handleLogImg] file",i,"blob:",blob?.size,"base64:",base64?.length);
       // blobがnullの場合はbase64からblobを生成
       const finalBlob = blob || await fetch(base64).then(r=>r.blob());
-      setters[i]({base64, blob:finalBlob, name:uid0()+".jpg"});
+      setters[i]({base64, blob:finalBlob, name:uid0()+'-'+Date.now()+".jpg"});
     }
   };
   const handleLogImg2 = async e => {
