@@ -16,13 +16,11 @@ const dbFetch = async (table, uid) => {
   return data || [];
 };
 const dbUpsert = async (table, row) => {
-  console.log("[dbUpsert] table:", table, "id:", row?.id, "keys:", row?Object.keys(row).join(","):"none");
   const { data, error } = await sb.from(table).upsert(row, { onConflict: "id" }).select();
   if (error) {
     console.error("DB保存エラー:", table, error.code, error.message, JSON.stringify(error));
   } else {
-    console.log("[dbUpsert] 成功:", table, "rows:", data?.length, "id:", data?.[0]?.id);
-  }
+    }
 };
 const dbDelete = async (table, id) => {
   const { error } = await sb.from(table).delete().eq("id", id);
@@ -520,7 +518,6 @@ async function compressImage(file) {
 async function uploadPhoto(blob, userId, filename) {
   try {
     const path = userId + "/" + filename;
-    console.log("[uploadPhoto] path:", path, "blobSize:", blob?.size);
     const { data: uploadData, error } = await sb.storage
       .from("farm-photos")
       .upload(path, blob, { contentType:"image/jpeg", upsert:true });
@@ -528,7 +525,6 @@ async function uploadPhoto(blob, userId, filename) {
       console.error("[uploadPhoto] error:", error.message, error.statusCode, JSON.stringify(error));
       return null;
     }
-    console.log("[uploadPhoto] success:", uploadData?.path);
     const { data } = sb.storage.from("farm-photos").getPublicUrl(path);
     if(!data?.publicUrl) return null; return data.publicUrl+'?t='+Date.now();
   } catch(e) {
@@ -908,7 +904,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.4.4</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.4.5</div>
       </div>
     </div>
   );
@@ -1947,7 +1943,6 @@ setEditId(null);setWorks(new Set());setMemo("");setLogImg(null);setLogImg2(null)
       // 施肥は複数エントリ対応
       const baselist = [...workList];
       const allEntriesNew = [];
-      let firstDone = false;
       for(let wi=0;wi<baselist.length;wi++){
         const w=baselist[wi];
         const isFirst=wi===0;
@@ -2361,55 +2356,59 @@ function TimelineScreen({ fields, crops, equips, logs, setLogs, showToast, onEdi
             const l0=card.logs[0];
             const cr=crops.find(c=>c.id===l0.cropId)||{};
             const db=CDB[cr.type]||{};
-            const f=fields[l0.fieldIdx]||{};
-            const cropLabel=(cr.type==='custom'?cr.customName||'その他':db.n||cr.type||'')+(cr.variety?' ('+cr.variety+')':'');
-            const photos=[l0.imgSrc,l0.imgSrc2,l0.imgSrc3].filter(Boolean);
+            const fieldName=fields[l0.fieldIdx]?.name||'';
+            // 全logsから写真収集（farm.htmlと同じ方式）
+            const photos=[];
+            card.logs.forEach(l=>{[l.imgSrc,l.imgSrc2,l.imgSrc3].forEach(s=>{if(s&&photos.length<3)photos.push(s);});});
+            // メモ（logsから探す）
+            const memoLog=card.logs.find(l=>l.memo);
+            // 作業タグ（WORK_TYPES順・重複排除）
+            const seenW=new Set();
+            const sortedLogs=[...card.logs].sort((a,b)=>{
+              const oa=WORK_TYPES.findIndex(w=>w.value===a.work);
+              const ob=WORK_TYPES.findIndex(w=>w.value===b.work);
+              return (oa<0?99:oa)-(ob<0?99:ob);
+            }).filter(l=>{ if(seenW.has(l.work))return false; seenW.add(l.work); return true; });
             return (
-              <div key={card.key} style={{...S.card,padding:'9px 11px',marginBottom:8}}>
-                <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:5,flexWrap:'wrap'}}>
-                  {cropLabel&&<span style={{fontSize:'.84rem',fontWeight:700,color:'#1c1a14'}}>{db.e||'🌱'} {cropLabel}</span>}
-                  {f.name&&<span style={{fontSize:'.7rem',color:TX3,background:'#f0ebe3',borderRadius:4,padding:'1px 6px'}}>{f.name}</span>}
-                  <span style={{fontSize:'.66rem',color:TX3,marginLeft:'auto'}}>{l0.time||''}</span>
-                </div>
-                <div style={{display:'flex',gap:4,flexWrap:'wrap',marginBottom:5}}>
-                  {(()=>{
-                    const seen=new Set();
-                    return [...card.logs]
-                      .sort((a,b)=>{
-                        const oa=WORK_TYPES.findIndex(w=>w.value===a.work);
-                        const ob=WORK_TYPES.findIndex(w=>w.value===b.work);
-                        return (oa<0?99:oa)-(ob<0?99:ob);
-                      })
-                      .filter(l=>{ if(seen.has(l.work))return false; seen.add(l.work); return true; })
-                      .map((l,i)=>{
-                        const w=WORK[l.work]||{label:l.work||'',tag:'gray',icon:'📝'};
-                        return <Tag key={i} type={w.tag}>{w.icon} {w.label}{l.otherNote?' '+l.otherNote:''}</Tag>;
-                      });
-                  })()}
-                </div>
-                {card.logs.map((l,li)=>(
-                  <div key={li}>
-                    {l.fertName&&<div style={{fontSize:'.75rem',color:'#065f46'}}>🌿 {l.fertName}{l.fertAmt?' '+l.fertAmt+(l.fertUnit||''):''}</div>}
-                    {l.pestName&&<div style={{fontSize:'.75rem',color:'#92400e'}}>🐛 {l.pestName}{l.pestDil?' '+l.pestDil+'倍':''}</div>}
-                    {(l.hvKg||l.hvCnt||l.hvGradeStr)&&<div style={{fontSize:'.75rem',color:G}}>
-                      🧺 {l.hvGradeStr
-                        ?<>合計: {l.hvKg?l.hvKg+'kg ':''}{l.hvCnt?l.hvCnt+'個':''} <span style={{color:'#888',fontSize:'.7rem'}}>{l.hvGradeStr}</span></>
-                        :<>{l.hvKg?l.hvKg+'kg ':''}{l.hvCnt?l.hvCnt+'個':''}{l.hvQ&&l.hvQ!=='秀品'?' '+l.hvQ:''}</>
-                      }
-                    </div>}
-                    {(l.addCnt||l.discardCnt)&&<div style={{fontSize:'.75rem',color:'#5a5040'}}>
-                      📊 株数調整{l.addCnt?<span style={{color:G}}>　+{l.addCnt}株</span>:''}{l.discardCnt?<span style={{color:'#dc2626'}}>　-{l.discardCnt}株（廃棄）</span>:''}
-                    </div>}
-                    {l.sowQty&&<div style={{fontSize:'.75rem',color:'#5a5040'}}>🌱 播種 {l.sowQty}粒</div>}
-                    {l.transplantQty&&<div style={{fontSize:'.75rem',color:'#5a5040'}}>🪴 定植 {l.transplantQty}株</div>}
-                    {l.memo&&<div style={{fontSize:'.78rem',color:'#5a5040',marginTop:3,lineHeight:1.5}}>{l.memo}</div>}
+              <div key={card.key} style={{...S.card,padding:0,overflow:'hidden',marginBottom:8}}>
+                <div style={{padding:'9px 11px'}}>
+                  {/* 品目名 */}
+                  <div style={{fontSize:'.84rem',fontWeight:700,color:'#1c1a14',marginBottom:4}}>
+                    {db.e||'🌱'} {cr.type==='custom'?(cr.customName||'カスタム'):(db.n||cr.type)}{cr.variety?` (${cr.variety})`:''}
                   </div>
-                ))}
+                  {/* 圃場・時間 */}
+                  <div style={{fontSize:'.7rem',color:TX3,marginBottom:5,display:'flex',gap:8}}>
+                    {fieldName&&<span>📍{fieldName}</span>}
+                    {l0.time&&<span>🕐{l0.time}</span>}
+                  </div>
+                  {/* 作業タグ */}
+                  <div style={{display:'flex',gap:4,flexWrap:'wrap',marginBottom:5}}>
+                    {sortedLogs.map((l,i)=>{
+                      const w=WORK[l.work]||{label:l.work||'',tag:'gray',icon:'📝'};
+                      return <Tag key={i} type={w.tag}>{w.icon} {w.label}{l.otherNote?' '+l.otherNote:''}</Tag>;
+                    })}
+                  </div>
+                  {/* 詳細（farm.htmlと同じ順序） */}
+                  {card.logs.map((l,li)=>(
+                    <div key={li}>
+                      {l.fertName&&<div style={{fontSize:'.75rem',color:'#065f46'}}>🌿 {l.fertName}{l.fertAmt?` ${l.fertAmt}${l.fertUnit||''}`:''}</div>}
+                      {l.pestName&&<div style={{fontSize:'.75rem',color:'#92400e'}}>🐛 {l.pestName}{l.pestDil?` ${l.pestDil}倍`:''}</div>}
+                      {(l.hvKg||l.hvCnt)&&<div style={{fontSize:'.75rem',color:'#059669'}}>🧺 {l.hvGradeStr||`${l.hvKg||''}${l.hvKg?'kg':''}${l.hvCnt?` ${l.hvCnt}個`:''}`}</div>}
+                      {l.sowQty&&<div style={{fontSize:'.75rem',color:'#5a5040'}}>🌰 播種 {l.sowQty}粒</div>}
+                      {l.transplantQty&&<div style={{fontSize:'.75rem',color:'#5a5040'}}>🪴 定植 {l.transplantQty}株</div>}
+                      {l.eventType&&<div style={{fontSize:'.75rem',color:'#5a5040'}}>📋 {l.eventType}{l.eventNote?` · ${l.eventNote}`:''}</div>}
+                      {(l.discardCnt||l.addCnt)&&<div style={{fontSize:'.75rem',color:'#5a5040'}}>📊 株数調整{l.addCnt?` +${l.addCnt}株`:''}{ l.discardCnt?` -${l.discardCnt}株（廃棄）`:''}</div>}
+                    </div>
+                  ))}
+                  {/* メモ（後方） */}
+                  {memoLog?.memo&&<div style={{fontSize:'.78rem',color:'#5a5040',marginTop:4,lineHeight:1.5}}>{memoLog.memo}</div>}
+                </div>
+                {/* 写真 */}
                 {photos.length>0&&(
                   <div style={{
                     display:'grid',
                     gridTemplateColumns:photos.length===1?'1fr':photos.length===2?'1fr 1fr':'1fr 1fr 1fr',
-                    gap:2,marginTop:6,borderRadius:8,overflow:'hidden'
+                    gap:2
                   }}>
                     {photos.map((src,i)=>(
                       <img key={i} src={src} alt="" style={{
@@ -2430,16 +2429,18 @@ function TimelineScreen({ fields, crops, equips, logs, setLogs, showToast, onEdi
                     ))}
                   </div>
                 )}
-                <div style={{display:'flex',gap:6,marginTop:6,justifyContent:'flex-end'}}>
+                {/* 操作ボタン */}
+                <div style={{display:'flex',gap:6,padding:'6px 11px',borderTop:'1px solid #f0ebe3'}}>
                   <button style={{...S.btn,...S.btnS,...S.btnSm}} onClick={()=>onEdit(card.logs)}>✏️ 編集</button>
                   {card.logs.length===1
-                    ?<button style={{...S.btn,...S.btnR,...S.btnSm}} onClick={()=>{if(!window.confirm('削除?'))return;dbDelete('logs',card.logs[0].id);setLogs(logs.filter(x=>x.id!==card.logs[0].id));showToast('削除しました');}}>削除</button>
-                    :<button style={{...S.btn,...S.btnR,...S.btnSm}} onClick={()=>{if(!window.confirm('この日の作業をまとめて削除しますか?'))return;card.logs.forEach(l=>dbDelete('logs',l.id));const ids=new Set(card.logs.map(l=>l.id));setLogs(logs.filter(x=>!ids.has(x.id)));showToast('削除しました');}}>削除</button>
+                    ? <button style={{...S.btn,...S.btnR,...S.btnSm}} onClick={()=>{if(!window.confirm('削除?'))return;dbDelete('logs',card.logs[0].id);setLogs(logs.filter(x=>x.id!==card.logs[0].id));showToast('削除しました');}}>削除</button>
+                    : <button style={{...S.btn,...S.btnR,...S.btnSm}} onClick={()=>{if(!window.confirm('削除?'))return;const ids=new Set(card.logs.map(l=>l.id));setLogs(logs.filter(x=>!ids.has(x.id)));showToast('削除しました');}}>削除</button>
                   }
                 </div>
               </div>
             );
           })}
+
         </div>
       ))}
 
