@@ -2654,16 +2654,7 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs }) {
                   <span style={{fontSize:".7rem",fontWeight:400,opacity:.85}}>{c.kg>0?c.kg.toFixed(1)+"kg · ":""}{c.logCount}件</span>
                 </button>
               ))}
-              {cropStats.filter(c=>c.ended).length>0&&<>
-                <div style={{fontSize:".65rem",color:"#aaa",padding:"6px 4px 2px",fontWeight:700}}>栽培終了</div>
-                {cropStats.filter(c=>c.ended).map(c=>(
-                  <button key={c.id} onClick={()=>{setSelCropId(c.id);setListOpen(false);}}
-                    style={{padding:"9px 14px",borderRadius:9,border:"1.5px solid #ccc",background:selCropId===c.id?"#888":"#f5f5f5",color:selCropId===c.id?"#fff":"#999",fontSize:".82rem",fontWeight:700,cursor:"pointer",fontFamily:"inherit",textAlign:"left",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                    <span>{c.emoji} {c.name}{c.variety?" ("+c.variety+")":""}</span>
-                    <span style={{fontSize:".7rem",fontWeight:400,opacity:.75}}>{c.kg>0?c.kg.toFixed(1)+"kg · ":""}{c.logCount}件</span>
-                  </button>
-                ))}
-              </>}
+
             </div>}
           </div>
         );
