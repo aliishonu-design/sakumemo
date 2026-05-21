@@ -923,7 +923,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.5.4</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.5.5</div>
       </div>
     </div>
   );
@@ -2642,7 +2642,7 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs }) {
               <span>{selLabel}</span>
               <span style={{fontSize:".8rem"}}>{listOpen?"▲":"▼"}</span>
             </button>
-            {listOpen&&<div style={{marginTop:4,display:"flex",flexDirection:"column",gap:4}}>
+            {listOpen&&<div style={{marginTop:4,display:"flex",flexDirection:"column",gap:4,maxHeight:"260px",overflowY:"auto",WebkitOverflowScrolling:"touch",paddingRight:4}}>
               <button onClick={()=>{setSelCropId("all");setListOpen(false);}}
                 style={{padding:"9px 14px",borderRadius:9,border:"1.5px solid "+(selCropId==="all"?G:BD),background:selCropId==="all"?G:"#fff",color:selCropId==="all"?"#fff":"#5a5040",fontSize:".82rem",fontWeight:700,cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>
                 📊 すべての品目
@@ -2650,10 +2650,20 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs }) {
               {cropStats.filter(c=>!c.ended).map(c=>(
                 <button key={c.id} onClick={()=>{setSelCropId(c.id);setListOpen(false);}}
                   style={{padding:"9px 14px",borderRadius:9,border:"1.5px solid "+(selCropId===c.id?G:BD),background:selCropId===c.id?G:"#fff",color:selCropId===c.id?"#fff":"#5a5040",fontSize:".82rem",fontWeight:700,cursor:"pointer",fontFamily:"inherit",textAlign:"left",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                  <span>{c.emoji} {c.name}{c.variety?" ("+c.variety+")":""}{c.ended?" 【終了】":""}</span>
+                  <span>{c.emoji} {c.name}{c.variety?" ("+c.variety+")":""}</span>
                   <span style={{fontSize:".7rem",fontWeight:400,opacity:.85}}>{c.kg>0?c.kg.toFixed(1)+"kg · ":""}{c.logCount}件</span>
                 </button>
               ))}
+              {cropStats.filter(c=>c.ended).length>0&&<>
+                <div style={{fontSize:".65rem",color:"#aaa",padding:"6px 4px 2px",fontWeight:700}}>栽培終了</div>
+                {cropStats.filter(c=>c.ended).map(c=>(
+                  <button key={c.id} onClick={()=>{setSelCropId(c.id);setListOpen(false);}}
+                    style={{padding:"9px 14px",borderRadius:9,border:"1.5px solid #ccc",background:selCropId===c.id?"#888":"#f5f5f5",color:selCropId===c.id?"#fff":"#999",fontSize:".82rem",fontWeight:700,cursor:"pointer",fontFamily:"inherit",textAlign:"left",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                    <span>{c.emoji} {c.name}{c.variety?" ("+c.variety+")":""}</span>
+                    <span style={{fontSize:".7rem",fontWeight:400,opacity:.75}}>{c.kg>0?c.kg.toFixed(1)+"kg · ":""}{c.logCount}件</span>
+                  </button>
+                ))}
+              </>}
             </div>}
           </div>
         );
@@ -2785,6 +2795,29 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs }) {
               ):null;
             })}
           </div>
+
+          {/* 栽培終了品目 */}
+          {cropStats.filter(c=>c.ended).length>0&&(
+            <div style={{...S.card,marginTop:8,opacity:.85}}>
+              <div style={{fontSize:".75rem",fontWeight:700,color:"#888",marginBottom:8,paddingBottom:4,borderBottom:"1px solid #f0ebe3"}}>
+                栽培終了
+              </div>
+              {cropStats.filter(c=>c.ended).map(c=>(
+                <div key={c.id} onClick={()=>setSelCropId(c.id)}
+                  style={{display:"flex",alignItems:"center",gap:10,padding:"9px 2px",borderBottom:"1px solid #f8f5ef",cursor:"pointer"}}>
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:".82rem",fontWeight:700,color:"#888"}}>{c.emoji} {c.name}{c.variety?" ("+c.variety+")":""}</div>
+                    <div style={{fontSize:".7rem",color:"#bbb"}}>{c.endDate?c.endDate+"終了 · ":""}{c.logCount}件 / {c.timeStr}</div>
+                  </div>
+                  <div style={{textAlign:"right",flexShrink:0}}>
+                    <div style={{fontWeight:700,fontSize:".85rem",color:"#aaa"}}>{c.kg.toFixed(1)}kg</div>
+                    <div style={{fontSize:".68rem",color:c.profit>=0?"#aaa":ALERT}}>{c.profit>=0?"+":""}{Math.round(c.profit).toLocaleString()}円</div>
+                  </div>
+                  <div style={{color:"#ccc",fontSize:".8rem"}}>›</div>
+                </div>
+              ))}
+            </div>
+          )}
         </>
       ) : (
         <>
