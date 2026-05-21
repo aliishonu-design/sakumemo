@@ -415,6 +415,25 @@ const WORK_TYPES = [
   { value:"equip",      label:"資材作業",     tag:"gray",   icon:"🏗️" },  { value:"check",      label:"見回り",       tag:"gray",   icon:"👀" },
   { value:"other",      label:"その他",       tag:"gray",   icon:"✏️" },
 ];
+
+const WORK = {
+    sow:{label:'播種',tag:'green',icon:'🌱'},
+    germinated:{label:'発芽確認',tag:'green',icon:'🌿'},
+    transplant:{label:'定植',tag:'purple',icon:'🪴'},
+    water:{label:'水やり',tag:'blue',icon:'💧'},
+    fert:{label:'施肥',tag:'teal',icon:'🌿'},
+    pest:{label:'防除',tag:'yellow',icon:'🐛'},
+    pruning:{label:'剪定',tag:'gray',icon:'✂️'},
+    thinning:{label:'摘果・摘花',tag:'gray',icon:'🌸'},
+    sideshot:{label:'脇芽かき',tag:'gray',icon:'🌿'},
+    repot:{label:'植え替え',tag:'purple',icon:'🪴'},
+    event:{label:'生育記録',tag:'gray',icon:'📝'},
+    harvest:{label:'収穫',tag:'blue',icon:'🧺'},
+    discard:{label:'廃棄・株数調整',tag:'gray',icon:'📊'},
+    equip:{label:'資材作業',tag:'gray',icon:'🔧'},
+    check:{label:'見回り',tag:'gray',icon:'👁️'},
+    other:{label:'その他',tag:'gray',icon:'📝'},
+  };
 const COST_CATS = [
   { value:"seed",  label:"🌱 種・苗" },
   { value:"fert",  label:"🌿 肥料" },
@@ -904,7 +923,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.4.7</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.4.8</div>
       </div>
     </div>
   );
@@ -2266,25 +2285,7 @@ function TimelineScreen({ fields, crops, equips, logs, setLogs, showToast, onEdi
   const selLabel = selCrop ? (selDb.e||'🌱')+' '+(selCrop.type==='custom'?selCrop.customName||'その他':selDb.n||selCrop.type)+(selCrop.variety?' ('+selCrop.variety+')':'') : '🌱 すべての品目';
 
   const WORK_LABELS = {sow:'播種',germinated:'発芽確認',transplant:'定植',water:'水やり',fert:'施肥',pest:'防除',pruning:'剪定',thinning:'摘果・摘花',sideshot:'脇芽かき',repot:'植え替え',event:'生育記録',harvest:'収穫',discard:'廃棄',equip:'資材作業',check:'見回り',other:'その他'};
-  const WORK = {
-    sow:{label:'播種',tag:'green',icon:'🌱'},
-    germinated:{label:'発芽確認',tag:'green',icon:'🌿'},
-    transplant:{label:'定植',tag:'purple',icon:'🪴'},
-    water:{label:'水やり',tag:'blue',icon:'💧'},
-    fert:{label:'施肥',tag:'teal',icon:'🌿'},
-    pest:{label:'防除',tag:'yellow',icon:'🐛'},
-    pruning:{label:'剪定',tag:'gray',icon:'✂️'},
-    thinning:{label:'摘果・摘花',tag:'gray',icon:'🌸'},
-    sideshot:{label:'脇芽かき',tag:'gray',icon:'🌿'},
-    repot:{label:'植え替え',tag:'purple',icon:'🪴'},
-    event:{label:'生育記録',tag:'gray',icon:'📝'},
-    harvest:{label:'収穫',tag:'blue',icon:'🧺'},
-    discard:{label:'廃棄・株数調整',tag:'gray',icon:'📊'},
-    equip:{label:'資材作業',tag:'gray',icon:'🔧'},
-    check:{label:'見回り',tag:'gray',icon:'👁️'},
-    other:{label:'その他',tag:'gray',icon:'📝'},
-  };
-
+  
   return (
     <div style={S.scr} className="scr-inner">
       {/* ヘッダー */}
