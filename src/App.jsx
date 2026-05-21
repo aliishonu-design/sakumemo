@@ -2586,7 +2586,7 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs }) {
 
   // 選択中の品目データ
   const sel = selCropId==="all" ? null : cropStats.find(c=>c.id===selCropId);
-  const dispLogs = (selCropId==="all" ? logs : logs.filter(l=>l.cropId===selCropId)).filter(l=>inPeriod(l.date));
+  const dispLogs = (selCropId==="all" ? logs : logs.filter(l=>l.cropId===selCropId)).filter(l=>inPeriod(l.date)).sort((a,b)=>((a.date+a.time)<(b.date+b.time)?-1:1));
 
   // 全体集計
   const totalKg  = cropStats.reduce((s,c)=>s+c.kg,0);
@@ -2627,7 +2627,7 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs }) {
         const selLabel = selCropId==="all" ? "📊 すべての品目" :
           (()=>{const c=cropStats.find(x=>x.id===selCropId);return c?c.emoji+" "+c.name+(c.variety?" ("+c.variety+")":""):"";})();
         return (
-          <div style={{marginBottom:10}}>
+          <div style={{marginBottom:10,position:"sticky",top:52,zIndex:190,background:"#f8f5ef",paddingTop:4,paddingBottom:4}}>
             <button onClick={()=>setListOpen(o=>!o)}
               style={{width:"100%",padding:"10px 14px",borderRadius:10,border:"1.5px solid "+G,background:G,color:"#fff",fontSize:".84rem",fontWeight:700,cursor:"pointer",fontFamily:"inherit",textAlign:"left",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
               <span>{selLabel}</span>
