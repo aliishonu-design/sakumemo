@@ -2839,6 +2839,29 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs }) {
               </div>
             ))}
           </div>
+
+          {/* 栽培終了品目 */}
+          {cropStats.filter(c=>c.ended).length>0&&(
+            <div style={{...S.card,marginTop:8,opacity:.85}}>
+              <div style={{fontSize:".75rem",fontWeight:700,color:"#888",marginBottom:8,paddingBottom:4,borderBottom:"1px solid #f0ebe3"}}>
+                栽培終了
+              </div>
+              {cropStats.filter(c=>c.ended).map(c=>(
+                <div key={c.id} onClick={()=>setSelCropId(c.id)}
+                  style={{display:"flex",alignItems:"center",gap:10,padding:"9px 2px",borderBottom:"1px solid #f8f5ef",cursor:"pointer"}}>
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:".82rem",fontWeight:700,color:"#888"}}>{c.emoji} {c.name}{c.variety?" ("+c.variety+")":""}</div>
+                    <div style={{fontSize:".7rem",color:"#bbb"}}>{c.endDate?c.endDate+"終了 · ":""}{c.logCount}件 / {c.timeStr}</div>
+                  </div>
+                  <div style={{textAlign:"right",flexShrink:0}}>
+                    <div style={{fontWeight:700,fontSize:".85rem",color:"#aaa"}}>{c.kg.toFixed(1)}kg</div>
+                    <div style={{fontSize:".68rem",color:c.profit>=0?"#aaa":ALERT}}>{c.profit>=0?"+":""}{Math.round(c.profit).toLocaleString()}円</div>
+                  </div>
+                  <div style={{color:"#ccc",fontSize:".8rem"}}>›</div>
+                </div>
+              ))}
+            </div>
+          )}
         </>
       )}
 
