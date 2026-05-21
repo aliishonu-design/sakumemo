@@ -2537,6 +2537,7 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs }) {
     // 種・苗費用（この品目に直接紐づくもの、またはcropIdがない場合は品目名で照合）
     const cropName0 = c.type==="custom"?(c.customName||"カスタム"):(CDB[c.type]?.n||c.type);
     const seedCosts = costs.filter(co=>
+      (period==="crop" || inPeriod(co.date)) &&
       co.cat==="seed" && (
         co.cropId===c.id ||
         co.cropId===c.id.toString() ||
@@ -2548,6 +2549,7 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs }) {
       )
     );
     const seedTotal = seedCosts.reduce((s,co)=>s+(parseFloat(co.amt)||0),0);
+    console.log("[seed]",c.id?.slice(-4),"period:",period,"selYear:",selYear,"seedTotal:",seedTotal,"dates:",seedCosts.map(co=>co.date));
     // 施肥・農薬費用（作業記録のマスター単価×使用量で計算・単位変換あり）
     let fertTotal=0, pestTotal=0;
     cl.forEach(l=>{
