@@ -2505,6 +2505,14 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs }) {
   // 期間フィルター関数
   const inPeriod = date => {
     if(!date) return false;
+    if(period==="crop") {
+      // 選択中の品目の定植日〜終了日（または今日）
+      const crop = crops.find(c=>c.id===selCropId);
+      if(!crop) return true;
+      const start = crop.plantDate||crop.sowDate||'';
+      const end   = crop.endDate||new Date().toISOString().slice(0,10);
+      return (!start||date>=start) && date<=end;
+    }
     if(period==="year") return date.startsWith(String(selYear));
     return date.startsWith(String(selYear)+"-"+String(selMonth).padStart(2,"0"));
   };
@@ -2600,8 +2608,9 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs }) {
 
   return (
     <div style={S.scr} className="scr-inner">
-      {/* 期間セレクター */}
-      <div style={{display:"flex",gap:6,marginBottom:10,alignItems:"center",flexWrap:"wrap"}}>
+      {/* 期間セレクター + 品目バー sticky */}
+      <div style={{position:"sticky",top:52,zIndex:190,background:"#f8f5ef",paddingTop:6,paddingBottom:2,marginLeft:-14,marginRight:-14,paddingLeft:14,paddingRight:14,boxShadow:"0 2px 6px rgba(0,0,0,.06)"}}>
+      <div style={{display:"flex",gap:6,marginBottom:8,alignItems:"center",flexWrap:"wrap"}}>
         <div style={{display:"flex",borderRadius:8,overflow:"hidden",border:"1px solid #e0d9ce",flexShrink:0}}>
           {[["year","年単位"],["month","月単位"],...(selCropId!=="all"?[["crop","栽培期間"]]:[])]
             .map(([v,l])=>(
@@ -2638,7 +2647,7 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs }) {
                 style={{padding:"9px 14px",borderRadius:9,border:"1.5px solid "+(selCropId==="all"?G:BD),background:selCropId==="all"?G:"#fff",color:selCropId==="all"?"#fff":"#5a5040",fontSize:".82rem",fontWeight:700,cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>
                 📊 すべての品目
               </button>
-              {cropStats.map(c=>(
+              {cropStats.filter(c=>!c.ended).map(c=>(
                 <button key={c.id} onClick={()=>{setSelCropId(c.id);setListOpen(false);}}
                   style={{padding:"9px 14px",borderRadius:9,border:"1.5px solid "+(selCropId===c.id?G:BD),background:selCropId===c.id?G:"#fff",color:selCropId===c.id?"#fff":"#5a5040",fontSize:".82rem",fontWeight:700,cursor:"pointer",fontFamily:"inherit",textAlign:"left",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                   <span>{c.emoji} {c.name}{c.variety?" ("+c.variety+")":""}{c.ended?" 【終了】":""}</span>
@@ -2649,6 +2658,7 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs }) {
           </div>
         );
       })()}
+      </div>{/* /sticky period+cropbar */}
 
       {/* 選択品目の詳細 or 全体サマリー */}
       {sel ? (
