@@ -904,7 +904,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.4.5</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.4.6</div>
       </div>
     </div>
   );
@@ -1405,12 +1405,11 @@ function FieldsScreen({ fields, setFields, setFieldsR, crops, setCrops, setCrops
           // 既存費用を更新
           const updated={...existingSeedCost, name:newName, date:newDate, amt:newAmt};
           const newCosts=costs.map(co=>co.id===existingSeedCost.id?updated:co);
-          setCostsR(newCosts);
-          dbSaveCost(updated);
+          setCosts(newCosts, updated);
         } else {
           // 金額が0になったら費用を削除
           dbDelete("costs",existingSeedCost.id);
-          setCostsR(costs.filter(co=>co.id!==existingSeedCost.id));
+          setCosts(costs.filter(co=>co.id!==existingSeedCost.id));
         }
       } else if(newSeedAmt>0){
         // 費用がなかった場合は新規追加
@@ -1653,11 +1652,7 @@ function FieldsScreen({ fields, setFields, setFieldsR, crops, setCrops, setCrops
                     <FG label="鉢数"><Inp type="number" value={mCrop.potCount||""} onChange={v=>setMCrop({...mCrop,potCount:v})} placeholder="例：3"/></FG>
                   </div>
                 </>}
-                {(CDB[mCrop.type]?.fruit)&&<FG label="農業年度の開始月">
-                <Sel value={mCrop.agriMonthStart||""} onChange={v=>setMCrop({...mCrop,agriMonthStart:v})}
-                  options={[{value:"",label:"設定しない（暦年）"},...[1,2,3,4,5,6,7,8,9,10,11,12].map(m=>({value:String(m),label:m+"月始まり"}))]}/>
-                <div style={{fontSize:".7rem",color:"#888",marginTop:3}}>イチゴ→7月、年またぎミカン→適宜</div>
-              </FG>}
+                {(CDB[mCrop.type]?.fruit)&&}
               {(CDB[mCrop.type]?.fruit)&&<FG label="農業年度の開始月">
                 <Sel value={mCrop.agriMonthStart||""} onChange={v=>setMCrop({...mCrop,agriMonthStart:v})}
                   options={[{value:"",label:"設定しない（暦年）"},...[1,2,3,4,5,6,7,8,9,10,11,12].map(m=>({value:String(m),label:m+"月始まり"}))]}/>
