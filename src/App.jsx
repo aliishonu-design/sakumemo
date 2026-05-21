@@ -2811,7 +2811,7 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs }) {
           <div style={S.card}>
             <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".86rem",color:"#5c3d1e",marginBottom:8}}>📊 品目別 実績</div>
             {cropStats.length===0&&<div style={{color:TX3,fontSize:".82rem"}}>品目が登録されていません</div>}
-            {cropStats.map(c=>(
+            {cropStats.filter(c=>!c.ended).map(c=>(
               <div key={c.id} onClick={()=>setSelCropId(c.id)}
                 style={{display:"flex",alignItems:"center",gap:9,padding:"9px 0",borderBottom:"1px solid "+BD,cursor:"pointer"}}>
                 <span style={{fontSize:"1.5rem",opacity:c.ended?.6:1}}>{c.emoji}</span>
