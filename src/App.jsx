@@ -2609,8 +2609,8 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs }) {
   return (
     <div style={S.scr} className="scr-inner">
       {/* 期間セレクター + 品目バー sticky */}
-      <div style={{position:"sticky",top:52,zIndex:190,background:"#f8f5ef",paddingTop:6,paddingBottom:2,marginLeft:-14,marginRight:-14,paddingLeft:14,paddingRight:14,boxShadow:"0 2px 6px rgba(0,0,0,.06)"}}>
-      <div style={{display:"flex",gap:6,marginBottom:8,alignItems:"center",flexWrap:"wrap"}}>
+      <div style={{position:"sticky",top:0,zIndex:190,background:"#f8f5ef",paddingTop:6,paddingBottom:2,marginLeft:-12,marginRight:-12,paddingLeft:12,paddingRight:12,boxShadow:"0 2px 4px rgba(0,0,0,.05)"}}>
+      <div style={{display:"flex",gap:6,marginBottom:6,alignItems:"center",flexWrap:"wrap"}}>
         <div style={{display:"flex",borderRadius:8,overflow:"hidden",border:"1px solid #e0d9ce",flexShrink:0}}>
           {[["year","年単位"],["month","月単位"],...(selCropId!=="all"?[["crop","栽培期間"]]:[])]
             .map(([v,l])=>(
