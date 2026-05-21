@@ -904,7 +904,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.4.6</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.4.7</div>
       </div>
     </div>
   );
@@ -2528,7 +2528,6 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs }) {
     // 種・苗費用（この品目に直接紐づくもの、またはcropIdがない場合は品目名で照合）
     const cropName0 = c.type==="custom"?(c.customName||"カスタム"):(CDB[c.type]?.n||c.type);
     const seedCosts = costs.filter(co=>
-      inPeriod(co.date) &&
       co.cat==="seed" && (
         co.cropId===c.id ||
         co.cropId===c.id.toString() ||
@@ -2821,6 +2820,68 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs }) {
         </>
       )}
 
+      {/* 品目詳細: 作業記録カード */}
+      {sel&&dispLogs.length>0&&(
+        <div style={{marginTop:8}}>
+          <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".82rem",color:"#5c3d1e",fontWeight:700,marginBottom:8,paddingLeft:2}}>
+            📋 作業記録
+          </div>
+          {(()=>{
+            const map={},order=[];
+            dispLogs.forEach(l=>{
+              const key=l.cropId+':'+l.fieldIdx+':'+l.date+':'+(l.time||'');
+              if(!map[key]){map[key]={key,logs:[]};order.push(key);}
+              map[key].logs.push(l);
+            });
+            return order.map(k=>map[k]);
+          })().map(card=>{
+            const l0=card.logs[0];
+            const db=CDB[crops.find(c=>c.id===l0.cropId)?.type]||{};
+            const photos=[];
+            card.logs.forEach(l=>{[l.imgSrc,l.imgSrc2,l.imgSrc3].forEach(s=>{if(s&&photos.length<3)photos.push(s);});});
+            const memoLog=card.logs.find(l=>l.memo);
+            const seenW=new Set();
+            const sortedLogs=[...card.logs].sort((a,b)=>{
+              const oa=WORK_TYPES.findIndex(w=>w.value===a.work);
+              const ob=WORK_TYPES.findIndex(w=>w.value===b.work);
+              return (oa<0?99:oa)-(ob<0?99:ob);
+            }).filter(l=>{ if(seenW.has(l.work))return false; seenW.add(l.work); return true; });
+            return (
+              <div key={card.key} style={{...S.card,padding:0,overflow:'hidden',marginBottom:8}}>
+                <div style={{padding:'8px 11px'}}>
+                  <div style={{fontSize:'.7rem',color:TX3,marginBottom:4,display:'flex',gap:8}}>
+                    <span>📅 {l0.date}</span>
+                    {l0.time&&<span>🕐{l0.time}</span>}
+                    {fields[l0.fieldIdx]?.name&&<span>📍{fields[l0.fieldIdx].name}</span>}
+                  </div>
+                  <div style={{display:'flex',gap:4,flexWrap:'wrap',marginBottom:4}}>
+                    {sortedLogs.map((l,i)=>{
+                      const w=WORK[l.work]||{label:l.work||'',tag:'gray',icon:'📝'};
+                      return <Tag key={i} type={w.tag}>{w.icon} {w.label}</Tag>;
+                    })}
+                  </div>
+                  {card.logs.map((l,li)=>(
+                    <div key={li}>
+                      {l.fertName&&<div style={{fontSize:'.75rem',color:'#065f46'}}>🌿 {l.fertName}{l.fertAmt?` ${l.fertAmt}${l.fertUnit||''}`:''}</div>}
+                      {l.pestName&&<div style={{fontSize:'.75rem',color:'#92400e'}}>🐛 {l.pestName}{l.pestDil?` ${l.pestDil}倍`:''}</div>}
+                      {(l.hvKg||l.hvCnt)&&<div style={{fontSize:'.75rem',color:'#059669'}}>🧺 {l.hvGradeStr||`${l.hvKg||''}${l.hvKg?'kg':''}${l.hvCnt?` ${l.hvCnt}個`:''}`}</div>}
+                    </div>
+                  ))}
+                  {memoLog?.memo&&<div style={{fontSize:'.78rem',color:'#5a5040',marginTop:3,lineHeight:1.5}}>{memoLog.memo}</div>}
+                </div>
+                {photos.length>0&&(
+                  <div style={{display:'grid',gridTemplateColumns:photos.length===1?'1fr':photos.length===2?'1fr 1fr':'1fr 1fr 1fr',gap:2}}>
+                    {photos.map((src,i)=>(
+                      <img key={i} src={src} alt="" style={{width:'100%',height:photos.length===1?'180px':'110px',objectFit:'cover',display:'block',cursor:'pointer'}}
+                        onClick={()=>{const lb=document.createElement('div');lb.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.92);z-index:99999;display:flex;align-items:center;justify-content:center;cursor:pointer';lb.onclick=()=>lb.remove();const img=document.createElement('img');img.src=src;img.style.cssText='max-width:92vw;max-height:90vh;object-fit:contain;border-radius:8px';lb.appendChild(img);document.body.appendChild(lb);}}/>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
 
     </div>
   );
