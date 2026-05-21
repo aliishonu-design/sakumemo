@@ -1652,7 +1652,6 @@ function FieldsScreen({ fields, setFields, setFieldsR, crops, setCrops, setCrops
                     <FG label="鉢数"><Inp type="number" value={mCrop.potCount||""} onChange={v=>setMCrop({...mCrop,potCount:v})} placeholder="例：3"/></FG>
                   </div>
                 </>}
-                {(CDB[mCrop.type]?.fruit)&&}
               {(CDB[mCrop.type]?.fruit)&&<FG label="農業年度の開始月">
                 <Sel value={mCrop.agriMonthStart||""} onChange={v=>setMCrop({...mCrop,agriMonthStart:v})}
                   options={[{value:"",label:"設定しない（暦年）"},...[1,2,3,4,5,6,7,8,9,10,11,12].map(m=>({value:String(m),label:m+"月始まり"}))]}/>
