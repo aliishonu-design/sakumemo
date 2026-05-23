@@ -28,8 +28,8 @@ const dbDelete = async (table, id) => {
 };
 
 // Converters
-const fieldToDb   = (o, uid) => ({ id:o.id, user_id:uid, name:o.name||"", area:o.area||null, soil:o.soil||null, addr:o.addr||null, memo:o.memo||null });
-const fieldFromDb = r => ({ id:r.id, name:r.name||"", area:r.area||"", soil:r.soil||"", addr:r.addr||"", memo:r.memo||"" });
+const fieldToDb   = (o, uid) => ({ id:o.id, user_id:uid, name:o.name||"", area:o.area||null, soil:o.soil||null, addr:o.addr||null, memo:o.memo||null, prefecture:o.prefecture||null });
+const fieldFromDb = r => ({ id:r.id, name:r.name||"", area:r.area||"", soil:r.soil||"", addr:r.addr||"", memo:r.memo||"", prefecture:r.prefecture||"" });
 const cropToDb    = (o, uid) => ({ id:o.id, user_id:uid, field_id:o.fieldId||null, type:o.type||null, variety:o.variety||null, germ_rate:o.germRate||null, stocks:o.stocks||null, ridge_w:o.ridgeW||null, ridge_h:o.ridgeH||null, rows:o.rows||null, row_space:o.rowSpace||null, plant_space:o.plantSpace||null, sow_date:o.sowDate||null, plant_date:o.plantDate||null, memo:o.memo||null, cultivation_type:o.cultivationType||null, seed_cost:o.seedCost||null, seed_note:o.seedNote||null, custom_name:o.customName||null, ended:o.ended||false, end_date:o.endDate||null, maturity:o.maturity||null, custom_days:o.customDays||null, custom_water:o.customWater||null, pot_size:o.potSize||null, pot_volume:o.potVolume||null, pot_count:o.potCount||null, grow_env:o.growEnv||null, agri_month_start:o.agriMonthStart||null, ridge_len:o.ridgeLen||null, cultivation_area:o.cultivationArea||null });
 const cropFromDb  = (r, fields) => { const fi = fields.findIndex(f=>f.id===r.field_id); return { id:r.id, fieldId:r.field_id||"", fieldIdx:fi>=0?fi:0, type:r.type||"", variety:r.variety||"", germRate:r.germ_rate||"", stocks:r.stocks||"", ridgeW:r.ridge_w||"", ridgeH:r.ridge_h||"", rows:r.rows||"", rowSpace:r.row_space||"", plantSpace:r.plant_space||"", sowDate:r.sow_date||"", plantDate:r.plant_date||"", memo:r.memo||"", cultivationType:r.cultivation_type||"transplant", seedCost:r.seed_cost||"", seedNote:r.seed_note||"", customName:r.custom_name||"", ended:r.ended||false, endDate:r.end_date||"", maturity:r.maturity||"mid", customDays:r.custom_days||"", customWater:r.custom_water||"", potSize:r.pot_size||"", potVolume:r.pot_volume||"", potCount:r.pot_count||"", growEnv:r.grow_env||"field", agriMonthStart:r.agri_month_start||"", ridgeLen:r.ridge_len||"", cultivationArea:r.cultivation_area||"" }; };
 const logToDb     = (o, uid, fields) => ({ id:o.id, user_id:uid, field_id:fields[o.fieldIdx]?.id||o.fieldId||null, crop_id:o.cropId||null, work:o.work||null, memo:o.memo||null, date:o.date||null, time:o.time||null, duration:o.duration||null, img_src:o.imgSrc||null, img2_src:o.imgSrc2||null, img3_src:o.imgSrc3||null, fert_name:o.fertName||null, fert_amt:o.fertAmt||null, fert_unit:o.fertUnit||null, fert_method:o.fertMethod||null, fert_cost:o.fertCost||null, pest_name:o.pestName||null, pest_spray_amt:o.pestSprayAmt||null, pest_dil:o.pestDil||null, pest_amt:o.pestAmt||null, pest_unit:o.pestUnit||null, pest_tgt:o.pestTarget||null, pest_cost:o.pestCost||null, hv_kg:o.hvKg||null, hv_cnt:o.hvCnt||null, hv_q:o.hvQ||null, hv_price:o.hvPrice||null, equip_ids:o.equipIds||null, equip_act:o.equipAct||null, sow_qty:o.sowQty||null, germination_cnt:o.germinationCnt||null, germ_date:o.germinationDate||null, transplant_qty:o.transplantQty||null, discard_cnt:o.discardCnt||null, add_cnt:o.addCnt||null, event_type:o.eventType||null, event_note:o.eventNote||null, hv_grade_str:o.hvGradeStr||null, other_note:o.otherNote||null });
@@ -275,10 +275,25 @@ const FERT_GUIDE = {
   ], tip:"pH4.5〜5.5の酸性土壌が必要。苦土石灰はNG" },
 };
 // ─────────────────────────────────────────────────────────────
-const getRecommendedTasks = (crop, logs) => {
+// 都道府県の気温帯補正（基準:関東。暖=+月数, 寒=-月数）
+const PREF_TEMP_OFFSET = {
+  "北海道":-2,"青森":-2,"岩手":-1,"秋田":-1,"宮城":-1,"山形":-1,"福島":-1,
+  "茨城":0,"栃木":0,"群馬":0,"埼玉":0,"千葉":0,"東京":0,"神奈川":0,
+  "新潟":-1,"富山":-1,"石川":-1,"福井":-1,
+  "山梨":0,"長野":-1,"岐阜":0,"静岡":1,"愛知":0,
+  "三重":0,"滋賀":0,"京都":0,"大阪":0,"兵庫":0,"奈良":0,"和歌山":1,
+  "鳥取":-1,"島根":-1,"岡山":0,"広島":0,"山口":0,
+  "徳島":1,"香川":1,"愛媛":1,"高知":1,
+  "福岡":1,"佐賀":1,"長崎":1,"熊本":1,"大分":1,"宮崎":2,"鹿児島":2,"沖縄":3
+};
+
+const getRecommendedTasks = (crop, logs, prefecture="") => {
   const db = CDB[crop.type] || {};
   const today = new Date();
-  const month = today.getMonth() + 1; // 1-12
+  // 都道府県による気温帯補正（暖かい地域は時期を早める）
+  const tempOffset = PREF_TEMP_OFFSET[prefecture] || 0;
+  const rawMonth = today.getMonth() + 1;
+  const month = Math.min(12, Math.max(1, rawMonth + tempOffset)); // 補正後の体感月
   const plantDate = crop.plantDate || crop.sowDate;
   const days = plantDate ? Math.floor((Date.now() - new Date(plantDate)) / 86400000) : null;
   const harvestD = db.d || 90;
@@ -1058,7 +1073,8 @@ function HomeScreen({ fields, crops, logs, costs, onEditCrop }) {
               const cropLogs=logs.filter(l=>l.cropId===c.id);
               const rot=ROTATION_DB[c.type];
               const family=FAMILY_DB[c.type]||"";
-              const tasks=getRecommendedTasks(c, cropLogs);
+              const pref=(fields[c.fieldIdx]||{}).prefecture||"";
+              const tasks=getRecommendedTasks(c, cropLogs, pref);
               return <>
                 {isPastHarvest&&<div style={{marginTop:8}}>
                   <div style={{padding:"7px 10px",background:"#fff3cd",borderRadius:8,borderLeft:"3px solid #f0a500",marginBottom:6}}>
@@ -1568,7 +1584,11 @@ function FieldsScreen({ fields, setFields, setFieldsR, crops, setCrops, setCrops
         })}
       </>}
       <ModalWithSave open={!!mField} onClose={()=>setMField(null)} title={mField?._idx!==undefined?"圃場を編集":"圃場を登録"} onSave={saveField}>
-        {mField&&<><FG label="圃場名"><Inp value={mField.name} onChange={v=>setMField({...mField,name:v})} placeholder="例：第1圃場"/></FG><R2><FG label="面積（a）"><Inp type="number" value={mField.area} onChange={v=>setMField({...mField,area:v})}/></FG><FG label="土壌"><Sel value={mField.soil} onChange={v=>setMField({...mField,soil:v})} options={["砂壌土","壌土","粘土質","黒ボク","その他"].map(v=>({value:v,label:v}))}/></FG></R2><FG label="住所（天気連動）"><Inp value={mField.addr} onChange={v=>setMField({...mField,addr:v})} placeholder="例：静岡県沼津市"/></FG><FG label="メモ"><TA value={mField.memo} onChange={v=>setMField({...mField,memo:v})}/></FG></>}
+        {mField&&<><FG label="圃場名"><Inp value={mField.name} onChange={v=>setMField({...mField,name:v})} placeholder="例：第1圃場"/></FG><R2><FG label="面積（a）"><Inp type="number" value={mField.area} onChange={v=>setMField({...mField,area:v})}/></FG><FG label="土壌"><Sel value={mField.soil} onChange={v=>setMField({...mField,soil:v})} options={["砂壌土","壌土","粘土質","黒ボク","その他"].map(v=>({value:v,label:v}))}/></FG></R2><FG label="住所（天気連動）"><Inp value={mField.addr} onChange={v=>setMField({...mField,addr:v})} placeholder="例：静岡県沼津市"/></FG><FG label="都道府県">
+              <Sel value={mField.prefecture||""} onChange={v=>setMField({...mField,prefecture:v})}
+                options={[{value:"",label:"（未選択）"},...["北海道","青森","岩手","宮城","秋田","山形","福島","茨城","栃木","群馬","埼玉","千葉","東京","神奈川","新潟","富山","石川","福井","山梨","長野","岐阜","静岡","愛知","三重","滋賀","京都","大阪","兵庫","奈良","和歌山","鳥取","島根","岡山","広島","山口","徳島","香川","愛媛","高知","福岡","佐賀","長崎","熊本","大分","宮崎","鹿児島","沖縄"].map(p=>({value:p,label:p}))]}/>
+            </FG>
+            <FG label="メモ"><TA value={mField.memo} onChange={v=>setMField({...mField,memo:v})}/></FG></>}
       </ModalWithSave>
       <ModalWithSave open={!!mCrop} onSave={saveCrop} onClose={()=>{setMCrop(null);}} title={mCrop?._idx!==undefined?"品目を編集":"品目を登録"}>
         {mCrop&&<><FG label="圃場"><Sel value={mCrop.fieldIdx} onChange={v=>setMCrop({...mCrop,fieldIdx:parseInt(v)})} options={fields.map((f,i)=>({value:i,label:f.name}))}/></FG>
