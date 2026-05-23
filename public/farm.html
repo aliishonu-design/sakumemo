@@ -106,23 +106,18 @@ body{font-family:'Hiragino Sans','BIZ UDGothic',sans-serif;background:#f8f5ef;co
 .empty-icon{font-size:2.2rem;margin-bottom:10px;}
 .loading{text-align:center;padding:48px;color:#aaa;}
 </style>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/twemoji.min.js" crossorigin="anonymous"></script>
-<script>
-function applyTw(){
-  if(window.twemoji) twemoji.parse(document.body,{
-    folder:'svg', ext:'.svg',
-    base:'https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/'
-  });
+<style>
+@font-face {
+  font-family: 'Noto Color Emoji';
+  src: url('https://fonts.gstatic.com/s/notocoloremoji/v25/Yq6P-KqIXTD0t4D9z1ESnKM3-HpFab5s79iz64w.woff2') format('woff2');
+  font-display: swap;
 }
-document.addEventListener('DOMContentLoaded',function(){
-  setTimeout(applyTw,300);
-  new MutationObserver(function(){ setTimeout(applyTw,50); })
-    .observe(document.body,{childList:true,subtree:true});
-});
-</script>
-<style>img.emoji{height:1em;width:1em;margin:0 .05em 0 .1em;vertical-align:-0.1em;display:inline;}</style>
+body, button, span, div, a {
+  font-family: 'Shippori Mincho B1', 'Noto Color Emoji', sans-serif;
+}
+</style>
 </head>
-<body onload="applyTw()">
+<body>
 <div style="position:sticky;top:0;z-index:200;">
   <div class="top-bar" style="padding:10px 16px;justify-content:center;">
     <span style="color:#fff;font-family:'Shippori Mincho B1',serif;font-size:.95rem;font-weight:700;cursor:pointer;text-align:center;flex:1;" onclick="window.location.href='community.html'">🌾 みんなのサクメモ</span>
@@ -707,6 +702,6 @@ async function main(){
 main();
 </script>
 <div style="text-align:center;padding:10px;font-size:.6rem;color:#ccc;">Emoji by <a href="https://twemoji.twitter.com/" target="_blank" rel="noopener" style="color:#ccc;">Twemoji</a> © Twitter, Inc. (CC-BY 4.0)</div>
-<div style="position:fixed;bottom:0;left:0;right:0;text-align:center;padding:3px;font-size:.55rem;color:#bbb;background:rgba(248,245,239,.9);z-index:50;pointer-events:none;">Emoji by Twemoji © Twitter, Inc. (CC-BY 4.0)</div>
+
 </body>
 </html>
