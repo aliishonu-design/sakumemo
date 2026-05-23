@@ -941,7 +941,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.1</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.2</div>
         <div style={{fontSize:".58rem",color:"#ccc",marginTop:4}}>Emoji by <a href="https://twemoji.twitter.com/" target="_blank" rel="noopener" style={{color:"#ccc"}}>Twemoji</a> © Twitter, Inc. (CC-BY 4.0)</div>
       </div>
     </div>
