@@ -172,102 +172,102 @@ const getFertSchedule=(cropType,plantTargetDate)=>{
 const FERT_GUIDE = {
   // ナス科
   tomato:      { base:"定植1週前: 苦土石灰150g→堆肥2kg→化成(8-8-8)150g", chase:[
-    {timing:"第1花房着果後（花が咲いて2週間）",amt:"株元から20cm離して化成30g/株"},
-    {timing:"その後2〜3週間ごと",amt:"化成30g/株 または液肥1000倍希釈"},
+    {timing:"第1花房着果後（花が咲いて2週間）",amt:"株元から20cm離して化成8-8-8 30g/株"},
+    {timing:"その後2〜3週間ごと",amt:"化成8-8-8 30g/株 または液肥1000倍希釈"},
     {timing:"収穫最盛期",amt:"やや増量して40g/株・カリ多めが効果的"},
   ], tip:"窒素多すぎると茎葉が茂り着果しない。花が落ちたら追肥を疑って" },
-  eggplant:    { base:"定植1週前: 苦土石灰150g→堆肥3kg→化成200g", chase:[
+  eggplant:    { base:"定植1週前: 苦土石灰150g→堆肥3kg→化成8-8-8 200g", chase:[
     {timing:"定植3週後（活着後）",amt:"化成40g/株"},
     {timing:"収穫始まったら2週ごと",amt:"化成40g/株（多肥好む）"},
-    {timing:"更新剪定後",amt:"即座に化成50g/株・液肥も効果的"},
+    {timing:"更新剪定後",amt:"即座に化成8-8-8 50g/株・液肥も効果的"},
   ], tip:"多肥を好む。葉色が薄くなったらすぐ追肥" },
-  pepper:      { base:"定植1週前: 苦土石灰150g→堆肥2kg→化成150g", chase:[
-    {timing:"定植4週後",amt:"化成30g/株"},
-    {timing:"その後3週間ごと",amt:"化成30g/株"},
+  pepper:      { base:"定植1週前: 苦土石灰150g→堆肥2kg→化成8-8-8 150g", chase:[
+    {timing:"定植4週後",amt:"化成8-8-8 30g/株"},
+    {timing:"その後3週間ごと",amt:"化成8-8-8 30g/株"},
   ], tip:"肥料切れすると着果不良に" },
-  potato:      { base:"植付時: 堆肥2kg→化成150g（苦土石灰不要・そうか病の原因）", chase:[
-    {timing:"芽かき後（萌芽2〜3週後）",amt:"化成50g/株・土寄せと同時に"},
+  potato:      { base:"植付時: 堆肥2kg→化成8-8-8 150g（苦土石灰不要・そうか病の原因）", chase:[
+    {timing:"芽かき後（萌芽2〜3週後）",amt:"化成8-8-8 50g/株・土寄せと同時に"},
   ], tip:"元肥にリン酸多めが芋の肥大に効果的" },
   // ウリ科
-  cucumber:    { base:"定植1週前: 苦土石灰100g→堆肥2kg→化成150g", chase:[
-    {timing:"定植2週後",amt:"化成30g/株"},
-    {timing:"収穫始まったら10〜14日ごと",amt:"化成30g/株または液肥"},
+  cucumber:    { base:"定植1週前: 苦土石灰100g→堆肥2kg→化成8-8-8 150g", chase:[
+    {timing:"定植2週後",amt:"化成8-8-8 30g/株"},
+    {timing:"収穫始まったら10〜14日ごと",amt:"化成8-8-8 30g/株または液肥"},
     {timing:"収穫最盛期",amt:"液肥を週1回追加"},
   ], tip:"肥料切れが早い。葉色が薄くなる前に追肥" },
-  zucchini:    { base:"定植1週前: 苦土石灰100g→堆肥2kg→化成150g", chase:[
-    {timing:"開花始まったら（定植3週後頃）",amt:"化成30g/株"},
-    {timing:"その後2週間ごと",amt:"化成30g/株"},
+  zucchini:    { base:"定植1週前: 苦土石灰100g→堆肥2kg→化成8-8-8 150g", chase:[
+    {timing:"開花始まったら（定植3週後頃）",amt:"化成8-8-8 30g/株"},
+    {timing:"その後2週間ごと",amt:"化成8-8-8 30g/株"},
   ], tip:"大型になりやすいので肥料は控えめに" },
-  pumpkin:     { base:"定植1週前: 苦土石灰100g→堆肥2kg→化成100g", chase:[
-    {timing:"果実が卵大になった頃",amt:"化成30g/株"},
+  pumpkin:     { base:"定植1週前: 苦土石灰100g→堆肥2kg→化成8-8-8 100g", chase:[
+    {timing:"果実が卵大になった頃",amt:"化成8-8-8 30g/株"},
   ], tip:"窒素多いと茎葉が茂り実がならない" },
-  watermelon:  { base:"定植2週前: 苦土石灰100g→堆肥2kg→化成100g", chase:[
-    {timing:"着果確認後（果実が鶏卵大）",amt:"化成30g/株"},
+  watermelon:  { base:"定植2週前: 苦土石灰100g→堆肥2kg→化成8-8-8 100g", chase:[
+    {timing:"着果確認後（果実が鶏卵大）",amt:"化成8-8-8 30g/株"},
   ], tip:"着果前の追肥は禁物。着果後に1回のみ" },
-  bitter_gourd:{ base:"定植1週前: 苦土石灰100g→堆肥2kg→化成150g", chase:[
-    {timing:"定植2週後",amt:"化成30g/株"},
-    {timing:"収穫始まったら2週ごと",amt:"化成30g/株"},
+  bitter_gourd:{ base:"定植1週前: 苦土石灰100g→堆肥2kg→化成8-8-8 150g", chase:[
+    {timing:"定植2週後",amt:"化成8-8-8 30g/株"},
+    {timing:"収穫始まったら2週ごと",amt:"化成8-8-8 30g/株"},
   ], tip:"" },
   // アブラナ科
-  cabbage:     { base:"定植1週前: 苦土石灰200g→堆肥3kg→化成150g", chase:[
-    {timing:"定植2週後（活着後）",amt:"化成50g/㎡"},
-    {timing:"結球開始時（外葉10枚頃）",amt:"化成50g/㎡・重要な追肥"},
+  cabbage:     { base:"定植1週前: 苦土石灰200g→堆肥3kg→化成8-8-8 150g", chase:[
+    {timing:"定植2週後（活着後）",amt:"化成8-8-8 50g/㎡"},
+    {timing:"結球開始時（外葉10枚頃）",amt:"化成8-8-8 50g/㎡・重要な追肥"},
   ], tip:"結球開始時の追肥が最重要" },
-  broccoli:    { base:"定植1週前: 苦土石灰200g→堆肥2kg→化成150g", chase:[
-    {timing:"定植3週後",amt:"化成50g/㎡"},
-    {timing:"頂花蕾収穫後（側花蕾を増やす）",amt:"化成30g/㎡"},
+  broccoli:    { base:"定植1週前: 苦土石灰200g→堆肥2kg→化成8-8-8 150g", chase:[
+    {timing:"定植3週後",amt:"化成8-8-8 50g/㎡"},
+    {timing:"頂花蕾収穫後（側花蕾を増やす）",amt:"化成8-8-8 30g/㎡"},
   ], tip:"頂花蕾収穫後も追肥して側花蕾を収穫" },
-  hakusai:     { base:"播種3週前: 苦土石灰150g→堆肥3kg→化成150g", chase:[
+  hakusai:     { base:"播種3週前: 苦土石灰150g→堆肥3kg→化成8-8-8 150g", chase:[
     {timing:"定植2週後",amt:"化成40g/㎡"},
-    {timing:"結球開始時",amt:"化成50g/㎡・重要"},
+    {timing:"結球開始時",amt:"化成8-8-8 50g/㎡・重要"},
   ], tip:"結球期に肥料切れすると中が詰まらない" },
-  komatsuna:   { base:"播種1週前: 苦土石灰100g→堆肥1kg→化成100g", chase:[
-    {timing:"本葉2〜3枚（間引き後）",amt:"化成30g/㎡"},
+  komatsuna:   { base:"播種1週前: 苦土石灰100g→堆肥1kg→化成8-8-8 100g", chase:[
+    {timing:"本葉2〜3枚（間引き後）",amt:"化成8-8-8 30g/㎡"},
   ], tip:"短期作物なので元肥主体" },
   // 根菜
-  carrot:      { base:"2週前: 苦土石灰100g→堆肥1kg→化成100g（石灰は早めに）", chase:[
+  carrot:      { base:"2週前: 苦土石灰100g→堆肥1kg→化成8-8-8 100g（石灰は早めに）", chase:[
     {timing:"本葉5〜6枚（間引き後）",amt:"化成40g/㎡"},
     {timing:"本葉10枚頃",amt:"化成40g/㎡"},
   ], tip:"カリを多めに。窒素多いと又根になりやすい" },
-  radish:      { base:"播種2週前: 苦土石灰100g→堆肥1kg→化成100g", chase:[
+  radish:      { base:"播種2週前: 苦土石灰100g→堆肥1kg→化成8-8-8 100g", chase:[
     {timing:"本葉4〜5枚（間引き後）",amt:"化成40g/㎡"},
   ], tip:"短期作物。過剰施肥は又根・空洞の原因" },
   sweetpotato: { base:"植付前: 堆肥2kg（元肥は少なめ）", chase:[
     {timing:"基本不要",amt:"肥料多いと葉ばかり茂り芋がつかない"},
   ], tip:"やせた土でも育つ。肥料のやりすぎに注意" },
-  onion:       { base:"定植3週前: 苦土石灰150g→堆肥1kg→化成100g", chase:[
-    {timing:"12月初旬（越冬前）",amt:"化成50g/㎡"},
-    {timing:"2月下旬〜3月（玉肥大期）",amt:"化成50g/㎡（最重要）"},
+  onion:       { base:"定植3週前: 苦土石灰150g→堆肥1kg→化成8-8-8 100g", chase:[
+    {timing:"12月初旬（越冬前）",amt:"化成8-8-8 50g/㎡"},
+    {timing:"2月下旬〜3月（玉肥大期）",amt:"化成8-8-8 50g/㎡（最重要）"},
     {timing:"3月下旬以降は追肥禁止",amt:"貯蔵性が下がるためNG"},
   ], tip:"3月下旬以降の追肥は厳禁" },
-  garlic:      { base:"植付前: 苦土石灰100g→堆肥1kg→化成100g", chase:[
-    {timing:"12月（休眠前）",amt:"化成50g/㎡"},
-    {timing:"2月（萌芽後）",amt:"化成50g/㎡"},
-    {timing:"4月（鱗茎肥大期）",amt:"化成50g/㎡"},
+  garlic:      { base:"植付前: 苦土石灰100g→堆肥1kg→化成8-8-8 100g", chase:[
+    {timing:"12月（休眠前）",amt:"化成8-8-8 50g/㎡"},
+    {timing:"2月（萌芽後）",amt:"化成8-8-8 50g/㎡"},
+    {timing:"4月（鱗茎肥大期）",amt:"化成8-8-8 50g/㎡"},
   ], tip:"" },
-  leek:        { base:"定植前: 苦土石灰150g→堆肥2kg→化成150g", chase:[
-    {timing:"定植1ヶ月後",amt:"化成50g/㎡・土寄せと同時に"},
-    {timing:"その後1ヶ月ごと（土寄せのたびに）",amt:"化成50g/㎡"},
+  leek:        { base:"定植前: 苦土石灰150g→堆肥2kg→化成8-8-8 150g", chase:[
+    {timing:"定植1ヶ月後",amt:"化成8-8-8 50g/㎡・土寄せと同時に"},
+    {timing:"その後1ヶ月ごと（土寄せのたびに）",amt:"化成8-8-8 50g/㎡"},
   ], tip:"土寄せのたびに追肥" },
   // 葉物
-  lettuce:     { base:"播種2週前: 苦土石灰150g→堆肥1kg→化成100g", chase:[
-    {timing:"本葉5〜6枚",amt:"化成30g/㎡"},
+  lettuce:     { base:"播種2週前: 苦土石灰150g→堆肥1kg→化成8-8-8 100g", chase:[
+    {timing:"本葉5〜6枚",amt:"化成8-8-8 30g/㎡"},
   ], tip:"短期なので元肥主体。結球前に肥料切れ注意" },
-  spinach:     { base:"播種2週前: 苦土石灰200g→堆肥1kg→化成100g（酸性に弱い）", chase:[
-    {timing:"本葉2〜3枚（間引き後）",amt:"化成30g/㎡"},
+  spinach:     { base:"播種2週前: 苦土石灰200g→堆肥1kg→化成8-8-8 100g（酸性に弱い）", chase:[
+    {timing:"本葉2〜3枚（間引き後）",amt:"化成8-8-8 30g/㎡"},
   ], tip:"苦土石灰は必須。酸性土壌では発芽しない" },
-  edamame:     { base:"播種前: 苦土石灰100g→堆肥1kg→化成50g（少なめ）", chase:[
-    {timing:"開花始まった頃",amt:"化成30g/㎡（カリ多めで莢が充実）"},
+  edamame:     { base:"播種前: 苦土石灰100g→堆肥1kg→化成8-8-8 50g（少なめ）", chase:[
+    {timing:"開花始まった頃",amt:"化成8-8-8 30g/㎡（カリ多めで莢が充実）"},
   ], tip:"マメ科なので窒素は少なめ。根粒菌が固定する" },
-  strawberry:  { base:"定植3週前: 苦土石灰150g→堆肥2kg→化成100g（リン多め）", chase:[
-    {timing:"10月中旬（活着後）",amt:"化成30g/株"},
+  strawberry:  { base:"定植3週前: 苦土石灰150g→堆肥2kg→化成8-8-8 100g（リン多め）", chase:[
+    {timing:"10月中旬（活着後）",amt:"化成8-8-8 30g/株"},
     {timing:"2月（花芽形成期）",amt:"化成20g/株（控えめに）"},
-    {timing:"収穫後（ランナー育成期）",amt:"化成30g/株"},
+    {timing:"収穫後（ランナー育成期）",amt:"化成8-8-8 30g/株"},
   ], tip:"窒素多すぎると葉ばかり茂り甘くならない" },
   // 果樹
-  apple:       { base:"落葉後11〜12月: 堆肥5kg→化成200g/㎡", chase:[
-    {timing:"6月（生理落果後）",amt:"化成100g/㎡（果実肥大）"},
-    {timing:"収穫後（礼肥）",amt:"化成100g/㎡"},
+  apple:       { base:"落葉後11〜12月: 堆肥5kg→化成8-8-8 200g/㎡", chase:[
+    {timing:"6月（生理落果後）",amt:"化成8-8-8 100g/㎡（果実肥大）"},
+    {timing:"収穫後（礼肥）",amt:"化成8-8-8 100g/㎡"},
   ], tip:"" },
   blueberry:   { base:"2〜3月: 硫安または専用肥料（酸性好む・苦土石灰不要）", chase:[
     {timing:"5月（果実肥大期）",amt:"専用肥料50g/株"},
@@ -275,25 +275,12 @@ const FERT_GUIDE = {
   ], tip:"pH4.5〜5.5の酸性土壌が必要。苦土石灰はNG" },
 };
 // ─────────────────────────────────────────────────────────────
-// 都道府県の気温帯補正（基準:関東。暖=+月数, 寒=-月数）
-const PREF_TEMP_OFFSET = {
-  "北海道":-2,"青森":-2,"岩手":-1,"秋田":-1,"宮城":-1,"山形":-1,"福島":-1,
-  "茨城":0,"栃木":0,"群馬":0,"埼玉":0,"千葉":0,"東京":0,"神奈川":0,
-  "新潟":-1,"富山":-1,"石川":-1,"福井":-1,
-  "山梨":0,"長野":-1,"岐阜":0,"静岡":1,"愛知":0,
-  "三重":0,"滋賀":0,"京都":0,"大阪":0,"兵庫":0,"奈良":0,"和歌山":1,
-  "鳥取":-1,"島根":-1,"岡山":0,"広島":0,"山口":0,
-  "徳島":1,"香川":1,"愛媛":1,"高知":1,
-  "福岡":1,"佐賀":1,"長崎":1,"熊本":1,"大分":1,"宮崎":2,"鹿児島":2,"沖縄":3
-};
+const CROP_TEMP = {'tomato': (18, 25), 'cherry_tomato': (18, 25), 'eggplant': (20, 30), 'pepper': (18, 28), 'cucumber': (18, 28), 'pumpkin': (18, 28), 'watermelon': (20, 30), 'melon': (20, 28), 'strawberry': (15, 25), 'potato': (15, 21), 'sweetpotato': (20, 30), 'taro': (20, 30), 'onion': (15, 20), 'garlic': (15, 20), 'leek': (15, 25), 'cabbage': (15, 20), 'broccoli': (15, 20), 'cauliflower': (15, 20), 'spinach': (10, 20), 'lettuce': (15, 20), 'chinese_cabbage': (10, 20), 'carrot': (15, 21), 'radish': (15, 20), 'turnip': (15, 20), 'burdock': (15, 25), 'ginger': (20, 28), 'corn': (20, 30), 'soybean': (20, 28), 'edamame': (20, 28), 'rice': (20, 28), 'wheat': (10, 20), 'apple': (10, 20), 'pear': (10, 20), 'peach': (15, 25), 'grape': (15, 25), 'blueberry': (15, 25), 'fig': (20, 30), 'citrus': (20, 28), 'persimmon': (20, 28)};
 
-const getRecommendedTasks = (crop, logs, prefecture="") => {
+const getRecommendedTasks = (crop, logs) => {
   const db = CDB[crop.type] || {};
   const today = new Date();
-  // 都道府県による気温帯補正（暖かい地域は時期を早める）
-  const tempOffset = PREF_TEMP_OFFSET[prefecture] || 0;
-  const rawMonth = today.getMonth() + 1;
-  const month = Math.min(12, Math.max(1, rawMonth + tempOffset)); // 補正後の体感月
+  const month = today.getMonth() + 1; // 1-12
   const plantDate = crop.plantDate || crop.sowDate;
   const days = plantDate ? Math.floor((Date.now() - new Date(plantDate)) / 86400000) : null;
   const harvestD = db.d || 90;
@@ -365,31 +352,8 @@ const getRecommendedTasks = (crop, logs, prefecture="") => {
     tasks.push('🎉 収穫時期です！');
   }
 
-  // 月ベースの季節提案（地域補正済みmonthを使用）
-  if(tasks.length < 2){
-    // 北海道(-2補正)では5月でもmonth=3 → 播種・定植を遅らせる提案
-    const seasonMsg = (()=>{
-      if(month<=2) return tempOffset<=-2?'雪解け前の準備・育苗開始':tempOffset<=-1?'育苗準備・ハウス整備':'防寒対策・育苗準備';
-      if(month===3) return tempOffset<=-2?'雪解け後の圃場準備':tempOffset<=0?'春の播種・定植準備':'早い品目の播種を検討';
-      if(month===4) return tempOffset<=-2?'遅霜に注意・定植準備':'定植・播種の好機';
-      if(month===5) return tempOffset<=-2?'定植本番・霜対策':'病害虫の発生に注意';
-      if(month===6) return '梅雨前の病害虫防除を';
-      if(month<=8) return '高温対策・水管理に注意';
-      if(month===9) return '秋の播種・定植を検討';
-      if(month===10) return tempOffset>0?'収穫・越冬準備':'晩秋の収穫・片付け';
-      if(month===11) return tempOffset>0?'越冬野菜の管理':'防霜・マルチング検討';
-      return tempOffset>0?'冬野菜の収穫・管理':'冬季管理・来季計画';
-    })();
-    if(seasonMsg) tasks.push(seasonMsg);
-  }
-
   // 作業間隔が長い場合
   if(daysSinceLog >= 7 && tasks.length < 2) tasks.push('見回り・生育記録を残しましょう');
-
-  // 北海道のタマネギは春まき（越冬しない）
-  if(crop.type==='onion' && tempOffset<=-2 && month<=4 && days===null){
-    tasks.unshift('北海道では春まき（3-4月播種）が主流です');
-  }
 
   // 連作障害注意
   const rotationRisk = {
@@ -406,20 +370,20 @@ const getRecommendedTasks = (crop, logs, prefecture="") => {
 // 施肥設計（10㎡あたりの目安）
 const getFertPlan = (cropType) => {
   const plans = {
-    tomato:    {base:'元肥: 苦土石灰150g→1週間後 牛糞堆肥2kg 化成(N:P:K=8:8:8)150g', chase:'追肥: 2-3週ごと液肥または化成50g', note:'窒素過多に注意'},
-    eggplant:  {base:'元肥: 苦土石灰150g→1週間後 牛糞堆肥3kg 化成200g', chase:'追肥: 収穫始まったら2週ごと化成50g', note:'多肥を好む'},
-    cucumber:  {base:'元肥: 苦土石灰100g→1週間後 牛糞堆肥2kg 化成150g', chase:'追肥: 2週ごと化成50g', note:'窒素多め'},
-    pepper:    {base:'元肥: 苦土石灰150g→1週間後 牛糞堆肥2kg 化成150g', chase:'追肥: 3週ごと化成50g', note:''},
-    potato:    {base:'元肥: 苦土石灰不要(酸性好む) 牛糞堆肥2kg 化成150g', chase:'追肥: 芽かき後に1回 化成50g', note:'石灰はそうか病の原因'},
+    tomato:    {base:'元肥: 苦土石灰150g→1週間後 牛糞堆肥2kg 化成8-8-8150g', chase:'追肥: 2-3週ごと液肥または化成8-8-8 50g', note:'窒素過多に注意'},
+    eggplant:  {base:'元肥: 苦土石灰150g→1週間後 牛糞堆肥3kg 化成8-8-8 200g', chase:'追肥: 収穫始まったら2週ごと化成8-8-8 50g', note:'多肥を好む'},
+    cucumber:  {base:'元肥: 苦土石灰100g→1週間後 牛糞堆肥2kg 化成8-8-8 150g', chase:'追肥: 2週ごと化成8-8-8 50g', note:'窒素多め'},
+    pepper:    {base:'元肥: 苦土石灰150g→1週間後 牛糞堆肥2kg 化成8-8-8 150g', chase:'追肥: 3週ごと化成8-8-8 50g', note:''},
+    potato:    {base:'元肥: 苦土石灰不要(酸性好む) 牛糞堆肥2kg 化成8-8-8 150g', chase:'追肥: 芽かき後に1回 化成8-8-8 50g', note:'石灰はそうか病の原因'},
     sweetpotato:{base:'元肥: 牛糞堆肥2kg のみ(肥料少なめ)', chase:'追肥: 基本不要', note:'肥料多いと葉ばかり茂る'},
-    onion:     {base:'元肥: 苦土石灰150g→1週間後 牛糞堆肥1kg 化成100g', chase:'追肥: 12月・2月に各50g', note:''},
-    carrot:    {base:'元肥: 苦土石灰100g→2週間後 牛糞堆肥1kg 化成100g', chase:'追肥: 本葉5枚ごろ化成50g', note:'石灰は早めに'},
-    cabbage:   {base:'元肥: 苦土石灰200g→1週間後 牛糞堆肥3kg 化成150g', chase:'追肥: 定植2・4週後に各50g', note:''},
-    broccoli:  {base:'元肥: 苦土石灰200g→1週間後 牛糞堆肥2kg 化成150g', chase:'追肥: 定植3週後 化成50g', note:''},
+    onion:     {base:'元肥: 苦土石灰150g→1週間後 牛糞堆肥1kg 化成8-8-8 100g', chase:'追肥: 12月・2月に各50g', note:''},
+    carrot:    {base:'元肥: 苦土石灰100g→2週間後 牛糞堆肥1kg 化成8-8-8 100g', chase:'追肥: 本葉5枚ごろ化成8-8-8 50g', note:'石灰は早めに'},
+    cabbage:   {base:'元肥: 苦土石灰200g→1週間後 牛糞堆肥3kg 化成8-8-8 150g', chase:'追肥: 定植2・4週後に各50g', note:''},
+    broccoli:  {base:'元肥: 苦土石灰200g→1週間後 牛糞堆肥2kg 化成8-8-8 150g', chase:'追肥: 定植3週後 化成8-8-8 50g', note:''},
     rice:      {base:'元肥: 牛糞堆肥3kg 化成(N:P:K=14:14:14)200g', chase:'追肥: 分けつ期・穂肥に各100g', note:''},
-    strawberry:{base:'元肥: 苦土石灰150g→2週間後 牛糞堆肥2kg 化成100g(Pリン多め)', chase:'追肥: 10月・2月・収穫後に各30g', note:'窒素控えめ'},
+    strawberry:{base:'元肥: 苦土石灰150g→2週間後 牛糞堆肥2kg 化成8-8-8 100g(Pリン多め)', chase:'追肥: 10月・2月・収穫後に各30g', note:'窒素控えめ'},
   };
-  return plans[cropType] || {base:'元肥: 苦土石灰100-150g(2週前)→牛糞堆肥2kg+化成100-150g', chase:'追肥: 2-4週ごと化成30-50g', note:''};
+  return plans[cropType] || {base:'元肥: 苦土石灰100-150g(2週前)→牛糞堆肥2kg+化成8-8-8 100-150g', chase:'追肥: 2-4週ごと化成8-8-8 30-50g', note:''};
 };
 // ─────────────────────────────────────────────────────────────
 // 科別グループ化
@@ -961,7 +925,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.5.6</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.5.7</div>
       </div>
     </div>
   );
@@ -1096,8 +1060,7 @@ function HomeScreen({ fields, crops, logs, costs, onEditCrop }) {
               const cropLogs=logs.filter(l=>l.cropId===c.id);
               const rot=ROTATION_DB[c.type];
               const family=FAMILY_DB[c.type]||"";
-              const pref=(fields[c.fieldIdx]||{}).prefecture||"";
-              const tasks=getRecommendedTasks(c, cropLogs, pref);
+              const tasks=getRecommendedTasks(c, cropLogs);
               return <>
                 {isPastHarvest&&<div style={{marginTop:8}}>
                   <div style={{padding:"7px 10px",background:"#fff3cd",borderRadius:8,borderLeft:"3px solid #f0a500",marginBottom:6}}>
@@ -1113,7 +1076,10 @@ function HomeScreen({ fields, crops, logs, costs, onEditCrop }) {
                   </div>}
                 </div>}
                 {!isPastHarvest&&tasks.length>0&&<div style={{marginTop:8,padding:"7px 10px",background:"#f0f9f0",borderRadius:8,borderLeft:"3px solid #2d6a3f"}}>
-                  <div style={{fontSize:".65rem",color:"#2d6a3f",fontWeight:700,marginBottom:3}}>📋 今日の作業目安</div>
+                  <div style={{fontSize:".65rem",color:"#2d6a3f",fontWeight:700,marginBottom:3,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                    <span>📋 今日の作業目安</span>
+                    {CROP_TEMP[c.type]&&<span style={{fontSize:".63rem",background:"#e8f5e9",color:"#2e7d32",borderRadius:999,padding:"1px 7px",fontWeight:700}}>🌡️ {CROP_TEMP[c.type][0]}〜{CROP_TEMP[c.type][1]}℃</span>}
+                  </div>
                   {tasks.map((t,i)=><div key={i} style={{fontSize:".72rem",color:"#1c1a14",lineHeight:1.6}}>・{t}</div>)}
                   {FERT_GUIDE[c.type]&&<div style={{marginTop:5,paddingTop:5,borderTop:"1px solid #e0f0e0"}}>
                     <div style={{fontSize:".65rem",color:"#2d6a3f",fontWeight:700,marginBottom:3}}>🌿 施肥ガイド</div>
