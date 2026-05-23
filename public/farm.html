@@ -114,6 +114,11 @@ function applyTw(){
     base:'https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/'
   });
 }
+document.addEventListener('DOMContentLoaded',function(){
+  setTimeout(applyTw,300);
+  new MutationObserver(function(){ setTimeout(applyTw,50); })
+    .observe(document.body,{childList:true,subtree:true});
+});
 </script>
 <style>img.emoji{height:1em;width:1em;margin:0 .05em 0 .1em;vertical-align:-0.1em;display:inline;}</style>
 </head>
