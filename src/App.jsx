@@ -275,7 +275,21 @@ const FERT_GUIDE = {
   ], tip:"pH4.5〜5.5の酸性土壌が必要。苦土石灰はNG" },
 };
 // ─────────────────────────────────────────────────────────────
-const CROP_TEMP = {'tomato': (18, 25), 'cherry_tomato': (18, 25), 'eggplant': (20, 30), 'pepper': (18, 28), 'cucumber': (18, 28), 'pumpkin': (18, 28), 'watermelon': (20, 30), 'melon': (20, 28), 'strawberry': (15, 25), 'potato': (15, 21), 'sweetpotato': (20, 30), 'taro': (20, 30), 'onion': (15, 20), 'garlic': (15, 20), 'leek': (15, 25), 'cabbage': (15, 20), 'broccoli': (15, 20), 'cauliflower': (15, 20), 'spinach': (10, 20), 'lettuce': (15, 20), 'chinese_cabbage': (10, 20), 'carrot': (15, 21), 'radish': (15, 20), 'turnip': (15, 20), 'burdock': (15, 25), 'ginger': (20, 28), 'corn': (20, 30), 'soybean': (20, 28), 'edamame': (20, 28), 'rice': (20, 28), 'wheat': (10, 20), 'apple': (10, 20), 'pear': (10, 20), 'peach': (15, 25), 'grape': (15, 25), 'blueberry': (15, 25), 'fig': (20, 30), 'citrus': (20, 28), 'persimmon': (20, 28)};
+const CROP_TEMP = {
+  tomato:[18,25], cherry_tomato:[18,25], eggplant:[20,30], pepper:[18,28],
+  cucumber:[18,28], pumpkin:[18,28], watermelon:[20,30], melon:[20,28],
+  strawberry:[15,25], potato:[15,21], sweetpotato:[20,30], taro:[20,30],
+  onion:[15,20], garlic:[15,20], leek:[15,25],
+  cabbage:[15,20], broccoli:[15,20], cauliflower:[15,20],
+  spinach:[10,20], lettuce:[15,20], chinese_cabbage:[10,20],
+  carrot:[15,21], radish:[15,20], turnip:[15,20],
+  burdock:[15,25], ginger:[20,28],
+  corn:[20,30], soybean:[20,28], edamame:[20,28],
+  rice:[20,28], wheat:[10,20],
+  apple:[10,20], pear:[10,20], peach:[15,25],
+  grape:[15,25], blueberry:[15,25], fig:[20,30],
+  citrus:[20,28], persimmon:[20,28]
+};
 
 const getRecommendedTasks = (crop, logs) => {
   const db = CDB[crop.type] || {};
@@ -925,7 +939,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.5.7</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.5.8</div>
       </div>
     </div>
   );
@@ -1516,9 +1530,8 @@ function FieldsScreen({ fields, setFields, setFieldsR, crops, setCrops, setCrops
                   {c.plantSpace&&<Tag type="gray">株間{c.plantSpace}cm</Tag>}
                   {germRate!==null&&<Tag type="green">発芽率{germRate}%</Tag>}
                 </div>
-                <div style={{marginTop:6,fontSize:".72rem",color:"#5a5040",background:"#f5f5f0",borderRadius:8,padding:"5px 8px",lineHeight:1.5}}><b>収穫適期：</b>{db.hs||"—"}</div>
-                <Prog pct={pct}/>
-                <div style={{fontSize:".64rem",color:TX3,marginTop:2,display:"flex",justifyContent:"space-between"}}><span>生育{pct}%</span><span>収穫まで約{Math.max(0,harvestD-days)}日</span></div>
+                
+                
               </div>
               <div style={{display:"flex",flexDirection:"column",gap:4,flexShrink:0}}>
                   <button style={{...S.btn,...S.btnS,...S.btnSm}} onClick={()=>{
