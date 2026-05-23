@@ -3335,7 +3335,7 @@ export default function App() {
         {scr==="home"    &&<HomeScreen    fields={fields} crops={crops} logs={logs} costs={costs} onEditCrop={c=>{setPendingEditCrop(c);setScr("fields");}}/>}
         {scr==="master"  &&<MasterScreen  fertMs={fertMs} setFertMs={setFertMs} pestMs={pestMs} setPestMs={setPestMs} equips={equips} setEquips={setEquips} costs={costs} setCosts={setCosts} showToast={showToast}/>}
         {scr==="fields"  &&<FieldsScreen  fields={fields} setFields={setFields} setFieldsR={setFieldsR} crops={crops} setCrops={setCrops} setCropsR={setCropsR} costs={costs} setCosts={setCosts} logs={logs} showToast={showToast} editCrop={pendingEditCrop}/>}
-        {scr==="log" && <TimelineScreen fields={fields} crops={crops} equips={equips} logs={logs} setLogs={setLogs} showToast={showToast} onEdit={ls=>{const _ls=Array.isArray(ls)?ls:[ls];setInitLogs(_ls);setInitLog(_ls[0]);setLogModal(true);}} onNew={()=>{setInitLog(null);setLogModal(true);}}/> }
+        {scr==="log" && <TimelineScreen fields={fields} crops={crops} equips={equips} logs={logs} setLogs={setLogs} showToast={showToast} onEdit={ls=>{const _ls=Array.isArray(ls)?ls:[ls];const _sorted=[..._ls].sort((a,b)=>(a.imgSrc?-1:0)-(b.imgSrc?-1:0));setInitLogs(_ls);setInitLog(_sorted[0]);setLogModal(true);}} onNew={()=>{setInitLog(null);setLogModal(true);}}/> }
         
         {scr==="cost"    &&<CostScreen    fields={fields} fertMs={fertMs} pestMs={pestMs} equips={equips} costs={costs} setCosts={setCosts} logs={logs} showToast={showToast}/>}
 
