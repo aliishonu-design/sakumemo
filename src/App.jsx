@@ -939,7 +939,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.5.8</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.5.9</div>
       </div>
     </div>
   );
@@ -1092,7 +1092,7 @@ function HomeScreen({ fields, crops, logs, costs, onEditCrop }) {
                 {!isPastHarvest&&tasks.length>0&&<div style={{marginTop:8,padding:"7px 10px",background:"#f0f9f0",borderRadius:8,borderLeft:"3px solid #2d6a3f"}}>
                   <div style={{fontSize:".65rem",color:"#2d6a3f",fontWeight:700,marginBottom:3,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                     <span>📋 今日の作業目安</span>
-                    {CROP_TEMP[c.type]&&<span style={{fontSize:".63rem",background:"#e8f5e9",color:"#2e7d32",borderRadius:999,padding:"1px 7px",fontWeight:700}}>🌡️ {CROP_TEMP[c.type][0]}〜{CROP_TEMP[c.type][1]}℃</span>}
+                    {(()=>{const t=CROP_TEMP[c.type]||(c.tempMin&&c.tempMax?[c.tempMin,c.tempMax]:null);return t&&<span style={{fontSize:".63rem",background:"#e8f5e9",color:"#2e7d32",borderRadius:999,padding:"1px 7px",fontWeight:700}}>🌡️ {t[0]}〜{t[1]}℃</span>;})()}
                   </div>
                   {tasks.map((t,i)=><div key={i} style={{fontSize:".72rem",color:"#1c1a14",lineHeight:1.6}}>・{t}</div>)}
                   {FERT_GUIDE[c.type]&&<div style={{marginTop:5,paddingTop:5,borderTop:"1px solid #e0f0e0"}}>
