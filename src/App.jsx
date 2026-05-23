@@ -941,8 +941,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.2</div>
-        <div style={{fontSize:".58rem",color:"#ccc",marginTop:4}}>Emoji by <a href="https://twemoji.twitter.com/" target="_blank" rel="noopener" style={{color:"#ccc"}}>Twemoji</a> © Twitter, Inc. (CC-BY 4.0)</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.3</div>
       </div>
     </div>
   );
@@ -3199,24 +3198,24 @@ export default function App() {
   // ブラウザタイトル設定
   useEffect(()=>{ document.title = "サクメモ - 作物の記録アプリ"; },[]);
 
-  // Twemoji: 絵文字をTwitter統一デザインに（render後に適用）
+  // 絵文字フォント統一: Noto Color Emoji (Google, OFL License)
   useEffect(()=>{
-    const apply = () => {
-      if(window.twemoji) window.twemoji.parse(document.body,{
-        folder:'svg',ext:'.svg',
-        base:'https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/'
-      });
-    };
-    if(window.twemoji){ apply(); return; }
-    if(document.querySelector('script[src*="twemoji"]')){ apply(); return; }
-    const s=document.createElement('script');
-    s.src='https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/twemoji.min.js';
-    s.crossOrigin='anonymous'; s.onload=apply;
-    document.head.appendChild(s);
+    if(document.getElementById('noto-emoji-style')) return;
     const st=document.createElement('style');
-    st.textContent='img.emoji{height:1em;width:1em;margin:0 .05em 0 .1em;vertical-align:-0.1em;display:inline;}';
+    st.id='noto-emoji-style';
+    st.textContent=`
+      @font-face {
+        font-family: 'Noto Color Emoji';
+        src: url('https://fonts.gstatic.com/s/notocoloremoji/v25/Yq6P-KqIXTD0t4D9z1ESnKM3-HpFab5s79iz64w.woff2') format('woff2');
+        font-display: swap;
+      }
+      * { font-family: inherit; }
+      body, button, input, textarea, select {
+        font-family: 'Shippori Mincho B1', 'Noto Color Emoji', sans-serif !important;
+      }
+    `;
     document.head.appendChild(st);
-  });
+  },[]);
 
   // Twemoji: 絵文字をTwitter統一デザインに（render後に適用）
   useEffect(()=>{
