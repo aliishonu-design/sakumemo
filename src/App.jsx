@@ -620,6 +620,35 @@ async function fetchWeather(addr) {
 // ============================================================
 // STYLES
 // ============================================================
+// ─── Twemoji SVG絵文字コンポーネント ───────────────────────
+const TWEMOJI_BASE='https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/svg/';
+const emojiToUrl=(e)=>{
+  const cps=[...e].filter(c=>c.codePointAt(0)!==0xFE0F&&c.codePointAt(0)!==0x200D)
+    .map(c=>c.codePointAt(0).toString(16));
+  return TWEMOJI_BASE+cps.join('-')+'.svg';
+};
+const Em=({children,size='1em'})=>{
+  const str=String(children);
+  return <img src={emojiToUrl(str)} alt={str} style={{
+    height:size,width:size,verticalAlign:'-0.15em',display:'inline-block'
+  }}/>;
+};
+const EMOJI_RE=/\p{Emoji_Presentation}|\p{Emoji}\uFE0F/gu;
+const emojify=(str,size='1em')=>{
+  if(!str||typeof str!=='string') return str;
+  const parts=[];let last=0;let m;EMOJI_RE.lastIndex=0;
+  while((m=EMOJI_RE.exec(str))!==null){
+    if(m.index>last) parts.push(str.slice(last,m.index));
+    parts.push(<img key={m.index} src={emojiToUrl(m[0])} alt={m[0]} style={{
+      height:size,width:size,verticalAlign:'-0.15em',display:'inline-block'
+    }}/>);
+    last=m.index+m[0].length;
+  }
+  if(last<str.length) parts.push(str.slice(last));
+  return parts.length===1&&typeof parts[0]==='string'?str:parts;
+};
+// ──────────────────────────────────────────────────────────────
+
 const G="#2d6a3f", G2="#419857", G3="#d4edda", GD="#1a4028";
 const ALERT="#c0392b", WARN="#e67e22", INFO="#2471a3";
 const TX3="#a09070", BD="#e0d9ce";
