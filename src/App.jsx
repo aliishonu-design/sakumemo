@@ -3208,7 +3208,7 @@ export default function App() {
       });
     };
     if(window.twemoji){ apply(); return; }
-    if(document.querySelector('script[src*="twemoji"]')) return;
+    if(document.querySelector('script[src*="twemoji"]')){ apply(); return; }
     const s=document.createElement('script');
     s.src='https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/twemoji.min.js';
     s.crossOrigin='anonymous'; s.onload=apply;
@@ -3227,7 +3227,7 @@ export default function App() {
       });
     };
     if(window.twemoji){ apply(); return; }
-    if(document.querySelector('script[src*="twemoji"]')) return;
+    if(document.querySelector('script[src*="twemoji"]')){ apply(); return; }
     const s=document.createElement('script');
     s.src='https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/twemoji.min.js';
     s.crossOrigin='anonymous'; s.onload=apply;
