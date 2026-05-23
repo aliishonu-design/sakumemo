@@ -748,7 +748,7 @@ function Modal({ open, onClose, title, children }) {
       <div style={{background:"#f8f5ef",borderRadius:"16px 16px 0 0",width:"100%",maxWidth:960,display:"flex",flexDirection:"column",maxHeight:"calc(100svh - 60px)"}}>
         <div style={{padding:"15px 13px 12px",flexShrink:0,display:"flex",justifyContent:"space-between",alignItems:"center",borderBottom:"1px solid #e0d9ce"}}>
           <span style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".98rem"}}>{title}</span>
-          <button onClick={onClose} style={{background:"none",border:"none",fontSize:"1.25rem",color:"#aaa",cursor:"pointer",lineHeight:1}}>✕</button>
+          <button onClick={onClose} style={{background:"none",border:"none",fontSize:"1.25rem",color:"#aaa",cursor:"pointer",lineHeight:1}}><Em><Em><Em>✕</Em></Em></Em></button>
         </div>
         <div style={{overflowY:"auto",WebkitOverflowScrolling:"touch",padding:"13px 13px 0"}}>
           {children}
@@ -768,7 +768,7 @@ function ModalWithSave({ open, onClose, title, onSave, saveLabel="保存", child
     <div style={{position:"fixed",top:52,left:0,right:0,bottom:0,zIndex:9999,display:"flex",flexDirection:"column",background:"#f8f5ef"}}>
       <div style={{background:GD,color:"#fff",padding:"11px 13px",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0,gap:8}}>
         <span style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".92rem",fontWeight:700,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{title}</span>
-        <button onClick={onClose} style={{background:"rgba(255,255,255,.18)",border:"1px solid rgba(255,255,255,.25)",color:"#fff",borderRadius:8,padding:"6px 12px",fontSize:".8rem",cursor:"pointer",flexShrink:0,minWidth:40,minHeight:40}}>✕</button>
+        <button onClick={onClose} style={{background:"rgba(255,255,255,.18)",border:"1px solid rgba(255,255,255,.25)",color:"#fff",borderRadius:8,padding:"6px 12px",fontSize:".8rem",cursor:"pointer",flexShrink:0,minWidth:40,minHeight:40}}><Em><Em><Em>✕</Em></Em></Em></button>
         <button onClick={onSave} style={{background:"#fff",border:"none",color:G,borderRadius:8,padding:"6px 14px",fontSize:".8rem",fontWeight:700,cursor:"pointer",flexShrink:0,minWidth:60,minHeight:40}}>{saveLabel} ✓</button>
       </div>
       <div style={{flex:1,overflowY:"auto",WebkitOverflowScrolling:"touch",padding:"14px 14px 40px"}}>
@@ -804,11 +804,11 @@ function SetPasswordScreen({ onDone }) {
     <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:"100svh",background:"linear-gradient(135deg,"+GD+","+G+")",padding:20}}>
       <style>{globalCss}</style>
       <div style={{background:"#fff",borderRadius:20,padding:"32px 28px",maxWidth:360,width:"100%",textAlign:"center",boxShadow:"0 8px 40px rgba(0,0,0,.3)"}}>
-        <div style={{fontSize:"2.2rem",marginBottom:8}}>🌾</div>
+        <div style={{fontSize:"2.2rem",marginBottom:8}}><Em><Em><Em>🌾</Em></Em></Em></div>
         <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:"1.3rem",color:G,marginBottom:4}}>サクメモ</div>
         {done ? (
           <div style={{padding:"20px 0"}}>
-            <div style={{fontSize:"2rem",marginBottom:12}}>✅</div>
+            <div style={{fontSize:"2rem",marginBottom:12}}><Em><Em><Em>✅</Em></Em></Em></div>
             <div style={{fontWeight:700,marginBottom:8}}>パスワードを設定しました</div>
             <div style={{fontSize:".8rem",color:TX3}}>ログイン画面に移動します…</div>
           </div>
@@ -824,7 +824,7 @@ function SetPasswordScreen({ onDone }) {
                   style={{width:"100%",padding:"9px 36px 9px 12px",border:"1.5px solid #e0d9ce",borderRadius:8,fontSize:"16px",fontFamily:"inherit",outline:"none"}}/>
                 <button type="button" onClick={()=>setShowPw(p=>!p)}
                   style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",fontSize:".8rem",color:"#888"}}>
-                  {showPw?"🙈":"👁"}
+                  {showPw?<Em><Em><Em>🙈</Em></Em></Em>:<Em><Em><Em>👁</Em></Em></Em>}
                 </button>
               </div>
             </div>
@@ -879,7 +879,7 @@ function LoginScreen() {
     <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:"100svh",background:"linear-gradient(135deg,"+GD+","+G+")",padding:20}}>
       <style>{globalCss}</style>
       <div style={{background:"#fff",borderRadius:20,padding:"28px 24px",maxWidth:360,width:"100%",textAlign:"center",boxShadow:"0 8px 40px rgba(0,0,0,.3)"}}>
-        <div style={{fontSize:"2.2rem",marginBottom:6}}>🌾</div>
+        <div style={{fontSize:"2.2rem",marginBottom:6}}><Em><Em><Em>🌾</Em></Em></Em></div>
         <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:"1.3rem",color:G,marginBottom:4}}>サクメモ</div>
         <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ</div>
         {linkErr&&<div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:8,padding:"10px 12px",marginBottom:16,fontSize:".78rem",color:"#856404",textAlign:"left"}}>{linkErr}</div>}
@@ -901,7 +901,7 @@ function LoginScreen() {
                 style={{width:"100%",padding:"9px 36px 9px 12px",border:"1.5px solid #e0d9ce",borderRadius:8,fontSize:"16px",fontFamily:"inherit",outline:"none"}}/>
               <button type="button" onClick={()=>setShowPw(p=>!p)}
                 style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",fontSize:".8rem",color:"#888"}}>
-                {showPw?"🙈":"👁"}
+                {showPw?<Em><Em><Em>🙈</Em></Em></Em>:<Em><Em><Em>👁</Em></Em></Em>}
               </button>
             </div>
           </div>
@@ -941,7 +941,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.3</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.5</div>
       </div>
     </div>
   );
@@ -976,7 +976,7 @@ function HomeScreen({ fields, crops, logs, costs, onEditCrop }) {
             <div>
               <div style={{fontSize:"1.8rem",fontWeight:700,lineHeight:1}}>{wx.temp}°C</div>
               <div style={{fontSize:".72rem",opacity:.8,marginTop:2}}>{wx.label} / {wxLabel(wx.code)}</div>
-              <div style={{display:"flex",gap:8,marginTop:3,fontSize:".68rem",opacity:.78}}><span>💧{wx.rain}mm</span><span>💨{wx.wind}m/s</span><span>💦{wx.humid}%</span></div>
+              <div style={{display:"flex",gap:8,marginTop:3,fontSize:".68rem",opacity:.78}}><span><Em><Em>💧</Em></Em>{wx.rain}mm</span><span><Em><Em>💨</Em></Em>{wx.wind}m/s</span><span><Em><Em>💦</Em></Em>{wx.humid}%</span></div>
             </div>
             <div style={{background:"rgba(255,255,255,.19)",borderRadius:9,padding:"7px 11px",fontSize:".73rem",lineHeight:1.4,textAlign:"center",marginLeft:"auto"}}>{wxAdvice(wx)}</div>
           </div>
@@ -990,7 +990,7 @@ function HomeScreen({ fields, crops, logs, costs, onEditCrop }) {
                     <div style={{fontSize:".6rem",opacity:.7}}>{h.hour}時</div>
                     <div style={{fontSize:"1rem",margin:"2px 0"}}>{wxIcon(h.code)}</div>
                     <div style={{fontSize:".7rem",fontWeight:700}}>{h.temp}°</div>
-                    {h.pop>0&&<div style={{fontSize:".58rem",opacity:.8,color:"#90caf9"}}>💧{h.pop}%</div>}
+                    {h.pop>0&&<div style={{fontSize:".58rem",opacity:.8,color:"#90caf9"}}><Em><Em>💧</Em></Em>{h.pop}%</div>}
                   </div>
                 ))}
               </div>
@@ -1008,7 +1008,7 @@ function HomeScreen({ fields, crops, logs, costs, onEditCrop }) {
                     <div style={{opacity:.7,marginBottom:1}}>{label}</div>
                     <div style={{fontSize:"1.1rem"}}>{wxIcon(wx.daily.weathercode[i])}</div>
                     <div style={{fontWeight:700,marginTop:1}}>{Math.round(wx.daily.temperature_2m_max[i])}°/<span style={{opacity:.7}}>{Math.round(wx.daily.temperature_2m_min[i])}°</span></div>
-                    {wx.daily.precipitation_probability_max&&<div style={{fontSize:".58rem",opacity:.8,color:"#90caf9"}}>💧{wx.daily.precipitation_probability_max[i]}%</div>}
+                    {wx.daily.precipitation_probability_max&&<div style={{fontSize:".58rem",opacity:.8,color:"#90caf9"}}><Em><Em>💧</Em></Em>{wx.daily.precipitation_probability_max[i]}%</div>}
                   </div>
                 );
               })}
@@ -1018,7 +1018,7 @@ function HomeScreen({ fields, crops, logs, costs, onEditCrop }) {
       )}
 
       {/* 栽培中の作物 */}
-      <div style={S.sec}><span>🌾 栽培中 ({crops.filter(c=>!c.ended).length}品目)</span></div>
+      <div style={S.sec}><span><Em><Em>🌾</Em></Em> 栽培中 ({crops.filter(c=>!c.ended).length}品目)</span></div>
       {!crops.filter(c=>!c.ended).length && <div style={{color:TX3,fontSize:".82rem",padding:8,textAlign:"center"}}>品目がまだ登録されていません</div>}
       {crops.filter(c=>!c.ended).map(c=>{
         const db=CDB[c.type]||{}; const f=fields[c.fieldIdx]||{};
@@ -1046,7 +1046,7 @@ function HomeScreen({ fields, crops, logs, costs, onEditCrop }) {
         return (
           <div key={c.id} style={{...S.card,cursor:"pointer",borderLeft:daysToHarvest!==null&&daysToHarvest<=7&&daysToHarvest>=0?"3px solid #f0a500":"none"}} onClick={()=>onEditCrop&&onEditCrop(c)}>
             <div style={{display:"flex",gap:9,alignItems:"center"}}>
-              <span style={{fontSize:"1.8rem"}}>{db.e||"🌱"}</span>
+              <span style={{fontSize:"1.8rem"}}><Em>{db.e||"🌱"}</Em></span>
               <div style={{flex:1,minWidth:0}}>
                 <div style={{fontWeight:700,fontSize:".9rem"}}>
                   {c.type==="custom"?c.customName||"カスタム":db.n||c.type}
@@ -1080,7 +1080,7 @@ function HomeScreen({ fields, crops, logs, costs, onEditCrop }) {
               return <>
                 {isPastHarvest&&<div style={{marginTop:8}}>
                   <div style={{padding:"7px 10px",background:"#fff3cd",borderRadius:8,borderLeft:"3px solid #f0a500",marginBottom:6}}>
-                    <div style={{fontSize:".65rem",color:"#92400e",fontWeight:700,marginBottom:2}}>🧹 次の作業: 片付け</div>
+                    <div style={{fontSize:".65rem",color:"#92400e",fontWeight:700,marginBottom:2}}><Em><Em><Em>🧹</Em></Em></Em> 次の作業: 片付け</div>
                     <div style={{fontSize:".72rem",color:"#1c1a14"}}>・収穫残渣を除去・土づくり開始</div>
                   </div>
                   {rot&&<div style={{padding:"7px 10px",background:"#fef2f2",borderRadius:8,borderLeft:"3px solid #dc2626"}}>
@@ -1093,12 +1093,12 @@ function HomeScreen({ fields, crops, logs, costs, onEditCrop }) {
                 </div>}
                 {!isPastHarvest&&tasks.length>0&&<div style={{marginTop:8,padding:"7px 10px",background:"#f0f9f0",borderRadius:8,borderLeft:"3px solid #2d6a3f"}}>
                   <div style={{fontSize:".65rem",color:"#2d6a3f",fontWeight:700,marginBottom:3,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                    <span>📋 今日の作業目安</span>
-                    {(()=>{const t=CROP_TEMP[c.type]||(c.tempMin&&c.tempMax?[c.tempMin,c.tempMax]:null);return t&&<span style={{fontSize:".63rem",background:"#e8f5e9",color:"#2e7d32",borderRadius:999,padding:"1px 7px",fontWeight:700}}>🌡️ {t[0]}〜{t[1]}℃</span>;})()}
+                    <span><Em><Em><Em>📋</Em></Em></Em> 今日の作業目安</span>
+                    {(()=>{const t=CROP_TEMP[c.type]||(c.tempMin&&c.tempMax?[c.tempMin,c.tempMax]:null);return t&&<span style={{fontSize:".63rem",background:"#e8f5e9",color:"#2e7d32",borderRadius:999,padding:"1px 7px",fontWeight:700}}><Em><Em>🌡️</Em></Em> {t[0]}〜{t[1]}℃</span>;})()}
                   </div>
                   {tasks.map((t,i)=><div key={i} style={{fontSize:".72rem",color:"#1c1a14",lineHeight:1.6}}>・{t}</div>)}
                   {FERT_GUIDE[c.type]&&<div style={{marginTop:5,paddingTop:5,borderTop:"1px solid #e0f0e0"}}>
-                    <div style={{fontSize:".65rem",color:"#2d6a3f",fontWeight:700,marginBottom:3}}>🌿 施肥ガイド</div>
+                    <div style={{fontSize:".65rem",color:"#2d6a3f",fontWeight:700,marginBottom:3}}><Em><Em><Em>🌿</Em></Em></Em> 施肥ガイド</div>
                     {FERT_GUIDE[c.type].chase.map((f,i)=>(
                       <div key={i} style={{fontSize:".7rem",color:"#1c1a14",lineHeight:1.7}}>
                         <span style={{color:"#5c3d1e",fontWeight:600}}>・{f.timing}：</span>{f.amt}
@@ -1116,7 +1116,7 @@ function HomeScreen({ fields, crops, logs, costs, onEditCrop }) {
       {/* みんなのサクメモ */}
       <a href="/community.html" style={{display:"flex",alignItems:"center",justifyContent:"space-between",background:"linear-gradient(135deg,#2d6a3f,#419857)",borderRadius:14,padding:"13px 16px",marginBottom:9,textDecoration:"none"}}>
         <div>
-          <div style={{color:"#fff",fontWeight:700,fontSize:".9rem",fontFamily:"'Shippori Mincho B1',serif"}}>🌾 みんなのサクメモ</div>
+          <div style={{color:"#fff",fontWeight:700,fontSize:".9rem",fontFamily:"'Shippori Mincho B1',serif"}}><Em><Em><Em>🌾</Em></Em></Em> みんなのサクメモ</div>
           <div style={{color:"rgba(255,255,255,.8)",fontSize:".74rem",marginTop:3}}>公開中の農場記録を見る</div>
         </div>
         <span style={{color:"#fff",fontSize:"1.3rem"}}>›</span>
@@ -1338,7 +1338,7 @@ function MasterScreen({ fertMs, setFertMs, pestMs, setPestMs, equips, setEquips,
 
           {mItem._type!=="equip"&&<>
             <div style={{background:"#f0f9f0",borderRadius:10,padding:"10px 12px",marginBottom:9}}>
-              <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".82rem",color:"#5c3d1e",marginBottom:8}}>📦 在庫・購入情報</div>
+              <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".82rem",color:"#5c3d1e",marginBottom:8}}><Em><Em><Em>📦</Em></Em></Em> 在庫・購入情報</div>
               <R2>
                 <FG label="内容量（1個あたり）">
                   <div style={{display:"flex",gap:4}}>
@@ -1518,10 +1518,10 @@ function FieldsScreen({ fields, setFields, setFieldsR, crops, setCrops, setCrops
         return (
           <div key={c.id} style={S.card}>
             <div style={{display:"flex",gap:9,alignItems:"flex-start"}}>
-              <span style={{fontSize:"1.85rem"}}>{db.e||"🌱"}</span>
+              <span style={{fontSize:"1.85rem"}}><Em>{db.e||"🌱"}</Em></span>
               <div style={{flex:1,minWidth:0}}>
                 <div style={{fontWeight:700}}>{c.type==="custom"?c.customName||"カスタム":db.n||c.type}{c.variety?" ("+c.variety+")":""}</div>
-                <div style={{fontSize:".7rem",color:TX3,marginTop:1}}>{f.name||"?"} / {c.plantDate?(isFruit?yearsSincePlant+"年目":(c.cultivationType==="direct"?"播種":"定植")+days+"日目"):<span style={{color:WARN}}>⚠️ 定植日未設定</span>}{c.growEnv==="pot"&&c.potSize?" / "+c.potSize:""}</div>
+                <div style={{fontSize:".7rem",color:TX3,marginTop:1}}>{f.name||"?"} / {c.plantDate?(isFruit?yearsSincePlant+"年目":(c.cultivationType==="direct"?"播種":"定植")+days+"日目"):<span style={{color:WARN}}><Em><Em><Em>⚠️</Em></Em></Em> 定植日未設定</span>}{c.growEnv==="pot"&&c.potSize?" / "+c.potSize:""}</div>
                 <div style={{marginTop:6,display:"flex",flexWrap:"wrap",gap:4}}>
                   {c.cultivationType==="direct"&&<Tag type="green">直播</Tag>}
                   {c.cultivationType==="seedling"&&<Tag type="yellow">苗購入</Tag>}
@@ -1571,7 +1571,7 @@ function FieldsScreen({ fields, setFields, setFieldsR, crops, setCrops, setCrops
           return (
             <div key={c.id} style={{...S.card,opacity:.7,borderLeft:"4px solid #e67e22"}}>
               <div style={{display:"flex",gap:9,alignItems:"center"}}>
-                <span style={{fontSize:"1.6rem"}}>{db.e||"🌱"}</span>
+                <span style={{fontSize:"1.6rem"}}><Em>{db.e||"🌱"}</Em></span>
                 <div style={{flex:1,minWidth:0}}>
                   <div style={{fontWeight:700,fontSize:".88rem"}}>{c.type==="custom"?c.customName||"カスタム":db.n||c.type}{c.variety?" ("+c.variety+")":""}</div>
                   <div style={{fontSize:".7rem",color:TX3}}>{f.name||"?"} · 終了:{c.endDate||"—"}</div>
@@ -1639,13 +1639,13 @@ function FieldsScreen({ fields, setFields, setFieldsR, crops, setCrops, setCrops
                     <FG label={<><TermTooltip>播種</TermTooltip>日</>}>
                       <div style={{display:"flex",gap:6,alignItems:"center"}}>
                         <Inp type="date" value={mCrop.sowDate} onChange={v=>setMCrop({...mCrop,sowDate:v})}/>
-                        {mCrop.sowDate&&<button type="button" onClick={()=>setMCrop({...mCrop,sowDate:""})} style={{background:"none",border:"none",color:"#aaa",cursor:"pointer",fontSize:".8rem",flexShrink:0}}>✕</button>}
+                        {mCrop.sowDate&&<button type="button" onClick={()=>setMCrop({...mCrop,sowDate:""})} style={{background:"none",border:"none",color:"#aaa",cursor:"pointer",fontSize:".8rem",flexShrink:0}}><Em><Em><Em>✕</Em></Em></Em></button>}
                       </div>
                     </FG>
                     <FG label={<><TermTooltip>定植</TermTooltip>日（後から作業記録で登録可）</>}>
                       <div style={{display:"flex",gap:6,alignItems:"center"}}>
                         <Inp type="date" value={mCrop.plantDate} onChange={v=>setMCrop({...mCrop,plantDate:v})}/>
-                        {mCrop.plantDate&&<button type="button" onClick={()=>setMCrop({...mCrop,plantDate:""})} style={{background:"none",border:"none",color:"#aaa",cursor:"pointer",fontSize:".8rem",flexShrink:0}}>✕</button>}
+                        {mCrop.plantDate&&<button type="button" onClick={()=>setMCrop({...mCrop,plantDate:""})} style={{background:"none",border:"none",color:"#aaa",cursor:"pointer",fontSize:".8rem",flexShrink:0}}><Em><Em><Em>✕</Em></Em></Em></button>}
                       </div>
                     </FG>
                   </>)}
@@ -2117,7 +2117,7 @@ setEditId(null);setWorks(new Set());setMemo("");setLogImg(null);setLogImg2(null)
         <span>作業内容を選択してください</span>
         {(works.size>0||editId) && (
           <button onClick={()=>{setEditId(null);setWork("");setMemo("");setLogImg(null);setLogImg2(null);setLogImg3(null);setHvGrades({秀品:{kg:"",cnt:"",price:""},優品:{kg:"",cnt:"",price:""},良品:{kg:"",cnt:"",price:""},規格外:{kg:"",cnt:"",price:""}});setDate(todayStr());setTime(nowTime());setDur("");setSowQty("");setGermCnt("");setGermDate(todayStr());setTranspQty("");setFertIdx("");setFertName("");setFertAmt("");setFertUnit("kg");setFertMeth("追肥");setFertCost("");setPestIdx("");setPestName("");setPestDil("");setPestAmt("");setPestUnit("L");setPestTgt("");setPestCost("");setDiscardCnt("");setAddCnt("");setEventType("");setEventNote("");setOtherNote("");setHvKg("");setHvCnt("");setHvQ("秀品");setHvPrice("");setRepotSize("");setRepotVol("");setEquipSel([]);setEquipAct("設置");setWork("");setCropId("");}}
-            style={{...S.btn,...S.btnS,...S.btnSm}}>✕ リセット</button>
+            style={{...S.btn,...S.btnS,...S.btnSm}}><Em><Em><Em>✕</Em></Em></Em> リセット</button>
         )}
       </div>
       <div style={S.card}>
@@ -2126,19 +2126,19 @@ setEditId(null);setWorks(new Set());setMemo("");setLogImg(null);setLogImg2(null)
           <FG label="品目"><Sel value={cropId} onChange={setCropId} options={[{value:"",label:"（選択）"},...fieldCrops.map(c=>{const db=CDB[c.type]||{};return{value:c.id,label:(db.e||"🌱")+" "+(c.type==="custom"?c.customName||"カスタム":(db.n||c.type))+(c.variety?" ("+c.variety+")":"")};})]} /></FG>
         </R2>
         <FG label="作業内容">
-          <div style={{fontSize:".7rem",color:"#888",marginBottom:4}}>💡 複数選択できます</div>
+          <div style={{fontSize:".7rem",color:"#888",marginBottom:4}}><Em><Em><Em>💡</Em></Em></Em> 複数選択できます</div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:5,marginBottom:8}}>
             {WORK_TYPES.map(w=>(
               <button key={w.value} onClick={()=>toggleWork(w.value)}
                 style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2,padding:"7px 4px",border:"2px solid "+(works.has(w.value)?G2:BD),borderRadius:10,background:works.has(w.value)?G3:"#fff",fontSize:".62rem",fontWeight:700,color:works.has(w.value)?G:"#5a5040",cursor:"pointer"}}>
-                <span style={{fontSize:"1.3rem",lineHeight:1}}>{w.icon}</span><TermTooltip>{w.label}</TermTooltip>
+                <span style={{fontSize:"1.3rem",lineHeight:1}}><Em>{w.icon}</Em></span><TermTooltip>{w.label}</TermTooltip>
               </button>
             ))}
           </div>
         </FG>
-        {works.has("sow")&&<div style={panelStyle("#f0fdf4","#86efac")}><div style={ctitleStyle}>🌰 播種詳細</div><FG label="播種量（粒数・個数）"><Inp type="number" value={sowQty} onChange={setSowQty} placeholder="例：300"/></FG></div>}
-        {works.has("germinated")&&<div style={panelStyle("#f0fdf4","#86efac")}><div style={ctitleStyle}>🌱 発芽確認</div><R2><FG label="発芽確認数"><Inp type="number" value={germCnt} onChange={setGermCnt} placeholder="例：250"/></FG><FG label="確認日"><Inp type="date" value={germDate} onChange={setGermDate}/></FG></R2>{sowQty&&germCnt&&<div style={{fontSize:".8rem",color:G,marginTop:4}}>発芽率: {Math.round((parseInt(germCnt)/parseInt(sowQty))*100)}%</div>}</div>}
-        {works.has("transplant")&&<div style={panelStyle("#f5f3ff","#c4b5fd")}><div style={ctitleStyle}>🪴 定植詳細</div><FG label="定植株数"><Inp type="number" value={transpQty} onChange={setTranspQty} placeholder="例：120"/></FG></div>}
+        {works.has("sow")&&<div style={panelStyle("#f0fdf4","#86efac")}><div style={ctitleStyle}><Em><Em><Em>🌰</Em></Em></Em> 播種詳細</div><FG label="播種量（粒数・個数）"><Inp type="number" value={sowQty} onChange={setSowQty} placeholder="例：300"/></FG></div>}
+        {works.has("germinated")&&<div style={panelStyle("#f0fdf4","#86efac")}><div style={ctitleStyle}><Em><Em><Em>🌱</Em></Em></Em> 発芽確認</div><R2><FG label="発芽確認数"><Inp type="number" value={germCnt} onChange={setGermCnt} placeholder="例：250"/></FG><FG label="確認日"><Inp type="date" value={germDate} onChange={setGermDate}/></FG></R2>{sowQty&&germCnt&&<div style={{fontSize:".8rem",color:G,marginTop:4}}>発芽率: {Math.round((parseInt(germCnt)/parseInt(sowQty))*100)}%</div>}</div>}
+        {works.has("transplant")&&<div style={panelStyle("#f5f3ff","#c4b5fd")}><div style={ctitleStyle}><Em>🪴</Em> 定植詳細</div><FG label="定植株数"><Inp type="number" value={transpQty} onChange={setTranspQty} placeholder="例：120"/></FG></div>}
         {works.has("repot")&&<div style={panelStyle("#f5f3ff","#c4b5fd")}>
           <div style={ctitleStyle}>🪴 植え替え詳細</div>
           <R2>
@@ -2151,10 +2151,10 @@ setEditId(null);setWorks(new Set());setMemo("");setLogImg(null);setLogImg2(null)
           </R2>
           <div style={{fontSize:".72rem",color:TX3,marginTop:4}}>メモ欄に植え替え情報が自動入力されます</div>
         </div>}
-        {works.has("event")&&<div style={panelStyle("#fff7ed","#fdba74")}><div style={ctitleStyle}>📋 生育イベント</div><FG label="イベント種別"><Sel value={eventType} onChange={setEventType} options={[{value:"",label:"選択してください"},...eventOpts.map(v=>({value:v,label:v}))]}/></FG><FG label="メモ"><Inp value={eventNote} onChange={setEventNote} placeholder="例：1番花開花、受粉実施"/></FG></div>}
+        {works.has("event")&&<div style={panelStyle("#fff7ed","#fdba74")}><div style={ctitleStyle}><Em><Em><Em>📋</Em></Em></Em> 生育イベント</div><FG label="イベント種別"><Sel value={eventType} onChange={setEventType} options={[{value:"",label:"選択してください"},...eventOpts.map(v=>({value:v,label:v}))]}/></FG><FG label="メモ"><Inp value={eventNote} onChange={setEventNote} placeholder="例：1番花開花、受粉実施"/></FG></div>}
         {works.has("fert")&&<div style={panelStyle("#f9fff9","#b2dfdb")}>
           <div style={{...ctitleStyle,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-            <span>🌿 施肥詳細</span>
+            <span><Em><Em><Em>🌿</Em></Em></Em> 施肥詳細</span>
             <button onClick={()=>setFertEntries(prev=>[...prev,emptyFert()])}
               style={{...S.btn,...S.btnSm,background:G,color:"#fff",fontSize:".72rem"}}>＋ 資材追加</button>
           </div>          <div style={{background:"#fffdf5",border:"1px solid #b2dfdb",borderRadius:8,padding:"8px 10px",marginBottom:6}}>
@@ -2175,7 +2175,7 @@ setEditId(null);setWorks(new Set());setMemo("");setLogImg(null);setLogImg2(null)
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5}}>
                 <span style={{fontSize:".72rem",fontWeight:700,color:"#2d6a3f"}}>資材 {fi+2}</span>
                 <button onClick={()=>setFertEntries(prev=>prev.filter((_,i)=>i!==fi))}
-                  style={{...S.btn,...S.btnR,...S.btnSm,fontSize:".65rem",padding:"2px 8px"}}>✕</button>
+                  style={{...S.btn,...S.btnR,...S.btnSm,fontSize:".65rem",padding:"2px 8px"}}><Em><Em><Em>✕</Em></Em></Em></button>
               </div>
               <FG label="肥料名">
                 <Sel value={fe.name} onChange={v=>{
@@ -2191,12 +2191,12 @@ setEditId(null);setWorks(new Set());setMemo("");setLogImg(null);setLogImg2(null)
             </div>
           ))}
         </div>}
-        {works.has("pest")&&<div style={panelStyle("#fffdf0","#f9e4a0")}><div style={ctitleStyle}>🐛 農薬詳細</div>
+        {works.has("pest")&&<div style={panelStyle("#fffdf0","#f9e4a0")}><div style={ctitleStyle}><Em><Em><Em>🐛</Em></Em></Em> 農薬詳細</div>
               <div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:8,padding:"8px 10px",marginBottom:9,fontSize:".72rem",color:"#856404",lineHeight:1.6}}>
                 ⚠️ 農薬の使用記録は農薬取締法により保管義務があります。本アプリの記録は補助的なものです。法的義務の履行は別途ご確認ください。
               </div><FG label="農薬マスターから選ぶ"><Sel value={pestIdx} onChange={v=>{setPestIdx(v);const pm=v&&pestMs[parseInt(v)];if(pm){setPestName(pm.name);setPestDil(pm.dil||"");if(pm.cunit||pm.sunit)setPestUnit(pm.cunit||pm.sunit);}}} options={[{value:"",label:"手動入力"},...pestMs.map((p,i)=>({value:i,label:p.name}))]}/></FG><FG label="農薬名"><Inp value={pestName} onChange={setPestName} placeholder="農薬名"/></FG><R2><FG label="希釈倍数"><Inp type="number" value={pestDil} onChange={setPestDil} placeholder="1000"/></FG><FG label="散布量"><div style={{display:"flex",gap:4}}><Inp type="number" value={pestAmt} onChange={setPestAmt} style={{flex:1}}/><Sel value={pestUnit} onChange={setPestUnit} options={["L","ml"].map(v=>({value:v,label:v}))} style={{width:60,flex:"none"}}/></div></FG></R2><R2><FG label="対象病害虫"><Inp value={pestTgt} onChange={setPestTgt} placeholder="アブラムシ等"/></FG></R2></div>}
         {works.has("harvest")&&<div style={panelStyle("#fff9f0","#ffd9a0")}>
-          <div style={ctitleStyle}>🧺 収穫詳細</div>
+          <div style={ctitleStyle}><Em><Em><Em>🧺</Em></Em></Em> 収穫詳細</div>
           <div style={{fontSize:".72rem",color:"#888",marginBottom:8}}>品質別に入力（入力した品質のみ集計されます）</div>
           {["秀品","優品","良品","規格外"].map(q=>(
             <div key={q} style={{background:"#fffdf5",border:"1px solid #f0e0b0",borderRadius:8,padding:"8px 10px",marginBottom:6}}>
@@ -2216,7 +2216,7 @@ setEditId(null);setWorks(new Set());setMemo("");setLogImg(null);setLogImg2(null)
             })()}
           </div>
         </div>}
-        {works.has("discard")&&<div style={panelStyle("#fef2f2","#fca5a5")}><div style={ctitleStyle}>♻️ 廃棄・株数調整</div><R2><FG label="廃棄株数"><Inp type="number" value={discardCnt} onChange={setDiscardCnt} placeholder="0"/></FG><FG label="追加株数"><Inp type="number" value={addCnt} onChange={setAddCnt} placeholder="0"/></FG></R2></div>}
+        {works.has("discard")&&<div style={panelStyle("#fef2f2","#fca5a5")}><div style={ctitleStyle}><Em><Em><Em>♻️</Em></Em></Em> 廃棄・株数調整</div><R2><FG label="廃棄株数"><Inp type="number" value={discardCnt} onChange={setDiscardCnt} placeholder="0"/></FG><FG label="追加株数"><Inp type="number" value={addCnt} onChange={setAddCnt} placeholder="0"/></FG></R2></div>}
         {works.has("repot")&&<div style={panelStyle("#f0f4ff","#c4b5fd")}><div style={ctitleStyle}>🪣 植え替え詳細</div>
           <R2>
 
@@ -2224,17 +2224,17 @@ setEditId(null);setWorks(new Set());setMemo("");setLogImg(null);setLogImg2(null)
           </R2>
           <div style={{fontSize:".72rem",color:TX3}}>メモ欄に植え替え理由など記録してください</div>
         </div>}
-        {works.has("equip")&&<div style={panelStyle("#f5f0ff","#c4b5fd")}><div style={ctitleStyle}>🏗️ 資材・設備作業</div><FG label="設備を選ぶ（複数可）"><select multiple size={4} value={equipSel.map(String)} onChange={e=>setEquipSel(Array.from(e.target.selectedOptions).map(o=>parseInt(o.value)))} style={{...S.inp,height:100}}>{equips.map((e,i)=><option key={i} value={i}>{e.name}（{e.cat}）</option>)}</select></FG><FG label="作業種別"><Sel value={equipAct} onChange={setEquipAct} options={["設置","撤去","着用","脱去","点検","修理","その他"].map(v=>({value:v,label:v}))}/></FG></div>}
-        <FG label="📷 生育状況の写真（撮影日時を自動取得）">
+        {works.has("equip")&&<div style={panelStyle("#f5f0ff","#c4b5fd")}><div style={ctitleStyle}><Em><Em><Em>🏗️</Em></Em></Em> 資材・設備作業</div><FG label="設備を選ぶ（複数可）"><select multiple size={4} value={equipSel.map(String)} onChange={e=>setEquipSel(Array.from(e.target.selectedOptions).map(o=>parseInt(o.value)))} style={{...S.inp,height:100}}>{equips.map((e,i)=><option key={i} value={i}>{e.name}（{e.cat}）</option>)}</select></FG><FG label="作業種別"><Sel value={equipAct} onChange={setEquipAct} options={["設置","撤去","着用","脱去","点検","修理","その他"].map(v=>({value:v,label:v}))}/></FG></div>}
+        <FG label={emojify("📷 生育状況の写真（撮影日時を自動取得）")}>
           <div style={{border:"2px dashed "+BD,borderRadius:10,padding:14,textAlign:"center",cursor:"pointer",background:"#fafafa"}} onClick={()=>document.getElementById("logImgInp").click()}>
             <input id="logImgInp" type="file" accept="image/*" multiple style={{display:"none"}} onChange={e=>{if(Array.from(e.target.files).length>3){showToast("写真は3枚まで選択できます");e.target.value="";return;}handleLogImg(e);}}/>
-            <div style={{fontSize:"1.5rem",marginBottom:2}}>📷</div>
+            <div style={{fontSize:"1.5rem",marginBottom:2}}><Em><Em><Em>📷</Em></Em></Em></div>
             <p style={{fontSize:".72rem",color:TX3}}>タップして写真を追加（撮影日時を自動取得）</p>
           </div>
           {logImg&&(
             <div style={{position:"relative",marginTop:7}}>
               <img src={logImg.base64||logImg} alt="" style={{width:"100%",borderRadius:8,maxHeight:170,objectFit:"cover"}}/>
-              <button onClick={()=>setLogImg(null)} style={{position:"absolute",top:4,right:4,background:"rgba(0,0,0,.5)",border:"none",color:"#fff",borderRadius:"50%",width:24,height:24,cursor:"pointer",fontSize:".8rem",lineHeight:"24px",textAlign:"center"}}>✕</button>
+              <button onClick={()=>setLogImg(null)} style={{position:"absolute",top:4,right:4,background:"rgba(0,0,0,.5)",border:"none",color:"#fff",borderRadius:"50%",width:24,height:24,cursor:"pointer",fontSize:".8rem",lineHeight:"24px",textAlign:"center"}}><Em><Em><Em>✕</Em></Em></Em></button>
             </div>
           )}
           {logImg&&!logImg2&&(
@@ -2247,7 +2247,7 @@ setEditId(null);setWorks(new Set());setMemo("");setLogImg(null);setLogImg2(null)
           {logImg2&&(
             <div style={{position:"relative",marginTop:6}}>
               <img src={logImg2.base64||logImg2} alt="" style={{width:"100%",borderRadius:8,maxHeight:170,objectFit:"cover"}}/>
-              <button onClick={()=>setLogImg2(null)} style={{position:"absolute",top:4,right:4,background:"rgba(0,0,0,.5)",border:"none",color:"#fff",borderRadius:"50%",width:24,height:24,cursor:"pointer",fontSize:".8rem",lineHeight:"24px",textAlign:"center"}}>✕</button>
+              <button onClick={()=>setLogImg2(null)} style={{position:"absolute",top:4,right:4,background:"rgba(0,0,0,.5)",border:"none",color:"#fff",borderRadius:"50%",width:24,height:24,cursor:"pointer",fontSize:".8rem",lineHeight:"24px",textAlign:"center"}}><Em><Em><Em>✕</Em></Em></Em></button>
             </div>
           )}
           {logImg2&&!logImg3&&(
@@ -2260,7 +2260,7 @@ setEditId(null);setWorks(new Set());setMemo("");setLogImg(null);setLogImg2(null)
           {logImg3&&(
             <div style={{position:"relative",marginTop:6}}>
               <img src={logImg3.base64||logImg3} alt="" style={{width:"100%",borderRadius:8,maxHeight:170,objectFit:"cover"}}/>
-              <button onClick={()=>setLogImg3(null)} style={{position:"absolute",top:4,right:4,background:"rgba(0,0,0,.5)",border:"none",color:"#fff",borderRadius:"50%",width:24,height:24,cursor:"pointer",fontSize:".8rem",lineHeight:"24px",textAlign:"center"}}>✕</button>
+              <button onClick={()=>setLogImg3(null)} style={{position:"absolute",top:4,right:4,background:"rgba(0,0,0,.5)",border:"none",color:"#fff",borderRadius:"50%",width:24,height:24,cursor:"pointer",fontSize:".8rem",lineHeight:"24px",textAlign:"center"}}><Em><Em><Em>✕</Em></Em></Em></button>
             </div>
           )}
         </FG>
@@ -2340,7 +2340,7 @@ function TimelineScreen({ fields, crops, equips, logs, setLogs, showToast, onEdi
     <div style={S.scr} className="scr-inner">
       {/* ヘッダー */}
       <div style={{...S.sec,flexWrap:'wrap',gap:6}}>
-        <span>📋 作業記録</span>
+        <span><Em><Em><Em>📋</Em></Em></Em> 作業記録</span>
         <button onClick={onNew} style={S.secBtn}>＋ 記録する</button>
       </div>
 
@@ -2379,7 +2379,7 @@ function TimelineScreen({ fields, crops, equips, logs, setLogs, showToast, onEdi
         </div>
 
         {/* 検索 */}
-        <input value={q} onChange={e=>setQ(e.target.value)} placeholder="🔍 キーワード検索..."
+        <input value={q} onChange={e=>setQ(e.target.value)} placeholder={emojify("🔍 キーワード検索...")}
           style={{flex:1,minWidth:100,padding:'6px 10px',border:'1px solid #e0d9ce',borderRadius:8,fontSize:'16px',fontFamily:'inherit',outline:'none'}}/>
       </div>
 
@@ -2419,30 +2419,30 @@ function TimelineScreen({ fields, crops, equips, logs, setLogs, showToast, onEdi
                 <div style={{padding:'9px 11px'}}>
                   {/* 品目名 */}
                   <div style={{fontSize:'.84rem',fontWeight:700,color:'#1c1a14',marginBottom:4}}>
-                    {db.e||'🌱'} {cr.type==='custom'?(cr.customName||'カスタム'):(db.n||cr.type)}{cr.variety?` (${cr.variety})`:''}
+                    <Em>{db.e||'🌱'}</Em> {cr.type==='custom'?(cr.customName||'カスタム'):(db.n||cr.type)}{cr.variety?` (${cr.variety})`:''}
                   </div>
                   {/* 圃場・時間 */}
                   <div style={{fontSize:'.7rem',color:TX3,marginBottom:5,display:'flex',gap:8}}>
-                    {fieldName&&<span>📍{fieldName}</span>}
-                    {l0.time&&<span>🕐{l0.time}</span>}
+                    {fieldName&&<span><Em><Em>📍</Em></Em>{fieldName}</span>}
+                    {l0.time&&<span><Em><Em>🕐</Em></Em>{l0.time}</span>}
                   </div>
                   {/* 作業タグ */}
                   <div style={{display:'flex',gap:4,flexWrap:'wrap',marginBottom:5}}>
                     {sortedLogs.map((l,i)=>{
                       const w=WORK[l.work]||{label:l.work||'',tag:'gray',icon:'📝'};
-                      return <Tag key={i} type={w.tag}>{w.icon} {w.label}{l.otherNote?' '+l.otherNote:''}</Tag>;
+                      return <Tag key={i} type={w.tag}><Em>{w.icon}</Em> {w.label}{l.otherNote?' '+l.otherNote:''}</Tag>;
                     })}
                   </div>
                   {/* 詳細（farm.htmlと同じ順序） */}
                   {card.logs.map((l,li)=>(
                     <div key={li}>
-                      {l.fertName&&<div style={{fontSize:'.75rem',color:'#065f46'}}>🌿 {l.fertName}{l.fertAmt?` ${l.fertAmt}${l.fertUnit||''}`:''}</div>}
-                      {l.pestName&&<div style={{fontSize:'.75rem',color:'#92400e'}}>🐛 {l.pestName}{l.pestDil?` ${l.pestDil}倍`:''}</div>}
-                      {(l.hvKg||l.hvCnt)&&<div style={{fontSize:'.75rem',color:'#059669'}}>🧺 {l.hvGradeStr||`${l.hvKg||''}${l.hvKg?'kg':''}${l.hvCnt?` ${l.hvCnt}個`:''}`}</div>}
-                      {l.sowQty&&<div style={{fontSize:'.75rem',color:'#5a5040'}}>🌰 播種 {l.sowQty}粒</div>}
-                      {l.transplantQty&&<div style={{fontSize:'.75rem',color:'#5a5040'}}>🪴 定植 {l.transplantQty}株</div>}
-                      {l.eventType&&<div style={{fontSize:'.75rem',color:'#5a5040'}}>📋 {l.eventType}{l.eventNote?` · ${l.eventNote}`:''}</div>}
-                      {(l.discardCnt||l.addCnt)&&<div style={{fontSize:'.75rem',color:'#5a5040'}}>📊 株数調整{l.addCnt?` +${l.addCnt}株`:''}{ l.discardCnt?` -${l.discardCnt}株（廃棄）`:''}</div>}
+                      {l.fertName&&<div style={{fontSize:'.75rem',color:'#065f46'}}><Em><Em>🌿</Em></Em> {l.fertName}{l.fertAmt?` ${l.fertAmt}${l.fertUnit||''}`:''}</div>}
+                      {l.pestName&&<div style={{fontSize:'.75rem',color:'#92400e'}}><Em><Em>🐛</Em></Em> {l.pestName}{l.pestDil?` ${l.pestDil}倍`:''}</div>}
+                      {(l.hvKg||l.hvCnt)&&<div style={{fontSize:'.75rem',color:'#059669'}}><Em><Em>🧺</Em></Em> {l.hvGradeStr||`${l.hvKg||''}${l.hvKg?'kg':''}${l.hvCnt?` ${l.hvCnt}個`:''}`}</div>}
+                      {l.sowQty&&<div style={{fontSize:'.75rem',color:'#5a5040'}}><Em><Em>🌰</Em></Em> 播種 {l.sowQty}粒</div>}
+                      {l.transplantQty&&<div style={{fontSize:'.75rem',color:'#5a5040'}}><Em>🪴</Em> 定植 {l.transplantQty}株</div>}
+                      {l.eventType&&<div style={{fontSize:'.75rem',color:'#5a5040'}}><Em><Em>📋</Em></Em> {l.eventType}{l.eventNote?` · ${l.eventNote}`:''}</div>}
+                      {(l.discardCnt||l.addCnt)&&<div style={{fontSize:'.75rem',color:'#5a5040'}}><Em><Em>📊</Em></Em> 株数調整{l.addCnt?` +${l.addCnt}株`:''}{ l.discardCnt?` -${l.discardCnt}株（廃棄）`:''}</div>}
                     </div>
                   ))}
                   {/* メモ（後方） */}
@@ -2476,7 +2476,7 @@ function TimelineScreen({ fields, crops, equips, logs, setLogs, showToast, onEdi
                 )}
                 {/* 操作ボタン */}
                 <div style={{display:'flex',gap:6,padding:'6px 11px',borderTop:'1px solid #f0ebe3'}}>
-                  <button style={{...S.btn,...S.btnS,...S.btnSm}} onClick={()=>onEdit(card.logs)}>✏️ 編集</button>
+                  <button style={{...S.btn,...S.btnS,...S.btnSm}} onClick={()=>onEdit(card.logs)}><Em><Em><Em>✏️</Em></Em></Em> 編集</button>
                   {card.logs.length===1
                     ? <button style={{...S.btn,...S.btnR,...S.btnSm}} onClick={()=>{if(!window.confirm('削除?'))return;dbDelete('logs',card.logs[0].id);setLogs(logs.filter(x=>x.id!==card.logs[0].id));showToast('削除しました');}}>削除</button>
                     : <button style={{...S.btn,...S.btnR,...S.btnSm}} onClick={()=>{if(!window.confirm('削除?'))return;const ids=new Set(card.logs.map(l=>l.id));setLogs(logs.filter(x=>!ids.has(x.id)));showToast('削除しました');}}>削除</button>
@@ -2508,7 +2508,7 @@ function CostScreen({ fields, fertMs, pestMs, equips, costs, setCosts, logs, sho
   const catItems=mCost?(mCost.cat==="fert"?fertMs:mCost.cat==="pest"?pestMs:mCost.cat==="equip"?equips:[]):[];
   return (
     <div style={S.scr} className="scr-inner">
-      <div style={S.sec}><span>💰 費用管理</span><button style={S.secBtn} onClick={()=>setMCost({...empty})}>＋ 費用追加</button></div>
+      <div style={S.sec}><span><Em><Em><Em>💰</Em></Em></Em> 費用管理</span><button style={S.secBtn} onClick={()=>setMCost({...empty})}>＋ 費用追加</button></div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:7,marginBottom:9}}>
         {[{n:Math.round(total).toLocaleString()+"円",l:"総支出",c:ALERT},{n:Math.round(revenue).toLocaleString()+"円",l:"推定収益",c:INFO},{n:Math.round(revenue-total).toLocaleString()+"円",l:"損益",c:revenue-total>=0?G:ALERT},{n:totalHv.toFixed(1)+"kg",l:"累計収穫量",c:G}].map((s,i)=>(
           <div key={i} style={{...S.card,textAlign:"center"}}><div style={{fontSize:"1.65rem",fontWeight:700,color:s.c,lineHeight:1}}>{s.n}</div><div style={{fontSize:".66rem",color:TX3,marginTop:3}}>{s.l}</div></div>
@@ -2701,7 +2701,7 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs }) {
               {cropStats.filter(c=>!c.ended).map(c=>(
                 <button key={c.id} onClick={()=>{setSelCropId(c.id);setListOpen(false);}}
                   style={{padding:"9px 14px",borderRadius:9,border:"1.5px solid "+(selCropId===c.id?G:BD),background:selCropId===c.id?G:"#fff",color:selCropId===c.id?"#fff":"#5a5040",fontSize:".82rem",fontWeight:700,cursor:"pointer",fontFamily:"inherit",textAlign:"left",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                  <span>{c.emoji} {c.name}{c.variety?" ("+c.variety+")":""}</span>
+                  <span><Em>{c.emoji}</Em> {c.name}{c.variety?" ("+c.variety+")":""}</span>
                   <span style={{fontSize:".7rem",fontWeight:400,opacity:.85}}>{c.kg>0?c.kg.toFixed(1)+"kg · ":""}{c.logCount}件</span>
                 </button>
               ))}
@@ -2757,7 +2757,7 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs }) {
             const slices=grades.filter(g=>gKg[g]>0).map(g=>{const s=cum;cum+=gKg[g]/tot*360;return{g,s,e:cum};});
             return(
               <div style={{...S.card,marginBottom:9}}>
-                <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".82rem",color:"#5c3d1e",marginBottom:10}}>🥧 品質別収穫割合（kg）</div>
+                <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".82rem",color:"#5c3d1e",marginBottom:10}}><Em><Em><Em>🥧</Em></Em></Em> 品質別収穫割合（kg）</div>
                 <div style={{display:"flex",gap:16,alignItems:"center",flexWrap:"wrap"}}>
                   <svg width="130" height="130" viewBox="0 0 130 130">
                     {slices.length===1
@@ -2786,15 +2786,15 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs }) {
           {/* 費用内訳 */}
           {sel.costTotal>0&&(
             <div style={S.card}>
-              <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".86rem",color:"#5c3d1e",marginBottom:8}}>💰 費用内訳</div>
+              <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".86rem",color:"#5c3d1e",marginBottom:8}}><Em><Em><Em>💰</Em></Em></Em> 費用内訳</div>
               {sel.seedTotal>0&&<div style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid "+BD,fontSize:".82rem"}}>
-                <span>🌱 種・苗代</span><span style={{fontWeight:700}}>{Math.round(sel.seedTotal).toLocaleString()}円</span>
+                <span><Em><Em><Em>🌱</Em></Em></Em> 種・苗代</span><span style={{fontWeight:700}}>{Math.round(sel.seedTotal).toLocaleString()}円</span>
               </div>}
               {sel.fertTotal>0&&<div style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid "+BD,fontSize:".82rem"}}>
-                <span>🌿 施肥費用（使用量計算）</span><span style={{fontWeight:700}}>{Math.round(sel.fertTotal).toLocaleString()}円</span>
+                <span><Em><Em><Em>🌿</Em></Em></Em> 施肥費用（使用量計算）</span><span style={{fontWeight:700}}>{Math.round(sel.fertTotal).toLocaleString()}円</span>
               </div>}
               {sel.pestTotal>0&&<div style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid "+BD,fontSize:".82rem"}}>
-                <span>🐛 農薬費用（使用量計算）</span><span style={{fontWeight:700}}>{Math.round(sel.pestTotal).toLocaleString()}円</span>
+                <span><Em><Em><Em>🐛</Em></Em></Em> 農薬費用（使用量計算）</span><span style={{fontWeight:700}}>{Math.round(sel.pestTotal).toLocaleString()}円</span>
               </div>}
               <div style={{display:"flex",justifyContent:"space-between",padding:"6px 0",fontSize:".86rem",fontWeight:700,color:G}}>
                 <span>合計</span><span>{Math.round(sel.costTotal).toLocaleString()}円</span>
@@ -2805,7 +2805,7 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs }) {
           {/* 施肥・農薬使用量 */}
           {(Object.keys(sel.fertUse).length>0||Object.keys(sel.pestUse).length>0)&&(
             <div style={S.card}>
-              <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".86rem",color:"#5c3d1e",marginBottom:8}}>📊 資材使用量</div>
+              <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".86rem",color:"#5c3d1e",marginBottom:8}}><Em><Em><Em>📊</Em></Em></Em> 資材使用量</div>
               {Object.entries(sel.fertUse).map(([name,{amt,unit}])=>(
                 <div key={name} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"5px 0",borderBottom:"1px solid "+BD,fontSize:".82rem"}}>
                   <span style={{color:"#065f46"}}>🌿 {name}</span>
@@ -2860,12 +2860,12 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs }) {
 
           {/* 品目別一覧表 */}
           <div style={S.card}>
-            <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".86rem",color:"#5c3d1e",marginBottom:8}}>📊 品目別 実績</div>
+            <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".86rem",color:"#5c3d1e",marginBottom:8}}><Em><Em><Em>📊</Em></Em></Em> 品目別 実績</div>
             {cropStats.length===0&&<div style={{color:TX3,fontSize:".82rem"}}>品目が登録されていません</div>}
             {cropStats.filter(c=>!c.ended).map(c=>(
               <div key={c.id} onClick={()=>setSelCropId(c.id)}
                 style={{display:"flex",alignItems:"center",gap:9,padding:"9px 0",borderBottom:"1px solid "+BD,cursor:"pointer"}}>
-                <span style={{fontSize:"1.5rem",opacity:c.ended?.6:1}}>{c.emoji}</span>
+                <span style={{fontSize:"1.5rem",opacity:c.ended?.6:1}}><Em>{c.emoji}</Em></span>
                 <div style={{flex:1,minWidth:0}}>
                   <div style={{fontWeight:700,fontSize:".85rem",display:"flex",alignItems:"center",gap:5}}>
                     {c.name}
@@ -2892,7 +2892,7 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs }) {
                 <div key={c.id} onClick={()=>setSelCropId(c.id)}
                   style={{display:"flex",alignItems:"center",gap:10,padding:"9px 2px",borderBottom:"1px solid #f8f5ef",cursor:"pointer"}}>
                   <div style={{flex:1}}>
-                    <div style={{fontSize:".82rem",fontWeight:700,color:"#888"}}>{c.emoji} {c.name}{c.variety?" ("+c.variety+")":""}</div>
+                    <div style={{fontSize:".82rem",fontWeight:700,color:"#888"}}><Em>{c.emoji}</Em> {c.name}{c.variety?" ("+c.variety+")":""}</div>
                     <div style={{fontSize:".7rem",color:"#bbb"}}>{c.endDate?c.endDate+"終了 · ":""}{c.logCount}件 / {c.timeStr}</div>
                   </div>
                   <div style={{textAlign:"right",flexShrink:0}}>
@@ -2937,21 +2937,21 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs }) {
               <div key={card.key} style={{...S.card,padding:0,overflow:'hidden',marginBottom:8}}>
                 <div style={{padding:'8px 11px'}}>
                   <div style={{fontSize:'.7rem',color:TX3,marginBottom:4,display:'flex',gap:8}}>
-                    <span>📅 {l0.date}</span>
-                    {l0.time&&<span>🕐{l0.time}</span>}
-                    {fields[l0.fieldIdx]?.name&&<span>📍{fields[l0.fieldIdx].name}</span>}
+                    <span><Em><Em>📅</Em></Em> {l0.date}</span>
+                    {l0.time&&<span><Em><Em>🕐</Em></Em>{l0.time}</span>}
+                    {fields[l0.fieldIdx]?.name&&<span><Em><Em>📍</Em></Em>{fields[l0.fieldIdx].name}</span>}
                   </div>
                   <div style={{display:'flex',gap:4,flexWrap:'wrap',marginBottom:4}}>
                     {sortedLogs.map((l,i)=>{
                       const w=WORK[l.work]||{label:l.work||'',tag:'gray',icon:'📝'};
-                      return <Tag key={i} type={w.tag}>{w.icon} {w.label}</Tag>;
+                      return <Tag key={i} type={w.tag}><Em>{w.icon}</Em> {w.label}</Tag>;
                     })}
                   </div>
                   {card.logs.map((l,li)=>(
                     <div key={li}>
-                      {l.fertName&&<div style={{fontSize:'.75rem',color:'#065f46'}}>🌿 {l.fertName}{l.fertAmt?` ${l.fertAmt}${l.fertUnit||''}`:''}</div>}
-                      {l.pestName&&<div style={{fontSize:'.75rem',color:'#92400e'}}>🐛 {l.pestName}{l.pestDil?` ${l.pestDil}倍`:''}</div>}
-                      {(l.hvKg||l.hvCnt)&&<div style={{fontSize:'.75rem',color:'#059669'}}>🧺 {l.hvGradeStr||`${l.hvKg||''}${l.hvKg?'kg':''}${l.hvCnt?` ${l.hvCnt}個`:''}`}</div>}
+                      {l.fertName&&<div style={{fontSize:'.75rem',color:'#065f46'}}><Em><Em>🌿</Em></Em> {l.fertName}{l.fertAmt?` ${l.fertAmt}${l.fertUnit||''}`:''}</div>}
+                      {l.pestName&&<div style={{fontSize:'.75rem',color:'#92400e'}}><Em><Em>🐛</Em></Em> {l.pestName}{l.pestDil?` ${l.pestDil}倍`:''}</div>}
+                      {(l.hvKg||l.hvCnt)&&<div style={{fontSize:'.75rem',color:'#059669'}}><Em><Em>🧺</Em></Em> {l.hvGradeStr||`${l.hvKg||''}${l.hvKg?'kg':''}${l.hvCnt?` ${l.hvCnt}個`:''}`}</div>}
                     </div>
                   ))}
                   {memoLog?.memo&&<div style={{fontSize:'.78rem',color:'#5a5040',marginTop:3,lineHeight:1.5}}>{memoLog.memo}</div>}
@@ -3017,7 +3017,7 @@ function PublicSettings({ uid, crops, showToast }) {
 
   return (
     <div style={S.card}>
-      <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".86rem",color:"#5c3d1e",marginBottom:12}}>🌐 栽培記録を公開</div>
+      <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".86rem",color:"#5c3d1e",marginBottom:12}}><Em><Em><Em>🌐</Em></Em></Em> 栽培記録を公開</div>
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14,padding:"10px 12px",background:"#f5f5f0",borderRadius:10}}>
         <div>
           <div style={{fontWeight:700,fontSize:".86rem"}}>公開する</div>
@@ -3038,7 +3038,7 @@ function PublicSettings({ uid, crops, showToast }) {
           {activeCrops.length===0&&<div style={{fontSize:".76rem",color:TX3}}>栽培中の品目がありません</div>}
           {activeCrops.map(c=>{ const db=CDB[c.type]||{}; const n=c.type==="custom"?c.customName||"カスタム":db.n||c.type; return (
             <div key={c.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 10px",background:publicCrops[c.id]?"#f0f9f0":"#fafafa",borderRadius:9,marginBottom:5,border:"1px solid "+(publicCrops[c.id]?"#6ee7b7":BD)}}>
-              <span style={{fontSize:".84rem"}}>{db.e||"🌱"} {n}{c.variety?" ("+c.variety+")":""}</span>
+              <span style={{fontSize:".84rem"}}><Em>{db.e||"🌱"}</Em> {n}{c.variety?" ("+c.variety+")":""}</span>
               <button onClick={()=>toggleCrop(c.id)}
                 style={{width:40,height:22,borderRadius:999,border:"none",cursor:"pointer",
                   background:publicCrops[c.id]?G:"#ccc",position:"relative",transition:"background .2s",flexShrink:0}}>
@@ -3048,7 +3048,7 @@ function PublicSettings({ uid, crops, showToast }) {
           );})}
           {endedCrops.map(c=>{ const db=CDB[c.type]||{}; const n=c.type==="custom"?c.customName||"カスタム":db.n||c.type; return (
             <div key={c.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 10px",background:publicCrops[c.id]?"#f0f9f0":"#fafafa",borderRadius:9,marginBottom:5,border:"1px solid "+(publicCrops[c.id]?"#6ee7b7":BD),opacity:.75}}>
-              <span style={{fontSize:".84rem"}}>{db.e||"🌱"} {n}{c.variety?" ("+c.variety+")":""} <span style={{fontSize:".65rem",color:"#e67e22"}}>終了</span></span>
+              <span style={{fontSize:".84rem"}}><Em>{db.e||"🌱"}</Em> {n}{c.variety?" ("+c.variety+")":""} <span style={{fontSize:".65rem",color:"#e67e22"}}>終了</span></span>
               <button onClick={()=>toggleCrop(c.id)}
                 style={{width:40,height:22,borderRadius:999,border:"none",cursor:"pointer",
                   background:publicCrops[c.id]?G:"#ccc",position:"relative",transition:"background .2s",flexShrink:0}}>
@@ -3092,7 +3092,7 @@ function PwChangeSection() {
           <Inp type={showPw?"text":"password"} value={newPw} onChange={setNewPw} placeholder="新しいパスワード"/>
           <button type="button" onClick={()=>setShowPw(p=>!p)}
             style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",fontSize:".8rem",color:"#888"}}>
-            {showPw?"🙈":"👁"}
+            {showPw?<Em><Em><Em>🙈</Em></Em></Em>:<Em><Em><Em>👁</Em></Em></Em>}
           </button>
         </div>
       </FG>
@@ -3113,7 +3113,7 @@ function SettingsScreen({ showToast, user, uid, signOut, fields, crops, logs, fe
   return (
     <div style={S.scr} className="scr-inner">
       <div style={S.sec}>
-        <span>⚙️ 設定</span>
+        <span><Em><Em><Em>⚙️</Em></Em></Em> 設定</span>
         <button onClick={()=>setScr("home")}
           style={{background:G,border:"none",borderRadius:999,padding:"6px 16px",fontSize:".76rem",fontWeight:700,color:"#fff",cursor:"pointer",fontFamily:"inherit"}}>
           ✕ 閉じる
@@ -3139,7 +3139,7 @@ function SettingsScreen({ showToast, user, uid, signOut, fields, crops, logs, fe
 
       {/* データ管理 */}
       <div style={S.card}>
-        <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".86rem",color:"#5c3d1e",marginBottom:10}}>💾 データ管理</div>
+        <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".86rem",color:"#5c3d1e",marginBottom:10}}><Em><Em><Em>💾</Em></Em></Em> データ管理</div>
         <Btn style={S.btnR} onClick={async()=>{
           if(!window.confirm("全データを削除して退会しますか？\nこの操作は取り消せません。\nSupabaseの全データ・写真も削除されます。"))return;
           try {
@@ -3156,7 +3156,7 @@ function SettingsScreen({ showToast, user, uid, signOut, fields, crops, logs, fe
             showToast("退会しました。データは管理者が保管します。");
             setTimeout(()=>signOut(), 1500);
           } catch(e) { showToast("エラー: "+e.message); }
-        }}>🚪 退会・全データ削除</Btn>
+        }}><Em><Em><Em>🚪</Em></Em></Em> 退会・全データ削除</Btn>
       </div>
       <div style={{...S.card,fontSize:".76rem",color:TX3,lineHeight:1.8}}>
         <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:10}}>
@@ -3198,24 +3198,7 @@ export default function App() {
   // ブラウザタイトル設定
   useEffect(()=>{ document.title = "サクメモ - 作物の記録アプリ"; },[]);
 
-  // 絵文字フォント統一: Noto Color Emoji (Google, OFL License)
-  useEffect(()=>{
-    if(document.getElementById('noto-emoji-style')) return;
-    const st=document.createElement('style');
-    st.id='noto-emoji-style';
-    st.textContent=`
-      @font-face {
-        font-family: 'Noto Color Emoji';
-        src: url('https://fonts.gstatic.com/s/notocoloremoji/v25/Yq6P-KqIXTD0t4D9z1ESnKM3-HpFab5s79iz64w.woff2') format('woff2');
-        font-display: swap;
-      }
-      * { font-family: inherit; }
-      body, button, input, textarea, select {
-        font-family: 'Shippori Mincho B1', 'Noto Color Emoji', sans-serif !important;
-      }
-    `;
-    document.head.appendChild(st);
-  },[]);
+
 
   // Twemoji: 絵文字をTwitter統一デザインに（render後に適用）
   useEffect(()=>{
@@ -3334,7 +3317,7 @@ export default function App() {
 
   const TITLES={home:"作物の記録アプリ",master:"マスター登録",fields:"圃場・品目管理",log:"作業記録",cost:"費用管理",report:"分析レポート",settings:"設定"};
 
-  const loading_screen = bg => <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100svh",background:"linear-gradient(135deg,"+GD+","+G+")"}}><style>{globalCss}</style><div style={{color:"#fff",textAlign:"center"}}><div style={{fontSize:"2rem",marginBottom:10}}>🌾</div><div>{bg}</div></div></div>;
+  const loading_screen = bg => <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100svh",background:"linear-gradient(135deg,"+GD+","+G+")"}}><style>{globalCss}</style><div style={{color:"#fff",textAlign:"center"}}><div style={{fontSize:"2rem",marginBottom:10}}><Em><Em><Em>🌾</Em></Em></Em></div><div>{bg}</div></div></div>;
 
   if(authLoad) return loading_screen("読み込み中…");
   if(inviteMode) return <SetPasswordScreen onDone={()=>setInviteMode(false)}/>;
@@ -3346,12 +3329,12 @@ export default function App() {
     <div id="app-root" style={S.app}>
       <style>{globalCss}</style>
       <div id="top-bar" style={S.topbar}>
-        <span style={{fontSize:"1.3rem"}}>🌾</span>
+        <span style={{fontSize:"1.3rem"}}><Em><Em><Em>🌾</Em></Em></Em></span>
         <span style={S.logo}>サクメモ</span>
         <span style={{fontSize:".68rem",opacity:.58,flex:1,marginLeft:6,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{TITLES[scr]||""}</span>
         <div style={{display:"flex",alignItems:"center",gap:5,flexShrink:0}}>
           <span style={{fontSize:".65rem",opacity:.7,maxWidth:80,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{user.email}</span>
-          <button style={S.tbBtn} onClick={()=>setScr("settings")}>⚙️</button>
+          <button style={S.tbBtn} onClick={()=>setScr("settings")}><Em><Em><Em>⚙️</Em></Em></Em></button>
           <button style={S.tbBtn} onClick={signOut}>ログアウト</button>
         </div>
       </div>
@@ -3372,7 +3355,7 @@ export default function App() {
               color:scr==="settings"?"#9ffcb4":"rgba(255,255,255,.55)",
               borderBottom:scr==="settings"?"2px solid #9ffcb4":"2px solid transparent",
               fontSize:".78rem",cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>
-            <span style={{fontSize:"1rem"}}>⚙️</span>設定
+            <span style={{fontSize:"1rem"}}><Em><Em><Em>⚙️</Em></Em></Em></span>設定
           </button>
         </div>
       </div>
@@ -3399,7 +3382,7 @@ export default function App() {
           <div style={{background:GD,color:"#fff",padding:"11px 13px",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
             <span style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".92rem",fontWeight:700,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{initLog?"✏️ 作業を編集":"📝 記録する"}</span>
             <div style={{display:"flex",gap:6}}>
-              <button onClick={()=>{setLogModal(false);}} style={{background:"rgba(255,255,255,.18)",border:"1px solid rgba(255,255,255,.25)",color:"#fff",borderRadius:8,padding:"6px 12px",fontSize:".8rem",cursor:"pointer",flexShrink:0,minWidth:40,minHeight:40}}>✕</button>
+              <button onClick={()=>{setLogModal(false);}} style={{background:"rgba(255,255,255,.18)",border:"1px solid rgba(255,255,255,.25)",color:"#fff",borderRadius:8,padding:"6px 12px",fontSize:".8rem",cursor:"pointer",flexShrink:0,minWidth:40,minHeight:40}}><Em><Em><Em>✕</Em></Em></Em></button>
               <button onClick={()=>logScreenSaveRef.current&&logScreenSaveRef.current()}
                 style={{background:"#fff",border:"none",color:G,borderRadius:8,padding:"6px 14px",fontSize:".8rem",fontWeight:700,cursor:"pointer",flexShrink:0,minWidth:60,minHeight:40}}>
                 保存 ✓
