@@ -112,6 +112,12 @@ body{font-family:'Hiragino Sans','BIZ UDGothic',sans-serif;background:#f8f5ef;co
   src: url('https://fonts.gstatic.com/s/notocoloremoji/v25/Yq6P-KqIXTD0t4D9z1ESnKM3-HpFab5s79iz64w.woff2') format('woff2');
   font-display: swap;
 }
+@font-face {
+  font-family: 'Noto Color Emoji';
+  src: url('https://fonts.gstatic.com/s/notocoloremoji/v25/Yq6P-KqIXTD0t4D9z1ESnKM3-HpFab5s79iz64w.woff2') format('woff2');
+  font-display: swap;
+  unicode-range: U+1F000-1FFFF, U+2600-27FF, U+2B50, U+FE0F;
+}
 body, button, span, div, a {
   font-family: 'Shippori Mincho B1', 'Noto Color Emoji', sans-serif;
 }
@@ -701,7 +707,12 @@ async function main(){
 }
 main();
 </script>
-<div style="text-align:center;padding:10px;font-size:.6rem;color:#ccc;">Emoji by <a href="https://twemoji.twitter.com/" target="_blank" rel="noopener" style="color:#ccc;">Twemoji</a> © Twitter, Inc. (CC-BY 4.0)</div>
+<div style="text-align:center;padding:16px 12px 24px;font-size:.68rem;color:#999;line-height:1.8;border-top:1px solid #f0ebe3;margin-top:8px;">
+  掲載されている記録は各ユーザーが公開設定したものです。<br>
+  写真・記録の無断転載・商用利用を禁止します。<br>
+  <a href="mailto:sakumemo.app@gmail.com" style="color:#aaa;">sakumemo.app@gmail.com</a><br>
+  © 2026 サクメモ
+</div>
 
 </body>
 </html>
