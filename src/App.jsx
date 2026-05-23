@@ -365,8 +365,31 @@ const getRecommendedTasks = (crop, logs, prefecture="") => {
     tasks.push('🎉 収穫時期です！');
   }
 
+  // 月ベースの季節提案（地域補正済みmonthを使用）
+  if(tasks.length < 2){
+    // 北海道(-2補正)では5月でもmonth=3 → 播種・定植を遅らせる提案
+    const seasonMsg = (()=>{
+      if(month<=2) return tempOffset<=-2?'雪解け前の準備・育苗開始':tempOffset<=-1?'育苗準備・ハウス整備':'防寒対策・育苗準備';
+      if(month===3) return tempOffset<=-2?'雪解け後の圃場準備':tempOffset<=0?'春の播種・定植準備':'早い品目の播種を検討';
+      if(month===4) return tempOffset<=-2?'遅霜に注意・定植準備':'定植・播種の好機';
+      if(month===5) return tempOffset<=-2?'定植本番・霜対策':'病害虫の発生に注意';
+      if(month===6) return '梅雨前の病害虫防除を';
+      if(month<=8) return '高温対策・水管理に注意';
+      if(month===9) return '秋の播種・定植を検討';
+      if(month===10) return tempOffset>0?'収穫・越冬準備':'晩秋の収穫・片付け';
+      if(month===11) return tempOffset>0?'越冬野菜の管理':'防霜・マルチング検討';
+      return tempOffset>0?'冬野菜の収穫・管理':'冬季管理・来季計画';
+    })();
+    if(seasonMsg) tasks.push(seasonMsg);
+  }
+
   // 作業間隔が長い場合
   if(daysSinceLog >= 7 && tasks.length < 2) tasks.push('見回り・生育記録を残しましょう');
+
+  // 北海道のタマネギは春まき（越冬しない）
+  if(crop.type==='onion' && tempOffset<=-2 && month<=4 && days===null){
+    tasks.unshift('北海道では春まき（3-4月播種）が主流です');
+  }
 
   // 連作障害注意
   const rotationRisk = {
@@ -938,7 +961,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.5.5</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.5.6</div>
       </div>
     </div>
   );
