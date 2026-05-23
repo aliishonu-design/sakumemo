@@ -3198,6 +3198,45 @@ export default function App() {
 
   // ブラウザタイトル設定
   useEffect(()=>{ document.title = "サクメモ - 作物の記録アプリ"; },[]);
+
+  // Twemoji: 絵文字をTwitter統一デザインに（render後に適用）
+  useEffect(()=>{
+    const apply = () => {
+      if(window.twemoji) window.twemoji.parse(document.body,{
+        folder:'svg',ext:'.svg',
+        base:'https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/'
+      });
+    };
+    if(window.twemoji){ apply(); return; }
+    if(document.querySelector('script[src*="twemoji"]')) return;
+    const s=document.createElement('script');
+    s.src='https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/twemoji.min.js';
+    s.crossOrigin='anonymous'; s.onload=apply;
+    document.head.appendChild(s);
+    const st=document.createElement('style');
+    st.textContent='img.emoji{height:1em;width:1em;margin:0 .05em 0 .1em;vertical-align:-0.1em;display:inline;}';
+    document.head.appendChild(st);
+  });
+
+  // Twemoji: 絵文字をTwitter統一デザインに（render後に適用）
+  useEffect(()=>{
+    const apply = () => {
+      if(window.twemoji) window.twemoji.parse(document.body,{
+        folder:'svg', ext:'.svg',
+        base:'https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/'
+      });
+    };
+    if(window.twemoji){ apply(); return; }
+    if(document.querySelector('script[src*="twemoji"]')) return;
+    const s=document.createElement('script');
+    s.src='https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/twemoji.min.js';
+    s.crossOrigin='anonymous'; s.onload=apply;
+    document.head.appendChild(s);
+    // img.emoji のサイズ統一
+    const style=document.createElement('style');
+    style.textContent='img.emoji{height:1em;width:1em;margin:0 .05em 0 .1em;vertical-align:-0.1em;display:inline;}';
+    document.head.appendChild(style);
+  });
   const [dbLoad,   setDbLoad]  = useState(false);
   const [scr,      setScr]     = useState("home");
   const [fields,   setFieldsR] = useState([]);
