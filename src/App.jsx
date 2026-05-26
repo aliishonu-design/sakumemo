@@ -948,7 +948,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.13</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.14</div>
       </div>
     </div>
   );
@@ -1915,9 +1915,10 @@ setEditId(null);setWorks(new Set());setMemo("");setLogImg(null);setLogImg2(null)
     const gradeStr = hvGradeEntries.map(([q,v])=>q+':'+(v.kg?v.kg+'kg':'')+(v.cnt?v.cnt+'個':'')).join(' / ');
 
     // 各作業のエントリを生成する関数
-    const makeEntry = (w, isFirst, existingId) => {
+    const makeEntry = (w, isFirst, existingId, groupId) => {
       const e = {
         id: existingId || uid0(),
+        _groupId: groupId || null,
         fieldIdx, cropId, date, time, duration:dur, work:w,
         // メモ・写真は1件目のみ
         memo: isFirst ? memo : '',
@@ -1959,9 +1960,10 @@ setEditId(null);setWorks(new Set());setMemo("");setLogImg(null);setLogImg2(null)
       let allNewLogs = logs.filter(l=>!removeIds.has(l.id));
       // 編集: 施肥複数対応
       const editEntriesAll = [];
+      const editGroupId = editLogIds[0] || uid0();
       for(let wi=0;wi<workList.length;wi++){
         const w=workList[wi];
-        editEntriesAll.push(makeEntry(w, wi===0, editLogIds[wi]));
+        editEntriesAll.push(makeEntry(w, wi===0, editLogIds[wi], editGroupId));
         if(w==='fert' && fertEntries.length>0){
           fertEntries.forEach((fe,fi)=>{
             const ex=makeEntry('fert',false,editLogIds[workList.length+fi]);
@@ -2005,10 +2007,11 @@ setEditId(null);setWorks(new Set());setMemo("");setLogImg(null);setLogImg2(null)
       // 施肥は複数エントリ対応
       const baselist = [...workList];
       const allEntriesNew = [];
+      const newGroupId = uid0(); // 同一作業グループの識別ID
       for(let wi=0;wi<baselist.length;wi++){
         const w=baselist[wi];
         const isFirst=wi===0;
-        allEntriesNew.push(makeEntry(w, isFirst, null));
+        allEntriesNew.push(makeEntry(w, isFirst, null, newGroupId));
         // 施肥の追加エントリ
         if(w==='fert' && fertEntries.length>0){
           fertEntries.forEach(fe=>{
@@ -2321,7 +2324,7 @@ function TimelineScreen({ fields, crops, equips, logs, setLogs, showToast, onEdi
   const groupDayLogs = (logs) => {
     const map={}, order=[];
     logs.forEach(l=>{
-      const key = l.cropId+':'+l.fieldIdx+':'+l.date+':'+(l.time||'');
+      const key = l._groupId || (l.cropId+':'+l.fieldIdx+':'+l.date+':'+(l.time||''));
       if(!map[key]){ map[key]={key,logs:[]}; order.push(key); }
       map[key].logs.push(l);
     });
