@@ -948,7 +948,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.10</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.11</div>
       </div>
     </div>
   );
@@ -2486,8 +2486,8 @@ function TimelineScreen({ fields, crops, equips, logs, setLogs, showToast, onEdi
                   <button style={{...S.btn,...S.btnS,...S.btnSm}} onClick={()=>onEdit(card.logs)}>✏️ 編集</button>
                   <button style={{...S.btn,...{background:"#f59e0b",color:"#fff",padding:"4px 10px",fontSize:".7rem",borderRadius:8,width:"auto",display:"inline-block"}}} onClick={()=>onCopy&&onCopy(card.logs)}>📋 コピー</button>
                   {card.logs.length===1
-                    ? <button style={{...S.btn,...S.btnR,...S.btnSm}} onClick={()=>{if(!window.confirm('削除?'))return;dbDelete('logs',card.logs[0].id);setLogs(logs.filter(x=>x.id!==card.logs[0].id));showToast('削除しました');}}>削除</button>
-                    : <button style={{...S.btn,...S.btnR,...S.btnSm}} onClick={()=>{if(!window.confirm('削除?'))return;const ids=new Set(card.logs.map(l=>l.id));setLogs(logs.filter(x=>!ids.has(x.id)));showToast('削除しました');}}>削除</button>
+                    ? <button style={{...S.btn,...S.btnR,...S.btnSm}} onClick={()=>{if(!window.confirm('削除?'))return;dbDelete('logs',card.logs[0].id);setLogsR(prev=>prev.filter(x=>x.id!==card.logs[0].id));showToast('削除しました');}}>削除</button>
+                    : <button style={{...S.btn,...S.btnR,...S.btnSm}} onClick={()=>{if(!window.confirm('削除?'))return;const ids=new Set(card.logs.map(l=>l.id));setLogsR(prev=>prev.filter(x=>!ids.has(x.id)));showToast('削除しました');}}>削除</button>
                   }
                 </div>
               </div>
