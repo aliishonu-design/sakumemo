@@ -733,7 +733,14 @@ function TermTooltip({ children }) {
 }
 function Btn({ onClick, onTouchEnd, style, disabled, children }) { return <button onClick={onClick} onTouchEnd={onTouchEnd} disabled={disabled} style={{...S.btn,...style,opacity:disabled?.5:1,cursor:disabled?"not-allowed":"pointer"}}>{children}</button>; }
 function FG({ label, children }) { return <div style={S.fg}>{label&&<label style={S.lbl}>{label}</label>}{children}</div>; }
-function Inp({ value, onChange, type="text", placeholder="", style={}, ...props }) { return <input type={type} value={value||""} onChange={e=>onChange(e.target.value)} placeholder={placeholder} style={{...S.inp,...style}} {...props} />; }
+function Inp({ value, onChange, type="text", placeholder="", style={}, ...props }) {
+  const imode = type==="number"?"numeric":type==="tel"?"tel":"text";
+  return <input type={type} value={value||""} onChange={e=>onChange(e.target.value)}
+    placeholder={placeholder} style={{...S.inp,...style}}
+    inputMode={imode}
+    {...(type!=="number"?{lang:"ja"}:{})}
+    {...props} />;
+}
 function Sel({ value, onChange, options, style={} }) { return <select value={value||""} onChange={e=>{ if(!options.find(o=>o.value===e.target.value)?.disabled) onChange(e.target.value); }} style={{...S.inp,...style}}>{options.map(o=><option key={o.value} value={o.value} disabled={o.disabled} style={o.disabled?{color:"#aaa",fontWeight:700,background:"#f5f5f0"}:{}}>{o.label}</option>)}</select>; }
 function TA({ value, onChange, placeholder="" }) { return <textarea value={value||""} onChange={e=>onChange(e.target.value)} placeholder={placeholder} style={{...S.inp,minHeight:65,resize:"vertical",lineHeight:1.5}} />; }
 function R2({ children }) { return <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>{children}</div>; }
@@ -941,7 +948,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.6</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.7</div>
       </div>
     </div>
   );
@@ -1796,7 +1803,7 @@ setEditId(null);setWorks(new Set());setMemo("");setLogImg(null);setLogImg2(null)
       setDiscardCnt("");setAddCnt("");setEquipSel([]);setEquipAct("設置");setRepotSize("");setRepotVol("");
       return;
     }
-    setEditId(editLog.id);
+    setEditId(editLog._isCopy ? null : editLog.id);
     setFieldIdx(editLog.fieldIdx||0);
     setCropId(editLog.cropId||"");
     // 複数作業を復元
@@ -2274,7 +2281,7 @@ setEditId(null);setWorks(new Set());setMemo("");setLogImg(null);setLogImg2(null)
 }
 
 // TIMELINE
-function TimelineScreen({ fields, crops, equips, logs, setLogs, showToast, onEdit, onNew }) {
+function TimelineScreen({ fields, crops, equips, logs, setLogs, showToast, onEdit, onNew, onCopy }) {
   const [q,    setQ]    = useState("");
   const [fW,   setFW]   = useState("");
   const [selCropId, setSelCropId] = useState(""); // 品目フィルタ
@@ -2477,6 +2484,7 @@ function TimelineScreen({ fields, crops, equips, logs, setLogs, showToast, onEdi
                 {/* 操作ボタン */}
                 <div style={{display:'flex',gap:6,padding:'6px 11px',borderTop:'1px solid #f0ebe3'}}>
                   <button style={{...S.btn,...S.btnS,...S.btnSm}} onClick={()=>onEdit(card.logs)}>✏️ 編集</button>
+                  <button style={{...S.btn,...{background:"#f59e0b",color:"#fff",padding:"4px 10px",fontSize:".7rem",borderRadius:8,width:"auto",display:"inline-block"}}} onClick={()=>onCopy&&onCopy(card.logs)}>📋 コピー</button>
                   {card.logs.length===1
                     ? <button style={{...S.btn,...S.btnR,...S.btnSm}} onClick={()=>{if(!window.confirm('削除?'))return;dbDelete('logs',card.logs[0].id);setLogs(logs.filter(x=>x.id!==card.logs[0].id));showToast('削除しました');}}>削除</button>
                     : <button style={{...S.btn,...S.btnR,...S.btnSm}} onClick={()=>{if(!window.confirm('削除?'))return;const ids=new Set(card.logs.map(l=>l.id));setLogs(logs.filter(x=>!ids.has(x.id)));showToast('削除しました');}}>削除</button>
@@ -3201,24 +3209,7 @@ export default function App() {
 
 
   // Twemoji: 絵文字をTwitter統一デザインに（render後に適用）
-  useEffect(()=>{
-    const apply = () => {
-      if(window.twemoji) window.twemoji.parse(document.body,{
-        folder:'svg', ext:'.svg',
-        base:'https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/'
-      });
-    };
-    if(window.twemoji){ apply(); return; }
-    if(document.querySelector('script[src*="twemoji"]')){ apply(); return; }
-    const s=document.createElement('script');
-    s.src='https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/twemoji.min.js';
-    s.crossOrigin='anonymous'; s.onload=apply;
-    document.head.appendChild(s);
-    // img.emoji のサイズ統一
-    const style=document.createElement('style');
-    style.textContent='img.emoji{height:1em;width:1em;margin:0 .05em 0 .1em;vertical-align:-0.1em;display:inline;}';
-    document.head.appendChild(style);
-  });
+  
   const [dbLoad,   setDbLoad]  = useState(false);
   const [scr,      setScr]     = useState("home");
   const [fields,   setFieldsR] = useState([]);
@@ -3333,7 +3324,6 @@ export default function App() {
         <span style={S.logo}>サクメモ</span>
         <span style={{fontSize:".68rem",opacity:.58,flex:1,marginLeft:6,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{TITLES[scr]||""}</span>
         <div style={{display:"flex",alignItems:"center",gap:5,flexShrink:0}}>
-          <span style={{fontSize:".65rem",opacity:.7,maxWidth:80,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{user.email}</span>
           <button style={S.tbBtn} onClick={()=>setScr("settings")}>⚙️</button>
           <button style={S.tbBtn} onClick={signOut}>ログアウト</button>
         </div>
@@ -3363,7 +3353,18 @@ export default function App() {
         {scr==="home"    &&<HomeScreen    fields={fields} crops={crops} logs={logs} costs={costs} onEditCrop={c=>{setPendingEditCrop(c);setScr("fields");}}/>}
         {scr==="master"  &&<MasterScreen  fertMs={fertMs} setFertMs={setFertMs} pestMs={pestMs} setPestMs={setPestMs} equips={equips} setEquips={setEquips} costs={costs} setCosts={setCosts} showToast={showToast}/>}
         {scr==="fields"  &&<FieldsScreen  fields={fields} setFields={setFields} setFieldsR={setFieldsR} crops={crops} setCrops={setCrops} setCropsR={setCropsR} costs={costs} setCosts={setCosts} logs={logs} showToast={showToast} editCrop={pendingEditCrop}/>}
-        {scr==="log" && <TimelineScreen fields={fields} crops={crops} equips={equips} logs={logs} setLogs={setLogs} showToast={showToast} onEdit={ls=>{const _ls=Array.isArray(ls)?ls:[ls];const _sorted=[..._ls].sort((a,b)=>(a.imgSrc?-1:0)-(b.imgSrc?-1:0));setInitLogs(_ls);setInitLog(_sorted[0]);setLogModal(true);}} onNew={()=>{setInitLog(null);setLogModal(true);}}/> }
+        {scr==="log" && <TimelineScreen fields={fields} crops={crops} equips={equips} logs={logs} setLogs={setLogs} showToast={showToast}
+        onEdit={ls=>{const _ls=Array.isArray(ls)?ls:[ls];const _sorted=[..._ls].sort((a,b)=>(a.imgSrc?-1:0)-(b.imgSrc?-1:0));setInitLogs(_ls);setInitLog(_sorted[0]);setLogModal(true);}}
+        onNew={()=>{setInitLog(null);setLogModal(true);}}
+        onCopy={ls=>{
+          // IDをリセットして新規として複製（写真・日付はリセット）
+          const _ls=Array.isArray(ls)?ls:[ls];
+          const copied=_ls.map(l=>({...l,id:null,date:new Date().toISOString().slice(0,10),time:new Date().toTimeString().slice(0,5),imgSrc:null,imgSrc2:null,imgSrc3:null}));
+          const _sorted=[...copied].sort((a,b)=>(a.imgSrc?-1:0)-(b.imgSrc?-1:0));
+          setInitLogs(copied);setInitLog({...copied[0],_isCopy:true});setLogModal(true);
+          showToast('記録をコピーしました。内容を確認して保存してください');
+        }}
+      /> }
         
         {scr==="cost"    &&<CostScreen    fields={fields} fertMs={fertMs} pestMs={pestMs} equips={equips} costs={costs} setCosts={setCosts} logs={logs} showToast={showToast}/>}
 
