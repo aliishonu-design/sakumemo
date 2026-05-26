@@ -948,7 +948,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.8</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.9</div>
       </div>
     </div>
   );
@@ -3391,7 +3391,7 @@ export default function App() {
             </div>
           </div>
           <div style={{flex:1,overflowY:"auto",WebkitOverflowScrolling:"touch"}}>
-            <LogScreen key={(initLog?.id||"new")+String(logModal)} saveRef={logScreenSaveRef} uid={uid} fields={fields} crops={crops} setCrops={setCrops} fertMs={fertMs} pestMs={pestMs} equips={equips} costs={costs} setCosts={setCosts} logs={logs} setLogs={setLogs} dbSaveLog={dbSaveLog} setLogsR={setLogsR} showToast={showToast} initialWork={initWork} editLog={initLog} editLogs={initLogs} onDone={()=>{setLogModal(false);}}/>
+            <LogScreen key={(initLog?._isCopy?"copy-"+(initLog?.cropId||""):initLog?.id||"new")+String(logModal)} saveRef={logScreenSaveRef} uid={uid} fields={fields} crops={crops} setCrops={setCrops} fertMs={fertMs} pestMs={pestMs} equips={equips} costs={costs} setCosts={setCosts} logs={logs} setLogs={setLogs} dbSaveLog={dbSaveLog} setLogsR={setLogsR} showToast={showToast} initialWork={initWork} editLog={initLog} editLogs={initLogs} onDone={()=>{setLogModal(false);}}/>
           </div>
         </div>}
       {dbLoad && (
