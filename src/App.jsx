@@ -948,7 +948,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.15</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.16</div>
       </div>
     </div>
   );
@@ -2284,7 +2284,7 @@ setEditId(null);setWorks(new Set());setMemo("");setLogImg(null);setLogImg2(null)
 }
 
 // TIMELINE
-function TimelineScreen({ fields, crops, equips, logs, setLogs, showToast, onEdit, onNew, onCopy }) {
+function TimelineScreen({ fields, crops, equips, logs, setLogs, setLogsR, showToast, onEdit, onNew, onCopy }) {
   const [q,    setQ]    = useState("");
   const [fW,   setFW]   = useState("");
   const [selCropId, setSelCropId] = useState(""); // 品目フィルタ
@@ -3356,7 +3356,7 @@ export default function App() {
         {scr==="home"    &&<HomeScreen    fields={fields} crops={crops} logs={logs} costs={costs} onEditCrop={c=>{setPendingEditCrop(c);setScr("fields");}}/>}
         {scr==="master"  &&<MasterScreen  fertMs={fertMs} setFertMs={setFertMs} pestMs={pestMs} setPestMs={setPestMs} equips={equips} setEquips={setEquips} costs={costs} setCosts={setCosts} showToast={showToast}/>}
         {scr==="fields"  &&<FieldsScreen  fields={fields} setFields={setFields} setFieldsR={setFieldsR} crops={crops} setCrops={setCrops} setCropsR={setCropsR} costs={costs} setCosts={setCosts} logs={logs} showToast={showToast} editCrop={pendingEditCrop}/>}
-        {scr==="log" && <TimelineScreen fields={fields} crops={crops} equips={equips} logs={logs} setLogs={setLogs} showToast={showToast}
+        {scr==="log" && <TimelineScreen fields={fields} crops={crops} equips={equips} logs={logs} setLogs={setLogs} setLogsR={setLogsR} showToast={showToast}
         onEdit={ls=>{const _ls=Array.isArray(ls)?ls:[ls];const _sorted=[..._ls].sort((a,b)=>(a.imgSrc?-1:0)-(b.imgSrc?-1:0));setInitLogs(_ls);setInitLog(_sorted[0]);setLogModal(true);}}
         onNew={()=>{setInitLog(null);setLogModal(true);}}
         onCopy={ls=>{
