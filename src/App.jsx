@@ -948,7 +948,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.7</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.8</div>
       </div>
     </div>
   );
@@ -3359,7 +3359,7 @@ export default function App() {
         onCopy={ls=>{
           // IDをリセットして新規として複製（写真・日付はリセット）
           const _ls=Array.isArray(ls)?ls:[ls];
-          const copied=_ls.map(l=>({...l,id:null,date:new Date().toISOString().slice(0,10),time:new Date().toTimeString().slice(0,5),imgSrc:null,imgSrc2:null,imgSrc3:null}));
+          const copied=_ls.map(l=>({...l,id:null,imgSrc:null,imgSrc2:null,imgSrc3:null}));
           const _sorted=[...copied].sort((a,b)=>(a.imgSrc?-1:0)-(b.imgSrc?-1:0));
           setInitLogs(copied);setInitLog({...copied[0],_isCopy:true});setLogModal(true);
           showToast('記録をコピーしました。内容を確認して保存してください');
