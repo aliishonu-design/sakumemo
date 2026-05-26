@@ -734,7 +734,7 @@ function TermTooltip({ children }) {
 function Btn({ onClick, onTouchEnd, style, disabled, children }) { return <button onClick={onClick} onTouchEnd={onTouchEnd} disabled={disabled} style={{...S.btn,...style,opacity:disabled?.5:1,cursor:disabled?"not-allowed":"pointer"}}>{children}</button>; }
 function FG({ label, children }) { return <div style={S.fg}>{label&&<label style={S.lbl}>{label}</label>}{children}</div>; }
 function Inp({ value, onChange, type="text", placeholder="", style={}, ...props }) {
-  const imode = type==="number"?"numeric":type==="tel"?"tel":"text";
+  const imode = type==="number"?"decimal":type==="tel"?"tel":"text";
   return <input type={type} value={value||""} onChange={e=>onChange(e.target.value)}
     placeholder={placeholder} style={{...S.inp,...style}}
     inputMode={imode}
@@ -948,7 +948,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.16</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.17</div>
       </div>
     </div>
   );
