@@ -948,7 +948,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.11</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.13</div>
       </div>
     </div>
   );
@@ -2487,7 +2487,7 @@ function TimelineScreen({ fields, crops, equips, logs, setLogs, showToast, onEdi
                   <button style={{...S.btn,...{background:"#f59e0b",color:"#fff",padding:"4px 10px",fontSize:".7rem",borderRadius:8,width:"auto",display:"inline-block"}}} onClick={()=>onCopy&&onCopy(card.logs)}>📋 コピー</button>
                   {card.logs.length===1
                     ? <button style={{...S.btn,...S.btnR,...S.btnSm}} onClick={()=>{if(!window.confirm('削除?'))return;dbDelete('logs',card.logs[0].id);setLogsR(prev=>prev.filter(x=>x.id!==card.logs[0].id));showToast('削除しました');}}>削除</button>
-                    : <button style={{...S.btn,...S.btnR,...S.btnSm}} onClick={()=>{if(!window.confirm('削除?'))return;const ids=new Set(card.logs.map(l=>l.id));setLogsR(prev=>prev.filter(x=>!ids.has(x.id)));showToast('削除しました');}}>削除</button>
+                    : <button style={{...S.btn,...S.btnR,...S.btnSm}} onClick={()=>{if(!window.confirm('削除?'))return;const ids=new Set(card.logs.map(l=>l.id));ids.forEach(id=>dbDelete('logs',id));setLogsR(prev=>prev.filter(x=>!ids.has(x.id)));showToast('削除しました');}}>削除</button>
                   }
                 </div>
               </div>
@@ -3359,7 +3359,9 @@ export default function App() {
         onCopy={ls=>{
           // IDをリセットして新規として複製（写真・日付はリセット）
           const _ls=Array.isArray(ls)?ls:[ls];
-          const copied=_ls.map(l=>({...l,id:null,imgSrc:null,imgSrc2:null,imgSrc3:null}));
+          const now=new Date();
+          const copyTime=now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');
+          const copied=_ls.map(l=>({...l,id:null,time:copyTime,imgSrc:null,imgSrc2:null,imgSrc3:null}));
           // memoを持つlogを探してcoped[0]にマージ
           const memoLog=_ls.find(l=>l.memo);
           const base={...copied[0],_isCopy:true};
