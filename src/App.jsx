@@ -454,7 +454,7 @@ const WORK = {
   };
 const COST_CATS = [
   { value:"seed",  label:"🌱 種・苗" },
-  { value:"fert",  label:"🌿 肥料" },
+  { value:"fert",  label:"🌿 肥料・土壌改良材" },
   { value:"pest",  label:"🐛 農薬" },
   { value:"equip", label:"🏗️ 資材・設備" },
   { value:"labor", label:"👷 労務費" },
@@ -948,7 +948,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.17</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.18</div>
       </div>
     </div>
   );
@@ -1320,7 +1320,7 @@ function MasterScreen({ fertMs, setFertMs, pestMs, setPestMs, equips, setEquips,
           {mItem._type==="fert"&&<>
             <R2>
               <FG label="肥料の種類"><Sel value={mItem.type||"化成肥料"} onChange={v=>setMItem({...mItem,type:v})}
-                options={["化成肥料","有機肥料","液肥","緩効性肥料","石灰資材","その他"].map(v=>({value:v,label:v}))}/></FG>
+                options={["化成肥料","有機肥料","液肥","緩効性肥料","石灰・土壌改良材","培養土・堆肥","その他"].map(v=>({value:v,label:v}))}/></FG>
               <FG label="N-P-K"><Inp value={mItem.npk||""} onChange={v=>setMItem({...mItem,npk:v})} placeholder="8-8-8"/></FG>
             </R2>
           </>}
@@ -1337,7 +1337,7 @@ function MasterScreen({ fertMs, setFertMs, pestMs, setPestMs, equips, setEquips,
           {mItem._type==="equip"&&<>
             <R2>
               <FG label="カテゴリ"><Sel value={mItem.cat||"マルチ"} onChange={v=>setMItem({...mItem,cat:v})}
-                options={["マルチ","トンネル資材","防虫ネット","支柱・杭","ハウス設備","かん水設備","動力機械","培養土・腐葉土","石灰・土壌改良材","プランター・育苗ポット","農機具","その他"].map(v=>({value:v,label:v}))}/></FG>
+                options={["マルチ","トンネル資材","防虫ネット","支柱・杭","ハウス設備","かん水設備","動力機械","プランター・育苗ポット","農機具","その他"].map(v=>({value:v,label:v}))}/></FG>
               <FG label="状態"><Sel value={mItem.status||"使用中"} onChange={v=>setMItem({...mItem,status:v})}
                 options={["使用中","保管中","メンテナンス中","廃棄"].map(v=>({value:v,label:v}))}/></FG>
             </R2>
