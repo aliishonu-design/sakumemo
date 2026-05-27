@@ -948,7 +948,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.19</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.20</div>
       </div>
     </div>
   );
@@ -2298,6 +2298,8 @@ function TimelineScreen({ fields, crops, equips, logs, setLogs, setLogsR, showTo
     return toHira(t).includes(toHira(w)) || toKata(t).includes(toKata(w)) || t.includes(w);
   };
 
+  const WORK_LABELS = {sow:'播種',germinated:'発芽確認',transplant:'定植',water:'水やり',fert:'施肥',pest:'防除',pruning:'剪定',thinning:'摘果・摘花',sideshot:'脇芽かき',repot:'植え替え',event:'生育記録',harvest:'収穫',discard:'廃棄',equip:'資材作業',check:'見回り',other:'その他'};
+
   // フィルタ済みログ
   const filtered = logs.filter(l=>{
     if(selCropId && l.cropId !== selCropId) return false;
@@ -2344,7 +2346,6 @@ function TimelineScreen({ fields, crops, equips, logs, setLogs, setLogsR, showTo
   const selDb = selCrop ? CDB[selCrop.type]||{} : {};
   const selLabel = selCrop ? (selDb.e||'🌱')+' '+(selCrop.type==='custom'?selCrop.customName||'その他':selDb.n||selCrop.type)+(selCrop.variety?' ('+selCrop.variety+')':'') : '🌱 すべての品目';
 
-  const WORK_LABELS = {sow:'播種',germinated:'発芽確認',transplant:'定植',water:'水やり',fert:'施肥',pest:'防除',pruning:'剪定',thinning:'摘果・摘花',sideshot:'脇芽かき',repot:'植え替え',event:'生育記録',harvest:'収穫',discard:'廃棄',equip:'資材作業',check:'見回り',other:'その他'};
   
   return (
     <div style={S.scr} className="scr-inner">
