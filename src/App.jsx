@@ -948,7 +948,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.18</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.19</div>
       </div>
     </div>
   );
@@ -2133,7 +2133,7 @@ setEditId(null);setWorks(new Set());setMemo("");setLogImg(null);setLogImg2(null)
       <div style={S.card}>
         <R2>
           <FG label="圃場">{fields.length>0?<Sel value={fieldIdx} onChange={v=>{setFieldIdx(parseInt(v));setCropId("");}} options={fields.map((f,i)=>({value:i,label:f.name}))}/>:<div style={{color:TX3,fontSize:".82rem"}}>圃場を登録してください</div>}</FG>
-          <FG label="品目"><Sel value={cropId} onChange={setCropId} options={[{value:"",label:"（選択）"},...fieldCrops.map(c=>{const db=CDB[c.type]||{};return{value:c.id,label:(db.e||"🌱")+" "+(c.type==="custom"?c.customName||"カスタム":(db.n||c.type))+(c.variety?" ("+c.variety+")":"")};})]} /></FG>
+          <FG label="品目"><Sel value={cropId} onChange={setCropId} options={[{value:"",label:"（選択）"},...fieldCrops.filter(c=>!c.ended).map(c=>{const db=CDB[c.type]||{};return{value:c.id,label:(db.e||"🌱")+" "+(c.type==="custom"?c.customName||"カスタム":(db.n||c.type))+(c.variety?" ("+c.variety+")":"")};})]} /></FG>
         </R2>
         <FG label="作業内容">
           <div style={{fontSize:".7rem",color:"#888",marginBottom:4}}>💡 複数選択できます</div>
@@ -2693,34 +2693,12 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs }) {
       </div>
 
       {/* 品目リスト（折りたたみ） */}
-      {(()=>{
-        const [listOpen, setListOpen] = useState(false);
-        const selLabel = selCropId==="all" ? "📊 すべての品目" :
-          (()=>{const c=cropStats.find(x=>x.id===selCropId);return c?c.emoji+" "+c.name+(c.variety?" ("+c.variety+")":""):"";})();
-        return (
-          <div style={{marginBottom:10,position:"sticky",top:52,zIndex:190,background:"#f8f5ef",paddingTop:4,paddingBottom:4}}>
-            <button onClick={()=>setListOpen(o=>!o)}
-              style={{width:"100%",padding:"10px 14px",borderRadius:10,border:"1.5px solid "+G,background:G,color:"#fff",fontSize:".84rem",fontWeight:700,cursor:"pointer",fontFamily:"inherit",textAlign:"left",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <span>{selLabel}</span>
-              <span style={{fontSize:".8rem"}}>{listOpen?"▲":"▼"}</span>
-            </button>
-            {listOpen&&<div style={{marginTop:4,display:"flex",flexDirection:"column",gap:4,maxHeight:"260px",overflowY:"auto",WebkitOverflowScrolling:"touch",paddingRight:4}}>
-              <button onClick={()=>{setSelCropId("all");setListOpen(false);}}
-                style={{padding:"9px 14px",borderRadius:9,border:"1.5px solid "+(selCropId==="all"?G:BD),background:selCropId==="all"?G:"#fff",color:selCropId==="all"?"#fff":"#5a5040",fontSize:".82rem",fontWeight:700,cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>
-                📊 すべての品目
-              </button>
-              {cropStats.filter(c=>!c.ended).map(c=>(
-                <button key={c.id} onClick={()=>{setSelCropId(c.id);setListOpen(false);}}
-                  style={{padding:"9px 14px",borderRadius:9,border:"1.5px solid "+(selCropId===c.id?G:BD),background:selCropId===c.id?G:"#fff",color:selCropId===c.id?"#fff":"#5a5040",fontSize:".82rem",fontWeight:700,cursor:"pointer",fontFamily:"inherit",textAlign:"left",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                  <span>{c.emoji} {c.name}{c.variety?" ("+c.variety+")":""}</span>
-                  <span style={{fontSize:".7rem",fontWeight:400,opacity:.85}}>{c.kg>0?c.kg.toFixed(1)+"kg · ":""}{c.logCount}件</span>
-                </button>
-              ))}
-
-            </div>}
-          </div>
-        );
-      })()}
+      <div style={{marginBottom:10}}>
+        {selCropId!=="all"&&<button onClick={()=>setSelCropId("all")}
+          style={{width:"100%",padding:"10px 14px",borderRadius:10,border:"1.5px solid "+G,background:"#fff",color:G,fontSize:".84rem",fontWeight:700,cursor:"pointer",fontFamily:"inherit",textAlign:"left",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <span>{"← すべての品目に戻る"}</span>
+        </button>}
+      </div>
       </div>{/* /sticky period+cropbar */}
 
       {/* 選択品目の詳細 or 全体サマリー */}
