@@ -106,6 +106,7 @@ body{font-family:'Hiragino Sans','BIZ UDGothic',sans-serif;background:#f8f5ef;co
 .empty-icon{font-size:2.2rem;margin-bottom:10px;}
 .loading{text-align:center;padding:48px;color:#aaa;}
 </style>
+
 </head>
 <body>
 <div style="position:sticky;top:0;z-index:200;">
@@ -134,6 +135,7 @@ body{font-family:'Hiragino Sans','BIZ UDGothic',sans-serif;background:#f8f5ef;co
   <button class="lightbox-prev" onclick="lightboxPrev(event)">‹</button>
   <img id="lightbox-img" src="" alt="">
   <button class="lightbox-next" onclick="lightboxNext(event)">›</button>
+  <div id="lb-counter" style="position:absolute;bottom:16px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,.7);font-size:.75rem;pointer-events:none;"></div>
 </div>
 
 
@@ -387,6 +389,10 @@ function makeGroupCard(card,showCropTag){
     if(l.transplant_qty) detailParts.push('<div class="log-detail" style="font-size:.75rem;color:#5a5040">🪴 定植 '+l.transplant_qty+'株</div>');
     if(l.event_type) detailParts.push('<div class="log-detail" style="font-size:.75rem;color:#5a5040">📋 '+l.event_type+(l.event_note?' · '+l.event_note:'')+'</div>');
     if(l.discard_cnt||l.add_cnt) detailParts.push('<div class="log-detail" style="font-size:.75rem;color:#5a5040">📊 株数調整'+(l.add_cnt?' +'+l.add_cnt+'株':'')+(l.discard_cnt?' -'+l.discard_cnt+'株（廃棄）':'')+'</div>');
+    if(l.germination_cnt) detailParts.push('<div class="log-detail" style="font-size:.75rem;color:#065f46">🌱 発芽 '+l.germination_cnt+'粒'+(l.germination_date?' ('+l.germination_date+')':'')+'</div>');
+    if(l.transplant_qty) detailParts.push('<div class="log-detail" style="font-size:.75rem;color:#5a5040">🪴 定植 '+l.transplant_qty+'株</div>');
+    if(l.equip_act||l.equip_ids) detailParts.push('<div class="log-detail" style="font-size:.75rem;color:#5b21b6">'+(l.equip_act||'資材作業')+'</div>');
+    if(l.other_note) detailParts.push('<div class="log-detail" style="font-size:.75rem;color:#5a5040">✏️ '+l.other_note+'</div>');
   });
 
   // メモ（後方・1件目のみ）
@@ -590,10 +596,19 @@ function openLightbox(photos,idx){
   lbPhotos=photos;lbIdx=idx;
   document.getElementById('lightbox-img').src=photos[idx];
   document.getElementById('lightbox').classList.add('open');
+  updateLbCounter();
+}
+function updateLbCounter(){
+  var cnt=document.getElementById('lb-counter');
+  if(cnt) cnt.textContent=lbPhotos.length>1?(lbIdx+1)+' / '+lbPhotos.length:'';
+  var prev=document.querySelector('.lightbox-prev');
+  var next=document.querySelector('.lightbox-next');
+  if(prev) prev.style.display=lbPhotos.length>1?'':'none';
+  if(next) next.style.display=lbPhotos.length>1?'':'none';
 }
 function closeLightbox(){document.getElementById('lightbox').classList.remove('open');}
-function lightboxPrev(e){e.stopPropagation();lbIdx=(lbIdx-1+lbPhotos.length)%lbPhotos.length;document.getElementById('lightbox-img').src=lbPhotos[lbIdx];}
-function lightboxNext(e){e.stopPropagation();lbIdx=(lbIdx+1)%lbPhotos.length;document.getElementById('lightbox-img').src=lbPhotos[lbIdx];}
+function lightboxPrev(e){e.stopPropagation();lbIdx=(lbIdx-1+lbPhotos.length)%lbPhotos.length;document.getElementById('lightbox-img').src=lbPhotos[lbIdx];updateLbCounter();}
+function lightboxNext(e){e.stopPropagation();lbIdx=(lbIdx+1)%lbPhotos.length;document.getElementById('lightbox-img').src=lbPhotos[lbIdx];updateLbCounter();}
 // 右クリック・長押し無効
 document.addEventListener('contextmenu',function(e){if(e.target.tagName==='IMG')e.preventDefault();});
 
@@ -691,5 +706,12 @@ async function main(){
 }
 main();
 </script>
+<div style="text-align:center;padding:16px 12px 24px;font-size:.68rem;color:#999;line-height:1.8;border-top:1px solid #f0ebe3;margin-top:8px;">
+  掲載されている記録は各ユーザーが公開設定したものです。<br>
+  写真・記録の無断転載・商用利用を禁止します。<br>
+  <a href="mailto:sakumemo.app@gmail.com" style="color:#aaa;">sakumemo.app@gmail.com</a><br>
+  © 2026 サクメモ
+</div>
+
 </body>
 </html>
