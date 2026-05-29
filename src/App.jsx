@@ -948,7 +948,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.20</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.21</div>
       </div>
     </div>
   );
@@ -2447,13 +2447,17 @@ function TimelineScreen({ fields, crops, equips, logs, setLogs, setLogsR, showTo
                   {/* 詳細（farm.htmlと同じ順序） */}
                   {card.logs.map((l,li)=>(
                     <div key={li}>
-                      {l.fertName&&<div style={{fontSize:'.75rem',color:'#065f46'}}>🌿 {l.fertName}{l.fertAmt?` ${l.fertAmt}${l.fertUnit||''}`:''}</div>}
-                      {l.pestName&&<div style={{fontSize:'.75rem',color:'#92400e'}}>🐛 {l.pestName}{l.pestDil?` ${l.pestDil}倍`:''}</div>}
+                      {l.fertName&&<div style={{fontSize:'.75rem',color:'#065f46'}}>🌿 {l.fertName}{l.fertAmt?` ${l.fertAmt}${l.fertUnit||''}`:''}{l.fertMethod?` (${l.fertMethod})`:''}</div>}
+                      {l.pestName&&<div style={{fontSize:'.75rem',color:'#92400e'}}>🐛 {l.pestName}{l.pestDil?` ${l.pestDil}倍`:''}{l.pestSprayAmt?` 散布${l.pestSprayAmt}${l.pestUnit||''}`:''}{l.pestTarget?` 対象:${l.pestTarget}`:''}</div>}
                       {(l.hvKg||l.hvCnt)&&<div style={{fontSize:'.75rem',color:'#059669'}}>🧺 {l.hvGradeStr||`${l.hvKg||''}${l.hvKg?'kg':''}${l.hvCnt?` ${l.hvCnt}個`:''}`}</div>}
                       {l.sowQty&&<div style={{fontSize:'.75rem',color:'#5a5040'}}>🌰 播種 {l.sowQty}粒</div>}
+                      {l.germinationCnt&&<div style={{fontSize:'.75rem',color:'#065f46'}}>🌱 発芽 {l.germinationCnt}粒{l.germinationDate?` (${l.germinationDate})`:''}</div>}
                       {l.transplantQty&&<div style={{fontSize:'.75rem',color:'#5a5040'}}>🪴 定植 {l.transplantQty}株</div>}
                       {l.eventType&&<div style={{fontSize:'.75rem',color:'#5a5040'}}>📋 {l.eventType}{l.eventNote?` · ${l.eventNote}`:''}</div>}
                       {(l.discardCnt||l.addCnt)&&<div style={{fontSize:'.75rem',color:'#5a5040'}}>📊 株数調整{l.addCnt?` +${l.addCnt}株`:''}{ l.discardCnt?` -${l.discardCnt}株（廃棄）`:''}</div>}
+                      {(l.equipAct||l.equipIds?.length>0)&&<div style={{fontSize:'.75rem',color:'#5b21b6'}}>🏗️ {l.equipAct||''}{l.equipIds?.length>0?` (${l.equipIds.length}件)`:''}</div>}
+                      {l.otherNote&&<div style={{fontSize:'.75rem',color:'#5a5040'}}>✏️ {l.otherNote}</div>}
+                      {l.duration&&<div style={{fontSize:'.72rem',color:'#aaa'}}>⏱ {l.duration}分</div>}
                     </div>
                   ))}
                   {/* メモ（後方） */}
