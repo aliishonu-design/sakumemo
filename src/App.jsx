@@ -948,7 +948,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.24</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.26</div>
       </div>
     </div>
   );
@@ -2495,7 +2495,7 @@ function TimelineScreen({ fields, crops, equips, logs, setLogs, setLogsR, showTo
                       {l.transplantQty&&<div style={{fontSize:'.75rem',color:'#5a5040'}}>🪴 定植 {l.transplantQty}株</div>}
                       {l.eventType&&<div style={{fontSize:'.75rem',color:'#5a5040'}}>📋 {l.eventType}{l.eventNote?` · ${l.eventNote}`:''}</div>}
                       {(l.discardCnt||l.addCnt)&&<div style={{fontSize:'.75rem',color:'#5a5040'}}>📊 株数調整{l.addCnt?` +${l.addCnt}株`:''}{ l.discardCnt?` -${l.discardCnt}株（廃棄）`:''}</div>}
-                      {(l.equipAct||l.equipIds?.length>0)&&<div style={{fontSize:'.75rem',color:'#5b21b6'}}>🏗️ {l.equipAct||''}</div>}
+                      {(l.equipAct||(l.equipIds||[]).length>0)&&<div style={{fontSize:'.75rem',color:'#5b21b6'}}>{[(l.equipIds||[]).map(i=>equips[i]?.name).filter(Boolean).join('・'),l.equipAct].filter(Boolean).join(' ')}</div>}
                       {l.otherNote&&<div style={{fontSize:'.75rem',color:'#5a5040'}}>✏️ {l.otherNote}</div>}
                       {l.duration&&<div style={{fontSize:'.72rem',color:'#aaa'}}>⏱ {l.duration}分</div>}
                     </div>
@@ -2598,7 +2598,7 @@ function CostScreen({ fields, fertMs, pestMs, equips, costs, setCosts, logs, sho
 }
 
 // CHAT
-function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs }) {
+function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs, equips=[] }) {
   const [selCropId, setSelCropId] = useState("all");
   const [period,    setPeriod]    = useState("year");  // "year" or "month"
   const [selYear,   setSelYear]   = useState(new Date().getFullYear());
@@ -2615,12 +2615,7 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs }) {
   const inPeriod = date => {
     if(!date) return false;
     if(period==="crop") {
-      // 選択中の品目の定植日〜終了日（または今日）
-      const crop = crops.find(c=>c.id===selCropId);
-      if(!crop) return true;
-      const start = crop.plantDate||crop.sowDate||'';
-      const end   = crop.endDate||new Date().toISOString().slice(0,10);
-      return (!start||date>=start) && date<=end;
+      return true; // 栽培期間モードは日付制限なし・全期間表示
     }
     if(period==="year") return date.startsWith(String(selYear));
     return date.startsWith(String(selYear)+"-"+String(selMonth).padStart(2,"0"));
@@ -3400,7 +3395,7 @@ export default function App() {
         
         {scr==="cost"    &&<CostScreen    fields={fields} fertMs={fertMs} pestMs={pestMs} equips={equips} costs={costs} setCosts={setCosts} logs={logs} showToast={showToast}/>}
 
-        {scr==="report"  &&<ReportScreen  fields={fields} crops={crops} logs={logs} costs={costs} fertMs={fertMs} pestMs={pestMs}/>}
+        {scr==="report"  &&<ReportScreen  fields={fields} crops={crops} logs={logs} costs={costs} fertMs={fertMs} pestMs={pestMs} equips={equips}/>}
         {scr==="settings"&&<SettingsScreen showToast={showToast} user={user} uid={uid} signOut={signOut} fields={fields} crops={crops} logs={logs} fertMs={fertMs} pestMs={pestMs} equips={equips} costs={costs} setScr={setScr}/>}
       </div>
       <nav id="bot-nav" style={S.bnav}>
