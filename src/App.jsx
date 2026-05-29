@@ -948,7 +948,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.27</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.28</div>
       </div>
     </div>
   );
@@ -2516,16 +2516,7 @@ function TimelineScreen({ fields, crops, equips, logs, setLogs, setLogsR, showTo
                         height:photos.length===1?'200px':photos.length===2?'150px':'110px',
                         objectFit:'cover',display:'block',cursor:'pointer'
                       }}
-                        onClick={()=>{
-                          const lb=document.createElement('div');
-                          lb.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.92);z-index:99999;display:flex;align-items:center;justify-content:center;cursor:pointer';
-                          lb.onclick=()=>lb.remove();
-                          const img=document.createElement('img');
-                          img.src=src;
-                          img.style.cssText='max-width:92vw;max-height:90vh;object-fit:contain;border-radius:8px';
-                          lb.appendChild(img);
-                          document.body.appendChild(lb);
-                        }}/>
+                        onClick={()=>openLb(photos,i)}/>
                     ))}
                   </div>
                 )}
@@ -2992,7 +2983,7 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs, equips=[] })
                   <div style={{display:'grid',gridTemplateColumns:photos.length===1?'1fr':photos.length===2?'1fr 1fr':'1fr 1fr 1fr',gap:2}}>
                     {photos.map((src,i)=>(
                       <img key={i} src={src} alt="" style={{width:'100%',height:photos.length===1?'180px':'110px',objectFit:'cover',display:'block',cursor:'pointer'}}
-                        onClick={()=>{const lb=document.createElement('div');lb.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.92);z-index:99999;display:flex;align-items:center;justify-content:center;cursor:pointer';lb.onclick=()=>lb.remove();const img=document.createElement('img');img.src=src;img.style.cssText='max-width:92vw;max-height:90vh;object-fit:contain;border-radius:8px';lb.appendChild(img);document.body.appendChild(lb);}}/>
+                        onClick={()=>openLb(photos,i)}/>
                     ))}
                   </div>
                 )}
