@@ -948,7 +948,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.21</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.23</div>
       </div>
     </div>
   );
@@ -1753,6 +1753,7 @@ function LogScreen({ fields, crops, setCrops, fertMs, pestMs, equips, costs, set
   // 施肥複数登録用
   const emptyFert = () => ({name:"",amt:"",unit:"kg",meth:"追肥",cost:""});
   const emptyPest = () => ({name:"",dil:"",sprayAmt:"",sprayUnit:"L",tgt:"",cost:""});
+  const emptyEquip = () => ({idx:"",act:"設置"});
   const [fertEntries, setFertEntries] = useState([]);
   const [pestIdx,  setPestIdx]  = useState("");
   const [pestEntries, setPestEntries] = useState([]); // 農薬複数登録
@@ -1780,6 +1781,7 @@ function LogScreen({ fields, crops, setCrops, fertMs, pestMs, equips, costs, set
   const [discardCnt,setDiscardCnt]=useState("");
   const [addCnt,   setAddCnt]   = useState("");
   const [equipSel, setEquipSel] = useState([]);
+  const [equipEntries, setEquipEntries] = useState([]); // 資材複数登録
   const [equipAct, setEquipAct] = useState("設置");
   const [repotSize, setRepotSize] = useState("");
   const [repotVol,  setRepotVol]  = useState("");
@@ -1800,7 +1802,7 @@ setEditId(null);setWorks(new Set());setMemo("");setLogImg(null);setLogImg2(null)
       setPestIdx("");setPestName("");setPestDil("");setPestAmt("");setPestUnit("L");setPestTgt("");setPestCost("");
       setEventType("");setEventNote("");setOtherNote("");setOtherNote("");
       setHvKg("");setHvCnt("");setHvQ("秀品");setHvPrice("");
-      setDiscardCnt("");setAddCnt("");setEquipSel([]);setEquipAct("設置");setRepotSize("");setRepotVol("");
+      setDiscardCnt("");setAddCnt("");setEquipSel([]);setEquipAct("設置");setEquipEntries([]);setRepotSize("");setRepotVol("");
       return;
     }
     setEditId(editLog._isCopy ? null : editLog.id);
@@ -2023,8 +2025,16 @@ setEditId(null);setWorks(new Set());setMemo("");setLogImg(null);setLogImg2(null)
         // 農薬の追加エントリ
         if(w==='pest' && pestEntries.length>0){
           pestEntries.forEach(pe=>{
-            const ex=makeEntry('pest',false,null);
+            const ex=makeEntry('pest',false,null,newGroupId);
             ex.pestName=pe.name;ex.pestDil=pe.dil;ex.pestSprayAmt=pe.sprayAmt;ex.pestUnit=pe.sprayUnit;ex.pestTarget=pe.tgt;ex.pestCost=pe.cost;
+            allEntriesNew.push(ex);
+          });
+        }
+        // 資材の追加エントリ
+        if(w==='equip' && equipEntries.length>0){
+          equipEntries.forEach(ee=>{
+            const ex=makeEntry('equip',false,null,newGroupId);
+            ex.equipIds=ee.idx!==""?[ee.idx]:[];ex.equipAct=ee.act;
             allEntriesNew.push(ex);
           });
         }
@@ -2126,7 +2136,7 @@ setEditId(null);setWorks(new Set());setMemo("");setLogImg(null);setLogImg2(null)
       <div style={S.sec}>
         <span>作業内容を選択してください</span>
         {(works.size>0||editId) && (
-          <button onClick={()=>{setEditId(null);setWork("");setMemo("");setLogImg(null);setLogImg2(null);setLogImg3(null);setHvGrades({秀品:{kg:"",cnt:"",price:""},優品:{kg:"",cnt:"",price:""},良品:{kg:"",cnt:"",price:""},規格外:{kg:"",cnt:"",price:""}});setDate(todayStr());setTime(nowTime());setDur("");setSowQty("");setGermCnt("");setGermDate(todayStr());setTranspQty("");setFertIdx("");setFertName("");setFertAmt("");setFertUnit("kg");setFertMeth("追肥");setFertCost("");setPestIdx("");setPestName("");setPestDil("");setPestAmt("");setPestUnit("L");setPestTgt("");setPestCost("");setDiscardCnt("");setAddCnt("");setEventType("");setEventNote("");setOtherNote("");setHvKg("");setHvCnt("");setHvQ("秀品");setHvPrice("");setRepotSize("");setRepotVol("");setEquipSel([]);setEquipAct("設置");setWork("");setCropId("");}}
+          <button onClick={()=>{setEditId(null);setWork("");setMemo("");setLogImg(null);setLogImg2(null);setLogImg3(null);setHvGrades({秀品:{kg:"",cnt:"",price:""},優品:{kg:"",cnt:"",price:""},良品:{kg:"",cnt:"",price:""},規格外:{kg:"",cnt:"",price:""}});setDate(todayStr());setTime(nowTime());setDur("");setSowQty("");setGermCnt("");setGermDate(todayStr());setTranspQty("");setFertIdx("");setFertName("");setFertAmt("");setFertUnit("kg");setFertMeth("追肥");setFertCost("");setPestIdx("");setPestName("");setPestDil("");setPestAmt("");setPestUnit("L");setPestTgt("");setPestCost("");setDiscardCnt("");setAddCnt("");setEventType("");setEventNote("");setOtherNote("");setHvKg("");setHvCnt("");setHvQ("秀品");setHvPrice("");setRepotSize("");setRepotVol("");setEquipSel([]);setEquipAct("設置");setEquipEntries([]);setWork("");setCropId("");}}
             style={{...S.btn,...S.btnS,...S.btnSm}}>✕ リセット</button>
         )}
       </div>
@@ -2234,7 +2244,38 @@ setEditId(null);setWorks(new Set());setMemo("");setLogImg(null);setLogImg2(null)
           </R2>
           <div style={{fontSize:".72rem",color:TX3}}>メモ欄に植え替え理由など記録してください</div>
         </div>}
-        {works.has("equip")&&<div style={panelStyle("#f5f0ff","#c4b5fd")}><div style={ctitleStyle}>🏗️ 資材・設備作業</div><FG label="設備を選ぶ（複数可）"><select multiple size={4} value={equipSel.map(String)} onChange={e=>setEquipSel(Array.from(e.target.selectedOptions).map(o=>parseInt(o.value)))} style={{...S.inp,height:100}}>{equips.map((e,i)=><option key={i} value={i}>{e.name}（{e.cat}）</option>)}</select></FG><FG label="作業種別"><Sel value={equipAct} onChange={setEquipAct} options={["設置","撤去","着用","脱去","点検","修理","その他"].map(v=>({value:v,label:v}))}/></FG></div>}
+        {works.has("equip")&&<div style={panelStyle("#f5f0ff","#c4b5fd")}>
+          <div style={{...ctitleStyle,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+            <span>🏗️ 資材・設備作業</span>
+            <button onClick={()=>setEquipEntries(prev=>[...prev,emptyEquip()])}
+              style={{...S.btn,...S.btnSm,background:"#7c3aed",color:"#fff",fontSize:".72rem"}}>＋ 追加</button>
+          </div>
+          <div style={{background:"#f9f7ff",border:"1px solid #c4b5fd",borderRadius:8,padding:"8px 10px",marginBottom:6}}>
+            <div style={{fontSize:".72rem",fontWeight:700,color:"#5b21b6",marginBottom:5}}>資材 1</div>
+            <FG label="設備・資材を選ぶ">
+              <Sel value={equipSel[0]!==undefined?String(equipSel[0]):""} onChange={v=>setEquipSel(v!==""?[parseInt(v)]:[])}
+                options={[{value:"",label:"（選択）"},...equips.map((e,i)=>({value:i,label:e.name+"（"+e.cat+"）"}))]}/>
+            </FG>
+            <FG label="作業種別"><Sel value={equipAct} onChange={setEquipAct} options={["設置","撤去","着用","脱去","点検","修理","その他"].map(v=>({value:v,label:v}))}/></FG>
+          </div>
+          {equipEntries.map((ee,ei)=>(
+            <div key={ei} style={{background:"#f9f7ff",border:"1px solid #c4b5fd",borderRadius:8,padding:"8px 10px",marginTop:6}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5}}>
+                <span style={{fontSize:".72rem",fontWeight:700,color:"#5b21b6"}}>資材 {ei+2}</span>
+                <button onClick={()=>setEquipEntries(prev=>prev.filter((_,i)=>i!==ei))}
+                  style={{...S.btn,...S.btnR,...S.btnSm,fontSize:".65rem",padding:"2px 8px"}}>✕</button>
+              </div>
+              <FG label="設備・資材を選ぶ">
+                <Sel value={ee.idx!==""?String(ee.idx):""} onChange={v=>setEquipEntries(p=>p.map((x,i)=>i===ei?{...x,idx:v!==""?parseInt(v):""}:x))}
+                  options={[{value:"",label:"（選択）"},...equips.map((e,i)=>({value:i,label:e.name+"（"+e.cat+"）"}))]}/>
+              </FG>
+              <FG label="作業種別">
+                <Sel value={ee.act} onChange={v=>setEquipEntries(p=>p.map((x,i)=>i===ei?{...x,act:v}:x))}
+                  options={["設置","撤去","着用","脱去","点検","修理","その他"].map(v=>({value:v,label:v}))}/>
+              </FG>
+            </div>
+          ))}
+        </div>}
         <FG label="📷 生育状況の写真（撮影日時を自動取得）">
           <div style={{border:"2px dashed "+BD,borderRadius:10,padding:14,textAlign:"center",cursor:"pointer",background:"#fafafa"}} onClick={()=>document.getElementById("logImgInp").click()}>
             <input id="logImgInp" type="file" accept="image/*" multiple style={{display:"none"}} onChange={e=>{if(Array.from(e.target.files).length>3){showToast("写真は3枚まで選択できます");e.target.value="";return;}handleLogImg(e);}}/>
@@ -2347,8 +2388,10 @@ function TimelineScreen({ fields, crops, equips, logs, setLogs, setLogsR, showTo
   const selLabel = selCrop ? (selDb.e||'🌱')+' '+(selCrop.type==='custom'?selCrop.customName||'その他':selDb.n||selCrop.type)+(selCrop.variety?' ('+selCrop.variety+')':'') : '🌱 すべての品目';
 
   
+  const scrollRef = useRef(null);
+
   return (
-    <div style={S.scr} className="scr-inner">
+    <div ref={scrollRef} style={S.scr} className="scr-inner">
       {/* ヘッダー */}
       <div style={{...S.sec,flexWrap:'wrap',gap:6}}>
         <span>📋 作業記録</span>
@@ -2394,10 +2437,7 @@ function TimelineScreen({ fields, crops, equips, logs, setLogs, setLogsR, showTo
           style={{flex:1,minWidth:100,padding:'6px 10px',border:'1px solid #e0d9ce',borderRadius:8,fontSize:'16px',fontFamily:'inherit',outline:'none'}}/>
       </div>
 
-      {/* 件数 */}
-      <div style={{fontSize:'.72rem',color:TX3,marginBottom:6}}>
-        {filtered.length}件の記録
-      </div>
+
 
       {/* 日付グループ別表示 */}
       {!grouped.length&&<div style={{color:TX3,fontSize:'.82rem',padding:16,textAlign:'center'}}>記録がありません</div>}
@@ -2455,7 +2495,7 @@ function TimelineScreen({ fields, crops, equips, logs, setLogs, setLogsR, showTo
                       {l.transplantQty&&<div style={{fontSize:'.75rem',color:'#5a5040'}}>🪴 定植 {l.transplantQty}株</div>}
                       {l.eventType&&<div style={{fontSize:'.75rem',color:'#5a5040'}}>📋 {l.eventType}{l.eventNote?` · ${l.eventNote}`:''}</div>}
                       {(l.discardCnt||l.addCnt)&&<div style={{fontSize:'.75rem',color:'#5a5040'}}>📊 株数調整{l.addCnt?` +${l.addCnt}株`:''}{ l.discardCnt?` -${l.discardCnt}株（廃棄）`:''}</div>}
-                      {(l.equipAct||l.equipIds?.length>0)&&<div style={{fontSize:'.75rem',color:'#5b21b6'}}>🏗️ {l.equipAct||''}{l.equipIds?.length>0?` (${l.equipIds.length}件)`:''}</div>}
+                      {(l.equipAct||l.equipIds?.length>0)&&<div style={{fontSize:'.75rem',color:'#5b21b6'}}>🏗️ {l.equipAct||''}</div>}
                       {l.otherNote&&<div style={{fontSize:'.75rem',color:'#5a5040'}}>✏️ {l.otherNote}</div>}
                       {l.duration&&<div style={{fontSize:'.72rem',color:'#aaa'}}>⏱ {l.duration}分</div>}
                     </div>
@@ -2507,6 +2547,9 @@ function TimelineScreen({ fields, crops, equips, logs, setLogs, setLogsR, showTo
 
       {/* 外クリックでドロップダウン閉じる */}
       {openDd&&<div style={{position:'fixed',top:0,left:0,right:0,bottom:0,zIndex:9998}} onClick={()=>setOpenDd(false)}/>}
+      {/* トップに戻るボタン */}
+      <button onClick={()=>document.getElementById('main-scroll').scrollTo({top:0,behavior:'smooth'})}
+        style={{position:'fixed',bottom:72,right:16,width:40,height:40,borderRadius:'50%',background:G,color:'#fff',border:'none',fontSize:'1.1rem',cursor:'pointer',boxShadow:'0 2px 8px rgba(0,0,0,.25)',zIndex:500,display:'flex',alignItems:'center',justifyContent:'center'}}>↑</button>
     </div>
   );
 }
