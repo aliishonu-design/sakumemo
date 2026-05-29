@@ -948,7 +948,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.23</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.24</div>
       </div>
     </div>
   );
@@ -2730,10 +2730,10 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs }) {
             </button>
           ))}
         </div>
-        <select value={selYear} onChange={e=>setSelYear(Number(e.target.value))}
+        {period!=="crop"&&<select value={selYear} onChange={e=>setSelYear(Number(e.target.value))}
           style={{padding:"5px 8px",border:"1px solid #e0d9ce",borderRadius:8,fontSize:"15px",fontFamily:"inherit",background:"#fff",flexShrink:0}}>
           {(years.length?years:[new Date().getFullYear()]).map(y=><option key={y} value={y}>{y}年</option>)}
-        </select>
+        </select>}
         {period==="month"&&<select value={selMonth} onChange={e=>setSelMonth(Number(e.target.value))}
           style={{padding:"5px 8px",border:"1px solid #e0d9ce",borderRadius:8,fontSize:"15px",fontFamily:"inherit",background:"#fff",flexShrink:0}}>
           {(months.length?months:[1,2,3,4,5,6,7,8,9,10,11,12]).map(m=><option key={m} value={m}>{m}月</option>)}
