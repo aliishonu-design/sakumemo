@@ -620,6 +620,43 @@ async function fetchWeather(addr) {
 // ============================================================
 // STYLES
 // ============================================================
+// ライトボックス（スライド対応）
+(function(){
+  var _p=[], _i=0;
+  function upd(){
+    var img=document.getElementById('_glb_img');
+    var cnt=document.getElementById('_glb_cnt');
+    if(img) img.src=_p[_i];
+    if(cnt) cnt.textContent=_p.length>1?(_i+1)+' / '+_p.length:'';
+    ['_glb_prev','_glb_next'].forEach(function(id){
+      var b=document.getElementById(id);
+      if(b) b.style.display=_p.length>1?'flex':'none';
+    });
+  }
+  window.openLb=function(photos,idx){
+    _p=photos; _i=idx;
+    var el=document.getElementById('_glb');
+    if(!el){
+      el=document.createElement('div');
+      el.id='_glb';
+      el.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.92);z-index:99999;display:flex;align-items:center;justify-content:center;';
+      // ボタン等をDOMで構築（文字列結合を避ける）
+      function mkBtn(txt, css, fn){var b=document.createElement('button');b.textContent=txt;b.style.cssText=css;b.onclick=fn;return b;}
+      el.appendChild(mkBtn('‹','position:absolute;left:10px;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.15);border:none;color:#fff;width:44px;height:44px;border-radius:50%;font-size:1.5rem;cursor:pointer;',function(e){e.stopPropagation();window._glbPrev();}));
+      var img=document.createElement('img');img.id='_glb_img';img.style.cssText='max-width:92vw;max-height:86vh;object-fit:contain;border-radius:8px;user-select:none;';el.appendChild(img);
+      el.appendChild(mkBtn('›','position:absolute;right:10px;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.15);border:none;color:#fff;width:44px;height:44px;border-radius:50%;font-size:1.5rem;cursor:pointer;',function(e){e.stopPropagation();window._glbNext();}));
+      el.appendChild(mkBtn('✕','position:absolute;top:14px;right:14px;background:rgba(255,255,255,.2);border:none;color:#fff;width:36px;height:36px;border-radius:50%;font-size:1.1rem;cursor:pointer;',function(){el.remove();}));
+      var cnt=document.createElement('div');cnt.id='_glb_cnt';cnt.style.cssText='position:absolute;bottom:16px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,.7);font-size:.75rem;pointer-events:none;';el.appendChild(cnt);
+      el.addEventListener('click',function(e){if(e.target===el)el.remove();});
+      document.body.appendChild(el);
+    }
+    el.style.display='flex';
+    upd();
+  };
+  window._glbPrev=function(){_i=(_i-1+_p.length)%_p.length;upd();};
+  window._glbNext=function(){_i=(_i+1)%_p.length;upd();};
+})();
+
 const G="#2d6a3f", G2="#419857", G3="#d4edda", GD="#1a4028";
 const ALERT="#c0392b", WARN="#e67e22", INFO="#2471a3";
 const TX3="#a09070", BD="#e0d9ce";
@@ -948,7 +985,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.28</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.29</div>
       </div>
     </div>
   );
@@ -1024,6 +1061,14 @@ function HomeScreen({ fields, crops, logs, costs, onEditCrop }) {
         </div>
       )}
 
+      {/* みんなのサクメモ */}
+      <a href="/community.html" style={{display:"flex",alignItems:"center",justifyContent:"space-between",background:"linear-gradient(135deg,#2d6a3f,#419857)",borderRadius:14,padding:"13px 16px",marginBottom:9,textDecoration:"none"}}>
+        <div>
+          <div style={{color:"#fff",fontWeight:700,fontSize:".9rem",fontFamily:"'Shippori Mincho B1',serif"}}>🌾 みんなのサクメモ</div>
+          <div style={{color:"rgba(255,255,255,.8)",fontSize:".74rem",marginTop:3}}>公開中の農場記録を見る</div>
+        </div>
+        <span style={{color:"#fff",fontSize:"1.3rem"}}>›</span>
+      </a>
       {/* 栽培中の作物 */}
       <div style={S.sec}><span>🌾 栽培中 ({crops.filter(c=>!c.ended).length}品目)</span></div>
       {!crops.filter(c=>!c.ended).length && <div style={{color:TX3,fontSize:".82rem",padding:8,textAlign:"center"}}>品目がまだ登録されていません</div>}
@@ -1120,14 +1165,7 @@ function HomeScreen({ fields, crops, logs, costs, onEditCrop }) {
         );
       })}
 
-      {/* みんなのサクメモ */}
-      <a href="/community.html" style={{display:"flex",alignItems:"center",justifyContent:"space-between",background:"linear-gradient(135deg,#2d6a3f,#419857)",borderRadius:14,padding:"13px 16px",marginBottom:9,textDecoration:"none"}}>
-        <div>
-          <div style={{color:"#fff",fontWeight:700,fontSize:".9rem",fontFamily:"'Shippori Mincho B1',serif"}}>🌾 みんなのサクメモ</div>
-          <div style={{color:"rgba(255,255,255,.8)",fontSize:".74rem",marginTop:3}}>公開中の農場記録を見る</div>
-        </div>
-        <span style={{color:"#fff",fontSize:"1.3rem"}}>›</span>
-      </a>
+
 
 
     </div>
@@ -2348,7 +2386,7 @@ function TimelineScreen({ fields, crops, equips, logs, setLogs, setLogsR, showTo
     if(q){
       const cr=crops.find(c=>c.id===l.cropId)||{};
       const db=CDB[cr.type]||{};
-      const txt=[db.n, cr.variety, cr.customName, l.memo, l.work, WORK_LABELS[l.work]||''].join(' ');
+      const txt=[db.n, cr.variety, cr.customName, l.memo, l.work, WORK_LABELS[l.work]||'', l.date||'', l.fertName||'', l.pestName||''].join(' ');
       if(!matchQ(txt, q)) return false;
     }
     return true;
@@ -2972,9 +3010,16 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs, equips=[] })
                   </div>
                   {card.logs.map((l,li)=>(
                     <div key={li}>
-                      {l.fertName&&<div style={{fontSize:'.75rem',color:'#065f46'}}>🌿 {l.fertName}{l.fertAmt?` ${l.fertAmt}${l.fertUnit||''}`:''}</div>}
-                      {l.pestName&&<div style={{fontSize:'.75rem',color:'#92400e'}}>🐛 {l.pestName}{l.pestDil?` ${l.pestDil}倍`:''}</div>}
+                      {l.fertName&&<div style={{fontSize:'.75rem',color:'#065f46'}}>🌿 {l.fertName}{l.fertAmt?` ${l.fertAmt}${l.fertUnit||''}`:''}{l.fertMethod?` (${l.fertMethod})`:''}</div>}
+                      {l.pestName&&<div style={{fontSize:'.75rem',color:'#92400e'}}>🐛 {l.pestName}{l.pestDil?` ${l.pestDil}倍`:''}{l.pestSprayAmt?` 散布${l.pestSprayAmt}${l.pestUnit||''}`:''}{l.pestTarget?` 対象:${l.pestTarget}`:''}</div>}
                       {(l.hvKg||l.hvCnt)&&<div style={{fontSize:'.75rem',color:'#059669'}}>🧺 {l.hvGradeStr||`${l.hvKg||''}${l.hvKg?'kg':''}${l.hvCnt?` ${l.hvCnt}個`:''}`}</div>}
+                      {l.sowQty&&<div style={{fontSize:'.75rem',color:'#5a5040'}}>🌰 播種 {l.sowQty}粒</div>}
+                      {l.germinationCnt&&<div style={{fontSize:'.75rem',color:'#065f46'}}>🌱 発芽 {l.germinationCnt}粒{l.germinationDate?` (${l.germinationDate})`:''}</div>}
+                      {l.transplantQty&&<div style={{fontSize:'.75rem',color:'#5a5040'}}>🪴 定植 {l.transplantQty}株</div>}
+                      {l.eventType&&<div style={{fontSize:'.75rem',color:'#5a5040'}}>📋 {l.eventType}{l.eventNote?` · ${l.eventNote}`:''}</div>}
+                      {(l.discardCnt||l.addCnt)&&<div style={{fontSize:'.75rem',color:'#5a5040'}}>📊 株数調整{l.addCnt?` +${l.addCnt}株`:''}{ l.discardCnt?` -${l.discardCnt}株（廃棄）`:''}</div>}
+                      {(l.equipAct||(Array.isArray(l.equipIds)&&l.equipIds.length>0))&&<div style={{fontSize:'.75rem',color:'#5b21b6'}}>{[(Array.isArray(l.equipIds)?l.equipIds:[]).map(i=>equips[i]?.name).filter(Boolean).join('・'),l.equipAct].filter(Boolean).join(' ')}</div>}
+                      {l.otherNote&&<div style={{fontSize:'.75rem',color:'#5a5040'}}>✏️ {l.otherNote}</div>}
                     </div>
                   ))}
                   {memoLog?.memo&&<div style={{fontSize:'.78rem',color:'#5a5040',marginTop:3,lineHeight:1.5}}>{memoLog.memo}</div>}
@@ -3416,6 +3461,13 @@ export default function App() {
         <div style={{position:"fixed",top:0,left:0,right:0,height:3,zIndex:9998,background:"linear-gradient(90deg,"+G+","+G2+")",animation:"loading 1.5s ease-in-out infinite"}}/>
       )}
       <Toast msg={toast}/>
+      {/* 全画面共通: トップに戻るボタン */}
+      <button
+        onClick={()=>{const el=document.getElementById('main-scroll');if(el)el.scrollTo({top:0,behavior:'smooth'});}}
+        style={{position:'fixed',bottom:66,right:14,width:38,height:38,borderRadius:'50%',
+          background:G,color:'#fff',border:'none',fontSize:'1rem',cursor:'pointer',
+          boxShadow:'0 2px 8px rgba(0,0,0,.3)',zIndex:500,display:'flex',alignItems:'center',justifyContent:'center',
+          opacity:.85}}>↑</button>
     </div>
   );
 }
