@@ -376,48 +376,71 @@ function makeGroupCard(card,showCropTag){
   }).join(' ');
 
   // 詳細（メモより前）
-  var detailParts=[],seenDetails={};
-  function pushDetail(key,html){if(!seenDetails[key]){seenDetails[key]=true;detailParts.push(html);}}
+  var detailParts=[];
   card.logs.forEach(function(l){
-    if(l.fert_name) detailParts.push('<div class="log-detail" style="font-size:.75rem;color:#065f46">🌿 '+l.fert_name+(l.fert_amt?' '+l.fert_amt+(l.fert_unit||''):'')+'</div>');
-    if(l.pest_name) detailParts.push('<div class="log-detail" style="font-size:.75rem;color:#92400e">🐛 '+l.pest_name+(l.pest_dil?' '+l.pest_dil+'倍':'')+'</div>');
-    if(l.hv_grade_str){
-      detailParts.push('<div class="log-detail" style="font-size:.75rem;color:#059669">🧺 合計: '+(l.hv_kg?l.hv_kg+'kg ':''+(l.hv_cnt?l.hv_cnt+'個':''))+' <span style="color:#888;font-size:.7rem">'+l.hv_grade_str+'</span></div>');
-    } else if(l.hv_kg||l.hv_cnt){
-      detailParts.push('<div class="log-detail" style="font-size:.75rem;color:#059669">🧺 '+(l.hv_kg?l.hv_kg+'kg ':''+(l.hv_cnt?l.hv_cnt+'個':''))+'</div>');
-    }
-    if(l.sow_qty) pushDetail('sow_qty:'+l.sow_qty,'<div class="log-detail" style="font-size:.75rem;color:#5a5040">🌰 播種 '+l.sow_qty+'粒</div>');
-    if(l.transplant_qty) pushDetail('transplant_qty:'+l.transplant_qty,'<div class="log-detail" style="font-size:.75rem;color:#5a5040">🪴 定植 '+l.transplant_qty+'株</div>');
-    if(l.event_type) detailParts.push('<div class="log-detail" style="font-size:.75rem;color:#5a5040">📋 '+l.event_type+(l.event_note?' · '+l.event_note:'')+'</div>');
-    if(l.discard_cnt||l.add_cnt) detailParts.push('<div class="log-detail" style="font-size:.75rem;color:#5a5040">📊 株数調整'+(l.add_cnt?' +'+l.add_cnt+'株':'')+(l.discard_cnt?' -'+l.discard_cnt+'株（廃棄）':'')+'</div>');
-    if(l.germination_cnt) pushDetail('germ:'+l.germination_cnt,'<div class="log-detail" style="font-size:.75rem;color:#065f46">🌱 発芽 '+l.germination_cnt+'粒'+(l.germination_date?' ('+l.germination_date+')':'')+'</div>');
+    // 施肥（App.jsxと同じ: fert_name → fertName対応）
+    var fn=l.fert_name||l.fertName;
+    var fa=l.fert_amt||l.fertAmt;
+    var fu=l.fert_unit||l.fertUnit||'';
+    var fm=l.fert_method||l.fertMethod||'';
+    if(fn) detailParts.push('<div style="font-size:.75rem;color:#065f46">🌿 '+fn+(fa?' '+fa+fu:'')+(fm?' ('+fm+')':'')+'</div>');
+    // 農薬
+    var pn=l.pest_name||l.pestName;
+    var pd=l.pest_dil||l.pestDil;
+    var ps=l.pest_spray_amt||l.pestSprayAmt;
+    var pu=l.pest_unit||l.pestUnit||'';
+    var pt=l.pest_target||l.pestTarget||'';
+    if(pn) detailParts.push('<div style="font-size:.75rem;color:#92400e">🐛 '+pn+(pd?' '+pd+'倍':'')+(ps?' 散布'+ps+pu:'')+(pt?' 対象:'+pt:'')+'</div>');
+    // 収穫
+    var hg=l.hv_grade_str||l.hvGradeStr;
+    var hk=l.hv_kg||l.hvKg;
+    var hc=l.hv_cnt||l.hvCnt;
+    if(hg) detailParts.push('<div style="font-size:.75rem;color:#059669">🧺 '+hg+'</div>');
+    else if(hk||hc) detailParts.push('<div style="font-size:.75rem;color:#059669">🧺 '+(hk?hk+'kg ':''+(hc?hc+'個':''))+'</div>');
+    // 播種
+    var sq=l.sow_qty||l.sowQty;
+    if(sq) detailParts.push('<div style="font-size:.75rem;color:#5a5040">🌰 播種 '+sq+'粒</div>');
+    // 発芽
+    var gc=l.germination_cnt||l.germinationCnt;
+    var gd=l.germination_date||l.germinationDate||'';
+    if(gc) detailParts.push('<div style="font-size:.75rem;color:#065f46">🌱 発芽 '+gc+'粒'+(gd?' ('+gd+')':'')+'</div>');
+    // 定植（重複防止）
+    var tq=l.transplant_qty||l.transplantQty;
+    if(tq&&detailParts.indexOf('<div style="font-size:.75rem;color:#5a5040">🪴 定植 '+tq+'株</div>')<0)
+      detailParts.push('<div style="font-size:.75rem;color:#5a5040">🪴 定植 '+tq+'株</div>');
+    // 生育イベント
+    var et=l.event_type||l.eventType;
+    var en=l.event_note||l.eventNote||'';
+    if(et) detailParts.push('<div style="font-size:.75rem;color:#5a5040">📋 '+et+(en?' · '+en:'')+'</div>');
+    // 株数調整
+    var dc=l.discard_cnt||l.discardCnt;
+    var ac=l.add_cnt||l.addCnt;
+    if(dc||ac) detailParts.push('<div style="font-size:.75rem;color:#5a5040">📊 株数調整'+(ac?' +'+ac+'株':'')+(dc?' -'+dc+'株（廃棄）':'')+'</div>');
+    // 資材作業（equip_idsから名前取得）
     if(l.work==='equip'){
       var eNames=[];
-      if(l.equip_ids){
-        var ids=Array.isArray(l.equip_ids)?l.equip_ids
-          :(typeof l.equip_ids==='string'&&l.equip_ids.trim()?
-            (function(){try{return JSON.parse(l.equip_ids);}catch(e){return [];}}()):
-            []);
+      var eids=l.equip_ids||l.equipIds;
+      if(eids){
+        var ids=Array.isArray(eids)?eids:(typeof eids==='string'&&eids.trim()?JSON.parse(eids):[]);
         ids.forEach(function(idVal){
           var eq=null;
           if(typeof idVal==='string'&&idVal.length>10){
-            // UUID文字列→idで検索
             eq=allEquips.find(function(e){return e.id===idVal;});
           } else {
-            // 整数インデックス→配列インデックスで検索
-            var idx2=typeof idVal==='number'?idVal:parseInt(idVal);
-            eq=isNaN(idx2)?null:allEquips[idx2];
+            var i2=typeof idVal==='number'?idVal:parseInt(idVal);
+            eq=isNaN(i2)?null:allEquips[i2];
           }
           if(eq&&eq.name) eNames.push(eq.name);
         });
       }
-      var eText=(eNames.join('・')+(l.equip_act?' '+l.equip_act:'')).trim()||l.equip_act||'';
-      if(eText) detailParts.push('<div class="log-detail" style="font-size:.75rem;color:#5b21b6">'+eText+'</div>');
+      var ea=l.equip_act||l.equipAct||'';
+      var eText=(eNames.join('・')+(ea?' '+ea:'')).trim()||ea;
+      if(eText) detailParts.push('<div style="font-size:.75rem;color:#5b21b6">'+eText+'</div>');
     }
-    if(l.other_note&&l.other_note.trim()){
-      detailParts.push('<div class="log-detail" style="font-size:.75rem;color:#5a5040">✏️ '+l.other_note+'</div>');
-    }
-  });
+    // その他メモ
+    var on=l.other_note||l.otherNote||'';
+    if(on&&on.trim()) detailParts.push('<div style="font-size:.75rem;color:#5a5040">✏️ '+on+'</div>');
+  });;
 
   // メモ（後方・1件目のみ）
   var memoLog=card.logs.find(function(l){return l.memo;});
@@ -708,7 +731,7 @@ async function main(){
     var res=await Promise.all([
       api('crops','user_id=eq.'+farmUid+'&is_public=eq.true&select=*&order=created_at'),
       api('logs','user_id=eq.'+farmUid+'&select=*&order=date.desc,time.desc'),
-      api('equipments','user_id=eq.'+farmUid+'&select=id,name,cat')
+      api('equipments','user_id=eq.'+farmUid+'&select=id,name,cat&order=created_at')
     ]);
     allCrops=res[0]||[];allLogs=res[1]||[];allEquips=res[2]||[];
 
@@ -741,6 +764,8 @@ async function main(){
 }
 main();
 </script>
+<button onclick="window.scrollTo({top:0,behavior:'smooth'})"
+  style="position:fixed;bottom:20px;right:16px;width:40px;height:40px;border-radius:50%;background:#2d6a3f;color:#fff;border:none;font-size:1.1rem;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.25);z-index:500;display:flex;align-items:center;justify-content:center;opacity:.85;">↑</button>
 <div style="text-align:center;padding:16px 12px 24px;font-size:.68rem;color:#999;line-height:1.8;border-top:1px solid #f0ebe3;margin-top:8px;">
   掲載されている記録は各ユーザーが公開設定したものです。<br>
   写真・記録の無断転載・商用利用を禁止します。<br>
