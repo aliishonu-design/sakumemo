@@ -985,7 +985,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.32</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.34</div>
       </div>
     </div>
   );
@@ -2515,10 +2515,7 @@ function TimelineScreen({ fields, crops, equips, logs, setLogs, setLogsR, showTo
                     {db.e||'🌱'} {cr.type==='custom'?(cr.customName||'カスタム'):(db.n||cr.type)}{cr.variety?` (${cr.variety})`:''}
                   </div>
                   {/* 圃場・時間 */}
-                  <div style={{fontSize:'.7rem',color:TX3,marginBottom:5,display:'flex',gap:8}}>
-                    {fieldName&&<span>📍{fieldName}</span>}
-                    {l0.time&&<span>🕐{l0.time}</span>}
-                  </div>
+
                   {/* 作業タグ */}
                   <div style={{display:'flex',gap:4,flexWrap:'wrap',marginBottom:5}}>
                     {sortedLogs.map((l,i)=>{
@@ -2539,7 +2536,7 @@ function TimelineScreen({ fields, crops, equips, logs, setLogs, setLogsR, showTo
                       {(l.discardCnt||l.addCnt)&&<div style={{fontSize:'.75rem',color:'#5a5040'}}>📊 株数調整{l.addCnt?` +${l.addCnt}株`:''}{ l.discardCnt?` -${l.discardCnt}株（廃棄）`:''}</div>}
                       {(l.equipAct||(Array.isArray(l.equipIds)&&l.equipIds.length>0))&&<div style={{fontSize:'.75rem',color:'#5b21b6'}}>{[(Array.isArray(l.equipIds)?l.equipIds:[]).map(i=>equips[i]?.name).filter(Boolean).join('・'),l.equipAct].filter(Boolean).join(' ')}</div>}
                       {l.otherNote&&<div style={{fontSize:'.75rem',color:'#5a5040'}}>✏️ {l.otherNote}</div>}
-                      {l.duration&&<div style={{fontSize:'.72rem',color:'#aaa'}}>⏱ {l.duration}分</div>}
+
                     </div>
                   ))}
                   {/* メモ（後方） */}
@@ -2580,9 +2577,7 @@ function TimelineScreen({ fields, crops, equips, logs, setLogs, setLogsR, showTo
 
       {/* 外クリックでドロップダウン閉じる */}
       {openDd&&<div style={{position:'fixed',top:0,left:0,right:0,bottom:0,zIndex:9998}} onClick={()=>setOpenDd(false)}/>}
-      {/* トップに戻るボタン */}
-      <button onClick={()=>document.getElementById('main-scroll').scrollTo({top:0,behavior:'smooth'})}
-        style={{position:'fixed',bottom:72,right:16,width:40,height:40,borderRadius:'50%',background:G,color:'#fff',border:'none',fontSize:'1.1rem',cursor:'pointer',boxShadow:'0 2px 8px rgba(0,0,0,.25)',zIndex:500,display:'flex',alignItems:'center',justifyContent:'center'}}>↑</button>
+      
     </div>
   );
 }
