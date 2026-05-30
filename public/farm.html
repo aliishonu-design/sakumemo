@@ -181,7 +181,7 @@ var WORK={
   check:{l:'見回り',cls:'other'},other:{l:'その他',cls:'other'}
 };
 
-var allCrops=[],allLogs=[],currentTab='timeline',currentCropId=null;
+var allCrops=[],allLogs=[],allEquips=[],currentTab='timeline',currentCropId=null;
 var lbPhotos=[],lbIdx=0;
 
 // お気に入り
@@ -391,8 +391,14 @@ function makeGroupCard(card,showCropTag){
     if(l.discard_cnt||l.add_cnt) detailParts.push('<div class="log-detail" style="font-size:.75rem;color:#5a5040">📊 株数調整'+(l.add_cnt?' +'+l.add_cnt+'株':'')+(l.discard_cnt?' -'+l.discard_cnt+'株（廃棄）':'')+'</div>');
     if(l.germination_cnt) detailParts.push('<div class="log-detail" style="font-size:.75rem;color:#065f46">🌱 発芽 '+l.germination_cnt+'粒'+(l.germination_date?' ('+l.germination_date+')':'')+'</div>');
     if(l.transplant_qty) detailParts.push('<div class="log-detail" style="font-size:.75rem;color:#5a5040">🪴 定植 '+l.transplant_qty+'株</div>');
-    if(l.work==='equip'&&l.equip_act&&l.equip_act.trim()){
-      detailParts.push('<div class="log-detail" style="font-size:.75rem;color:#5b21b6">'+l.equip_act+'</div>');
+    if(l.work==='equip'){
+      var eNames=[];
+      if(l.equip_ids){
+        var ids=Array.isArray(l.equip_ids)?l.equip_ids:(typeof l.equip_ids==='string'?JSON.parse(l.equip_ids||'[]'):[]);
+        ids.forEach(function(idx2){if(allEquips[idx2])eNames.push(allEquips[idx2].name);});
+      }
+      var eText=(eNames.join('・')+(l.equip_act?' '+l.equip_act:'')).trim();
+      if(eText) detailParts.push('<div class="log-detail" style="font-size:.75rem;color:#5b21b6">'+eText+'</div>');
     }
     if(l.other_note&&l.other_note.trim()){
       detailParts.push('<div class="log-detail" style="font-size:.75rem;color:#5a5040">✏️ '+l.other_note+'</div>');
@@ -623,6 +629,39 @@ function matchWord(text,word){var h=toHira(word),k=toKata(word),th=toHira(text),
 
 function doSearch(){
   var q=(document.getElementById('farm-search').value||'').toLowerCase().trim();
+  var words=q?q.split(/\s+/).filter(function(w){return w.length>0;}):[]; 
+  var el=document.getElementById('main');
+  if(!el)return;
+  var allEls=Array.from(el.children);
+  if(!words.length){allEls.forEach(function(e){e.style.display='';});return;}
+  var curHeader=null;
+  var headerHasVisible=false;
+  allEls.forEach(function(e){
+    if(e.classList.contains('date-header')){
+      if(curHeader) curHeader.style.display=headerHasVisible?'':'none';
+      curHeader=e; headerHasVisible=false;
+      return;
+    }
+    if(e.classList.contains('log-card')||e.classList.contains('crop-hero')){
+      var dateStr=(e.dataset.date||'').toLowerCase();
+      var dateSlash=dateStr.replace(/-/g,'/');
+      var dateShort=dateStr.slice(5).replace('-','/').replace(/^0/,'');
+      var text=e.textContent.toLowerCase()+' '+dateStr+' '+dateSlash+' '+dateShort;
+      var match=words.every(function(w){return matchWord(text,w);});
+      e.style.display=match?'':'none';
+      if(match) headerHasVisible=true;
+    }
+  });
+  if(curHeader) curHeader.style.display=headerHasVisible?'':'none';
+}
+
+
+function toHira(str){return str.replace(/[ァ-ヶ]/g,function(c){return String.fromCharCode(c.charCodeAt(0)-0x60);});}
+function toKata(str){return str.replace(/[ぁ-ゖ]/g,function(c){return String.fromCharCode(c.charCodeAt(0)+0x60);});}
+function matchWord(text,word){var h=toHira(word),k=toKata(word),th=toHira(text),tk=toKata(text);return th.indexOf(h)>=0||tk.indexOf(k)>=0||text.indexOf(word)>=0;}
+
+function doSearch(){
+  var q=(document.getElementById('farm-search').value||'').toLowerCase().trim();
   var words=q?q.split(' ').filter(function(w){return w.length>0;}):[]; 
   var cards=document.querySelectorAll('.log-card,.crop-hero');
   cards.forEach(function(card){
@@ -677,9 +716,10 @@ async function main(){
 
     var res=await Promise.all([
       api('crops','user_id=eq.'+farmUid+'&is_public=eq.true&select=*&order=created_at'),
-      api('logs','user_id=eq.'+farmUid+'&select=*&order=date.desc,time.desc')
+      api('logs','user_id=eq.'+farmUid+'&select=*&order=date.desc,time.desc'),
+      api('equipments','user_id=eq.'+farmUid+'&select=id,name,cat')
     ]);
-    allCrops=res[0]||[];allLogs=res[1]||[];
+    allCrops=res[0]||[];allLogs=res[1]||[];allEquips=res[2]||[];
 
     if(!allCrops.length){document.getElementById('main').innerHTML='<div class="empty"><div class="empty-icon">🌱</div><p>公開されている品目がありません</p></div>';return;}
 
