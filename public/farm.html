@@ -376,7 +376,8 @@ function makeGroupCard(card,showCropTag){
   }).join(' ');
 
   // 詳細（メモより前）
-  var detailParts=[];
+  var detailParts=[],seenDetails={};
+  function pushDetail(key,html){if(!seenDetails[key]){seenDetails[key]=true;detailParts.push(html);}}
   card.logs.forEach(function(l){
     if(l.fert_name) detailParts.push('<div class="log-detail" style="font-size:.75rem;color:#065f46">🌿 '+l.fert_name+(l.fert_amt?' '+l.fert_amt+(l.fert_unit||''):'')+'</div>');
     if(l.pest_name) detailParts.push('<div class="log-detail" style="font-size:.75rem;color:#92400e">🐛 '+l.pest_name+(l.pest_dil?' '+l.pest_dil+'倍':'')+'</div>');
@@ -385,20 +386,28 @@ function makeGroupCard(card,showCropTag){
     } else if(l.hv_kg||l.hv_cnt){
       detailParts.push('<div class="log-detail" style="font-size:.75rem;color:#059669">🧺 '+(l.hv_kg?l.hv_kg+'kg ':''+(l.hv_cnt?l.hv_cnt+'個':''))+'</div>');
     }
-    if(l.sow_qty) detailParts.push('<div class="log-detail" style="font-size:.75rem;color:#5a5040">🌰 播種 '+l.sow_qty+'粒</div>');
-    if(l.transplant_qty) detailParts.push('<div class="log-detail" style="font-size:.75rem;color:#5a5040">🪴 定植 '+l.transplant_qty+'株</div>');
+    if(l.sow_qty) pushDetail('sow_qty:'+l.sow_qty,'<div class="log-detail" style="font-size:.75rem;color:#5a5040">🌰 播種 '+l.sow_qty+'粒</div>');
+    if(l.transplant_qty) pushDetail('transplant_qty:'+l.transplant_qty,'<div class="log-detail" style="font-size:.75rem;color:#5a5040">🪴 定植 '+l.transplant_qty+'株</div>');
     if(l.event_type) detailParts.push('<div class="log-detail" style="font-size:.75rem;color:#5a5040">📋 '+l.event_type+(l.event_note?' · '+l.event_note:'')+'</div>');
     if(l.discard_cnt||l.add_cnt) detailParts.push('<div class="log-detail" style="font-size:.75rem;color:#5a5040">📊 株数調整'+(l.add_cnt?' +'+l.add_cnt+'株':'')+(l.discard_cnt?' -'+l.discard_cnt+'株（廃棄）':'')+'</div>');
-    if(l.germination_cnt) detailParts.push('<div class="log-detail" style="font-size:.75rem;color:#065f46">🌱 発芽 '+l.germination_cnt+'粒'+(l.germination_date?' ('+l.germination_date+')':'')+'</div>');
-    if(l.transplant_qty) detailParts.push('<div class="log-detail" style="font-size:.75rem;color:#5a5040">🪴 定植 '+l.transplant_qty+'株</div>');
+    if(l.germination_cnt) pushDetail('germ:'+l.germination_cnt,'<div class="log-detail" style="font-size:.75rem;color:#065f46">🌱 発芽 '+l.germination_cnt+'粒'+(l.germination_date?' ('+l.germination_date+')':'')+'</div>');
     if(l.work==='equip'){
-      // equip_idsからUUIDでマスター名を取得
       var eNames=[];
       if(l.equip_ids){
-        var ids=Array.isArray(l.equip_ids)?l.equip_ids:(typeof l.equip_ids==='string'?JSON.parse(l.equip_ids||'[]'):[]);
+        var ids=Array.isArray(l.equip_ids)?l.equip_ids
+          :(typeof l.equip_ids==='string'&&l.equip_ids.trim()?
+            (function(){try{return JSON.parse(l.equip_ids);}catch(e){return [];}}()):
+            []);
         ids.forEach(function(idVal){
-          // idValはinteger(index)またはUUID文字列
-          var eq=typeof idVal==='string'?allEquips.find(function(e){return e.id===idVal;}):allEquips[idVal];
+          var eq=null;
+          if(typeof idVal==='string'&&idVal.length>10){
+            // UUID文字列→idで検索
+            eq=allEquips.find(function(e){return e.id===idVal;});
+          } else {
+            // 整数インデックス→配列インデックスで検索
+            var idx2=typeof idVal==='number'?idVal:parseInt(idVal);
+            eq=isNaN(idx2)?null:allEquips[idx2];
+          }
           if(eq&&eq.name) eNames.push(eq.name);
         });
       }
