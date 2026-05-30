@@ -391,7 +391,10 @@ function makeGroupCard(card,showCropTag){
     if(l.discard_cnt||l.add_cnt) detailParts.push('<div class="log-detail" style="font-size:.75rem;color:#5a5040">📊 株数調整'+(l.add_cnt?' +'+l.add_cnt+'株':'')+(l.discard_cnt?' -'+l.discard_cnt+'株（廃棄）':'')+'</div>');
     if(l.germination_cnt) detailParts.push('<div class="log-detail" style="font-size:.75rem;color:#065f46">🌱 発芽 '+l.germination_cnt+'粒'+(l.germination_date?' ('+l.germination_date+')':'')+'</div>');
     if(l.transplant_qty) detailParts.push('<div class="log-detail" style="font-size:.75rem;color:#5a5040">🪴 定植 '+l.transplant_qty+'株</div>');
-    if(l.equip_act||l.equip_ids) detailParts.push('<div class="log-detail" style="font-size:.75rem;color:#5b21b6">'+(l.equip_act||'資材作業')+'</div>');
+    if(l.work==='equip'&&(l.equip_act||l.equip_ids)){
+      var equipText=l.equip_act||'資材作業';
+      detailParts.push('<div class="log-detail" style="font-size:.75rem;color:#5b21b6">'+equipText+'</div>');
+    }
     if(l.other_note) detailParts.push('<div class="log-detail" style="font-size:.75rem;color:#5a5040">✏️ '+l.other_note+'</div>');
   });
 
@@ -409,7 +412,7 @@ function makeGroupCard(card,showCropTag){
     }).join('')+'</div>';
   }
 
-  return '<div class="log-card">'    +'<div class="log-body">'    +(cropLabel?'<div style="margin-bottom:5px">'+cropLabel+'</div>':'')    +'<div class="log-meta" style="margin-bottom:5px">'+tagHtml+'</div>'    +detailParts.join('')    +memoHtml    +'</div>'    +photoHtml    +'</div>';
+  return '<div class="log-card" data-date="'+(card.date||'')+'">'    +'<div class="log-body">'    +(cropLabel?'<div style="margin-bottom:5px">'+cropLabel+'</div>':'')    +'<div class="log-meta" style="margin-bottom:5px">'+tagHtml+'</div>'    +detailParts.join('')    +memoHtml    +'</div>'    +photoHtml    +'</div>';
 }
 
 
@@ -623,7 +626,7 @@ function doSearch(){
   var cards=document.querySelectorAll('.log-card,.crop-hero');
   cards.forEach(function(card){
     if(!words.length){card.style.display='';return;}
-    var text=card.textContent.toLowerCase();
+    var date=card.getAttribute('data-date')||''; var text=(card.textContent+' '+date).toLowerCase();
     var match=words.every(function(w){return matchWord(text,w);});
     card.style.display=match?'':'none';
   });
