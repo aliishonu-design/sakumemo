@@ -985,7 +985,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.29</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.32</div>
       </div>
     </div>
   );
@@ -2386,7 +2386,11 @@ function TimelineScreen({ fields, crops, equips, logs, setLogs, setLogsR, showTo
     if(q){
       const cr=crops.find(c=>c.id===l.cropId)||{};
       const db=CDB[cr.type]||{};
-      const txt=[db.n, cr.variety, cr.customName, l.memo, l.work, WORK_LABELS[l.work]||'', l.date||'', l.fertName||'', l.pestName||''].join(' ');
+      const d=l.date||'';
+      // 日付を複数形式で検索可能に（2026-05-20, 2026/05/20, 05/20, 5/20）
+      const dSlash=d.replace(/-/g,'/');
+      const dShort=d.slice(5).replace('-','/').replace(/^0/,'');
+      const txt=[db.n, cr.variety, cr.customName, l.memo, l.work, WORK_LABELS[l.work]||'', d, dSlash, dShort, l.fertName||'', l.pestName||''].join(' ');
       if(!matchQ(txt, q)) return false;
     }
     return true;
