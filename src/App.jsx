@@ -985,7 +985,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.39</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.40</div>
       </div>
     </div>
   );
@@ -2019,7 +2019,12 @@ useEffect(()=>{
         hvQ:hvGradeEntries.length>1?'品質別':hvGradeEntries.length===1?hvGradeEntries[0][0]:hvQ,
         hvPrice, hvGradeStr:hvGradeEntries.length>0?gradeStr:'',
       });
-      if(w==='equip') Object.assign(e,{equipIds:equipSel,equipAct});
+      if(w==='equip') {
+        // equip_actに「資材名 作業種別」を組み合わせて保存
+        const _enames = equipSel.map(i=>equips[i]?.name).filter(Boolean);
+        const _fullAct = (_enames.join('・')+' '+equipAct).trim();
+        Object.assign(e,{equipIds:equipSel, equipAct:_fullAct||equipAct});
+      }
       if(w==='discard') Object.assign(e,{discardCnt,addCnt});
       if(w==='sow') Object.assign(e,{sowQty,germinationCnt:germCnt,germinationDate:germDate});
       if(w==='transplant') Object.assign(e,{transplantQty:transpQty});
@@ -2108,7 +2113,9 @@ useEffect(()=>{
         if(w==='equip' && equipEntries.length>0){
           equipEntries.forEach(ee=>{
             const ex=makeEntry('equip',false,null,newGroupId);
-            ex.equipIds=ee.idx!==""?[ee.idx]:[];ex.equipAct=ee.act;
+            const _en2=ee.idx!==""?equips[ee.idx]?.name||'':'';
+            const _fa2=(_en2+' '+ee.act).trim();
+            ex.equipIds=ee.idx!==""?[ee.idx]:[];ex.equipAct=_fa2||ee.act;
             allEntriesNew.push(ex);
           });
         }
