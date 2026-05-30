@@ -985,7 +985,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.37</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.38</div>
       </div>
     </div>
   );
@@ -1855,19 +1855,23 @@ setEditId(null);setWorks(new Set());setMemo("");setLogImg(null);setLogImg2(null)
     setDate(editLog.date||todayStr());
     setTime(editLog.time||nowTime());
     setDur(editLog.duration||"");
-    setSowQty(editLog.sowQty||"");
-    setGermCnt(editLog.germinationCnt||"");
-    setTranspQty(editLog.transplantQty||"");
-
-    setEventType(editLog.eventType||"");
-    setEventNote(editLog.eventNote||"");
-    setOtherNote(editLog.otherNote||"");
-    // editLogs内から各作業データを探して復元
-    const hvLog   = (editLogs&&editLogs.find(l=>l.work==='harvest')) || editLog;
-    const fertLog = (editLogs&&editLogs.find(l=>l.work==='fert'))    || editLog;
-    const pestLog = (editLogs&&editLogs.find(l=>l.work==='pest'))    || editLog;
-    const discLog = (editLogs&&editLogs.find(l=>l.work==='discard')) || editLog;
-    const equipLog= (editLogs&&editLogs.find(l=>l.work==='equip'))   || editLog;
+    // editLogs内から各作業データを探して復元（全作業タイプ対応）
+    const hvLog   = (editLogs&&editLogs.find(l=>l.work==='harvest'))    || editLog;
+    const fertLog = (editLogs&&editLogs.find(l=>l.work==='fert'))       || editLog;
+    const pestLog = (editLogs&&editLogs.find(l=>l.work==='pest'))       || editLog;
+    const discLog = (editLogs&&editLogs.find(l=>l.work==='discard'))    || editLog;
+    const equipLog= (editLogs&&editLogs.find(l=>l.work==='equip'))      || editLog;
+    const sowLog  = (editLogs&&editLogs.find(l=>l.work==='sow'||l.work==='germinated')) || editLog;
+    const tplLog  = (editLogs&&editLogs.find(l=>l.work==='transplant')) || editLog;
+    const eventLog= (editLogs&&editLogs.find(l=>l.work==='event'))      || editLog;
+    const otherLog= (editLogs&&editLogs.find(l=>l.work==='other'))      || editLog;
+    // 各作業データを対応するlogから復元
+    setSowQty(sowLog.sowQty||"");
+    setGermCnt(sowLog.germinationCnt||"");
+    setTranspQty(tplLog.transplantQty||"");
+    setEventType(eventLog.eventType||"");
+    setEventNote(eventLog.eventNote||"");
+    setOtherNote(otherLog.otherNote||"");
     // 施肥（複数エントリ対応）
     setFertName(fertLog.fertName||"");setFertAmt(fertLog.fertAmt||"");
     setFertUnit(fertLog.fertUnit||"kg");setFertMeth(fertLog.fertMethod||"追肥");setFertCost(fertLog.fertCost||"");
