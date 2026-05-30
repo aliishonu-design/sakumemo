@@ -634,17 +634,15 @@ function matchWord(text,word){var h=toHira(word),k=toKata(word),th=toHira(text),
 
 function doSearch(){
   var q=(document.getElementById('farm-search').value||'').toLowerCase().trim();
-  var words=q?q.split(/\s+/).filter(function(w){return w.length>0;}):[]; 
+  var words=q?q.split(' ').filter(function(w){return w.length>0;}):[]; 
   var el=document.getElementById('main');
   if(!el)return;
   if(!words.length){
-    // 全表示
     Array.from(el.querySelectorAll('.log-card,.crop-hero,.date-header')).forEach(function(e){e.style.display='';});
     return;
   }
-  // log-cardを検索
-  var cards=Array.from(el.querySelectorAll('.log-card,.crop-hero'));
-  cards.forEach(function(card){
+  // log-cardを日付含めて検索
+  Array.from(el.querySelectorAll('.log-card,.crop-hero')).forEach(function(card){
     var dateStr=(card.dataset&&card.dataset.date?card.dataset.date:'').toLowerCase();
     var dateSlash=dateStr.replace(/-/g,'/');
     var dateShort=dateStr.slice(5).replace('-','/').replace(/^0/,'');
@@ -652,10 +650,8 @@ function doSearch(){
     var match=words.every(function(w){return matchWord(text,w);});
     card.style.display=match?'':'none';
   });
-  // date-headerを制御（配下にvisibleなlog-cardがあれば表示）
-  var headers=Array.from(el.querySelectorAll('.date-header'));
-  headers.forEach(function(h){
-    // 次のsiblingのlog-cardを探す
+  // date-headerを制御
+  Array.from(el.querySelectorAll('.date-header')).forEach(function(h){
     var next=h.nextElementSibling;
     var hasVisible=false;
     while(next&&!next.classList.contains('date-header')){
@@ -669,66 +665,6 @@ function doSearch(){
 }
 
 
-function toHira(str){return str.replace(/[ァ-ヶ]/g,function(c){return String.fromCharCode(c.charCodeAt(0)-0x60);});}
-function toKata(str){return str.replace(/[ぁ-ゖ]/g,function(c){return String.fromCharCode(c.charCodeAt(0)+0x60);});}
-function matchWord(text,word){var h=toHira(word),k=toKata(word),th=toHira(text),tk=toKata(text);return th.indexOf(h)>=0||tk.indexOf(k)>=0||text.indexOf(word)>=0;}
-
-function doSearch(){
-  var q=(document.getElementById('farm-search').value||'').toLowerCase().trim();
-  var words=q?q.split(/\s+/).filter(function(w){return w.length>0;}):[]; 
-  var el=document.getElementById('main');
-  if(!el)return;
-  var allEls=Array.from(el.children);
-  if(!words.length){allEls.forEach(function(e){e.style.display='';});return;}
-  var curHeader=null;
-  var headerHasVisible=false;
-  allEls.forEach(function(e){
-    if(e.classList.contains('date-header')){
-      if(curHeader) curHeader.style.display=headerHasVisible?'':'none';
-      curHeader=e; headerHasVisible=false;
-      return;
-    }
-    if(e.classList.contains('log-card')||e.classList.contains('crop-hero')){
-      var dateStr=(e.dataset.date||'').toLowerCase();
-      var dateSlash=dateStr.replace(/-/g,'/');
-      var dateShort=dateStr.slice(5).replace('-','/').replace(/^0/,'');
-      var text=e.textContent.toLowerCase()+' '+dateStr+' '+dateSlash+' '+dateShort;
-      var match=words.every(function(w){return matchWord(text,w);});
-      e.style.display=match?'':'none';
-      if(match) headerHasVisible=true;
-    }
-  });
-  if(curHeader) curHeader.style.display=headerHasVisible?'':'none';
-}
-
-
-function toHira(str){return str.replace(/[ァ-ヶ]/g,function(c){return String.fromCharCode(c.charCodeAt(0)-0x60);});}
-function toKata(str){return str.replace(/[ぁ-ゖ]/g,function(c){return String.fromCharCode(c.charCodeAt(0)+0x60);});}
-function matchWord(text,word){var h=toHira(word),k=toKata(word),th=toHira(text),tk=toKata(text);return th.indexOf(h)>=0||tk.indexOf(k)>=0||text.indexOf(word)>=0;}
-
-function doSearch(){
-  var q=(document.getElementById('farm-search').value||'').toLowerCase().trim();
-  var words=q?q.split(' ').filter(function(w){return w.length>0;}):[]; 
-  var cards=document.querySelectorAll('.log-card,.crop-hero');
-  cards.forEach(function(card){
-    if(!words.length){card.style.display='';return;}
-    var date=card.getAttribute('data-date')||''; var text=(card.textContent+' '+date).toLowerCase();
-    var match=words.every(function(w){return matchWord(text,w);});
-    card.style.display=match?'':'none';
-  });
-}
-
-function scrollTabsRight(){
-  var inner=document.getElementById('tabs-inner');
-  inner.scrollBy({left:120,behavior:'smooth'});
-}
-function updateScrollBtn(){
-  var inner=document.getElementById('tabs-inner');
-  var btn=document.getElementById('tab-scroll-btn');
-  if(!inner||!btn)return;
-  var hasMore=inner.scrollWidth > inner.clientWidth + inner.scrollLeft + 10;
-  btn.style.display=hasMore?'block':'none';
-}
 
 function scrollTabsLeft(){
   document.getElementById('tabs-inner').scrollBy({left:-150,behavior:'smooth'});
