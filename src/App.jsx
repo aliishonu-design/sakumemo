@@ -985,7 +985,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.38</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.39</div>
       </div>
     </div>
   );
@@ -1831,14 +1831,13 @@ function LogScreen({ fields, crops, setCrops, fertMs, pestMs, equips, costs, set
   // editLogがnullのとき（新規作成）は全フィールドをリセット
 useEffect(()=>{
     if(!editLog) {
-      // editLogが意図的にnullになった場合のみリセット
-      // (prevがnullでない場合 = 編集後に閉じた場合)
-setEditId(null);setWorks(new Set());setMemo("");setLogImg(null);setLogImg2(null);setLogImg3(null);setHvGrades({秀品:{kg:"",cnt:"",price:""},優品:{kg:"",cnt:"",price:""},良品:{kg:"",cnt:"",price:""},規格外:{kg:"",cnt:"",price:""}});
+      setEditId(null);setWorks(new Set());setMemo("");setLogImg(null);setLogImg2(null);setLogImg3(null);
+      setHvGrades({秀品:{kg:"",cnt:"",price:""},優品:{kg:"",cnt:"",price:""},良品:{kg:"",cnt:"",price:""},規格外:{kg:"",cnt:"",price:""}});
       setFieldIdx(0);setCropId("");setDate(todayStr());setTime(nowTime());setDur("");
       setSowQty("");setGermCnt("");setGermDate(todayStr());setTranspQty("");
-      setFertIdx("");setFertName("");setFertAmt("");setFertUnit("kg");setFertMeth("追肥");setFertCost("");
-      setPestIdx("");setPestName("");setPestDil("");setPestAmt("");setPestUnit("L");setPestTgt("");setPestCost("");
-      setEventType("");setEventNote("");setOtherNote("");setOtherNote("");
+      setFertIdx("");setFertName("");setFertAmt("");setFertUnit("kg");setFertMeth("追肥");setFertCost("");setFertEntries([]);
+      setPestIdx("");setPestName("");setPestDil("");setPestAmt("");setPestUnit("L");setPestTgt("");setPestCost("");setPestEntries([]);setPestSprayAmt("");
+      setEventType("");setEventNote("");setOtherNote("");
       setHvKg("");setHvCnt("");setHvQ("秀品");setHvPrice("");
       setDiscardCnt("");setAddCnt("");setEquipSel([]);setEquipAct("設置");setEquipEntries([]);setRepotSize("");setRepotVol("");
       return;
@@ -1855,36 +1854,55 @@ setEditId(null);setWorks(new Set());setMemo("");setLogImg(null);setLogImg2(null)
     setDate(editLog.date||todayStr());
     setTime(editLog.time||nowTime());
     setDur(editLog.duration||"");
-    // editLogs内から各作業データを探して復元（全作業タイプ対応）
-    const hvLog   = (editLogs&&editLogs.find(l=>l.work==='harvest'))    || editLog;
-    const fertLog = (editLogs&&editLogs.find(l=>l.work==='fert'))       || editLog;
-    const pestLog = (editLogs&&editLogs.find(l=>l.work==='pest'))       || editLog;
-    const discLog = (editLogs&&editLogs.find(l=>l.work==='discard'))    || editLog;
-    const equipLog= (editLogs&&editLogs.find(l=>l.work==='equip'))      || editLog;
-    const sowLog  = (editLogs&&editLogs.find(l=>l.work==='sow'||l.work==='germinated')) || editLog;
-    const tplLog  = (editLogs&&editLogs.find(l=>l.work==='transplant')) || editLog;
-    const eventLog= (editLogs&&editLogs.find(l=>l.work==='event'))      || editLog;
-    const otherLog= (editLogs&&editLogs.find(l=>l.work==='other'))      || editLog;
-    // 各作業データを対応するlogから復元
+
+    // editLogsから各作業タイプのlogを取得
+    const allL    = editLogs&&editLogs.length>0 ? editLogs : [editLog];
+    const hvLog   = allL.find(l=>l.work==='harvest')    || editLog;
+    const fertLog = allL.find(l=>l.work==='fert')       || editLog;
+    const pestLog = allL.find(l=>l.work==='pest')       || editLog;
+    const discLog = allL.find(l=>l.work==='discard')    || editLog;
+    const equipLog= allL.find(l=>l.work==='equip')      || editLog;
+    const sowLog  = allL.find(l=>l.work==='sow'||l.work==='germinated') || editLog;
+    const tplLog  = allL.find(l=>l.work==='transplant') || editLog;
+    const eventLog= allL.find(l=>l.work==='event')      || editLog;
+    const otherLog= allL.find(l=>l.work==='other')      || editLog;
+
+    // 播種・発芽・定植
     setSowQty(sowLog.sowQty||"");
     setGermCnt(sowLog.germinationCnt||"");
     setTranspQty(tplLog.transplantQty||"");
+
+    // 生育イベント
     setEventType(eventLog.eventType||"");
     setEventNote(eventLog.eventNote||"");
+
+    // その他
     setOtherNote(otherLog.otherNote||"");
-    // 施肥（複数エントリ対応）
-    setFertName(fertLog.fertName||"");setFertAmt(fertLog.fertAmt||"");
-    setFertUnit(fertLog.fertUnit||"kg");setFertMeth(fertLog.fertMethod||"追肥");setFertCost(fertLog.fertCost||"");
-    // 追加施肥エントリ復元
-    const extraFerts=(editLogs||[]).filter(l=>l.work==='fert').slice(1);
+
+    // 施肥1件目 ─ fertNameで名前を復元、マスターIndexも復元
+    setFertName(fertLog.fertName||"");
+    setFertAmt(fertLog.fertAmt||"");
+    setFertUnit(fertLog.fertUnit||"kg");
+    setFertMeth(fertLog.fertMethod||"追肥");
+    setFertCost(fertLog.fertCost||"");
+    // 施肥の追加エントリ復元
+    const extraFerts = allL.filter(l=>l.work==='fert').slice(1);
     setFertEntries(extraFerts.map(l=>({name:l.fertName||"",amt:l.fertAmt||"",unit:l.fertUnit||"kg",meth:l.fertMethod||"追肥",cost:l.fertCost||""})));
-    // 農薬（複数エントリ対応）
-    setPestName(pestLog.pestName||"");setPestDil(pestLog.pestDil||"");
-    setPestAmt(pestLog.pestAmt||"");setPestUnit(pestLog.pestUnit||"L");
+
+    // 農薬1件目 ─ pestNameで名前を復元、マスターIndexも復元
+    const _pIdx = pestMs.findIndex(p=>p.name===pestLog.pestName);
+    setPestIdx(_pIdx>=0 ? String(_pIdx) : "");
+    setPestName(pestLog.pestName||"");
+    setPestDil(pestLog.pestDil||"");
+    setPestAmt(pestLog.pestAmt||"");
+    setPestUnit(pestLog.pestUnit||"L");
     setPestSprayAmt(pestLog.pestSprayAmt||"");
-    setPestTgt(pestLog.pestTarget||"");setPestCost(pestLog.pestCost||"");
-    const extraPests=(editLogs||[]).filter(l=>l.work==='pest').slice(1);
+    setPestTgt(pestLog.pestTarget||"");
+    setPestCost(pestLog.pestCost||"");
+    // 農薬の追加エントリ復元
+    const extraPests = allL.filter(l=>l.work==='pest').slice(1);
     setPestEntries(extraPests.map(l=>({name:l.pestName||"",dil:l.pestDil||"",sprayAmt:l.pestSprayAmt||"",sprayUnit:l.pestUnit||"L",tgt:l.pestTarget||"",cost:l.pestCost||""})));
+
     // 収穫
     setHvKg(hvLog.hvKg||"");
     setHvCnt(hvLog.hvCnt||"");
@@ -1913,9 +1931,23 @@ setEditId(null);setWorks(new Set());setMemo("");setLogImg(null);setLogImg2(null)
       }
       setHvGrades(restored);
     }
+
+    // 廃棄
     setDiscardCnt(discLog.discardCnt||"");
     setAddCnt(discLog.addCnt||"");
+
+    // 資材作業 ─ equipIdsからインデックスを復元
     setEquipAct(equipLog.equipAct||"設置");
+    const _eIds = Array.isArray(equipLog.equipIds) ? equipLog.equipIds
+                : (equipLog.equipIds ? JSON.parse(equipLog.equipIds) : []);
+    setEquipSel(_eIds.length>0 ? [_eIds[0]] : []);
+    // 資材の追加エントリ復元
+    const extraEquips = allL.filter(l=>l.work==='equip').slice(1);
+    setEquipEntries(extraEquips.map(l=>{
+      const ids=Array.isArray(l.equipIds)?l.equipIds:(l.equipIds?JSON.parse(l.equipIds):[]);
+      return {idx:ids.length>0?ids[0]:"", act:l.equipAct||"設置"};
+    }));
+
     // 既存写真をプレビューとして保持
     if(editLog.imgSrc)  setLogImg({ base64:editLog.imgSrc,  blob:null, name:"", existing:true });
     else setLogImg(null);
