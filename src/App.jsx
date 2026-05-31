@@ -985,7 +985,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.43</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.44</div>
       </div>
     </div>
   );
@@ -2023,7 +2023,12 @@ useEffect(()=>{
         hvQ:hvGradeEntries.length>1?'品質別':hvGradeEntries.length===1?hvGradeEntries[0][0]:hvQ,
         hvPrice, hvGradeStr:hvGradeEntries.length>0?gradeStr:'',
       });
-      if(w==='equip') Object.assign(e,{equipIds:equipSel, equipAct});
+      if(w==='equip') {
+        // equip_actに「資材名 作業種別」を結合して保存
+        const _en=equipSel.map(i=>equips[i]?.name).filter(Boolean);
+        const _fa=(_en.join('・')+(_en.length?' ':'')+equipAct).trim();
+        Object.assign(e,{equipIds:equipSel, equipAct:_fa||equipAct});
+      }
       if(w==='discard') Object.assign(e,{discardCnt,addCnt});
       if(w==='sow') Object.assign(e,{sowQty,germinationCnt:germCnt,germinationDate:germDate});
       if(w==='transplant') Object.assign(e,{transplantQty:transpQty});
@@ -2112,7 +2117,9 @@ useEffect(()=>{
         if(w==='equip' && equipEntries.length>0){
           equipEntries.forEach(ee=>{
             const ex=makeEntry('equip',false,null,newGroupId);
-            ex.equipIds=ee.idx!==""?[ee.idx]:[];ex.equipAct=ee.act;
+            const _en2=ee.idx!==""?equips[ee.idx]?.name||'':'';
+            const _fa2=(_en2+(_en2?' ':'')+ee.act).trim();
+            ex.equipIds=ee.idx!==""?[ee.idx]:[];ex.equipAct=_fa2||ee.act;
             allEntriesNew.push(ex);
           });
         }
@@ -2577,7 +2584,7 @@ function TimelineScreen({ fields, crops, equips, logs, setLogs, setLogsR, showTo
                       {l.transplantQty&&<div style={{fontSize:'.75rem',color:'#5a5040'}}>🪴 定植 {l.transplantQty}株</div>}
                       {l.eventType&&<div style={{fontSize:'.75rem',color:'#5a5040'}}>📋 {l.eventType}{l.eventNote?` · ${l.eventNote}`:''}</div>}
                       {(l.discardCnt||l.addCnt)&&<div style={{fontSize:'.75rem',color:'#5a5040'}}>📊 株数調整{l.addCnt?` +${l.addCnt}株`:''}{ l.discardCnt?` -${l.discardCnt}株（廃棄）`:''}</div>}
-                      {(l.equipAct||(Array.isArray(l.equipIds)&&l.equipIds.length>0))&&<div style={{fontSize:'.75rem',color:'#5b21b6'}}>{(()=>{const names=(Array.isArray(l.equipIds)?l.equipIds:[]).map(i=>equips[i]?.name).filter(Boolean);return[names.join('・'),l.equipAct].filter(Boolean).join(' ');})()}</div>}
+                      {l.equipAct&&<div style={{fontSize:'.75rem',color:'#5b21b6'}}>{l.equipAct}</div>}
                       {l.otherNote&&<div style={{fontSize:'.75rem',color:'#5a5040'}}>✏️ {l.otherNote}</div>}
                     </div>
                   ))}
@@ -3061,7 +3068,7 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs, equips=[] })
                       {l.transplantQty&&<div style={{fontSize:'.75rem',color:'#5a5040'}}>🪴 定植 {l.transplantQty}株</div>}
                       {l.eventType&&<div style={{fontSize:'.75rem',color:'#5a5040'}}>📋 {l.eventType}{l.eventNote?` · ${l.eventNote}`:''}</div>}
                       {(l.discardCnt||l.addCnt)&&<div style={{fontSize:'.75rem',color:'#5a5040'}}>📊 株数調整{l.addCnt?` +${l.addCnt}株`:''}{ l.discardCnt?` -${l.discardCnt}株（廃棄）`:''}</div>}
-                      {(l.equipAct||(Array.isArray(l.equipIds)&&l.equipIds.length>0))&&<div style={{fontSize:'.75rem',color:'#5b21b6'}}>{(()=>{const names=(Array.isArray(l.equipIds)?l.equipIds:[]).map(i=>equips[i]?.name).filter(Boolean);return[names.join('・'),l.equipAct].filter(Boolean).join(' ');})()}</div>}
+                      {l.equipAct&&<div style={{fontSize:'.75rem',color:'#5b21b6'}}>{l.equipAct}</div>}
                       {l.otherNote&&<div style={{fontSize:'.75rem',color:'#5a5040'}}>✏️ {l.otherNote}</div>}
                     </div>
                   ))}
