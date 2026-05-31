@@ -418,29 +418,25 @@ function makeGroupCard(card,showCropTag){
     if(dc||ac) detailParts.push('<div style="font-size:.75rem;color:#5a5040">📊 株数調整'+(ac?' +'+ac+'株':'')+(dc?' -'+dc+'株（廃棄）':'')+'</div>');
     // 資材作業（equip_idsから名前取得）
     if(l.work==='equip'){
-      var ea=l.equip_act||l.equipAct||'';
-      // 新しいデータ: equip_actに「資材名 作業種別」が入っている
-      // 古いデータ: equip_actに作業種別のみ → equip_idsから名前を補完
+      // equip_idsから資材名を取得してequip_actと結合
       var eNames=[];
-      if(ea.indexOf(' ')<0){
-        // スペースなし＝作業種別のみ → 資材名をequip_idsから取得
-        var eids=l.equip_ids||l.equipIds;
-        if(eids){
-          var ids=Array.isArray(eids)?eids:(typeof eids==='string'&&eids.trim()?JSON.parse(eids):[]);
-          ids.forEach(function(idVal){
-            var eq=null;
-            if(typeof idVal==='string'&&idVal.length>10){
-              eq=allEquips.find(function(e){return e.id===idVal;});
-            } else {
-              var i2=typeof idVal==='number'?idVal:parseInt(idVal);
-              eq=isNaN(i2)?null:allEquips[i2];
-            }
-            if(eq&&eq.name) eNames.push(eq.name);
-          });
-          if(eNames.length) ea=(eNames.join('・')+' '+ea).trim();
-        }
+      var eids=l.equip_ids||l.equipIds;
+      if(eids){
+        var ids=Array.isArray(eids)?eids:(typeof eids==='string'&&eids.trim()?JSON.parse(eids):[]);
+        ids.forEach(function(idVal){
+          var eq=null;
+          if(typeof idVal==='string'&&idVal.length>10){
+            eq=allEquips.find(function(e){return e.id===idVal;});
+          } else {
+            var i2=typeof idVal==='number'?idVal:parseInt(idVal);
+            eq=isNaN(i2)?null:allEquips[i2];
+          }
+          if(eq&&eq.name) eNames.push(eq.name);
+        });
       }
-      if(ea) detailParts.push('<div style="font-size:.75rem;color:#5b21b6">'+ea+'</div>');
+      var ea=l.equip_act||l.equipAct||'';
+      var eText=(eNames.join('・')+(ea?' '+ea:'')).trim()||ea;
+      if(eText) detailParts.push('<div style="font-size:.75rem;color:#5b21b6">'+eText+'</div>');
     }
     // その他メモ
     var on=l.other_note||l.otherNote||'';
