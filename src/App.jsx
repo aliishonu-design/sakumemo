@@ -1075,7 +1075,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.63</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.64</div>
       </div>
     </div>
   );
@@ -2411,6 +2411,8 @@ function TimelineScreen({ fields, crops, equips, logs, setLogs, setLogsR, showTo
   const [fW,   setFW]   = useState("");
   const [selCropId, setSelCropId] = useState(""); // 品目フィルタ
   const [openDd, setOpenDd] = useState(false);    // 品目ドロップダウン
+  const [ddPos,  setDdPos]  = useState({top:0,left:0,above:false});
+  const ddBtnRef = useRef(null);
 
   // ひらがな↔カタカナ変換
   const toHira = s => s.replace(/[\u30a1-\u30f6]/g, c=>String.fromCharCode(c.charCodeAt(0)-0x60));
@@ -2487,11 +2489,19 @@ function TimelineScreen({ fields, crops, equips, logs, setLogs, setLogsR, showTo
       <div style={{padding:'0 0 8px',display:'flex',gap:6,flexWrap:'wrap',alignItems:'center'}}>
         {/* 品目ドロップダウン */}
         <div style={{position:'relative'}}>
-          <button onClick={()=>setOpenDd(d=>!d)}
+          <button onClick={()=>{
+              const r=ddBtnRef.current?.getBoundingClientRect();
+              if(r){
+                const above=r.bottom>window.innerHeight*0.55;
+                setDdPos({top:above?r.top-8:r.bottom+4,left:r.left,above});
+              }
+              setOpenDd(d=>!d);
+            }}
+            ref={ddBtnRef}
             style={{...S.btn,...S.btnSm,background:selCropId?G:'#f0f0eb',color:selCropId?'#fff':'#5a5040',border:'1px solid #e0d9ce',fontSize:'.72rem',maxWidth:160,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
             {selLabel} ▾
           </button>
-          {openDd&&<div style={{position:'fixed',zIndex:9999,background:'#fff',borderRadius:10,boxShadow:'0 4px 20px rgba(0,0,0,.15)',minWidth:180,maxHeight:280,overflowY:'auto'}}
+          {openDd&&<div style={{position:'fixed',zIndex:9999,background:'#fff',borderRadius:10,boxShadow:'0 4px 20px rgba(0,0,0,.15)',minWidth:180,maxHeight:280,overflowY:'auto',top:ddPos.above?'auto':ddPos.top,bottom:ddPos.above?window.innerHeight-ddPos.top:'auto',left:ddPos.left}}
             onClick={e=>e.stopPropagation()}>
             <div style={{padding:'10px 14px',cursor:'pointer',fontSize:'.82rem',borderBottom:'1px solid #f0ebe3'}}
               onClick={()=>{setSelCropId('');setOpenDd(false);}}>
