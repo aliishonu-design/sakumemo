@@ -1077,7 +1077,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.68</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.69</div>
       </div>
     </div>
   );
@@ -2836,22 +2836,13 @@ function PlotScreen({ fields, crops, plots, setPlots, setPlotsR, showToast }) {
         {/* 品目パレット */}
         <div style={S.card}>
           <div style={{fontSize:".74rem",fontWeight:700,color:"#5c3d1e",marginBottom:6}}>🎨 塗る品目を選択</div>
-          <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
-            <button onClick={()=>setPaintCrop("")}
-              style={{padding:"5px 10px",borderRadius:8,border:"2px solid "+(paintCrop===""?G:"#e0d9ce"),background:paintCrop===""?G3:"#fff",fontSize:".72rem",fontWeight:700,color:paintCrop===""?G:"#5a5040",cursor:"pointer"}}>
-              🧹 消しゴム
-            </button>
-            {activeCrops.map(c=>{
-              const db=CDB[c.type]||{};
-              const nm=c.type==="custom"?(c.customName||"カスタム"):(db.n||c.type);
-              return <button key={c.id} onClick={()=>setPaintCrop(c.id)}
-                style={{padding:"5px 10px",borderRadius:8,border:"2px solid "+(paintCrop===c.id?cropColor(c.id):"#e0d9ce"),background:paintCrop===c.id?cropColor(c.id):"#fff",color:paintCrop===c.id?"#fff":"#5a5040",fontSize:".72rem",fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:3}}>
-                <span style={{display:"inline-block",width:10,height:10,borderRadius:2,background:cropColor(c.id)}}/>
-                {db.e||"🌱"} {nm}{c.variety?"("+c.variety+")":""}
-              </button>;
-            })}
-            {activeCrops.length===0&&<div style={{fontSize:".74rem",color:TX3}}>この圃場に栽培中の品目がありません</div>}
-          </div>
+          {activeCrops.length===0
+            ? <div style={{fontSize:".74rem",color:TX3}}>この圃場に栽培中の品目がありません</div>
+            : <div style={{display:"flex",alignItems:"center",gap:8}}>
+                <Sel value={paintCrop} onChange={v=>setPaintCrop(v)}
+                  options={[{value:"",label:"🧹 消しゴム"},...activeCrops.map(c=>{const db=CDB[c.type]||{};const nm=c.type==="custom"?(c.customName||"カスタム"):(db.n||c.type);return{value:c.id,label:(db.e||"🌱")+" "+nm+(c.variety?"("+c.variety+")":"")};})]}/>
+                <span style={{display:"inline-block",width:24,height:24,borderRadius:5,background:cropColor(paintCrop),border:"1px solid #d5cdbf",flexShrink:0}}/>
+              </div>}
         </div>
 
         {/* 連作警告 */}
@@ -2868,7 +2859,7 @@ function PlotScreen({ fields, crops, plots, setPlots, setPlotsR, showToast }) {
         {/* グリッド */}
         <div style={{...S.card,overflowX:"auto",WebkitOverflowScrolling:"touch"}}>
           <div style={{fontSize:".7rem",color:TX3,marginBottom:6}}>
-            {editPlot.cols}×{editPlot.rows}マス（{(editPlot.cols*0.1).toFixed(1)}m × {(editPlot.rows*0.1).toFixed(1)}m）· タップ/ドラッグで塗る
+            {editPlot.cols}×{editPlot.rows}マス（{(editPlot.cols*0.3).toFixed(1)}m × {(editPlot.rows*0.3).toFixed(1)}m）· タップ/ドラッグで塗る
           </div>
           <div style={{display:"inline-block",userSelect:"none",touchAction:"none"}}
             onMouseLeave={()=>setPainting(false)}>
@@ -2915,7 +2906,7 @@ function PlotScreen({ fields, crops, plots, setPlots, setPlotsR, showToast }) {
               <div key={cid} style={{display:"flex",alignItems:"center",gap:6,fontSize:".74rem",marginBottom:3}}>
                 <span style={{display:"inline-block",width:14,height:14,borderRadius:3,background:cropColor(cid),flexShrink:0}}/>
                 <span>{cropEmoji(cid)} {cropName(cid)}</span>
-                <span style={{color:TX3,marginLeft:"auto"}}>{cnt}マス（{(cnt*0.01).toFixed(2)}㎡）</span>
+                <span style={{color:TX3,marginLeft:"auto"}}>{cnt}マス（{(cnt*0.09).toFixed(2)}㎡）</span>
               </div>
             ));
           })()}
@@ -2975,14 +2966,14 @@ function PlotScreen({ fields, crops, plots, setPlots, setPlotsR, showToast }) {
           <FG label="名前"><Inp value={newModal.name} onChange={v=>setNewModal({...newModal,name:v})} placeholder="例：南畑 春作"/></FG>
           <FG label="シーズン・年度"><Inp value={newModal.season} onChange={v=>setNewModal({...newModal,season:v})} placeholder="例：2026春"/></FG>
           <R2>
-            <FG label="横マス数（10cm単位）"><Inp type="number" value={newModal.cols} onChange={v=>setNewModal({...newModal,cols:v})} placeholder="20"/></FG>
-            <FG label="縦マス数（10cm単位）"><Inp type="number" value={newModal.rows} onChange={v=>setNewModal({...newModal,rows:v})} placeholder="20"/></FG>
+            <FG label="横マス数（30cm単位）"><Inp type="number" value={newModal.cols} onChange={v=>setNewModal({...newModal,cols:v})} placeholder="20"/></FG>
+            <FG label="縦マス数（30cm単位）"><Inp type="number" value={newModal.rows} onChange={v=>setNewModal({...newModal,rows:v})} placeholder="20"/></FG>
           </R2>
           <div style={{fontSize:".72rem",color:TX3}}>
-            {newModal.cols&&newModal.rows?`= ${(newModal.cols*0.1).toFixed(1)}m × ${(newModal.rows*0.1).toFixed(1)}m（${(newModal.cols*newModal.rows*0.01).toFixed(1)}㎡）`:""}
+            {newModal.cols&&newModal.rows?`= ${(newModal.cols*0.3).toFixed(1)}m × ${(newModal.rows*0.3).toFixed(1)}m（${(newModal.cols*newModal.rows*0.09).toFixed(1)}㎡）`:""}
           </div>
           <div style={{fontSize:".7rem",color:"#888",marginTop:6,lineHeight:1.6}}>
-            💡 1マス=10cm。広い圃場は一部だけ描くか、マス数を増やせます（最大60×60推奨）。
+            💡 1マス=30cm。広い圃場は一部だけ描くか、マス数を増やせます（最大60×60推奨）。
           </div>
         </>}
       </ModalWithSave>
