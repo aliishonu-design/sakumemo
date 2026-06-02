@@ -1075,7 +1075,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.64</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.65</div>
       </div>
     </div>
   );
@@ -1538,7 +1538,7 @@ function FieldsScreen({ fields, setFields, setFieldsR, crops, setCrops, setCrops
       ))}
       <div style={S.sec}><span>🌱 栽培中（{crops.filter(c=>!c.ended).length}件）</span><button style={S.secBtn} onClick={()=>setMCrop({...eC,fieldIdx:0})}>＋ 品目追加</button></div>
       {!crops.filter(c=>!c.ended).length&&<div style={{color:TX3,fontSize:".82rem",padding:8,textAlign:"center"}}>栽培中の品目はありません</div>}
-      {crops.filter(c=>!c.ended).mapcrops.filter(c=>!c.ended).map((c)=>{ const i=crops.indexOf(c);
+      {crops.filter(c=>!c.ended).map((c)=>{ const i=crops.indexOf(c);
         const db=CDB[c.type]||{}; const f=fields[c.fieldIdx]||{};
         const isFruit=db.fruit||false;
         const days=daysSince(c.plantDate);
