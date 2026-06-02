@@ -1075,7 +1075,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.61</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.63</div>
       </div>
     </div>
   );
@@ -1556,16 +1556,13 @@ function FieldsScreen({ fields, setFields, setFieldsR, crops, setCrops, setCrops
               <span style={{fontSize:"1.85rem"}}>{db.e||"🌱"}</span>
               <div style={{flex:1,minWidth:0}}>
                 <div style={{fontWeight:700}}>{c.type==="custom"?c.customName||"カスタム":db.n||c.type}{c.variety?" ("+c.variety+")":""}</div>
-                <div style={{fontSize:".7rem",color:TX3,marginTop:1}}>{f.name||"?"} / {c.plantDate?(isFruit?yearsSincePlant+"年目":(c.cultivationType==="direct"?"播種":"定植")+days+"日目"):<span style={{color:WARN}}>⚠️ 定植日未設定</span>}{c.growEnv==="pot"&&c.potSize?" / "+c.potSize:""}</div>
-                <div style={{marginTop:6,display:"flex",flexWrap:"wrap",gap:4}}>
-                  {c.cultivationType==="direct"&&<Tag type="green">直播</Tag>}
-                  {c.cultivationType==="seedling"&&<Tag type="yellow">苗購入</Tag>}
-                  {c.stocks&&<Tag type="blue">👥{c.stocks}株</Tag>}
-                  {c.ridgeW&&<Tag type="gray">畝幅{c.ridgeW}cm</Tag>}
-                  {c.rows&&<Tag type="gray">{c.rows}条植え</Tag>}
-                  {c.rowSpace&&<Tag type="gray">条間{c.rowSpace}cm</Tag>}
-                  {c.plantSpace&&<Tag type="gray">株間{c.plantSpace}cm</Tag>}
-                  {germRate!==null&&<Tag type="green">発芽率{germRate}%</Tag>}
+                <div style={{fontSize:".72rem",color:TX3,marginTop:2,display:"flex",flexWrap:"wrap",gap:"2px 8px"}}>
+                  <span>📍{f.name||"?"}</span>
+                  {c.plantDate?<span>{isFruit?yearsSincePlant+"年目":(c.cultivationType==="direct"?"播種":"定植")+days+"日目"}</span>:<span style={{color:WARN}}>⚠️定植日未設定</span>}
+                  {c.stocks&&<span>👥{c.stocks}株</span>}
+                  {germRate!==null&&<span>🌱発芽率{germRate}%</span>}
+                  {c.ridgeW&&<span>畝{c.ridgeW}cm</span>}
+                  {c.plantSpace&&<span>株間{c.plantSpace}cm</span>}
                 </div>
               </div>
               {/* 生育進捗 */}
@@ -1595,8 +1592,9 @@ function FieldsScreen({ fields, setFields, setFieldsR, crops, setCrops, setCrops
                     setMCrop({...c,_idx:i,seedCost:c.seedCost||existingSeed?.amt||""});
                   }}>編集</button>
                   {!c.ended && <button style={{...S.btn,...{background:"#e67e22",color:"#fff",padding:"4px 10px",fontSize:".7rem",borderRadius:8,width:"auto",display:"inline-block"},marginTop:0}} onClick={()=>{
-                    if(!window.confirm("栽培を終了しますか？\n費用集計をレポートで確認できます。"))return;
-                    const updated={...c,ended:true,endDate:todayStr()};
+                    const _ed=window.prompt("栽培終了日を入力してください",todayStr());
+                    if(_ed===null)return;
+                    const updated={...c,ended:true,endDate:_ed||todayStr()};
                     const n=crops.map((x,j)=>j===i?updated:x);
                     setCrops(n,updated);
                     // 費用サマリー計算
@@ -1652,6 +1650,10 @@ function FieldsScreen({ fields, setFields, setFieldsR, crops, setCrops, setCrops
                       setCrops(crops.map((x,j)=>j===i?u:x),u);
                       showToast("終了日を更新しました");
                     }}>📅 {c.endDate||"日付未設定"}</button>
+                  <button style={{...S.btn,background:"#e0d9ce",color:"#5a5040",padding:"4px 10px",fontSize:".7rem",borderRadius:8,width:"auto"}}
+                    onClick={()=>{const d=window.prompt("終了日を変更",c.endDate||todayStr());if(d===null)return;const u={...c,endDate:d};setCrops(crops.map((x,j)=>j===i?u:x),u);showToast("終了日を更新しました");}}>📅 {c.endDate||"日付未設定"}</button>
+                  <button style={{...S.btn,background:"#e0d9ce",color:"#5a5040",padding:"4px 10px",fontSize:".7rem",borderRadius:8,width:"auto"}}
+                    onClick={()=>{const d=window.prompt("終了日を変更",c.endDate||todayStr());if(d===null)return;const u={...c,endDate:d};setCrops(crops.map((x,j)=>j===i?u:x),u);showToast("終了日を更新しました");}}>📅 {c.endDate||"日付未設定"}</button>
                   <button style={{...S.btn,background:"#aaa",color:"#fff",padding:"4px 10px",fontSize:".7rem",borderRadius:8,width:"auto"}}
                     onClick={()=>{if(!window.confirm("栽培中に戻しますか？"))return;const u={...c,ended:false,endDate:""};setCrops(crops.map((x,j)=>j===i?u:x),u);showToast("栽培中に戻しました");}}>再開</button>
                   <button style={{...S.btn,...S.btnR,...S.btnSm}}
