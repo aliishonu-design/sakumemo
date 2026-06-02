@@ -41,6 +41,8 @@ const equipToDb   = (o, uid) => ({ id:o.id||uid0(), user_id:uid, name:o.name||nu
 const equipFromDb = r => ({ id:r.id, name:r.name||"", cat:r.cat||"", status:r.status||"", price:r.price||"", date:r.date||"", note:r.note||"" });
 const costToDb    = (o, uid, fields) => ({ id:o.id, user_id:uid, field_id:(fields&&o.fieldIdx!==undefined&&o.fieldIdx!=="")?fields[o.fieldIdx]?.id||o.fieldId||null:o.fieldId||null, crop_id:o.cropId||null, cat:o.cat||null, name:o.name||null, amt:o.amt||null, date:o.date||null, qty:o.qty||null, qunit:o.qunit||null, note:o.note||null, master_id:o.masterId||null, work:o.work||null });
 const costFromDb  = (r, fields) => { const fi=fields.findIndex(f=>f.id===r.field_id); return { id:r.id, fieldId:r.field_id||"", fieldIdx:fi>=0?fi:0, cropId:r.crop_id||"", masterId:r.master_id||"", cat:r.cat||"", name:r.name||"", amt:r.amt||"", date:r.date||"", qty:r.qty||"", qunit:r.qunit||"", note:r.note||"", work:r.work||"" }; };
+const plotToDb    = (o, uid) => ({ id:o.id, user_id:uid, field_id:o.fieldId||null, name:o.name||null, cols:o.cols||20, rows:o.rows||20, cells:o.cells||[], season:o.season||null });
+const plotFromDb  = r => ({ id:r.id, fieldId:r.field_id||"", name:r.name||"", cols:r.cols||20, rows:r.rows||20, cells:Array.isArray(r.cells)?r.cells:(r.cells?JSON.parse(r.cells):[]), season:r.season||"" });
 
 // ============================================================
 // CONSTANTS
@@ -1075,7 +1077,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.67</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.68</div>
       </div>
     </div>
   );
@@ -2703,6 +2705,291 @@ function CostScreen({ fields, fertMs, pestMs, equips, costs, setCosts, logs, sho
   );
 }
 
+
+// PLOT (作付け図)
+function PlotScreen({ fields, crops, plots, setPlots, setPlotsR, showToast }) {
+  const [selFieldIdx, setSelFieldIdx] = useState(0);
+  const [editPlot, setEditPlot] = useState(null);     // 編集中の作付け図
+  const [paintCrop, setPaintCrop] = useState("");      // 現在塗る品目（"" = 消しゴム）
+  const [painting, setPainting] = useState(false);     // ドラッグ中
+  const [newModal, setNewModal] = useState(null);      // 新規作成モーダル
+
+  const selField = fields[selFieldIdx];
+  const fieldPlots = plots.filter(p=>p.fieldId===selField?.id);
+
+  // 品目→色のマッピング（科ごとに色分け）
+  const FAMILY_COLORS = {
+    "ナス科":"#e74c3c","ウリ科":"#27ae60","アブラナ科":"#9b59b6","マメ科":"#f39c12",
+    "キク科":"#16a085","セリ科":"#e67e22","ヒガンバナ科":"#8e44ad","ユリ科":"#8e44ad",
+    "イネ科":"#d4a017","バラ科":"#e84393","アカザ科":"#2ecc71","ヒユ科":"#2ecc71",
+    "アオイ科":"#00b894","サトイモ科":"#6c5ce7","ヤマノイモ科":"#a0522d","ヒルガオ科":"#fd79a8","タデ科":"#636e72",
+  };
+  const cropColor = cropId => {
+    if(!cropId) return "#f0ebe3";
+    const c = crops.find(x=>x.id===cropId);
+    if(!c) return "#ccc";
+    const fam = FAMILY_DB[c.type] || "";
+    return FAMILY_COLORS[fam] || "#95a5a6";
+  };
+  const cropEmoji = cropId => {
+    if(!cropId) return "";
+    const c = crops.find(x=>x.id===cropId);
+    if(!c) return "";
+    return (CDB[c.type]||{}).e || "🌱";
+  };
+  const cropName = cropId => {
+    const c = crops.find(x=>x.id===cropId);
+    if(!c) return "";
+    const db=CDB[c.type]||{};
+    return c.type==="custom"?(c.customName||"カスタム"):(db.n||c.type);
+  };
+
+  // セル取得・設定
+  const getCell = (plot, r, c) => {
+    const cell = plot.cells.find(x=>x.r===r && x.c===c);
+    return cell ? cell.cropId : "";
+  };
+  const setCell = (r, c) => {
+    if(!editPlot) return;
+    setEditPlot(prev => {
+      const cells = prev.cells.filter(x=>!(x.r===r && x.c===c));
+      if(paintCrop) cells.push({r, c, cropId:paintCrop});
+      return {...prev, cells};
+    });
+  };
+
+  // 連作チェック：同じセルに過去同じ科を植えていないか（他の作付け図の同座標）
+  const checkRotation = (plot) => {
+    const warnings = [];
+    const otherPlots = plots.filter(p=>p.fieldId===plot.fieldId && p.id!==plot.id);
+    plot.cells.forEach(cell=>{
+      if(!cell.cropId) return;
+      const c = crops.find(x=>x.id===cell.cropId);
+      if(!c) return;
+      const fam = FAMILY_DB[c.type];
+      const rot = ROTATION_DB[c.type];
+      if(!fam || !rot) return;
+      // 同座標の過去作付けをチェック
+      otherPlots.forEach(op=>{
+        const pastCell = op.cells.find(x=>x.r===cell.r && x.c===cell.c);
+        if(!pastCell) return;
+        const pc = crops.find(x=>x.id===pastCell.cropId);
+        if(!pc) return;
+        const pastFam = FAMILY_DB[pc.type];
+        if(rot.ng.includes(pastFam)){
+          warnings.push({r:cell.r, c:cell.c, crop:cropName(cell.cropId), past:cropName(pastCell.cropId), years:rot.years, season:op.season||op.name});
+        }
+      });
+    });
+    return warnings;
+  };
+
+  // 新規作成
+  const createPlot = () => {
+    if(!newModal.name){ showToast("名前を入力してください"); return; }
+    const plot = {
+      id: uid0(), fieldId: selField?.id||"", name: newModal.name,
+      cols: parseInt(newModal.cols)||20, rows: parseInt(newModal.rows)||20,
+      cells: [], season: newModal.season||"",
+    };
+    setPlots([...plots, plot], plot);
+    setNewModal(null);
+    setEditPlot(plot);
+    showToast("作付け図を作成しました");
+  };
+
+  const savePlot = () => {
+    if(!editPlot) return;
+    const n = plots.map(p=>p.id===editPlot.id?editPlot:p);
+    setPlots(n, editPlot);
+    setEditPlot(null);
+    showToast("保存しました");
+  };
+
+  const deletePlot = (plot) => {
+    if(!window.confirm("この作付け図を削除しますか？"))return;
+    dbDelete("plots", plot.id);
+    setPlotsR(plots.filter(p=>p.id!==plot.id));
+    if(editPlot?.id===plot.id) setEditPlot(null);
+    showToast("削除しました");
+  };
+
+  // 編集中の品目リスト（パレット）
+  const activeCrops = crops.filter(c=>!c.ended && c.fieldIdx===selFieldIdx);
+
+  // ───── 編集モード ─────
+  if(editPlot){
+    const warnings = checkRotation(editPlot);
+    const warnMap = {};
+    warnings.forEach(w=>{ warnMap[w.r+":"+w.c]=w; });
+    const cellSize = Math.max(18, Math.min(34, Math.floor(320/editPlot.cols)));
+    return (
+      <div style={S.scr} className="scr-inner">
+        <div style={{...S.sec,flexWrap:"wrap",gap:6}}>
+          <span>🗺️ {editPlot.name}</span>
+          <div style={{display:"flex",gap:6}}>
+            <button style={{...S.btn,...S.btnS,...S.btnSm}} onClick={()=>setEditPlot(null)}>← 戻る</button>
+            <button style={{...S.btn,background:G,color:"#fff",padding:"4px 12px",fontSize:".72rem",borderRadius:8,width:"auto"}} onClick={savePlot}>保存 ✓</button>
+          </div>
+        </div>
+
+        {/* 品目パレット */}
+        <div style={S.card}>
+          <div style={{fontSize:".74rem",fontWeight:700,color:"#5c3d1e",marginBottom:6}}>🎨 塗る品目を選択</div>
+          <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
+            <button onClick={()=>setPaintCrop("")}
+              style={{padding:"5px 10px",borderRadius:8,border:"2px solid "+(paintCrop===""?G:"#e0d9ce"),background:paintCrop===""?G3:"#fff",fontSize:".72rem",fontWeight:700,color:paintCrop===""?G:"#5a5040",cursor:"pointer"}}>
+              🧹 消しゴム
+            </button>
+            {activeCrops.map(c=>{
+              const db=CDB[c.type]||{};
+              const nm=c.type==="custom"?(c.customName||"カスタム"):(db.n||c.type);
+              return <button key={c.id} onClick={()=>setPaintCrop(c.id)}
+                style={{padding:"5px 10px",borderRadius:8,border:"2px solid "+(paintCrop===c.id?cropColor(c.id):"#e0d9ce"),background:paintCrop===c.id?cropColor(c.id):"#fff",color:paintCrop===c.id?"#fff":"#5a5040",fontSize:".72rem",fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:3}}>
+                <span style={{display:"inline-block",width:10,height:10,borderRadius:2,background:cropColor(c.id)}}/>
+                {db.e||"🌱"} {nm}{c.variety?"("+c.variety+")":""}
+              </button>;
+            })}
+            {activeCrops.length===0&&<div style={{fontSize:".74rem",color:TX3}}>この圃場に栽培中の品目がありません</div>}
+          </div>
+        </div>
+
+        {/* 連作警告 */}
+        {warnings.length>0&&<div style={{...S.card,background:"#fff3cd",border:"1px solid #ffc107"}}>
+          <div style={{fontSize:".76rem",fontWeight:700,color:"#856404",marginBottom:4}}>⚠️ 連作注意（{warnings.length}箇所）</div>
+          {warnings.slice(0,5).map((w,i)=>(
+            <div key={i} style={{fontSize:".7rem",color:"#856404",lineHeight:1.5}}>
+              ・{w.crop} は過去に{w.past}（{w.season}）→ 同じ科は{w.years}年空けて
+            </div>
+          ))}
+          {warnings.length>5&&<div style={{fontSize:".68rem",color:"#856404"}}>他 {warnings.length-5} 箇所</div>}
+        </div>}
+
+        {/* グリッド */}
+        <div style={{...S.card,overflowX:"auto",WebkitOverflowScrolling:"touch"}}>
+          <div style={{fontSize:".7rem",color:TX3,marginBottom:6}}>
+            {editPlot.cols}×{editPlot.rows}マス（{(editPlot.cols*0.1).toFixed(1)}m × {(editPlot.rows*0.1).toFixed(1)}m）· タップ/ドラッグで塗る
+          </div>
+          <div style={{display:"inline-block",userSelect:"none",touchAction:"none"}}
+            onMouseLeave={()=>setPainting(false)}>
+            {Array.from({length:editPlot.rows}).map((_,r)=>(
+              <div key={r} style={{display:"flex"}}>
+                {Array.from({length:editPlot.cols}).map((_,c)=>{
+                  const cid=getCell(editPlot,r,c);
+                  const warn=warnMap[r+":"+c];
+                  return <div key={c}
+                    onMouseDown={()=>{setPainting(true);setCell(r,c);}}
+                    onMouseEnter={()=>{if(painting)setCell(r,c);}}
+                    onMouseUp={()=>setPainting(false)}
+                    onTouchStart={()=>{setPainting(true);setCell(r,c);}}
+                    onTouchMove={e=>{
+                      const t=e.touches[0];
+                      const el=document.elementFromPoint(t.clientX,t.clientY);
+                      if(el&&el.dataset&&el.dataset.r!==undefined){
+                        setCell(parseInt(el.dataset.r),parseInt(el.dataset.c));
+                      }
+                    }}
+                    onTouchEnd={()=>setPainting(false)}
+                    data-r={r} data-c={c}
+                    style={{width:cellSize,height:cellSize,border:"1px solid #d5cdbf",background:cropColor(cid),
+                      display:"flex",alignItems:"center",justifyContent:"center",fontSize:cellSize>26?".7rem":".55rem",
+                      cursor:"pointer",position:"relative",boxSizing:"border-box"}}>
+                    {cropEmoji(cid)}
+                    {warn&&<span style={{position:"absolute",top:-1,right:-1,fontSize:".5rem"}}>⚠️</span>}
+                  </div>;
+                })}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* 凡例 */}
+        <div style={S.card}>
+          <div style={{fontSize:".74rem",fontWeight:700,color:"#5c3d1e",marginBottom:6}}>凡例</div>
+          {(()=>{
+            const used={};
+            editPlot.cells.forEach(cell=>{if(cell.cropId)used[cell.cropId]=(used[cell.cropId]||0)+1;});
+            const entries=Object.entries(used);
+            if(!entries.length) return <div style={{fontSize:".72rem",color:TX3}}>まだ何も塗られていません</div>;
+            return entries.map(([cid,cnt])=>(
+              <div key={cid} style={{display:"flex",alignItems:"center",gap:6,fontSize:".74rem",marginBottom:3}}>
+                <span style={{display:"inline-block",width:14,height:14,borderRadius:3,background:cropColor(cid),flexShrink:0}}/>
+                <span>{cropEmoji(cid)} {cropName(cid)}</span>
+                <span style={{color:TX3,marginLeft:"auto"}}>{cnt}マス（{(cnt*0.01).toFixed(2)}㎡）</span>
+              </div>
+            ));
+          })()}
+        </div>
+      </div>
+    );
+  }
+
+  // ───── 一覧モード ─────
+  return (
+    <div style={S.scr} className="scr-inner">
+      <div style={S.sec}><span>🗺️ 作付け図</span></div>
+      {fields.length===0
+        ? <div style={{color:TX3,fontSize:".82rem",padding:16,textAlign:"center"}}>先に圃場を登録してください</div>
+        : <>
+          <FG label="圃場を選択">
+            <Sel value={selFieldIdx} onChange={v=>setSelFieldIdx(parseInt(v))} options={fields.map((f,i)=>({value:i,label:f.name}))}/>
+          </FG>
+          <button style={{...S.btn,...S.btnG,marginBottom:10}}
+            onClick={()=>setNewModal({name:selField?.name?selField.name+"の作付け図":"作付け図",cols:"20",rows:"20",season:String(new Date().getFullYear())})}>
+            ＋ 新しい作付け図を作る
+          </button>
+          {fieldPlots.length===0&&<div style={{color:TX3,fontSize:".82rem",padding:16,textAlign:"center"}}>この圃場の作付け図はまだありません</div>}
+          {fieldPlots.map(p=>{
+            const filled=p.cells.filter(c=>c.cropId).length;
+            return (
+              <div key={p.id} style={S.card}>
+                <div style={{display:"flex",alignItems:"center",gap:8}}>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontWeight:700,fontSize:".9rem"}}>{p.name}</div>
+                    <div style={{fontSize:".7rem",color:TX3,marginTop:2}}>
+                      {p.cols}×{p.rows}マス · {p.season||""} · {filled}マス使用
+                    </div>
+                  </div>
+                  <button style={{...S.btn,background:G,color:"#fff",padding:"5px 12px",fontSize:".72rem",borderRadius:8,width:"auto",flexShrink:0}} onClick={()=>setEditPlot(p)}>編集</button>
+                  <button style={{...S.btn,...S.btnR,...S.btnSm,flexShrink:0}} onClick={()=>deletePlot(p)}>削除</button>
+                </div>
+                {/* ミニプレビュー */}
+                {filled>0&&<div style={{marginTop:8,display:"inline-block",border:"1px solid #e0d9ce",borderRadius:4,overflow:"hidden"}}>
+                  {Array.from({length:Math.min(p.rows,20)}).map((_,r)=>(
+                    <div key={r} style={{display:"flex"}}>
+                      {Array.from({length:Math.min(p.cols,20)}).map((_,c)=>{
+                        const cell=p.cells.find(x=>x.r===r&&x.c===c);
+                        return <div key={c} style={{width:7,height:7,background:cell?cropColor(cell.cropId):"#f0ebe3"}}/>;
+                      })}
+                    </div>
+                  ))}
+                </div>}
+              </div>
+            );
+          })}
+        </>}
+
+      {/* 新規作成モーダル */}
+      <ModalWithSave open={!!newModal} onClose={()=>setNewModal(null)} title="作付け図を新規作成" onSave={createPlot}>
+        {newModal&&<>
+          <FG label="名前"><Inp value={newModal.name} onChange={v=>setNewModal({...newModal,name:v})} placeholder="例：南畑 春作"/></FG>
+          <FG label="シーズン・年度"><Inp value={newModal.season} onChange={v=>setNewModal({...newModal,season:v})} placeholder="例：2026春"/></FG>
+          <R2>
+            <FG label="横マス数（10cm単位）"><Inp type="number" value={newModal.cols} onChange={v=>setNewModal({...newModal,cols:v})} placeholder="20"/></FG>
+            <FG label="縦マス数（10cm単位）"><Inp type="number" value={newModal.rows} onChange={v=>setNewModal({...newModal,rows:v})} placeholder="20"/></FG>
+          </R2>
+          <div style={{fontSize:".72rem",color:TX3}}>
+            {newModal.cols&&newModal.rows?`= ${(newModal.cols*0.1).toFixed(1)}m × ${(newModal.rows*0.1).toFixed(1)}m（${(newModal.cols*newModal.rows*0.01).toFixed(1)}㎡）`:""}
+          </div>
+          <div style={{fontSize:".7rem",color:"#888",marginTop:6,lineHeight:1.6}}>
+            💡 1マス=10cm。広い圃場は一部だけ描くか、マス数を増やせます（最大60×60推奨）。
+          </div>
+        </>}
+      </ModalWithSave>
+    </div>
+  );
+}
+
 // CHAT
 function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs, equips=[] }) {
   const [selCropId, setSelCropId] = useState("all");
@@ -3327,8 +3614,9 @@ function SettingsScreen({ showToast, user, uid, signOut, fields, crops, logs, fe
 // ============================================================
 const SCREENS = [
   { key:"home",    label:"ホーム",     icon:"🏡" },
-  { key:"master",  label:"資材・設備", icon:"📦" },
   { key:"fields",  label:"圃場・品目", icon:"🌾" },
+  { key:"plot",    label:"作付け図",   icon:"🗺️" },
+  { key:"master",  label:"資材・設備", icon:"📦" },
   { key:"cost",    label:"費用",       icon:"💰" },
   { key:"report",  label:"レポート",   icon:"📊" },
 ];
@@ -3354,6 +3642,7 @@ export default function App() {
   const [pestMs,   setPestMsR] = useState([]);
   const [equips,   setEquipsR] = useState([]);
   const [costs,    setCostsR]  = useState([]);
+  const [plots,    setPlotsR]  = useState([]);
   const [apiKey,   setApiKeyR] = useState(()=>localStorage.getItem("sakumemo_key")||"");
   const [toast,    setToast]   = useState("");
   const [initWork,     setInitWork]    = useState("");
@@ -3403,13 +3692,13 @@ export default function App() {
     if(!user)return;
     setDbLoad(true);
     const uid=user.id;
-    Promise.all([dbFetch("fields",uid),dbFetch("crops",uid),dbFetch("logs",uid),dbFetch("fert_masters",uid),dbFetch("pest_masters",uid),dbFetch("equipments",uid),dbFetch("costs",uid)]).then(([f,c,l,fm,pm,eq,co])=>{
+    Promise.all([dbFetch("fields",uid),dbFetch("crops",uid),dbFetch("logs",uid),dbFetch("fert_masters",uid),dbFetch("pest_masters",uid),dbFetch("equipments",uid),dbFetch("costs",uid),dbFetch("plots",uid)]).then(([f,c,l,fm,pm,eq,co,pl])=>{
         const rawF=f.map(fieldFromDb);
       const rawC=c.map(r=>cropFromDb(r,rawF));
       const rawL=l.map(r=>logFromDb(r,rawF));
       setFieldsR(rawF);setCropsR(rawC);setLogsR(rawL);
       setFertMsR(fm.map(fertMFromDb));setPestMsR(pm.map(pestMFromDb));
-      setEquipsR(eq.map(equipFromDb));setCostsR(co.map(r=>costFromDb(r,rawF)));
+      setEquipsR(eq.map(equipFromDb));setCostsR(co.map(r=>costFromDb(r,rawF)));setPlotsR((pl||[]).map(plotFromDb));
       setDbLoad(false);
     }).catch(e=>console.error("LOAD ERROR:", e));
   },[user]);
@@ -3428,6 +3717,7 @@ export default function App() {
     const row = costToDb(o, uid, fields);
     dbUpsert("costs", row);
   };
+  const dbSavePlot  = o => { if(!uid) return; dbUpsert("plots", plotToDb(o, uid)); };
 
   // ── State + DB同期（UIは即時更新・DB保存はバックグラウンド） ──
   const setFields = (arr, item) => { setFieldsR(arr); if(item) dbSaveField(item); };
@@ -3437,11 +3727,12 @@ export default function App() {
   const setPestMs = (arr, item) => { setPestMsR(arr); if(item) dbSavePestM(item); };
   const setEquips = (arr, item) => { setEquipsR(arr); if(item) dbSaveEquip(item); };
   const setCosts  = (arr, item) => { setCostsR(arr); if(item) dbSaveCost(item); };
+  const setPlots  = (arr, item) => { setPlotsR(arr); if(item) dbSavePlot(item); };
   const setApiKey = v => { setApiKeyR(v); localStorage.setItem("sakumemo_key",v); };
 
-  const signOut=async()=>{ await sb.auth.signOut(); setUser(null);setFieldsR([]);setCropsR([]);setLogsR([]);setFertMsR([]);setPestMsR([]);setEquipsR([]);setCostsR([]); };
+  const signOut=async()=>{ await sb.auth.signOut(); setUser(null);setFieldsR([]);setCropsR([]);setLogsR([]);setFertMsR([]);setPestMsR([]);setEquipsR([]);setCostsR([]);setPlotsR([]); };
 
-  const TITLES={home:"作物の記録アプリ",master:"マスター登録",fields:"圃場・品目管理",log:"作業記録",cost:"費用管理",report:"分析レポート",settings:"設定"};
+  const TITLES={home:"作物の記録アプリ",master:"マスター登録",fields:"圃場・品目管理",plot:"作付け図",log:"作業記録",cost:"費用管理",report:"分析レポート",settings:"設定"};
 
   const loading_screen = bg => <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100svh",background:"linear-gradient(135deg,"+GD+","+G+")"}}><style>{globalCss}</style><div style={{color:"#fff",textAlign:"center"}}><div style={{fontSize:"2rem",marginBottom:10}}>🌾</div><div>{bg}</div></div></div>;
 
@@ -3503,6 +3794,7 @@ export default function App() {
         }}
       /> }</>}
         
+        {scr==="plot"    &&<PlotScreen    fields={fields} crops={crops} plots={plots} setPlots={setPlots} setPlotsR={setPlotsR} showToast={showToast}/>}
         {scr==="cost"    &&<CostScreen    fields={fields} fertMs={fertMs} pestMs={pestMs} equips={equips} costs={costs} setCosts={setCosts} logs={logs} showToast={showToast}/>}
 
         {scr==="report"  &&<ReportScreen  fields={fields} crops={crops} logs={logs} costs={costs} fertMs={fertMs} pestMs={pestMs} equips={equips}/>}
