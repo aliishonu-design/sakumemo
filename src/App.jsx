@@ -985,7 +985,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.47</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.49</div>
       </div>
     </div>
   );
@@ -2263,13 +2263,6 @@ useEffect(()=>{
                 <span style={{fontSize:".8rem",color:TX3,whiteSpace:"nowrap"}}>L</span>
               </div>
             </FG>
-          </R2>
-          <R2>
-            <FG label="使用した土（培養土等）">
-              <Sel value={soilName} onChange={v=>setSoilName(v)}
-                options={[{value:"",label:"（選択）"},...fertMs.filter(f=>f.cat==="培養土・堆肥"||f.cat==="石灰・土壌改良材"||(f.name&&f.name.includes("土"))).map(f=>{return{value:f.name,label:f.name}})]}/>
-            </FG>
-            <FG label="土の量"><R2><Inp type="number" value={soilAmt} onChange={setSoilAmt} placeholder="例：14"/><span style={{fontSize:".8rem",color:TX3,whiteSpace:"nowrap",alignSelf:"center"}}>L</span></R2></FG>
           </R2>
         </div>}
         {works.has("event")&&<div style={panelStyle("#fff7ed","#fdba74")}><div style={ctitleStyle}>📋 生育イベント</div><FG label="イベント種別"><Sel value={eventType} onChange={setEventType} options={[{value:"",label:"選択してください"},...eventOpts.map(v=>({value:v,label:v}))]}/></FG><FG label="メモ"><Inp value={eventNote} onChange={setEventNote} placeholder="例：1番花開花、受粉実施"/></FG></div>}
