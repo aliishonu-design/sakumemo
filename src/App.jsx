@@ -1077,7 +1077,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.74</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.75</div>
       </div>
     </div>
   );
@@ -2721,6 +2721,9 @@ function PlotScreen({ fields, crops, plots, setPlots, setPlotsR, showToast }) {
   const [painting, setPainting] = useState(false);     // ドラッグ中
   const [dirty, setDirty] = useState(false);           // 未保存の変更あり
   const [newModal, setNewModal] = useState(null);      // 新規作成モーダル
+  const [selPos, setSelPos] = useState(null);          // 選択中のマス {r,c}
+  const [mode, setMode] = useState("paint");           // "paint"=塗る / "select"=位置選択
+  const undoStack = useRef([]);                        // アンドゥ履歴
 
   const selField = fields[selFieldIdx];
   const fieldPlots = plots.filter(p=>p.fieldId===selField?.id);
@@ -2755,9 +2758,25 @@ function PlotScreen({ fields, crops, plots, setPlots, setPlotsR, showToast }) {
     const cell = plot.cells.find(x=>x.r===r && x.c===c);
     return cell ? cell.cropId : "";
   };
+  const pushUndo = () => {
+    if(editPlot){
+      undoStack.current.push(JSON.stringify({cells:editPlot.cells, cols:editPlot.cols, rows:editPlot.rows}));
+      if(undoStack.current.length>50) undoStack.current.shift();
+    }
+  };
+  const doUndo = () => {
+    if(undoStack.current.length===0){ showToast("これ以上戻せません"); return; }
+    const prev = JSON.parse(undoStack.current.pop());
+    setEditPlot(p=>({...p, cells:prev.cells, cols:prev.cols, rows:prev.rows}));
+    setDirty(true);
+    showToast("元に戻しました");
+  };
   const setCell = (r, c, isDrag) => {
     if(!editPlot) return;
+    // 位置選択モード
+    if(mode==="select"){ if(!isDrag) setSelPos({r,c}); return; }
     if(!eraser && !paintCrop) return;
+    if(!isDrag) pushUndo();  // タップ開始時のみ履歴記録（ドラッグ中は記録しない）
     setEditPlot(prev => {
       const existing = prev.cells.find(x=>x.r===r && x.c===c);
       const cells = prev.cells.filter(x=>!(x.r===r && x.c===c));
@@ -2774,10 +2793,10 @@ function PlotScreen({ fields, crops, plots, setPlots, setPlotsR, showToast }) {
   };
 
   // 行・列の挿入/削除
-  const insertRow = (at) => { setEditPlot(p=>({...p, rows:p.rows+1, cells:p.cells.map(x=>x.r>=at?{...x,r:x.r+1}:x)})); setDirty(true); };
-  const deleteRow = (at) => { if(editPlot.rows<=1)return; setEditPlot(p=>({...p, rows:p.rows-1, cells:p.cells.filter(x=>x.r!==at).map(x=>x.r>at?{...x,r:x.r-1}:x)})); setDirty(true); };
-  const insertCol = (at) => { setEditPlot(p=>({...p, cols:p.cols+1, cells:p.cells.map(x=>x.c>=at?{...x,c:x.c+1}:x)})); setDirty(true); };
-  const deleteCol = (at) => { if(editPlot.cols<=1)return; setEditPlot(p=>({...p, cols:p.cols-1, cells:p.cells.filter(x=>x.c!==at).map(x=>x.c>at?{...x,c:x.c-1}:x)})); setDirty(true); };
+  const insertRow = (at) => { pushUndo(); setEditPlot(p=>({...p, rows:p.rows+1, cells:p.cells.map(x=>x.r>=at?{...x,r:x.r+1}:x)})); setDirty(true); };
+  const deleteRow = (at) => { if(editPlot.rows<=1)return; pushUndo(); setEditPlot(p=>({...p, rows:p.rows-1, cells:p.cells.filter(x=>x.r!==at).map(x=>x.r>at?{...x,r:x.r-1}:x)})); setDirty(true); setSelPos(null); };
+  const insertCol = (at) => { pushUndo(); setEditPlot(p=>({...p, cols:p.cols+1, cells:p.cells.map(x=>x.c>=at?{...x,c:x.c+1}:x)})); setDirty(true); };
+  const deleteCol = (at) => { if(editPlot.cols<=1)return; pushUndo(); setEditPlot(p=>({...p, cols:p.cols-1, cells:p.cells.filter(x=>x.c!==at).map(x=>x.c>at?{...x,c:x.c-1}:x)})); setDirty(true); setSelPos(null); };
 
   // 連作チェック
   const checkRotation = (plot) => {
@@ -2848,6 +2867,15 @@ function PlotScreen({ fields, crops, plots, setPlots, setPlotsR, showToast }) {
   // 編集中の状態をrefに保持し、アンマウント時（別画面移動時）に自動保存
   const editStateRef = useRef({editPlot:null, dirty:false});
   useEffect(()=>{ editStateRef.current={editPlot, dirty}; },[editPlot, dirty]);
+  // Ctrl+Z / Cmd+Z でアンドゥ
+  useEffect(()=>{
+    if(!editPlot) return;
+    const onKey = e => {
+      if((e.ctrlKey||e.metaKey) && e.key==="z"){ e.preventDefault(); doUndo(); }
+    };
+    window.addEventListener("keydown", onKey);
+    return ()=>window.removeEventListener("keydown", onKey);
+  },[editPlot]);
   useEffect(()=>{
     return ()=>{
       const {editPlot:ep, dirty:d} = editStateRef.current;
@@ -2891,16 +2919,33 @@ function PlotScreen({ fields, crops, plots, setPlots, setPlotsR, showToast }) {
               </div>}
         </div>
 
-        {/* 行・列の編集 */}
+        {/* モード切替 + アンドゥ */}
         <div style={S.card}>
-          <div style={{fontSize:".74rem",fontWeight:700,color:"#5c3d1e",marginBottom:6}}>📐 サイズ調整（1マス{m===1?"1m":"30cm"}）</div>
-          <div style={{display:"flex",gap:6,flexWrap:"wrap",fontSize:".72rem"}}>
-            <button style={{...S.btn,...S.btnS,padding:"5px 10px",fontSize:".72rem",borderRadius:8,width:"auto"}} onClick={()=>insertCol(editPlot.cols)}>＋列（横+1）</button>
-            <button style={{...S.btn,...S.btnS,padding:"5px 10px",fontSize:".72rem",borderRadius:8,width:"auto"}} onClick={()=>deleteCol(editPlot.cols-1)}>−列（横-1）</button>
-            <button style={{...S.btn,...S.btnS,padding:"5px 10px",fontSize:".72rem",borderRadius:8,width:"auto"}} onClick={()=>insertRow(editPlot.rows)}>＋行（縦+1）</button>
-            <button style={{...S.btn,...S.btnS,padding:"5px 10px",fontSize:".72rem",borderRadius:8,width:"auto"}} onClick={()=>deleteRow(editPlot.rows-1)}>−行（縦-1）</button>
+          <div style={{display:"flex",gap:6,alignItems:"center",marginBottom:8}}>
+            <button onClick={()=>{setMode("paint");setSelPos(null);}}
+              style={{flex:1,padding:"7px 6px",border:"2px solid "+(mode==="paint"?G2:"#e0d9ce"),borderRadius:8,background:mode==="paint"?G3:"#fff",fontSize:".74rem",fontWeight:700,color:mode==="paint"?G:"#5a5040",cursor:"pointer"}}>🖌️ 塗る</button>
+            <button onClick={()=>setMode("select")}
+              style={{flex:1,padding:"7px 6px",border:"2px solid "+(mode==="select"?G2:"#e0d9ce"),borderRadius:8,background:mode==="select"?G3:"#fff",fontSize:".74rem",fontWeight:700,color:mode==="select"?G:"#5a5040",cursor:"pointer"}}>📍 位置選択</button>
+            <button onClick={doUndo}
+              style={{padding:"7px 12px",border:"1px solid #e0d9ce",borderRadius:8,background:"#fff",fontSize:".74rem",fontWeight:700,color:"#5a5040",cursor:"pointer"}}>↩️ 戻す</button>
           </div>
-          <div style={{fontSize:".68rem",color:TX3,marginTop:5}}>
+          {mode==="select"
+            ? <div style={{fontSize:".72rem",color:"#5c3d1e",marginBottom:6}}>
+                {selPos ? `選択中: ${selPos.r+1}行 ${selPos.c+1}列目` : "グリッドのマスをタップして位置を選んでください"}
+              </div>
+            : <div style={{fontSize:".7rem",color:TX3,marginBottom:6}}>「位置選択」モードで挿入・削除する位置を指定できます</div>}
+          {/* 行・列の挿入削除（選択位置基準）*/}
+          <div style={{display:"flex",gap:5,flexWrap:"wrap",fontSize:".7rem"}}>
+            <button disabled={!selPos} style={{...S.btn,...S.btnS,padding:"5px 9px",fontSize:".7rem",borderRadius:8,width:"auto",opacity:selPos?1:.4}} onClick={()=>selPos&&insertCol(selPos.c)}>← 左に列挿入</button>
+            <button disabled={!selPos} style={{...S.btn,...S.btnS,padding:"5px 9px",fontSize:".7rem",borderRadius:8,width:"auto",opacity:selPos?1:.4}} onClick={()=>selPos&&insertCol(selPos.c+1)}>右に列挿入 →</button>
+            <button disabled={!selPos} style={{...S.btn,...S.btnR,padding:"5px 9px",fontSize:".7rem",borderRadius:8,width:"auto",opacity:selPos?1:.4}} onClick={()=>selPos&&deleteCol(selPos.c)}>この列を削除</button>
+          </div>
+          <div style={{display:"flex",gap:5,flexWrap:"wrap",fontSize:".7rem",marginTop:5}}>
+            <button disabled={!selPos} style={{...S.btn,...S.btnS,padding:"5px 9px",fontSize:".7rem",borderRadius:8,width:"auto",opacity:selPos?1:.4}} onClick={()=>selPos&&insertRow(selPos.r)}>↑ 上に行挿入</button>
+            <button disabled={!selPos} style={{...S.btn,...S.btnS,padding:"5px 9px",fontSize:".7rem",borderRadius:8,width:"auto",opacity:selPos?1:.4}} onClick={()=>selPos&&insertRow(selPos.r+1)}>下に行挿入 ↓</button>
+            <button disabled={!selPos} style={{...S.btn,...S.btnR,padding:"5px 9px",fontSize:".7rem",borderRadius:8,width:"auto",opacity:selPos?1:.4}} onClick={()=>selPos&&deleteRow(selPos.r)}>この行を削除</button>
+          </div>
+          <div style={{fontSize:".68rem",color:TX3,marginTop:6}}>
             現在 {editPlot.cols}×{editPlot.rows}マス = {(editPlot.cols*m).toFixed(1)}m × {(editPlot.rows*m).toFixed(1)}m（{(editPlot.cols*editPlot.rows*cellArea(editPlot)).toFixed(1)}㎡）
           </div>
         </div>
@@ -2942,9 +2987,10 @@ function PlotScreen({ fields, crops, plots, setPlots, setPlotsR, showToast }) {
                     }}
                     onTouchEnd={()=>setPainting(false)}
                     data-r={r} data-c={c}
-                    style={{width:cellSize,height:cellSize,border:"1px solid #d5cdbf",background:cropColor(cid),
+                    style={{width:cellSize,height:cellSize,border:(selPos&&selPos.r===r&&selPos.c===c)?"2px solid #2d6a3f":"1px solid #d5cdbf",background:cropColor(cid),
                       display:"flex",alignItems:"center",justifyContent:"center",fontSize:cellSize>26?".7rem":".55rem",
-                      cursor:"pointer",position:"relative",boxSizing:"border-box"}}>
+                      cursor:"pointer",position:"relative",boxSizing:"border-box",
+                      boxShadow:(selPos&&selPos.r===r&&selPos.c===c)?"inset 0 0 0 1px #fff":"none"}}>
                     {cropEmoji(cid)}
                     {warn&&<span style={{position:"absolute",top:-1,right:-1,fontSize:".5rem"}}>⚠️</span>}
                   </div>;
@@ -2983,7 +3029,7 @@ function PlotScreen({ fields, crops, plots, setPlots, setPlotsR, showToast }) {
         ? <div style={{color:TX3,fontSize:".82rem",padding:16,textAlign:"center"}}>先に圃場を登録してください</div>
         : <>
           <FG label="圃場を選択">
-            <Sel value={selFieldIdx} onChange={v=>setSelFieldIdx(parseInt(v))} options={fields.map((f,i)=>({value:i,label:f.name}))}/>
+            <Sel value={selFieldIdx} onChange={v=>{setSelFieldIdx(parseInt(v));setEditPlot(null);}} options={fields.map((f,i)=>({value:i,label:f.name}))}/>
           </FG>
           <button style={{...S.btn,...S.btnG,marginBottom:10}}
             onClick={()=>setNewModal({name:selField?.name?selField.name+"の作付け図":"作付け図",widthM:"6",heightM:"6",cols:"20",rows:"20",cellSize:"30",season:String(new Date().getFullYear())})}>
