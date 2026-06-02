@@ -1077,7 +1077,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.70</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.71</div>
       </div>
     </div>
   );
@@ -1643,8 +1643,6 @@ function FieldsScreen({ fields, setFields, setFieldsR, crops, setCrops, setCrops
                       setCrops(crops.map((x,j)=>j===i?u:x),u);
                       showToast("終了日を更新しました");
                     }}>📅 {c.endDate||"日付未設定"}</button>
-                  <button style={{...S.btn,background:"#e0d9ce",color:"#5a5040",padding:"4px 10px",fontSize:".7rem",borderRadius:8,width:"auto"}}
-                    onClick={()=>{const d=window.prompt("終了日を変更",c.endDate||todayStr());if(d===null)return;const u={...c,endDate:d};setCrops(crops.map((x,j)=>j===i?u:x),u);showToast("終了日を更新しました");}}>📅 {c.endDate||"日付未設定"}</button>
                   <button style={{...S.btn,background:"#aaa",color:"#fff",padding:"4px 10px",fontSize:".7rem",borderRadius:8,width:"auto"}}
                     onClick={()=>{if(!window.confirm("栽培中に戻しますか？"))return;const u={...c,ended:false,endDate:""};setCrops(crops.map((x,j)=>j===i?u:x),u);showToast("栽培中に戻しました");}}>再開</button>
                   <button style={{...S.btn,...S.btnR,...S.btnSm}}
@@ -2718,7 +2716,7 @@ function CostScreen({ fields, fertMs, pestMs, equips, costs, setCosts, logs, sho
 function PlotScreen({ fields, crops, plots, setPlots, setPlotsR, showToast }) {
   const [selFieldIdx, setSelFieldIdx] = useState(0);
   const [editPlot, setEditPlot] = useState(null);     // 編集中の作付け図
-  const [paintCrop, setPaintCrop] = useState("");      // 現在塗る品目（"" = 消しゴム）
+  const [paintCrop, setPaintCrop] = useState("");      // 現在塗る品目
   const [painting, setPainting] = useState(false);     // ドラッグ中
   const [newModal, setNewModal] = useState(null);      // 新規作成モーダル
 
@@ -2732,18 +2730,16 @@ function PlotScreen({ fields, crops, plots, setPlots, setPlotsR, showToast }) {
     "イネ科":"#d4a017","バラ科":"#e84393","アカザ科":"#2ecc71","ヒユ科":"#2ecc71",
     "アオイ科":"#00b894","サトイモ科":"#6c5ce7","ヤマノイモ科":"#a0522d","ヒルガオ科":"#fd79a8","タデ科":"#636e72",
   };
+  const activeCrops = crops.filter(c=>!c.ended && c.fieldIdx===selFieldIdx);
+  const PALETTE30=["#e74c3c","#3498db","#2ecc71","#f39c12","#9b59b6","#1abc9c","#e67e22","#34495e","#e84393","#00b894","#fdcb6e","#6c5ce7","#d63031","#0984e3","#00cec9","#fab1a0","#a29bfe","#ff7675","#55efc4","#ffeaa7","#fd79a8","#74b9ff","#81ecec","#ff7f50","#badc58","#f0932b","#eb4d4b","#22a6b3","#be2edd","#7ed6df"];
   const cropColor = cropId => {
     if(!cropId) return "#f0ebe3";
-    const c = crops.find(x=>x.id===cropId);
-    if(!c) return "#ccc";
-    const fam = FAMILY_DB[c.type] || "";
-    const base = FAMILY_COLORS[fam] || "#95a5a6";
-    // 同じ科の作物を区別するため、cropIdのハッシュで明度を少しずらす
+    // 圃場内の品目を登録順に並べ、その順番で30色パレットを割り当て
+    const idx = activeCrops.findIndex(x=>x.id===cropId);
+    if(idx>=0) return PALETTE30[idx%30];
+    // activeCrops外（過去作付けなど）はハッシュで割り当て
     let h=0; for(let i=0;i<cropId.length;i++) h=(h*31+cropId.charCodeAt(i))&0xffff;
-    const shift=(h%5-2)*14; // -28〜+28
-    const adj=hex=>{const n=Math.max(0,Math.min(255,parseInt(hex,16)+shift));return n.toString(16).padStart(2,"0");};
-    const r=adj(base.slice(1,3)),g=adj(base.slice(3,5)),b=adj(base.slice(5,7));
-    return "#"+r+g+b;
+    return PALETTE30[h%30];
   };
   const cropEmoji = cropId => {
     if(!cropId) return "";
@@ -2836,8 +2832,6 @@ function PlotScreen({ fields, crops, plots, setPlots, setPlotsR, showToast }) {
   };
 
   // 編集中の品目リスト（パレット）
-  const activeCrops = crops.filter(c=>!c.ended && c.fieldIdx===selFieldIdx);
-
   // ───── 編集モード ─────
   if(editPlot){
     const warnings = checkRotation(editPlot);
@@ -2861,7 +2855,7 @@ function PlotScreen({ fields, crops, plots, setPlots, setPlotsR, showToast }) {
             ? <div style={{fontSize:".74rem",color:TX3}}>この圃場に栽培中の品目がありません</div>
             : <div style={{display:"flex",alignItems:"center",gap:8}}>
                 <Sel value={paintCrop} onChange={v=>setPaintCrop(v)}
-                  options={[{value:"",label:"🧹 消しゴム"},...activeCrops.map(c=>{const db=CDB[c.type]||{};const nm=c.type==="custom"?(c.customName||"カスタム"):(db.n||c.type);return{value:c.id,label:(db.e||"🌱")+" "+nm+(c.variety?"("+c.variety+")":"")};})]}/>
+                  options={[{value:"",label:"（品目を選択）"},...activeCrops.map(c=>{const db=CDB[c.type]||{};const nm=c.type==="custom"?(c.customName||"カスタム"):(db.n||c.type);return{value:c.id,label:(db.e||"🌱")+" "+nm+(c.variety?"("+c.variety+")":"")};})]}/>
                 <span style={{display:"inline-block",width:24,height:24,borderRadius:5,background:cropColor(paintCrop),border:"1px solid #d5cdbf",flexShrink:0}}/>
               </div>}
         </div>
@@ -2880,7 +2874,7 @@ function PlotScreen({ fields, crops, plots, setPlots, setPlotsR, showToast }) {
         {/* グリッド */}
         <div style={{...S.card,overflowX:"auto",WebkitOverflowScrolling:"touch"}}>
           <div style={{fontSize:".7rem",color:TX3,marginBottom:6}}>
-            {editPlot.cols}×{editPlot.rows}マス（{(editPlot.cols*0.3).toFixed(1)}m × {(editPlot.rows*0.3).toFixed(1)}m）· タップ/ドラッグで塗る
+            {editPlot.cols}×{editPlot.rows}マス（{(editPlot.cols*0.3).toFixed(1)}m × {(editPlot.rows*0.3).toFixed(1)}m）· タップで塗る/消す・ドラッグで塗る
           </div>
           <div style={{display:"inline-block",userSelect:"none",touchAction:"none"}}
             onMouseLeave={()=>setPainting(false)}>
