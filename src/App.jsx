@@ -52,18 +52,18 @@ const CDB = {
   corn:         { n:"トウモロコシ",e:"🌽", d:80, hd:14,  w:2, cat:"イネ科",   hs:"絹糸が茶色になり、押すと乳液が出る状態",      events:["雄穂開花","絹糸出現","収穫"], maturity:{early:70,mid:80,late:95} },
   soba:         { n:"そば",       e:"🌿", d:75,  w:3, cat:"タデ科",   hs:"実の7〜8割が黒褐色になったら",                events:["開花","収穫"], maturity:{early:65,mid:75,late:85} },
   // ─── ナス科 ───
-  tomato:       { n:"トマト",     e:"🍅", d:90, hd:60,  w:2, cat:"ナス科",   hs:"果皮が均一に赤くなりヘタが反り返ったら",      events:["開花","着果","収穫"], maturity:{early:75,mid:90,late:110} },
-  cherry_tomato:{ n:"ミニトマト", e:"🍅", d:75,  w:2, cat:"ナス科",   hs:"鮮やかな赤になりわずかに柔らかくなったら",    events:["開花","着果","収穫"], maturity:{early:60,mid:75,late:90} },
-  eggplant:     { n:"ナス",       e:"🍆", d:75, hd:90,  w:1, cat:"ナス科",   hs:"果皮に光沢・ガクのとげが鋭い状態",            events:["開花","収穫"], maturity:{early:65,mid:75,late:90} },
-  pepper:       { n:"ピーマン",   e:"🫑", d:70, hd:90,  w:2, cat:"ナス科",   hs:"長さ6〜7cm・果肉が厚くなったら",              events:["開花","収穫"], maturity:{early:60,mid:70,late:85} },
+  tomato:       { n:"トマト",     e:"🍅", d:90, hd:60,  w:2, cat:"ナス科",   hs:"果皮が均一に赤くなりヘタが反り返ったら",      events:["第1花房開花","着果","摘芯","第1果肥大","色づき開始","収穫開始","収穫終了","わき芽処理","摘花","異常発生"], maturity:{early:75,mid:90,late:110} },
+  cherry_tomato:{ n:"ミニトマト", e:"🍅", d:75,  w:2, cat:"ナス科",   hs:"鮮やかな赤になりわずかに柔らかくなったら",    events:["第1花房開花","着果","摘芯","色づき開始","収穫開始","収穫終了","異常発生"], maturity:{early:60,mid:75,late:90} },
+  eggplant:     { n:"ナス",       e:"🍆", d:75, hd:90,  w:1, cat:"ナス科",   hs:"果皮に光沢・ガクのとげが鋭い状態",            events:["一番花開花","着果","摘芯","更新剪定","収穫開始","収穫終了","異常発生"], maturity:{early:65,mid:75,late:90} },
+  pepper:       { n:"ピーマン",   e:"🫑", d:70, hd:90,  w:2, cat:"ナス科",   hs:"長さ6〜7cm・果肉が厚くなったら",              events:["一番花開花","着果","摘芯","収穫開始","収穫終了","異常発生"], maturity:{early:60,mid:70,late:85} },
   potato:       { n:"ジャガイモ", e:"🥔", d:90,  w:3, cat:"ナス科",   hs:"地上部の葉が黄化・枯死したら掘る",            events:["萌芽","開花","地上部枯死"], maturity:{early:75,mid:90,late:110} },
   // ─── ウリ科 ───
-  cucumber:     { n:"キュウリ",   e:"🥒", d:55, hd:60,  w:1, cat:"ウリ科",   hs:"長さ18〜22cm・イボが鮮明で張りがあるうちに",  events:["開花","収穫"], maturity:{early:45,mid:55,late:65} },
-  zucchini:     { n:"ズッキーニ", e:"🥒", d:55, hd:60,  w:1, cat:"ウリ科",   hs:"長さ20cm前後・果皮にツヤがあるうちに",        events:["開花","収穫"], maturity:{early:45,mid:55,late:65} },
-  pumpkin:      { n:"カボチャ",   e:"🎃", d:100, w:3, cat:"ウリ科",   hs:"ヘタがコルク化し葉が枯れ始めたら",            events:["開花","受粉","着果","収穫"], maturity:{early:85,mid:100,late:120} },
-  watermelon:   { n:"スイカ",     e:"🍉", d:85,  w:3, cat:"ウリ科",   hs:"ヘタの巻きひげが枯れ叩くと濁音がする状態",    events:["開花","受粉","着果","収穫"], maturity:{early:75,mid:85,late:100} },
-  melon:        { n:"メロン",     e:"🍈", d:90,  w:3, cat:"ウリ科",   hs:"ヘタの周りが黄色くなり香りが出たら",          events:["開花","受粉","着果","収穫"], maturity:{early:75,mid:90,late:110} },
-  bitter_gourd: { n:"ゴーヤ",     e:"🌿", d:60,  w:1, cat:"ウリ科",   hs:"長さ20cm前後・黄緑色均一の状態",              events:["開花","着果","収穫"], maturity:{early:50,mid:60,late:75} },
+  cucumber:     { n:"キュウリ",   e:"🥒", d:55, hd:60,  w:1, cat:"ウリ科",   hs:"長さ18〜22cm・イボが鮮明で張りがあるうちに",  events:["雄花開花","雌花開花","着果","摘芯","収穫開始","収穫終了","摘葉","異常発生"], maturity:{early:45,mid:55,late:65} },
+  zucchini:     { n:"ズッキーニ", e:"🥒", d:55, hd:60,  w:1, cat:"ウリ科",   hs:"長さ20cm前後・果皮にツヤがあるうちに",        events:["雄花開花","雌花開花","着果","摘芯","収穫","異常発生"], maturity:{early:45,mid:55,late:65} },
+  pumpkin:      { n:"カボチャ",   e:"🎃", d:100, w:3, cat:"ウリ科",   hs:"ヘタがコルク化し葉が枯れ始めたら",            events:["雄花開花","雌花開花","受粉","着果","摘芯","収穫","異常発生"], maturity:{early:85,mid:100,late:120} },
+  watermelon:   { n:"スイカ",     e:"🍉", d:85,  w:3, cat:"ウリ科",   hs:"ヘタの巻きひげが枯れ叩くと濁音がする状態",    events:["雄花開花","雌花開花","受粉","着果","摘芯","玉返し","収穫","異常発生"], maturity:{early:75,mid:85,late:100} },
+  melon:        { n:"メロン",     e:"🍈", d:90,  w:3, cat:"ウリ科",   hs:"ヘタの周りが黄色くなり香りが出たら",          events:["雄花開花","雌花開花","受粉","着果","摘芯","摘果","収穫","異常発生"], maturity:{early:75,mid:90,late:110} },
+  bitter_gourd: { n:"ゴーヤ",     e:"🌿", d:60,  w:1, cat:"ウリ科",   hs:"長さ20cm前後・黄緑色均一の状態",              events:["開花","着果","摘芯","収穫開始","収穫終了","異常発生"], maturity:{early:50,mid:60,late:75} },
   // ─── アブラナ科 ───
   cabbage:      { n:"キャベツ",   e:"🥬", d:90,  w:2, cat:"アブラナ科",hs:"結球が固く締まり外葉に張りがある状態",        events:["結球開始","収穫"], maturity:{early:70,mid:90,late:120} },
   hakusai:      { n:"白菜",       e:"🥬", d:90,  w:2, cat:"アブラナ科",hs:"頭部を押して固く締まっていたら",              events:["結球開始","収穫"], maturity:{early:70,mid:90,late:110} },
@@ -94,7 +94,7 @@ const CDB = {
   spinach:      { n:"ほうれん草", e:"🌿", d:40,  w:1, cat:"アカザ科",  hs:"草丈20〜25cm・本葉がしっかり展開したら",      events:["本葉展開","収穫"], maturity:{early:35,mid:40,late:50} },
   // ─── タデ科 ───
   // ─── オクラ（アオイ科）───
-  okra:         { n:"オクラ",     e:"🌿", d:60, hd:60,  w:1, cat:"アオイ科",  hs:"長さ7〜8cm・開花後4〜5日で収穫",              events:["開花","収穫"], maturity:{early:55,mid:60,late:70} },
+  okra:         { n:"オクラ",     e:"🌿", d:60, hd:60,  w:1, cat:"アオイ科",  hs:"長さ7〜8cm・開花後4〜5日で収穫",              events:["開花","摘芯","収穫開始","収穫終了","異常発生"], maturity:{early:55,mid:60,late:70} },
   // ─── 果樹（バラ科）───
   apple:        { n:"リンゴ",     e:"🍎", d:150, w:5, cat:"果樹/バラ科",hs:"品種固有の色に着色し、甘みが出たら",        events:["開花","摘果","着色","収穫"], maturity:{early:120,mid:150,late:180}, fruit:true },
   pear:         { n:"ナシ",       e:"🍐", d:140, w:5, cat:"果樹/バラ科",hs:"果皮が品種特有の色になり香りが出たら",       events:["開花","摘果","収穫"], maturity:{early:120,mid:140,late:160}, fruit:true },
@@ -985,7 +985,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.49</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.53</div>
       </div>
     </div>
   );
@@ -2331,13 +2331,7 @@ useEffect(()=>{
           </div>
         </div>}
         {works.has("discard")&&<div style={panelStyle("#fef2f2","#fca5a5")}><div style={ctitleStyle}>♻️ 廃棄・株数調整</div><R2><FG label="廃棄株数"><Inp type="number" value={discardCnt} onChange={setDiscardCnt} placeholder="0"/></FG><FG label="追加株数"><Inp type="number" value={addCnt} onChange={setAddCnt} placeholder="0"/></FG></R2></div>}
-        {works.has("repot")&&<div style={panelStyle("#f0f4ff","#c4b5fd")}><div style={ctitleStyle}>🪣 植え替え詳細</div>
-          <R2>
-
-            <FG label="新しい容量（L）"><Inp type="number" value={fertAmt} onChange={setFertAmt} placeholder="例：15"/></FG>
-          </R2>
-          <div style={{fontSize:".72rem",color:TX3}}>メモ欄に植え替え理由など記録してください</div>
-        </div>}
+        
         {works.has("equip")&&<div style={panelStyle("#f5f0ff","#c4b5fd")}>
           <div style={{...ctitleStyle,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
             <span>🏗️ 資材・設備作業</span>
