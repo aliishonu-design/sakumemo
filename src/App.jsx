@@ -985,83 +985,44 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.53</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.58</div>
       </div>
     </div>
   );
 }
 
-function HomeScreen({ fields, crops, logs, costs, onEditCrop }) {
+function HomeScreen({ fields, crops, logs, costs, onEditCrop, onNew }) {
   const [wx, setWx] = useState(null);
-
   const [wxFieldIdx, setWxFieldIdx] = useState(0);
   const wxField = fields[wxFieldIdx] || fields[0];
   const addr0   = wxField?.addr || "";
   useEffect(() => { fetchWeather(addr0).then(setWx); }, [addr0]);
 
-
   return (
-    <div style={{padding:"10px 12px 16px"}}>
-
+    <div style={{padding:"10px 12px 8px"}}>
+      {/* 天気ウィジェット */}
       {wx && (
         <div style={{background:"linear-gradient(135deg,#1565a8,#3498db)",borderRadius:14,padding:"13px 15px",color:"#fff",marginBottom:9}}>
-          {fields.length > 1 && (
-            <div style={{display:"flex",gap:5,marginBottom:10,flexWrap:"wrap"}}>
-              {fields.map((f,i)=>(
-                <button key={f.id} onClick={()=>setWxFieldIdx(i)}
-                  style={{background:wxFieldIdx===i?"rgba(255,255,255,.9)":"rgba(255,255,255,.18)",color:wxFieldIdx===i?"#1565a8":"#fff",border:"1px solid rgba(255,255,255,.3)",borderRadius:999,padding:"3px 10px",fontSize:".71rem",cursor:"pointer",fontFamily:"inherit",fontWeight:wxFieldIdx===i?700:400}}>
-                  {f.name}
-                </button>
-              ))}
-            </div>
-          )}
-          <div style={{display:"flex",alignItems:"center",gap:11,flexWrap:"wrap"}}>
-            <span style={{fontSize:"2.3rem"}}>{wxIcon(wx.code)}</span>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
             <div>
-              <div style={{fontSize:"1.8rem",fontWeight:700,lineHeight:1}}>{wx.temp}°C</div>
-              <div style={{fontSize:".72rem",opacity:.8,marginTop:2}}>{wx.label} / {wxLabel(wx.code)}</div>
-              <div style={{display:"flex",gap:8,marginTop:3,fontSize:".68rem",opacity:.78}}><span>💧{wx.rain}mm</span><span>💨{wx.wind}m/s</span><span>💦{wx.humid}%</span></div>
+              <div style={{fontSize:"1.6rem",fontWeight:700}}>{wx.temp}°C</div>
+              <div style={{fontSize:".78rem",opacity:.85,marginTop:2}}>{wx.desc}</div>
+              <div style={{fontSize:".72rem",opacity:.7,marginTop:2}}>💧{wx.humidity}% 💨{wx.wind}m/s</div>
             </div>
-            <div style={{background:"rgba(255,255,255,.19)",borderRadius:9,padding:"7px 11px",fontSize:".73rem",lineHeight:1.4,textAlign:"center",marginLeft:"auto"}}>{wxAdvice(wx)}</div>
+            <div style={{textAlign:"right"}}>
+              <div style={{fontSize:"2rem"}}>{wx.icon}</div>
+              <div style={{fontSize:".65rem",opacity:.7,marginTop:2}}>{wxField?.name||""}  {wx.city}</div>
+            </div>
           </div>
-          {/* 時間別予報 */}
-          {wx.hourly && wx.hourly.length > 0 && (
-            <div style={{marginTop:10}}>
-              <div style={{fontSize:".63rem",opacity:.6,marginBottom:5}}>時間別予報</div>
-              <div style={{display:"flex",gap:5,overflowX:"auto",paddingBottom:4,WebkitOverflowScrolling:"touch"}}>
-                {wx.hourly.filter((_,i)=>i%2===0).slice(0,12).map((h,i)=>(
-                  <div key={i} style={{flexShrink:0,background:"rgba(255,255,255,.13)",borderRadius:9,padding:"5px 7px",textAlign:"center",minWidth:44}}>
-                    <div style={{fontSize:".6rem",opacity:.7}}>{h.hour}時</div>
-                    <div style={{fontSize:"1rem",margin:"2px 0"}}>{wxIcon(h.code)}</div>
-                    <div style={{fontSize:".7rem",fontWeight:700}}>{h.temp}°</div>
-                    {h.pop>0&&<div style={{fontSize:".58rem",opacity:.8,color:"#90caf9"}}>💧{h.pop}%</div>}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-          {/* 3日間予報 */}
-          {wx.daily && (
-            <div style={{display:"flex",gap:6,marginTop:8}}>
-              {[0,1,2,3].map(i=>{
-                const now=new Date();
-                const d=new Date(now); d.setDate(d.getDate()+i);
-                const label=i===0?"今日":i===1?"明日":i===2?"明後日":"3日後";
-                return(
-                  <div key={i} style={{flex:1,background:"rgba(255,255,255,.13)",borderRadius:9,padding:5,textAlign:"center",fontSize:".67rem"}}>
-                    <div style={{opacity:.7,marginBottom:1}}>{label}</div>
-                    <div style={{fontSize:"1.1rem"}}>{wxIcon(wx.daily.weathercode[i])}</div>
-                    <div style={{fontWeight:700,marginTop:1}}>{Math.round(wx.daily.temperature_2m_max[i])}°/<span style={{opacity:.7}}>{Math.round(wx.daily.temperature_2m_min[i])}°</span></div>
-                    {wx.daily.precipitation_probability_max&&<div style={{fontSize:".58rem",opacity:.8,color:"#90caf9"}}>💧{wx.daily.precipitation_probability_max[i]}%</div>}
-                  </div>
-                );
-              })}
-            </div>
-          )}
+          {fields.length>1&&<div style={{display:"flex",gap:6,marginTop:8,flexWrap:"wrap"}}>
+            {fields.map((f,i)=><button key={i} onClick={()=>setWxFieldIdx(i)}
+              style={{background:i===wxFieldIdx?"rgba(255,255,255,.35)":"rgba(255,255,255,.15)",border:"none",borderRadius:999,padding:"3px 10px",color:"#fff",fontSize:".65rem",cursor:"pointer",fontFamily:"inherit"}}>
+              {f.name}
+            </button>)}
+          </div>}
         </div>
       )}
-
-      {/* みんなのサクメモ */}
+      {/* みんなのサクメモボタン */}
       <a href="/community.html" style={{display:"flex",alignItems:"center",justifyContent:"space-between",background:"linear-gradient(135deg,#2d6a3f,#419857)",borderRadius:14,padding:"13px 16px",marginBottom:9,textDecoration:"none"}}>
         <div>
           <div style={{color:"#fff",fontWeight:700,fontSize:".9rem",fontFamily:"'Shippori Mincho B1',serif"}}>🌾 みんなのサクメモ</div>
@@ -1069,110 +1030,11 @@ function HomeScreen({ fields, crops, logs, costs, onEditCrop }) {
         </div>
         <span style={{color:"#fff",fontSize:"1.3rem"}}>›</span>
       </a>
-      {/* 栽培中の作物 */}
-      <div style={S.sec}><span>🌾 栽培中 ({crops.filter(c=>!c.ended).length}品目)</span></div>
-      {!crops.filter(c=>!c.ended).length && <div style={{color:TX3,fontSize:".82rem",padding:8,textAlign:"center"}}>品目がまだ登録されていません</div>}
-      {crops.filter(c=>!c.ended).map(c=>{
-        const db=CDB[c.type]||{}; const f=fields[c.fieldIdx]||{};
-        const days=daysSince(c.plantDate||c.sowDate);
-        const harvestD=c.type==="custom"?(parseInt(c.customDays)||90):(db?.maturity?.[c.maturity||"mid"]||db?.d||90);
-        const pct=Math.min(100,Math.round(days/harvestD*100));
-        const startLabel=c.cultivationType==="direct"?"播種":"定植";
-        const isFruit=db.fruit||false;
-        const cl=logs.filter(l=>l.cropId===c.id);
-        const hvKg=cl.reduce((s,l)=>s+(parseFloat(l.hvKg)||0),0);
-        const lastLog=cl.length>0?cl.reduce((a,b)=>(a.date||"")>(b.date||"")?a:b):null;
-        // 作業予定（収穫予定日）
-        const plantD=c.plantDate||c.sowDate;
-        const harvestExpected=plantD?new Date(new Date(plantD).getTime()+harvestD*86400000):null;
-        const daysToHarvest=harvestExpected?Math.ceil((harvestExpected-Date.now())/86400000):null;
-        const hd = db.hd||0; // 収穫継続期間(日)
-        const inHarvestPeriod = !isFruit && daysToHarvest!==null && daysToHarvest<=0 && daysToHarvest>=-hd;
-        const isPastHarvest = !isFruit && daysToHarvest!==null && daysToHarvest<-hd;
-        const scheduleText = isFruit?null:
-          daysToHarvest===null?null:
-          isPastHarvest?"片付け時期":
-          inHarvestPeriod?"🎉 収穫期（"+Math.abs(daysToHarvest)+"日目）":
-          daysToHarvest===0?"本日収穫開始":
-          daysToHarvest+"日後に収穫開始";
-        return (
-          <div key={c.id} style={{...S.card,cursor:"pointer",borderLeft:daysToHarvest!==null&&daysToHarvest<=7&&daysToHarvest>=0?"3px solid #f0a500":"none"}} onClick={()=>onEditCrop&&onEditCrop(c)}>
-            <div style={{display:"flex",gap:9,alignItems:"center"}}>
-              <span style={{fontSize:"1.8rem"}}>{db.e||"🌱"}</span>
-              <div style={{flex:1,minWidth:0}}>
-                <div style={{fontWeight:700,fontSize:".9rem"}}>
-                  {c.type==="custom"?c.customName||"カスタム":db.n||c.type}
-                  {c.variety&&<span style={{fontWeight:400,color:TX3,fontSize:".8rem"}}> ({c.variety})</span>}
-                </div>
-                <div style={{fontSize:".7rem",color:TX3,marginTop:2}}>
-                  {f.name||""}
-                  {plantD&&<span> · {startLabel}{days}日目</span>}
-                </div>
-                {hvKg>0&&<div style={{fontSize:".7rem",color:G}}>累計収穫 {hvKg.toFixed(1)}kg</div>}
-                {lastLog&&<div style={{fontSize:".7rem",color:TX3}}>最終記録: {lastLog.date}</div>}
-              </div>
-              {scheduleText&&<div style={{fontSize:".68rem",background:daysToHarvest<=3?"#fff3cd":"#f0f9f0",color:daysToHarvest<=3?"#92400e":"#2d6a3f",borderRadius:6,padding:"3px 7px",flexShrink:0,textAlign:"center",lineHeight:1.4}}>
-                🗓️<br/>{scheduleText}
-              </div>}
-            </div>
-            {!isFruit&&plantD&&<>
-              <div style={{height:5,background:"#eee",borderRadius:999,overflow:"hidden",marginTop:6}}>
-                <div style={{height:"100%",borderRadius:999,background:"linear-gradient(90deg,"+G+","+G2+")",width:pct+"%",transition:"width .7s ease"}}/>
-              </div>
-              <div style={{fontSize:".64rem",color:TX3,marginTop:2,display:"flex",justifyContent:"space-between"}}>
-                <span>生育進捗 {pct}%</span>
-                <span>{daysToHarvest!==null&&daysToHarvest>=0?"収穫まで約"+daysToHarvest+"日":""}</span>
-              </div>
-            </>}
-            {(()=>{
-              const cropLogs=logs.filter(l=>l.cropId===c.id);
-              const rot=ROTATION_DB[c.type];
-              const family=FAMILY_DB[c.type]||"";
-              const tasks=getRecommendedTasks(c, cropLogs);
-              return <>
-                {isPastHarvest&&<div style={{marginTop:8}}>
-                  <div style={{padding:"7px 10px",background:"#fff3cd",borderRadius:8,borderLeft:"3px solid #f0a500",marginBottom:6}}>
-                    <div style={{fontSize:".65rem",color:"#92400e",fontWeight:700,marginBottom:2}}>🧹 次の作業: 片付け</div>
-                    <div style={{fontSize:".72rem",color:"#1c1a14"}}>・収穫残渣を除去・土づくり開始</div>
-                  </div>
-                  {rot&&<div style={{padding:"7px 10px",background:"#fef2f2",borderRadius:8,borderLeft:"3px solid #dc2626"}}>
-                    <div style={{fontSize:".65rem",color:"#dc2626",fontWeight:700,marginBottom:4}}>🔄 連作障害（{family}・{rot.years}年空ける）</div>
-                    <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
-                      {rot.ng.map(f=><span key={f} style={{fontSize:".65rem",background:"#fee2e2",color:"#dc2626",borderRadius:4,padding:"2px 6px"}}>✗ {f}</span>)}
-                      {rot.ok.slice(0,3).map(f=><span key={f} style={{fontSize:".65rem",background:"#dcfce7",color:"#166534",borderRadius:4,padding:"2px 6px"}}>○ {f}</span>)}
-                    </div>
-                  </div>}
-                </div>}
-                {!isPastHarvest&&tasks.length>0&&<div style={{marginTop:8,padding:"7px 10px",background:"#f0f9f0",borderRadius:8,borderLeft:"3px solid #2d6a3f"}}>
-                  <div style={{fontSize:".65rem",color:"#2d6a3f",fontWeight:700,marginBottom:3,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                    <span>📋 今日の作業目安</span>
-                    {(()=>{const t=CROP_TEMP[c.type]||(c.tempMin&&c.tempMax?[c.tempMin,c.tempMax]:null);return t&&<span style={{fontSize:".63rem",background:"#e8f5e9",color:"#2e7d32",borderRadius:999,padding:"1px 7px",fontWeight:700}}>🌡️ {t[0]}〜{t[1]}℃</span>;})()}
-                  </div>
-                  {tasks.map((t,i)=><div key={i} style={{fontSize:".72rem",color:"#1c1a14",lineHeight:1.6}}>・{t}</div>)}
-                  {FERT_GUIDE[c.type]&&<div style={{marginTop:5,paddingTop:5,borderTop:"1px solid #e0f0e0"}}>
-                    <div style={{fontSize:".65rem",color:"#2d6a3f",fontWeight:700,marginBottom:3}}>🌿 施肥ガイド</div>
-                    {FERT_GUIDE[c.type].chase.map((f,i)=>(
-                      <div key={i} style={{fontSize:".7rem",color:"#1c1a14",lineHeight:1.7}}>
-                        <span style={{color:"#5c3d1e",fontWeight:600}}>・{f.timing}：</span>{f.amt}
-                      </div>
-                    ))}
-                    {FERT_GUIDE[c.type].tip&&<div style={{fontSize:".68rem",color:"#888",marginTop:3}}>💡 {FERT_GUIDE[c.type].tip}</div>}
-                  </div>}
-                </div>}
-              </>;
-            })()}
-          </div>
-        );
-      })}
-
-
-
-
     </div>
   );
 }
 
-// MASTER
+
 function MasterScreen({ fertMs, setFertMs, pestMs, setPestMs, equips, setEquips, costs, setCosts, showToast }) {
   // 全資材を統合して管理
   const [srchM, setSrchM] = useState("");
@@ -1577,9 +1439,18 @@ function FieldsScreen({ fields, setFields, setFieldsR, crops, setCrops, setCrops
                   {c.plantSpace&&<Tag type="gray">株間{c.plantSpace}cm</Tag>}
                   {germRate!==null&&<Tag type="green">発芽率{germRate}%</Tag>}
                 </div>
-                
-                
               </div>
+              {/* 生育進捗 */}
+              {(c.plantDate||c.sowDate)&&!isFruit&&<div style={{marginTop:6}}>
+                <div style={{height:4,background:"#e0d9ce",borderRadius:999,overflow:"hidden"}}>
+                  <div style={{height:"100%",width:pct+"%",background:"linear-gradient(90deg,#2d6a3f,#52b788)",borderRadius:999}}/>
+                </div>
+                <div style={{display:"flex",justifyContent:"space-between",fontSize:".68rem",color:TX3,marginTop:2}}>
+                  <span>生育進捗 {pct}%</span>
+                  <span>収穫まで約{Math.max(0,harvestD-days)}日</span>
+                </div>
+              </div>}
+              {(()=>{const _hv=logs.filter(l=>l.cropId===c.id);const _kg=_hv.reduce((s,l)=>s+(parseFloat(l.hvKg)||0),0);const _cnt=_hv.reduce((s,l)=>s+(parseInt(l.hvCnt)||0),0);return _kg>0||_cnt>0?<div style={{fontSize:".72rem",color:"#059669",marginTop:3}}>🧺 収穫累計 {_kg>0?_kg.toFixed(1)+"kg":""}{_cnt>0?" "+_cnt+"個":""}</div>:null;})()}
               <div style={{display:"flex",flexDirection:"column",gap:4,flexShrink:0}}>
                   <button style={{...S.btn,...S.btnS,...S.btnSm}} onClick={()=>{
                     const existingSeed=costs.find(co=>co.cropId===c.id&&co.cat==="seed");
@@ -1601,6 +1472,19 @@ function FieldsScreen({ fields, setFields, setFieldsR, crops, setCrops, setCrops
                     const rev=cl.reduce((s,l)=>s+(parseFloat(l.hvKg)||0)*(parseFloat(l.hvPrice)||0),0);
                     const total=seedCost+workTotal;
                     showToast("栽培終了 "+cropName+" / 費用合計"+Math.round(total).toLocaleString()+"円 / 収穫"+hvKg.toFixed(1)+"kg / 損益"+(rev-total>=0?"+":"")+Math.round(rev-total).toLocaleString()+"円");
+                    // 栽培終了ログを作業記録に追加
+                    const endLog = {
+                      id: uid0(), cropId: c.id, fieldIdx: c.fieldIdx||0, fieldId: fields[c.fieldIdx||0]?.id||null,
+                      work: 'end', date: todayStr(), time: nowTime(), memo: '栽培終了',
+                      duration:'', imgSrc:null, imgSrc2:null, imgSrc3:null,
+                      eventType:'栽培終了', eventNote: (hvKg>0?'収穫計'+hvKg.toFixed(1)+'kg':''),
+                      _groupId: uid0(),
+                    };
+                    const endLogDb = { id:endLog.id, user_id:uid, field_id:endLog.fieldId, crop_id:endLog.cropId,
+                      work:'end', date:endLog.date, time:endLog.time, memo:endLog.memo,
+                      event_type:endLog.eventType, event_note:endLog.eventNote };
+                    dbSaveLog(endLog);
+                    setLogsR(prev=>[endLog,...prev]);
                   }}>終了</button>}
                   {c.ended && <span style={{fontSize:".66rem",color:"#e67e22",fontWeight:700,textAlign:"center"}}>栽培終了</span>}
                   <button style={{...S.btn,...S.btnR,...S.btnSm}} onClick={()=>{if(!window.confirm("削除しますか?\n関連する費用も削除されます"))return;dbDelete("crops",c.id);const filtered=crops.filter((_,j)=>j!==i);if(typeof setCropsR==="function")setCropsR(filtered);else setCrops(filtered);const relCosts=costs.filter(co=>co.cropId===c.id);relCosts.forEach(co=>dbDelete("costs",co.id));if(relCosts.length>0)setCosts(costs.filter(co=>co.cropId!==c.id));showToast("削除しました");}}>削除</button>
@@ -2427,7 +2311,7 @@ function TimelineScreen({ fields, crops, equips, logs, setLogs, setLogsR, showTo
     return toHira(t).includes(toHira(w)) || toKata(t).includes(toKata(w)) || t.includes(w);
   };
 
-  const WORK_LABELS = {sow:'播種',germinated:'発芽確認',transplant:'定植',water:'水やり',fert:'施肥',pest:'防除',pruning:'剪定',thinning:'摘果・摘花',sideshot:'脇芽かき',repot:'植え替え',event:'生育記録',harvest:'収穫',discard:'廃棄',equip:'資材作業',check:'見回り',other:'その他'};
+  const WORK_LABELS = {sow:'播種',germinated:'発芽確認',transplant:'定植',water:'水やり',fert:'施肥',pest:'防除',pruning:'剪定',thinning:'摘果・摘花',sideshot:'脇芽かき',repot:'植え替え',event:'生育記録',harvest:'収穫',discard:'廃棄',equip:'資材作業',check:'見回り',other:'その他',end:'栽培終了'};
 
   // フィルタ済みログ
   const filtered = logs.filter(l=>{
@@ -3306,9 +3190,7 @@ const SCREENS = [
   { key:"home",    label:"ホーム",     icon:"🏡" },
   { key:"master",  label:"資材・設備", icon:"📦" },
   { key:"fields",  label:"圃場・品目", icon:"🌾" },
-  { key:"log",     label:"作業記録",   icon:"📝" },
   { key:"cost",    label:"費用",       icon:"💰" },
-
   { key:"report",  label:"レポート",   icon:"📊" },
 ];
 
@@ -3467,7 +3349,7 @@ export default function App() {
         {scr==="home"    &&<HomeScreen    fields={fields} crops={crops} logs={logs} costs={costs} onEditCrop={c=>{setPendingEditCrop(c);setScr("fields");}}/>}
         {scr==="master"  &&<MasterScreen  fertMs={fertMs} setFertMs={setFertMs} pestMs={pestMs} setPestMs={setPestMs} equips={equips} setEquips={setEquips} costs={costs} setCosts={setCosts} showToast={showToast}/>}
         {scr==="fields"  &&<FieldsScreen  fields={fields} setFields={setFields} setFieldsR={setFieldsR} crops={crops} setCrops={setCrops} setCropsR={setCropsR} costs={costs} setCosts={setCosts} logs={logs} showToast={showToast} editCrop={pendingEditCrop}/>}
-        {scr==="log" && <TimelineScreen fields={fields} crops={crops} equips={equips} logs={logs} setLogs={setLogs} setLogsR={setLogsR} showToast={showToast}
+        {(scr==="log"||scr==="home") && <><HomeScreen fields={fields} crops={crops} logs={logs} costs={costs} onEditCrop={c=>{setPendingEditCrop(c);setScr("fields");}} onNew={()=>{setInitLog(null);setLogModal(true);}}/><TimelineScreen fields={fields} crops={crops} equips={equips} logs={logs} setLogs={setLogs} setLogsR={setLogsR} showToast={showToast}
         onEdit={ls=>{const _ls=Array.isArray(ls)?ls:[ls];const _sorted=[..._ls].sort((a,b)=>(a.imgSrc?-1:0)-(b.imgSrc?-1:0));setInitLogs(_ls);setInitLog(_sorted[0]);setLogModal(true);}}
         onNew={()=>{setInitLog(null);setLogModal(true);}}
         onCopy={ls=>{
@@ -3481,7 +3363,7 @@ export default function App() {
           setInitLogs(copied);setInitLog(base);setLogModal(true);
           showToast('記録をコピーしました。内容を確認して保存してください');
         }}
-      /> }
+      /> }</>}
         
         {scr==="cost"    &&<CostScreen    fields={fields} fertMs={fertMs} pestMs={pestMs} equips={equips} costs={costs} setCosts={setCosts} logs={logs} showToast={showToast}/>}
 
