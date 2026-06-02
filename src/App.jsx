@@ -1538,7 +1538,7 @@ function FieldsScreen({ fields, setFields, setFieldsR, crops, setCrops, setCrops
       ))}
       <div style={S.sec}><span>🌱 栽培中（{crops.filter(c=>!c.ended).length}件）</span><button style={S.secBtn} onClick={()=>setMCrop({...eC,fieldIdx:0})}>＋ 品目追加</button></div>
       {!crops.filter(c=>!c.ended).length&&<div style={{color:TX3,fontSize:".82rem",padding:8,textAlign:"center"}}>栽培中の品目はありません</div>}
-      {crops.filter(c=>!c.ended).map((c)=>{ const i=crops.indexOf(c);
+      {crops.filter(c=>!c.ended).mapcrops.filter(c=>!c.ended).map((c)=>{ const i=crops.indexOf(c);
         const db=CDB[c.type]||{}; const f=fields[c.fieldIdx]||{};
         const isFruit=db.fruit||false;
         const days=daysSince(c.plantDate);
@@ -1552,80 +1552,43 @@ function FieldsScreen({ fields, setFields, setFieldsR, crops, setCrops, setCrops
         const germRate=sowLog&&germLog?Math.round((parseInt(germLog.germinationCnt)/parseInt(sowLog.sowQty))*100):null;
         return (
           <div key={c.id} style={S.card}>
-            <div style={{display:"flex",gap:9,alignItems:"flex-start"}}>
-              <span style={{fontSize:"1.85rem"}}>{db.e||"🌱"}</span>
+            {/* 上段: 品目名 + 編集ボタン */}
+            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
+              <span style={{fontSize:"1.5rem",flexShrink:0}}>{db.e||"🌱"}</span>
               <div style={{flex:1,minWidth:0}}>
-                <div style={{fontWeight:700}}>{c.type==="custom"?c.customName||"カスタム":db.n||c.type}{c.variety?" ("+c.variety+")":""}</div>
-                <div style={{fontSize:".72rem",color:TX3,marginTop:2,display:"flex",flexWrap:"wrap",gap:"2px 8px"}}>
-                  <span>📍{f.name||"?"}</span>
-                  {c.plantDate?<span>{isFruit?yearsSincePlant+"年目":(c.cultivationType==="direct"?"播種":"定植")+days+"日目"}</span>:<span style={{color:WARN}}>⚠️定植日未設定</span>}
-                  {c.stocks&&<span>👥{c.stocks}株</span>}
-                  {germRate!==null&&<span>🌱発芽率{germRate}%</span>}
-                  {c.ridgeW&&<span>畝{c.ridgeW}cm</span>}
-                  {c.plantSpace&&<span>株間{c.plantSpace}cm</span>}
-                </div>
+                <div style={{fontWeight:700,fontSize:".9rem"}}>{c.type==="custom"?c.customName||"カスタム":db.n||c.type}{c.variety&&<span style={{fontWeight:400,fontSize:".78rem",color:TX3}}> ({c.variety})</span>}</div>
               </div>
-              {/* 生育進捗 */}
-              {(c.plantDate||c.sowDate)&&!isFruit&&<div style={{marginTop:6}}>
-                <div style={{height:4,background:"#e0d9ce",borderRadius:999,overflow:"hidden"}}>
-                  <div style={{height:"100%",width:pct+"%",background:"linear-gradient(90deg,#2d6a3f,#52b788)",borderRadius:999}}/>
-                </div>
-                <div style={{display:"flex",justifyContent:"space-between",fontSize:".68rem",color:TX3,marginTop:2}}>
-                  <span>生育進捗 {pct}%</span>
-                  <span>収穫まで約{Math.max(0,harvestD-days)}日</span>
-                </div>
-              </div>}
-              {(()=>{const _hv=logs.filter(l=>l.cropId===c.id);const _kg=_hv.reduce((s,l)=>s+(parseFloat(l.hvKg)||0),0);const _cnt=_hv.reduce((s,l)=>s+(parseInt(l.hvCnt)||0),0);return _kg>0||_cnt>0?<div style={{fontSize:".72rem",color:"#059669",marginTop:3}}>🧺 収穫累計 {_kg>0?_kg.toFixed(1)+"kg":""}{_cnt>0?" "+_cnt+"個":""}</div>:null;})()}
-              {FERT_GUIDE[c.type]&&<div style={{marginTop:5,paddingTop:5,borderTop:"1px solid #e0f0e0"}}>
-                    <div style={{fontSize:".65rem",color:"#2d6a3f",fontWeight:700,marginBottom:3}}>🌿 施肥ガイド</div>
-                    {FERT_GUIDE[c.type].chase.map((f,i)=>(
-                      <div key={i} style={{fontSize:".7rem",color:"#1c1a14",lineHeight:1.7}}>
-                        <span style={{color:"#5c3d1e",fontWeight:600}}>・{f.timing}：</span>{f.amt}
-                      </div>
-                    ))}
-                    {FERT_GUIDE[c.type].tip&&<div style={{fontSize:".68rem",color:"#888",marginTop:3}}>💡 {FERT_GUIDE[c.type].tip}</div>}
-                  </div>}
-
-              <div style={{display:"flex",flexDirection:"column",gap:4,flexShrink:0}}>
-                  <button style={{...S.btn,...S.btnS,...S.btnSm}} onClick={()=>{
-                    const existingSeed=costs.find(co=>co.cropId===c.id&&co.cat==="seed");
-                    setMCrop({...c,_idx:i,seedCost:c.seedCost||existingSeed?.amt||""});
-                  }}>編集</button>
-                  {!c.ended && <button style={{...S.btn,...{background:"#e67e22",color:"#fff",padding:"4px 10px",fontSize:".7rem",borderRadius:8,width:"auto",display:"inline-block"},marginTop:0}} onClick={()=>{
-                    const _ed=window.prompt("栽培終了日を入力してください",todayStr());
-                    if(_ed===null)return;
-                    const updated={...c,ended:true,endDate:_ed||todayStr()};
-                    const n=crops.map((x,j)=>j===i?updated:x);
-                    setCrops(n,updated);
-                    // 費用サマリー計算
-                    const cl=logs.filter(l=>l.cropId===c.id);
-                    const db2=CDB[c.type]||{};
-                    const cropName=c.type==="custom"?c.customName||"カスタム":db2.n||c.type;
-                    const seedCost=parseFloat(c.seedCost)||0;
-                    const workCosts=costs.filter(co=>co.note&&co.note.includes("作業記録より自動追加")&&cl.some(l=>(l.fertName&&co.name.startsWith(l.fertName))||(l.pestName&&co.name.startsWith(l.pestName))));
-                    const workTotal=workCosts.reduce((s,co)=>s+(parseFloat(co.amt)||0),0);
-                    const hvKg=cl.reduce((s,l)=>s+(parseFloat(l.hvKg)||0),0);
-                    const rev=cl.reduce((s,l)=>s+(parseFloat(l.hvKg)||0)*(parseFloat(l.hvPrice)||0),0);
-                    const total=seedCost+workTotal;
-                    showToast("栽培終了 "+cropName+" / 費用合計"+Math.round(total).toLocaleString()+"円 / 収穫"+hvKg.toFixed(1)+"kg / 損益"+(rev-total>=0?"+":"")+Math.round(rev-total).toLocaleString()+"円");
-                    // 栽培終了ログを作業記録に追加
-                    const endLog = {
-                      id: uid0(), cropId: c.id, fieldIdx: c.fieldIdx||0, fieldId: fields[c.fieldIdx||0]?.id||null,
-                      work: 'end', date: todayStr(), time: nowTime(), memo: '栽培終了',
-                      duration:'', imgSrc:null, imgSrc2:null, imgSrc3:null,
-                      eventType:'栽培終了', eventNote: (hvKg>0?'収穫計'+hvKg.toFixed(1)+'kg':''),
-                      _groupId: uid0(),
-                    };
-                    const endLogDb = { id:endLog.id, user_id:uid, field_id:endLog.fieldId, crop_id:endLog.cropId,
-                      work:'end', date:endLog.date, time:endLog.time, memo:endLog.memo,
-                      event_type:endLog.eventType, event_note:endLog.eventNote };
-                    dbSaveLog(endLog);
-                    setLogsR(prev=>[endLog,...prev]);
-                  }}>終了</button>}
-                  {c.ended && <span style={{fontSize:".66rem",color:"#e67e22",fontWeight:700,textAlign:"center"}}>栽培終了</span>}
-                  <button style={{...S.btn,...S.btnR,...S.btnSm}} onClick={()=>{if(!window.confirm("削除しますか?\n関連する費用も削除されます"))return;dbDelete("crops",c.id);const filtered=crops.filter((_,j)=>j!==i);if(typeof setCropsR==="function")setCropsR(filtered);else setCrops(filtered);const relCosts=costs.filter(co=>co.cropId===c.id);relCosts.forEach(co=>dbDelete("costs",co.id));if(relCosts.length>0)setCosts(costs.filter(co=>co.cropId!==c.id));showToast("削除しました");}}>削除</button>
-                </div>
+              <button style={{...S.btn,background:G,color:"#fff",padding:"3px 10px",fontSize:".68rem",borderRadius:7,flexShrink:0}} onClick={()=>onEditCrop(c)}>編集</button>
             </div>
+            {/* 中段: 場所・日数・株数 */}
+            <div style={{fontSize:".72rem",color:TX3,marginBottom:6,display:"flex",flexWrap:"wrap",gap:"2px 10px"}}>
+              <span>📍{f.name||"?"}</span>
+              {c.plantDate?<span>📅{isFruit?yearsSincePlant+"年目":(c.cultivationType==="direct"?"播種":"定植")+days+"日目"}</span>:<span style={{color:WARN}}>⚠️定植日未設定</span>}
+              {c.stocks&&<span>👥{c.stocks}株</span>}
+              {germRate!==null&&<span>🌱発芽率{germRate}%</span>}
+            </div>
+            {/* 生育進捗バー（全幅） */}
+            {(c.plantDate||c.sowDate)&&!isFruit&&<div style={{marginBottom:5}}>
+              <div style={{height:5,background:"#e0d9ce",borderRadius:999,overflow:"hidden"}}>
+                <div style={{height:"100%",width:pct+"%",background:"linear-gradient(90deg,#2d6a3f,#52b788)",borderRadius:999}}/>
+              </div>
+              <div style={{display:"flex",justifyContent:"space-between",fontSize:".68rem",color:TX3,marginTop:2}}>
+                <span>進捗 {pct}%</span><span>収穫まで約{Math.max(0,harvestD-days)}日</span>
+              </div>
+            </div>}
+            {/* 収穫累計 */}
+            {(()=>{const _hv=logs.filter(l=>l.cropId===c.id);const _kg=_hv.reduce((s,l)=>s+(parseFloat(l.hvKg)||0),0);const _cnt=_hv.reduce((s,l)=>s+(parseInt(l.hvCnt)||0),0);return _kg>0||_cnt>0?<div style={{fontSize:".72rem",color:"#059669",marginBottom:5}}>🧺 収穫累計 {_kg>0?_kg.toFixed(1)+"kg":""}{_cnt>0?" "+_cnt+"個":""}</div>:null;})()}
+            {/* 施肥ガイド（折りたたみ） */}
+            {FERT_GUIDE[c.type]&&<details style={{marginTop:2}}>
+              <summary style={{fontSize:".72rem",fontWeight:700,color:"#2d6a3f",cursor:"pointer",padding:"3px 0",borderTop:"1px solid #e0f0e0",listStyle:"none"}}>📋 施肥ガイド ▾</summary>
+              <div style={{fontSize:".69rem",color:"#374151",lineHeight:1.6,marginTop:4}}>
+                <div style={{marginBottom:2}}>🌱 元肥: {FERT_GUIDE[c.type].base}</div>
+                {FERT_GUIDE[c.type].chase.map((ch,ci)=>(
+                  <div key={ci} style={{marginBottom:2}}>🌿 追肥{ci+1}: {ch.timing} → {ch.amt}</div>
+                ))}
+                {FERT_GUIDE[c.type].tip&&<div style={{color:"#888",marginTop:2}}>💡 {FERT_GUIDE[c.type].tip}</div>}
+              </div>
+            </details>}
           </div>
         );
       })}
@@ -1650,8 +1613,6 @@ function FieldsScreen({ fields, setFields, setFieldsR, crops, setCrops, setCrops
                       setCrops(crops.map((x,j)=>j===i?u:x),u);
                       showToast("終了日を更新しました");
                     }}>📅 {c.endDate||"日付未設定"}</button>
-                  <button style={{...S.btn,background:"#e0d9ce",color:"#5a5040",padding:"4px 10px",fontSize:".7rem",borderRadius:8,width:"auto"}}
-                    onClick={()=>{const d=window.prompt("終了日を変更",c.endDate||todayStr());if(d===null)return;const u={...c,endDate:d};setCrops(crops.map((x,j)=>j===i?u:x),u);showToast("終了日を更新しました");}}>📅 {c.endDate||"日付未設定"}</button>
                   <button style={{...S.btn,background:"#e0d9ce",color:"#5a5040",padding:"4px 10px",fontSize:".7rem",borderRadius:8,width:"auto"}}
                     onClick={()=>{const d=window.prompt("終了日を変更",c.endDate||todayStr());if(d===null)return;const u={...c,endDate:d};setCrops(crops.map((x,j)=>j===i?u:x),u);showToast("終了日を更新しました");}}>📅 {c.endDate||"日付未設定"}</button>
                   <button style={{...S.btn,background:"#aaa",color:"#fff",padding:"4px 10px",fontSize:".7rem",borderRadius:8,width:"auto"}}
