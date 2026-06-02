@@ -985,44 +985,83 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.58</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.59</div>
       </div>
     </div>
   );
 }
 
-function HomeScreen({ fields, crops, logs, costs, onEditCrop, onNew }) {
+function HomeScreen({ fields, crops, logs, costs, onEditCrop }) {
   const [wx, setWx] = useState(null);
+
   const [wxFieldIdx, setWxFieldIdx] = useState(0);
   const wxField = fields[wxFieldIdx] || fields[0];
   const addr0   = wxField?.addr || "";
   useEffect(() => { fetchWeather(addr0).then(setWx); }, [addr0]);
 
+
   return (
-    <div style={{padding:"10px 12px 8px"}}>
-      {/* 天気ウィジェット */}
+    <div style={{padding:"10px 12px 16px"}}>
+
       {wx && (
         <div style={{background:"linear-gradient(135deg,#1565a8,#3498db)",borderRadius:14,padding:"13px 15px",color:"#fff",marginBottom:9}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+          {fields.length > 1 && (
+            <div style={{display:"flex",gap:5,marginBottom:10,flexWrap:"wrap"}}>
+              {fields.map((f,i)=>(
+                <button key={f.id} onClick={()=>setWxFieldIdx(i)}
+                  style={{background:wxFieldIdx===i?"rgba(255,255,255,.9)":"rgba(255,255,255,.18)",color:wxFieldIdx===i?"#1565a8":"#fff",border:"1px solid rgba(255,255,255,.3)",borderRadius:999,padding:"3px 10px",fontSize:".71rem",cursor:"pointer",fontFamily:"inherit",fontWeight:wxFieldIdx===i?700:400}}>
+                  {f.name}
+                </button>
+              ))}
+            </div>
+          )}
+          <div style={{display:"flex",alignItems:"center",gap:11,flexWrap:"wrap"}}>
+            <span style={{fontSize:"2.3rem"}}>{wxIcon(wx.code)}</span>
             <div>
-              <div style={{fontSize:"1.6rem",fontWeight:700}}>{wx.temp}°C</div>
-              <div style={{fontSize:".78rem",opacity:.85,marginTop:2}}>{wx.desc}</div>
-              <div style={{fontSize:".72rem",opacity:.7,marginTop:2}}>💧{wx.humidity}% 💨{wx.wind}m/s</div>
+              <div style={{fontSize:"1.8rem",fontWeight:700,lineHeight:1}}>{wx.temp}°C</div>
+              <div style={{fontSize:".72rem",opacity:.8,marginTop:2}}>{wx.label} / {wxLabel(wx.code)}</div>
+              <div style={{display:"flex",gap:8,marginTop:3,fontSize:".68rem",opacity:.78}}><span>💧{wx.rain}mm</span><span>💨{wx.wind}m/s</span><span>💦{wx.humid}%</span></div>
             </div>
-            <div style={{textAlign:"right"}}>
-              <div style={{fontSize:"2rem"}}>{wx.icon}</div>
-              <div style={{fontSize:".65rem",opacity:.7,marginTop:2}}>{wxField?.name||""}  {wx.city}</div>
-            </div>
+            <div style={{background:"rgba(255,255,255,.19)",borderRadius:9,padding:"7px 11px",fontSize:".73rem",lineHeight:1.4,textAlign:"center",marginLeft:"auto"}}>{wxAdvice(wx)}</div>
           </div>
-          {fields.length>1&&<div style={{display:"flex",gap:6,marginTop:8,flexWrap:"wrap"}}>
-            {fields.map((f,i)=><button key={i} onClick={()=>setWxFieldIdx(i)}
-              style={{background:i===wxFieldIdx?"rgba(255,255,255,.35)":"rgba(255,255,255,.15)",border:"none",borderRadius:999,padding:"3px 10px",color:"#fff",fontSize:".65rem",cursor:"pointer",fontFamily:"inherit"}}>
-              {f.name}
-            </button>)}
-          </div>}
+          {/* 時間別予報 */}
+          {wx.hourly && wx.hourly.length > 0 && (
+            <div style={{marginTop:10}}>
+              <div style={{fontSize:".63rem",opacity:.6,marginBottom:5}}>時間別予報</div>
+              <div style={{display:"flex",gap:5,overflowX:"auto",paddingBottom:4,WebkitOverflowScrolling:"touch"}}>
+                {wx.hourly.filter((_,i)=>i%2===0).slice(0,12).map((h,i)=>(
+                  <div key={i} style={{flexShrink:0,background:"rgba(255,255,255,.13)",borderRadius:9,padding:"5px 7px",textAlign:"center",minWidth:44}}>
+                    <div style={{fontSize:".6rem",opacity:.7}}>{h.hour}時</div>
+                    <div style={{fontSize:"1rem",margin:"2px 0"}}>{wxIcon(h.code)}</div>
+                    <div style={{fontSize:".7rem",fontWeight:700}}>{h.temp}°</div>
+                    {h.pop>0&&<div style={{fontSize:".58rem",opacity:.8,color:"#90caf9"}}>💧{h.pop}%</div>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {/* 3日間予報 */}
+          {wx.daily && (
+            <div style={{display:"flex",gap:6,marginTop:8}}>
+              {[0,1,2,3].map(i=>{
+                const now=new Date();
+                const d=new Date(now); d.setDate(d.getDate()+i);
+                const label=i===0?"今日":i===1?"明日":i===2?"明後日":"3日後";
+                return(
+                  <div key={i} style={{flex:1,background:"rgba(255,255,255,.13)",borderRadius:9,padding:5,textAlign:"center",fontSize:".67rem"}}>
+                    <div style={{opacity:.7,marginBottom:1}}>{label}</div>
+                    <div style={{fontSize:"1.1rem"}}>{wxIcon(wx.daily.weathercode[i])}</div>
+                    <div style={{fontWeight:700,marginTop:1}}>{Math.round(wx.daily.temperature_2m_max[i])}°/<span style={{opacity:.7}}>{Math.round(wx.daily.temperature_2m_min[i])}°</span></div>
+                    {wx.daily.precipitation_probability_max&&<div style={{fontSize:".58rem",opacity:.8,color:"#90caf9"}}>💧{wx.daily.precipitation_probability_max[i]}%</div>}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
-      {/* みんなのサクメモボタン */}
+
+      {/* みんなのサクメモ */}
       <a href="/community.html" style={{display:"flex",alignItems:"center",justifyContent:"space-between",background:"linear-gradient(135deg,#2d6a3f,#419857)",borderRadius:14,padding:"13px 16px",marginBottom:9,textDecoration:"none"}}>
         <div>
           <div style={{color:"#fff",fontWeight:700,fontSize:".9rem",fontFamily:"'Shippori Mincho B1',serif"}}>🌾 みんなのサクメモ</div>
@@ -1033,7 +1072,6 @@ function HomeScreen({ fields, crops, logs, costs, onEditCrop, onNew }) {
     </div>
   );
 }
-
 
 function MasterScreen({ fertMs, setFertMs, pestMs, setPestMs, equips, setEquips, costs, setCosts, showToast }) {
   // 全資材を統合して管理
@@ -1451,6 +1489,16 @@ function FieldsScreen({ fields, setFields, setFieldsR, crops, setCrops, setCrops
                 </div>
               </div>}
               {(()=>{const _hv=logs.filter(l=>l.cropId===c.id);const _kg=_hv.reduce((s,l)=>s+(parseFloat(l.hvKg)||0),0);const _cnt=_hv.reduce((s,l)=>s+(parseInt(l.hvCnt)||0),0);return _kg>0||_cnt>0?<div style={{fontSize:".72rem",color:"#059669",marginTop:3}}>🧺 収穫累計 {_kg>0?_kg.toFixed(1)+"kg":""}{_cnt>0?" "+_cnt+"個":""}</div>:null;})()}
+              {FERT_GUIDE[c.type]&&<div style={{marginTop:5,paddingTop:5,borderTop:"1px solid #e0f0e0"}}>
+                    <div style={{fontSize:".65rem",color:"#2d6a3f",fontWeight:700,marginBottom:3}}>🌿 施肥ガイド</div>
+                    {FERT_GUIDE[c.type].chase.map((f,i)=>(
+                      <div key={i} style={{fontSize:".7rem",color:"#1c1a14",lineHeight:1.7}}>
+                        <span style={{color:"#5c3d1e",fontWeight:600}}>・{f.timing}：</span>{f.amt}
+                      </div>
+                    ))}
+                    {FERT_GUIDE[c.type].tip&&<div style={{fontSize:".68rem",color:"#888",marginTop:3}}>💡 {FERT_GUIDE[c.type].tip}</div>}
+                  </div>}
+
               <div style={{display:"flex",flexDirection:"column",gap:4,flexShrink:0}}>
                   <button style={{...S.btn,...S.btnS,...S.btnSm}} onClick={()=>{
                     const existingSeed=costs.find(co=>co.cropId===c.id&&co.cat==="seed");
@@ -3346,7 +3394,6 @@ export default function App() {
         </div>
       </div>
       <div id="main-scroll" style={S.main}>
-        {scr==="home"    &&<HomeScreen    fields={fields} crops={crops} logs={logs} costs={costs} onEditCrop={c=>{setPendingEditCrop(c);setScr("fields");}}/>}
         {scr==="master"  &&<MasterScreen  fertMs={fertMs} setFertMs={setFertMs} pestMs={pestMs} setPestMs={setPestMs} equips={equips} setEquips={setEquips} costs={costs} setCosts={setCosts} showToast={showToast}/>}
         {scr==="fields"  &&<FieldsScreen  fields={fields} setFields={setFields} setFieldsR={setFieldsR} crops={crops} setCrops={setCrops} setCropsR={setCropsR} costs={costs} setCosts={setCosts} logs={logs} showToast={showToast} editCrop={pendingEditCrop}/>}
         {(scr==="log"||scr==="home") && <><HomeScreen fields={fields} crops={crops} logs={logs} costs={costs} onEditCrop={c=>{setPendingEditCrop(c);setScr("fields");}} onNew={()=>{setInitLog(null);setLogModal(true);}}/><TimelineScreen fields={fields} crops={crops} equips={equips} logs={logs} setLogs={setLogs} setLogsR={setLogsR} showToast={showToast}
