@@ -1075,7 +1075,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.60</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.61</div>
       </div>
     </div>
   );
@@ -1644,6 +1644,14 @@ function FieldsScreen({ fields, setFields, setFieldsR, crops, setCrops, setCrops
                   <div style={{fontSize:".7rem",color:TX3}}>{f.name||"?"} · 終了:{c.endDate||"—"}</div>
                 </div>
                 <div style={{display:"flex",flexDirection:"column",gap:4,flexShrink:0}}>
+                  <button style={{...S.btn,background:"#e0d9ce",color:"#5a5040",padding:"4px 10px",fontSize:".7rem",borderRadius:8,width:"auto"}}
+                    onClick={()=>{
+                      const d=window.prompt("終了日を変更してください",c.endDate||todayStr());
+                      if(d===null)return;
+                      const u={...c,endDate:d};
+                      setCrops(crops.map((x,j)=>j===i?u:x),u);
+                      showToast("終了日を更新しました");
+                    }}>📅 {c.endDate||"日付未設定"}</button>
                   <button style={{...S.btn,background:"#aaa",color:"#fff",padding:"4px 10px",fontSize:".7rem",borderRadius:8,width:"auto"}}
                     onClick={()=>{if(!window.confirm("栽培中に戻しますか？"))return;const u={...c,ended:false,endDate:""};setCrops(crops.map((x,j)=>j===i?u:x),u);showToast("栽培中に戻しました");}}>再開</button>
                   <button style={{...S.btn,...S.btnR,...S.btnSm}}
