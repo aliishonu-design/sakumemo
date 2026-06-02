@@ -1075,7 +1075,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.65</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.66</div>
       </div>
     </div>
   );
@@ -1538,7 +1538,7 @@ function FieldsScreen({ fields, setFields, setFieldsR, crops, setCrops, setCrops
       ))}
       <div style={S.sec}><span>🌱 栽培中（{crops.filter(c=>!c.ended).length}件）</span><button style={S.secBtn} onClick={()=>setMCrop({...eC,fieldIdx:0})}>＋ 品目追加</button></div>
       {!crops.filter(c=>!c.ended).length&&<div style={{color:TX3,fontSize:".82rem",padding:8,textAlign:"center"}}>栽培中の品目はありません</div>}
-      {crops.filter(c=>!c.ended).map((c)=>{ const i=crops.indexOf(c);
+      {crops.filter(c=>!c.ended).mapcrops.filter(c=>!c.ended).map((c)=>{ const i=crops.indexOf(c);
         const db=CDB[c.type]||{}; const f=fields[c.fieldIdx]||{};
         const isFruit=db.fruit||false;
         const days=daysSince(c.plantDate);
@@ -1552,41 +1552,61 @@ function FieldsScreen({ fields, setFields, setFieldsR, crops, setCrops, setCrops
         const germRate=sowLog&&germLog?Math.round((parseInt(germLog.germinationCnt)/parseInt(sowLog.sowQty))*100):null;
         return (
           <div key={c.id} style={S.card}>
-            {/* 上段: 品目名 + 編集ボタン */}
-            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
-              <span style={{fontSize:"1.5rem",flexShrink:0}}>{db.e||"🌱"}</span>
-              <div style={{flex:1,minWidth:0}}>
-                <div style={{fontWeight:700,fontSize:".9rem"}}>{c.type==="custom"?c.customName||"カスタム":db.n||c.type}{c.variety&&<span style={{fontWeight:400,fontSize:".78rem",color:TX3}}> ({c.variety})</span>}</div>
+            {/* ─── 上段: 絵文字 + 品目名 + 編集ボタン ─── */}
+            <div style={{display:"flex",alignItems:"center",gap:10}}>
+              <span style={{fontSize:"1.8rem",lineHeight:1,flexShrink:0}}>{db.e||"🌱"}</span>
+              <div style={{flex:1,minWidth:0,overflow:"hidden"}}>
+                <div style={{fontWeight:700,fontSize:".92rem",lineHeight:1.3,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
+                  {c.type==="custom"?c.customName||"カスタム":db.n||c.type}
+                </div>
+                {c.variety&&<div style={{fontSize:".73rem",color:TX3,marginTop:1,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{c.variety}</div>}
               </div>
-              <button style={{...S.btn,background:G,color:"#fff",padding:"3px 10px",fontSize:".68rem",borderRadius:7,flexShrink:0}} onClick={()=>onEditCrop(c)}>編集</button>
+              <button style={{flexShrink:0,background:G,color:"#fff",border:"none",borderRadius:8,padding:"6px 14px",fontSize:".75rem",fontWeight:700,cursor:"pointer"}}
+                onClick={()=>onEditCrop(c)}>編集</button>
             </div>
-            {/* 中段: 場所・日数・株数 */}
-            <div style={{fontSize:".72rem",color:TX3,marginBottom:6,display:"flex",flexWrap:"wrap",gap:"2px 10px"}}>
+            {/* ─── 中段: 圃場・日数・株数 ─── */}
+            <div style={{fontSize:".73rem",color:TX3,marginTop:7,lineHeight:1.6}}>
               <span>📍{f.name||"?"}</span>
-              {c.plantDate?<span>📅{isFruit?yearsSincePlant+"年目":(c.cultivationType==="direct"?"播種":"定植")+days+"日目"}</span>:<span style={{color:WARN}}>⚠️定植日未設定</span>}
-              {c.stocks&&<span>👥{c.stocks}株</span>}
-              {germRate!==null&&<span>🌱発芽率{germRate}%</span>}
+              {c.plantDate&&<span style={{marginLeft:8}}>📅{isFruit?yearsSincePlant+"年目":(c.cultivationType==="direct"?"播種":"定植")+days+"日目"}</span>}
+              {!c.plantDate&&<span style={{marginLeft:8,color:WARN}}>⚠️ 定植日未設定</span>}
+              {c.stocks&&<span style={{marginLeft:8}}>👥{c.stocks}株</span>}
+              {germRate!==null&&<span style={{marginLeft:8}}>🌱発芽率{germRate}%</span>}
             </div>
-            {/* 生育進捗バー（全幅） */}
-            {(c.plantDate||c.sowDate)&&!isFruit&&<div style={{marginBottom:5}}>
-              <div style={{height:5,background:"#e0d9ce",borderRadius:999,overflow:"hidden"}}>
-                <div style={{height:"100%",width:pct+"%",background:"linear-gradient(90deg,#2d6a3f,#52b788)",borderRadius:999}}/>
+            {/* ─── 生育進捗バー ─── */}
+            {(c.plantDate||c.sowDate)&&!isFruit&&<div style={{marginTop:8}}>
+              <div style={{height:6,background:"#e8e0d5",borderRadius:999,overflow:"hidden"}}>
+                <div style={{height:"100%",width:pct+"%",background:"linear-gradient(90deg,#2d6a3f,#52b788)",borderRadius:999,transition:"width .5s"}}/>
               </div>
-              <div style={{display:"flex",justifyContent:"space-between",fontSize:".68rem",color:TX3,marginTop:2}}>
-                <span>進捗 {pct}%</span><span>収穫まで約{Math.max(0,harvestD-days)}日</span>
+              <div style={{display:"flex",justifyContent:"space-between",fontSize:".68rem",color:TX3,marginTop:3}}>
+                <span>生育進捗 {pct}%</span>
+                <span>収穫まで約 {Math.max(0,harvestD-days)} 日</span>
               </div>
             </div>}
-            {/* 収穫累計 */}
-            {(()=>{const _hv=logs.filter(l=>l.cropId===c.id);const _kg=_hv.reduce((s,l)=>s+(parseFloat(l.hvKg)||0),0);const _cnt=_hv.reduce((s,l)=>s+(parseInt(l.hvCnt)||0),0);return _kg>0||_cnt>0?<div style={{fontSize:".72rem",color:"#059669",marginBottom:5}}>🧺 収穫累計 {_kg>0?_kg.toFixed(1)+"kg":""}{_cnt>0?" "+_cnt+"個":""}</div>:null;})()}
-            {/* 施肥ガイド（折りたたみ） */}
-            {FERT_GUIDE[c.type]&&<details style={{marginTop:2}}>
-              <summary style={{fontSize:".72rem",fontWeight:700,color:"#2d6a3f",cursor:"pointer",padding:"3px 0",borderTop:"1px solid #e0f0e0",listStyle:"none"}}>📋 施肥ガイド ▾</summary>
-              <div style={{fontSize:".69rem",color:"#374151",lineHeight:1.6,marginTop:4}}>
-                <div style={{marginBottom:2}}>🌱 元肥: {FERT_GUIDE[c.type].base}</div>
+            {/* ─── 収穫累計 ─── */}
+            {(()=>{
+              const _hv=logs.filter(l=>l.cropId===c.id);
+              const _kg=_hv.reduce((s,l)=>s+(parseFloat(l.hvKg)||0),0);
+              const _cnt=_hv.reduce((s,l)=>s+(parseInt(l.hvCnt)||0),0);
+              if(!_kg&&!_cnt) return null;
+              return <div style={{marginTop:6,fontSize:".73rem",color:"#059669",fontWeight:600}}>
+                🧺 収穫累計 {_kg>0?_kg.toFixed(1)+"kg":""}{_cnt>0?" "+_cnt+"個":""}
+              </div>;
+            })()}
+            {/* ─── 施肥ガイド（折りたたみ）─── */}
+            {FERT_GUIDE[c.type]&&<details style={{marginTop:8,borderTop:"1px solid #e8e0d5",paddingTop:6}}>
+              <summary style={{fontSize:".73rem",fontWeight:700,color:"#2d6a3f",cursor:"pointer",listStyle:"none",userSelect:"none"}}>
+                📋 施肥ガイド ▾
+              </summary>
+              <div style={{marginTop:6,fontSize:".69rem",color:"#374151",lineHeight:1.7,background:"#f5fdf7",borderRadius:8,padding:"8px 10px"}}>
+                <div style={{marginBottom:3,fontWeight:600}}>🌱 元肥</div>
+                <div style={{marginBottom:6,color:"#555"}}>{FERT_GUIDE[c.type].base}</div>
                 {FERT_GUIDE[c.type].chase.map((ch,ci)=>(
-                  <div key={ci} style={{marginBottom:2}}>🌿 追肥{ci+1}: {ch.timing} → {ch.amt}</div>
+                  <div key={ci} style={{marginBottom:4}}>
+                    <span style={{fontWeight:600}}>🌿 追肥{ci+1}</span> {ch.timing}<br/>
+                    <span style={{paddingLeft:16,color:"#555"}}>→ {ch.amt}</span>
+                  </div>
                 ))}
-                {FERT_GUIDE[c.type].tip&&<div style={{color:"#888",marginTop:2}}>💡 {FERT_GUIDE[c.type].tip}</div>}
+                {FERT_GUIDE[c.type].tip&&<div style={{marginTop:4,color:"#888",borderTop:"1px solid #d1fae5",paddingTop:4}}>💡 {FERT_GUIDE[c.type].tip}</div>}
               </div>
             </details>}
           </div>
