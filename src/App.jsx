@@ -41,8 +41,8 @@ const equipToDb   = (o, uid) => ({ id:o.id||uid0(), user_id:uid, name:o.name||nu
 const equipFromDb = r => ({ id:r.id, name:r.name||"", cat:r.cat||"", status:r.status||"", price:r.price||"", date:r.date||"", note:r.note||"" });
 const costToDb    = (o, uid, fields) => ({ id:o.id, user_id:uid, field_id:(fields&&o.fieldIdx!==undefined&&o.fieldIdx!=="")?fields[o.fieldIdx]?.id||o.fieldId||null:o.fieldId||null, crop_id:o.cropId||null, cat:o.cat||null, name:o.name||null, amt:o.amt||null, date:o.date||null, qty:o.qty||null, qunit:o.qunit||null, note:o.note||null, master_id:o.masterId||null, work:o.work||null });
 const costFromDb  = (r, fields) => { const fi=fields.findIndex(f=>f.id===r.field_id); return { id:r.id, fieldId:r.field_id||"", fieldIdx:fi>=0?fi:0, cropId:r.crop_id||"", masterId:r.master_id||"", cat:r.cat||"", name:r.name||"", amt:r.amt||"", date:r.date||"", qty:r.qty||"", qunit:r.qunit||"", note:r.note||"", work:r.work||"" }; };
-const plotToDb    = (o, uid) => ({ id:o.id, user_id:uid, field_id:o.fieldId||null, name:o.name||null, cols:o.cols||20, rows:o.rows||20, cells:o.cells||[], season:o.season||null, cell_size:o.cellSize||30, bg_plot_id:o.bgPlotId||null, plant_date:o.plantDate||null, end_date:o.endDate||null });
-const plotFromDb  = r => ({ id:r.id, fieldId:r.field_id||"", name:r.name||"", cols:r.cols||20, rows:r.rows||20, cells:Array.isArray(r.cells)?r.cells:(r.cells?JSON.parse(r.cells):[]), season:r.season||"", cellSize:r.cell_size||30, bgPlotId:r.bg_plot_id||"", plantDate:r.plant_date||"", endDate:r.end_date||"" });
+const plotToDb    = (o, uid) => ({ id:o.id, user_id:uid, field_id:o.fieldId||null, name:o.name||null, cols:o.cols||20, rows:o.rows||20, cells:o.cells||[], season:o.season||null, cell_size:o.cellSize||30, bg_plot_id:o.bgPlotId||null, plant_date:o.plantDate||null, end_date:o.endDate||null, kind:o.kind||null, beds:o.beds||null, plantings:o.plantings||null });
+const plotFromDb  = r => ({ id:r.id, fieldId:r.field_id||"", name:r.name||"", cols:r.cols||20, rows:r.rows||20, cells:Array.isArray(r.cells)?r.cells:(r.cells?JSON.parse(r.cells):[]), season:r.season||"", cellSize:r.cell_size||30, bgPlotId:r.bg_plot_id||"", plantDate:r.plant_date||"", endDate:r.end_date||"", kind:r.kind||"", beds:Array.isArray(r.beds)?r.beds:(r.beds?JSON.parse(r.beds):[]), plantings:Array.isArray(r.plantings)?r.plantings:(r.plantings?JSON.parse(r.plantings):[]) });
 
 // ============================================================
 // CONSTANTS
@@ -1118,7 +1118,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.82</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.83</div>
       </div>
     </div>
   );
@@ -1651,16 +1651,16 @@ function FieldsScreen({ fields, setFields, setFieldsR, crops, setCrops, setCrops
                 {FERT_GUIDE[c.type].tip&&<div style={{marginTop:4,color:"#888",borderTop:"1px solid #d1fae5",paddingTop:4}}>💡 {FERT_GUIDE[c.type].tip}</div>}
               </div>
             </details>}
-            {/* ─── 操作ボタン ─── */}
-            <div style={{display:"flex",gap:6,marginTop:8,paddingTop:8,borderTop:"1px solid #e8e0d5",flexWrap:"wrap"}}>
-              <button style={{...S.btn,...S.btnS,...S.btnSm,flex:"1 1 30%"}}
+            {/* ─── 操作ボタン（コンパクト）─── */}
+            <div style={{display:"flex",gap:5,marginTop:7,paddingTop:7,borderTop:"1px solid #e8e0d5"}}>
+              <button title="編集" style={{flex:1,padding:"5px 0",border:"1px solid "+G,background:"#fff",color:G,borderRadius:7,fontSize:".72rem",fontWeight:700,cursor:"pointer"}}
                 onClick={()=>{const existingSeed=costs.find(co=>co.cropId===c.id&&co.cat==="seed");setMCrop({...c,_idx:i,seedCost:c.seedCost||existingSeed?.amt||""});}}>✏️ 編集</button>
-              <button style={{...S.btn,background:"#f59e0b",color:"#fff",padding:"4px 10px",fontSize:".7rem",borderRadius:8,flex:"1 1 30%"}}
-                onClick={()=>{const copy={...c,id:uid0(),_idx:undefined};setMCrop(copy);showToast("複製します。内容を確認して保存してください");}}>📋 コピー</button>
-              <button style={{...S.btn,background:"#e67e22",color:"#fff",padding:"4px 10px",fontSize:".7rem",borderRadius:8,flex:"1 1 30%"}}
-                onClick={()=>{const ed=window.prompt("栽培終了日を入力してください",todayStr());if(ed===null)return;const u={...c,ended:true,endDate:ed||todayStr()};setCrops(crops.map((x,j)=>j===i?u:x),u);showToast("栽培を終了しました");}}>🏁 終了</button>
-              <button style={{...S.btn,...S.btnR,...S.btnSm,flex:"1 1 30%"}}
-                onClick={()=>{if(!window.confirm("削除しますか?"))return;dbDelete("crops",c.id);const filtered=crops.filter((_,j)=>j!==i);if(typeof setCropsR==="function")setCropsR(filtered);else setCrops(filtered);showToast("削除しました");}}>🗑 削除</button>
+              <button title="コピー" style={{padding:"5px 10px",border:"none",background:"#fef3e2",color:"#b45309",borderRadius:7,fontSize:".8rem",cursor:"pointer"}}
+                onClick={()=>{const copy={...c,id:uid0(),_idx:undefined};setMCrop(copy);showToast("複製します。内容を確認して保存してください");}}>📋</button>
+              <button title="終了" style={{padding:"5px 10px",border:"none",background:"#fff0e6",color:"#c2410c",borderRadius:7,fontSize:".8rem",cursor:"pointer"}}
+                onClick={()=>{const ed=window.prompt("栽培終了日を入力してください",todayStr());if(ed===null)return;const u={...c,ended:true,endDate:ed||todayStr()};setCrops(crops.map((x,j)=>j===i?u:x),u);showToast("栽培を終了しました");}}>🏁</button>
+              <button title="削除" style={{padding:"5px 10px",border:"none",background:"#fee2e2",color:"#b91c1c",borderRadius:7,fontSize:".8rem",cursor:"pointer"}}
+                onClick={()=>{if(!window.confirm("削除しますか?"))return;dbDelete("crops",c.id);const filtered=crops.filter((_,j)=>j!==i);if(typeof setCropsR==="function")setCropsR(filtered);else setCrops(filtered);showToast("削除しました");}}>🗑</button>
             </div>
           </div>
         );
@@ -2755,459 +2755,240 @@ function CostScreen({ fields, fertMs, pestMs, equips, costs, setCosts, logs, sho
 }
 
 
-// PLOT (作付け図)
-function PlotScreen({ fields, crops, plots, setPlots, setPlotsR, showToast }) {
+// PLAN (栽培計画 - ガントチャート)
+function PlanScreen({ fields, crops, plots, setPlots, setPlotsR, showToast }) {
   const [selFieldIdx, setSelFieldIdx] = useState(0);
-  const [editPlot, setEditPlot] = useState(null);     // 編集中の作付け図
-  const [paintCrop, setPaintCrop] = useState("");      // 現在塗る品目
-  const [eraser, setEraser] = useState(false);         // 消しゴムモード
-  const [painting, setPainting] = useState(false);     // ドラッグ中
-  const [dirty, setDirty] = useState(false);           // 未保存の変更あり
-  const [newModal, setNewModal] = useState(null);      // 新規作成モーダル
-  const [selPos, setSelPos] = useState(null);          // 選択中のマス {r,c}
-  const [mode, setMode] = useState("paint");           // "paint"=塗る / "select"=位置選択
-  const undoStack = useRef([]);                        // アンドゥ履歴
-  const [zoom, setZoom] = useState(1);                 // グリッドのズーム倍率
+  const [year, setYear] = useState(new Date().getFullYear());
+  const [mPlant, setMPlant] = useState(null);  // 作付け編集モーダル
 
   const selField = fields[selFieldIdx];
-  const fieldPlots = plots.filter(p=>p.fieldId===selField?.id).sort((a,b)=>{
-    const ay=a.plantDate||a.season||"", by=b.plantDate||b.season||"";
-    return by.localeCompare(ay); // 新しい順
-  });
+  // この圃場の計画データ（plotsを流用。type:"plan"で区別）
+  const plan = plots.find(p=>p.fieldId===selField?.id && p.kind==="plan");
 
-  const activeCrops = crops.filter(c=>!c.ended && c.fieldIdx===selFieldIdx);
   const PALETTE30=["#e74c3c","#3498db","#2ecc71","#f39c12","#9b59b6","#1abc9c","#e67e22","#34495e","#e84393","#00b894","#fdcb6e","#6c5ce7","#d63031","#0984e3","#00cec9","#fab1a0","#a29bfe","#ff7675","#55efc4","#ffeaa7","#fd79a8","#74b9ff","#81ecec","#ff7f50","#badc58","#f0932b","#eb4d4b","#22a6b3","#be2edd","#7ed6df"];
-  const cropColor = cropId => {
-    if(!cropId) return "#f0ebe3";
-    const idx = activeCrops.findIndex(x=>x.id===cropId);
-    if(idx>=0) return PALETTE30[idx%30];
-    let h=0; for(let i=0;i<cropId.length;i++) h=(h*31+cropId.charCodeAt(i))&0xffff;
-    return PALETTE30[h%30];
+  const cropColorByType = type => {
+    const keys = Object.keys(CDB);
+    const idx = keys.indexOf(type);
+    return idx>=0 ? PALETTE30[idx%30] : "#95a5a6";
   };
-  const cropEmoji = cropId => {
-    if(!cropId) return "";
-    const c = crops.find(x=>x.id===cropId);
-    if(!c) return "";
-    return (CDB[c.type]||{}).e || "🌱";
-  };
-  const cropName = cropId => {
-    const c = crops.find(x=>x.id===cropId);
-    if(!c) return "";
-    const db=CDB[c.type]||{};
-    const base=c.type==="custom"?(c.customName||"カスタム"):(db.n||c.type);
-    return base+(c.variety?"（"+c.variety+"）":"");
-  };
+  const cropLabel = type => { const db=CDB[type]||{}; return (db.e||"🌱")+" "+(db.n||type); };
 
-  const cellM = (plot) => (plot.cellSize===100 ? 1.0 : 0.3);  // 1マスの長さ(m)
-  const cellArea = (plot) => { const m=cellM(plot); return m*m; };
-
-  const getCell = (plot, r, c) => {
-    const cell = plot.cells.find(x=>x.r===r && x.c===c);
-    return cell ? cell.cropId : "";
-  };
-  const pushUndo = () => {
-    if(editPlot){
-      undoStack.current.push(JSON.stringify({cells:editPlot.cells, cols:editPlot.cols, rows:editPlot.rows}));
-      if(undoStack.current.length>50) undoStack.current.shift();
-    }
-  };
-  const doUndo = () => {
-    if(undoStack.current.length===0){ showToast("これ以上戻せません"); return; }
-    const prev = JSON.parse(undoStack.current.pop());
-    setEditPlot(p=>({...p, cells:prev.cells, cols:prev.cols, rows:prev.rows}));
-    setDirty(true);
-    showToast("元に戻しました");
-  };
-  const setCell = (r, c, isDrag) => {
-    if(!editPlot) return;
-    // 位置選択モード
-    if(mode==="select"){ if(!isDrag) setSelPos({r,c}); return; }
-    if(!eraser && !paintCrop) return;
-    if(!isDrag) pushUndo();  // タップ開始時のみ履歴記録（ドラッグ中は記録しない）
-    setEditPlot(prev => {
-      const existing = prev.cells.find(x=>x.r===r && x.c===c);
-      const cells = prev.cells.filter(x=>!(x.r===r && x.c===c));
-      if(eraser){
-        return {...prev, cells}; // 消す
-      }
-      if(!isDrag && existing && existing.cropId===paintCrop){
-        return {...prev, cells}; // 同じ品目を再タップ→消す
-      }
-      cells.push({r, c, cropId:paintCrop});
-      return {...prev, cells};
-    });
-    setDirty(true);
-  };
-
-  // 行・列の挿入/削除
-  const insertRow = (at) => { pushUndo(); setEditPlot(p=>({...p, rows:p.rows+1, cells:p.cells.map(x=>x.r>=at?{...x,r:x.r+1}:x)})); setDirty(true); };
-  const deleteRow = (at) => { if(editPlot.rows<=1)return; pushUndo(); setEditPlot(p=>({...p, rows:p.rows-1, cells:p.cells.filter(x=>x.r!==at).map(x=>x.r>at?{...x,r:x.r-1}:x)})); setDirty(true); setSelPos(null); };
-  const insertCol = (at) => { pushUndo(); setEditPlot(p=>({...p, cols:p.cols+1, cells:p.cells.map(x=>x.c>=at?{...x,c:x.c+1}:x)})); setDirty(true); };
-  const deleteCol = (at) => { if(editPlot.cols<=1)return; pushUndo(); setEditPlot(p=>({...p, cols:p.cols-1, cells:p.cells.filter(x=>x.c!==at).map(x=>x.c>at?{...x,c:x.c-1}:x)})); setDirty(true); setSelPos(null); };
-
-  // 連作チェック
-  // 品目の栽培時期（定植日・なければ播種日）の「年」を取得
-  const cropYear = (cropId) => {
-    const c = crops.find(x=>x.id===cropId);
-    if(!c) return null;
-    const d = c.plantDate || c.sowDate;
-    if(!d) return null;
-    return new Date(d).getFullYear();
-  };
-  // 作付け図の作付け年（plot.plantDate優先、なければseasonから数字抽出）
-  const plotYear = (plot) => {
-    if(plot.plantDate) return new Date(plot.plantDate).getFullYear();
-    if(plot.season){ const m=plot.season.match(/\d{4}/); if(m) return parseInt(m[0]); }
-    return null;
-  };
-  // 連作チェック：同じ圃場・同じマス位置で、過去に植えた品目との定植日の年差を計算
-  const checkRotation = (plot) => {
-    const warnings = [];
-    const otherPlots = plots.filter(p=>p.fieldId===plot.fieldId && p.id!==plot.id);
-    const curYear = plotYear(plot);  // この作付け図の作付け年
-    plot.cells.forEach(cell=>{
-      if(!cell.cropId) return;
-      const c = crops.find(x=>x.id===cell.cropId);
-      if(!c) return;
-      const rot = ROTATION_DB[c.type];
-      if(!rot || rot.years<=0 || !rot.ng.length) return; // 連作チェック不要な品目
-      const curFam = FAMILY_DB[c.type];
-      otherPlots.forEach(op=>{
-        const pastCell = op.cells.find(x=>x.r===cell.r && x.c===cell.c);
-        if(!pastCell || !pastCell.cropId) return;
-        const pc = crops.find(x=>x.id===pastCell.cropId);
-        if(!pc) return;
-        const pastFam = FAMILY_DB[pc.type];
-        if(!rot.ng.includes(pastFam)) return;  // 同じNG科でなければ問題なし
-        const pastYear = plotYear(op);  // 過去作付け図の作付け年
-        if(curYear!==null && pastYear!==null){
-          const gap = Math.abs(curYear - pastYear);
-          if(gap < rot.years){
-            warnings.push({r:cell.r, c:cell.c, crop:cropName(cell.cropId), past:cropName(pastCell.cropId), years:rot.years, gap, fam:curFam, known:true, pastName:op.name});
-          }
-        } else {
-          // 作付け年が不明 → 注意喚起のみ
-          warnings.push({r:cell.r, c:cell.c, crop:cropName(cell.cropId), past:cropName(pastCell.cropId), years:rot.years, gap:null, fam:curFam, known:false, pastName:op.name});
-        }
-      });
-    });
-    return warnings;
-  };
-
-  const createPlot = () => {
-    if(!newModal.name){ showToast("名前を入力してください"); return; }
-    // 前作コピーの場合はレイアウト（cols/rows/cellSize）を引き継ぐ。マスの品目は空に
-    const src = newModal.copyFrom ? plots.find(p=>p.id===newModal.copyFrom) : null;
-    const cs = src ? src.cellSize : (parseInt(newModal.cellSize)||30);
-    const plot = {
-      id: uid0(), fieldId: selField?.id||"", name: newModal.name,
-      cols: src ? src.cols : (parseInt(newModal.cols)||20),
-      rows: src ? src.rows : (parseInt(newModal.rows)||20),
-      cells: [], season: newModal.season||"", cellSize: cs,
-      bgPlotId: src ? src.id : "", // 前作を背景表示するための参照
+  // 計画を初期化（区画3つ）
+  const initPlan = () => {
+    const p = {
+      id: uid0(), fieldId: selField?.id||"", kind:"plan", name:(selField?.name||"")+" 栽培計画",
+      beds:[{id:uid0(),name:"区画1"},{id:uid0(),name:"区画2"},{id:uid0(),name:"区画3"}],
+      plantings:[],
+      cols:20,rows:20,cells:[],season:"",cellSize:30,  // plot互換用ダミー
     };
-    setPlots([...plots, plot], plot);
-    setNewModal(null);
-    setEditPlot(plot);
-    setDirty(false);
-    showToast(src?"前作のレイアウトを引き継ぎました":"作付け図を作成しました");
+    setPlots([...plots, p], p);
+    showToast("栽培計画を作成しました");
   };
 
-  const savePlot = () => {
-    if(!editPlot) return;
-    const n = plots.map(p=>p.id===editPlot.id?editPlot:p);
-    setPlots(n, editPlot);
-    setDirty(false);
+  const savePlan = (updated) => {
+    const n = plots.map(p=>p.id===updated.id?updated:p);
+    setPlots(n, updated);
+  };
+
+  const addBed = () => {
+    const beds=[...(plan.beds||[]), {id:uid0(), name:"区画"+((plan.beds?.length||0)+1)}];
+    savePlan({...plan, beds});
+  };
+  const renameBed = (bedId) => {
+    const bed=plan.beds.find(b=>b.id===bedId);
+    const nm=window.prompt("区画名を変更", bed?.name||"");
+    if(nm===null)return;
+    savePlan({...plan, beds:plan.beds.map(b=>b.id===bedId?{...b,name:nm}:b)});
+  };
+  const deleteBed = (bedId) => {
+    if(!window.confirm("この区画と作付けを削除しますか？"))return;
+    savePlan({...plan, beds:plan.beds.filter(b=>b.id!==bedId), plantings:(plan.plantings||[]).filter(pl=>pl.bedId!==bedId)});
+  };
+
+  // 作付けの保存
+  const savePlanting = () => {
+    if(!mPlant.cropId){ showToast("品目を選択してください"); return; }
+    if(!mPlant.plantDate){ showToast("定植日を入力してください"); return; }
+    const pl={...mPlant, id:mPlant.id||uid0()};
+    const exists=(plan.plantings||[]).some(x=>x.id===pl.id);
+    const plantings=exists?plan.plantings.map(x=>x.id===pl.id?pl:x):[...(plan.plantings||[]),pl];
+    savePlan({...plan, plantings});
+    setMPlant(null);
     showToast("保存しました");
   };
-
-  // 別画面に移動 or 一覧に戻る際の自動保存確認
-  const exitEdit = () => {
-    if(dirty){
-      if(window.confirm("変更を保存しますか？")){
-        savePlot();
-      }
-    }
-    setEditPlot(null);
-    setDirty(false);
-  };
-
-  const deletePlot = (plot) => {
-    if(!window.confirm("この作付け図を削除しますか？"))return;
-    dbDelete("plots", plot.id);
-    setPlotsR(plots.filter(p=>p.id!==plot.id));
-    if(editPlot?.id===plot.id) setEditPlot(null);
+  const deletePlanting = (id) => {
+    savePlan({...plan, plantings:plan.plantings.filter(x=>x.id!==id)});
+    setMPlant(null);
     showToast("削除しました");
   };
 
-  // 編集中の状態をrefに保持し、アンマウント時（別画面移動時）に自動保存
-  const editStateRef = useRef({editPlot:null, dirty:false});
-  useEffect(()=>{ editStateRef.current={editPlot, dirty}; },[editPlot, dirty]);
-  // Ctrl+Z / Cmd+Z でアンドゥ
-  useEffect(()=>{
-    if(!editPlot) return;
-    const onKey = e => {
-      if((e.ctrlKey||e.metaKey) && e.key==="z"){ e.preventDefault(); doUndo(); }
-    };
-    window.addEventListener("keydown", onKey);
-    return ()=>window.removeEventListener("keydown", onKey);
-  },[editPlot]);
-  useEffect(()=>{
-    return ()=>{
-      const {editPlot:ep, dirty:d} = editStateRef.current;
-      if(ep && d){
-        // 別画面に移動した場合、未保存の変更を自動保存
-        dbSavePlotDirect(ep);
-      }
-    };
-  },[]);
-  // 直接DB保存（アンマウント時用）
-  const dbSavePlotDirect = (ep) => {
-    setPlots(plots.map(p=>p.id===ep.id?ep:p), ep);
+  // 収穫予定日を品目から自動計算
+  const calcHarvest = (cropId, plantDate) => {
+    if(!plantDate) return "";
+    const c=crops.find(x=>x.id===cropId);
+    const db=c?CDB[c.type]||{}:{};
+    const days=db.maturity?.[c?.maturity||"mid"]||db.d||90;
+    const d=new Date(plantDate); d.setDate(d.getDate()+days);
+    return d.toISOString().slice(0,10);
   };
 
-  // ───── 編集モード ─────
-  if(editPlot){
-    const warnings = checkRotation(editPlot);
-    const warnMap = {};
-    warnings.forEach(w=>{ warnMap[w.r+":"+w.c]=w; });
-    const bgPlot = editPlot.bgPlotId ? plots.find(p=>p.id===editPlot.bgPlotId) : null;
-    const getBgCell = (r,c) => bgPlot ? (bgPlot.cells.find(x=>x.r===r&&x.c===c)?.cropId||"") : "";
-    const cellSize = Math.round(Math.max(14, Math.min(40, 330/editPlot.cols)) * zoom);
-    const m = cellM(editPlot);
+  // 連作チェック：同じ区画で前作と次作が同じNG科＆間隔がNG年数未満
+  const checkPlanRotation = () => {
+    const warns=[];
+    if(!plan) return warns;
+    (plan.beds||[]).forEach(bed=>{
+      const items=(plan.plantings||[]).filter(p=>p.bedId===bed.id&&p.plantDate)
+        .map(p=>{const c=crops.find(x=>x.id===p.cropId);return{...p,crop:c,fam:c?FAMILY_DB[c.type]:null,rot:c?ROTATION_DB[c.type]:null};})
+        .sort((a,b)=>a.plantDate.localeCompare(b.plantDate));
+      for(let i=0;i<items.length;i++){
+        for(let j=0;j<i;j++){
+          const cur=items[i], past=items[j];
+          if(!cur.rot||cur.rot.years<=0||!cur.rot.ng.length)continue;
+          if(!cur.fam||!past.fam)continue;
+          if(!cur.rot.ng.includes(past.fam))continue;
+          const gapYears=(new Date(cur.plantDate)-new Date(past.plantDate))/(86400000*365);
+          if(gapYears<cur.rot.years){
+            warns.push({bed:bed.name, cur:cropLabel(cur.crop.type), past:cropLabel(past.crop.type), fam:cur.fam, years:cur.rot.years, gap:Math.floor(gapYears*10)/10});
+          }
+        }
+      }
+    });
+    return warns;
+  };
+
+  if(fields.length===0) return <div style={S.scr} className="scr-inner"><div style={{color:TX3,fontSize:".82rem",padding:16,textAlign:"center"}}>先に圃場を登録してください</div></div>;
+
+  if(!plan){
     return (
       <div style={S.scr} className="scr-inner">
-        <div style={{...S.sec,flexWrap:"wrap",gap:6}}>
-          <span>🗺️ {editPlot.name}{dirty&&<span style={{color:WARN,fontSize:".7rem",marginLeft:6}}>●未保存</span>}</span>
-          <div style={{display:"flex",gap:6}}>
-            <button style={{...S.btn,...S.btnS,...S.btnSm}} onClick={exitEdit}>← 戻る</button>
-            <button style={{...S.btn,background:G,color:"#fff",padding:"4px 12px",fontSize:".72rem",borderRadius:8,width:"auto"}} onClick={savePlot}>保存 ✓</button>
-          </div>
-        </div>
-
-        {/* 品目選択 + 消しゴム */}
-        <div style={S.card}>
-          <div style={{fontSize:".74rem",fontWeight:700,color:"#5c3d1e",marginBottom:6}}>🎨 塗る品目を選択</div>
-          {activeCrops.length===0
-            ? <div style={{fontSize:".74rem",color:TX3}}>この圃場に栽培中の品目がありません</div>
-            : <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
-                <Sel value={eraser?"__eraser":paintCrop} onChange={v=>{ if(v==="__eraser"){setEraser(true);} else {setEraser(false);setPaintCrop(v);} }}
-                  options={[{value:"",label:"（品目を選択）"},...activeCrops.map(c=>{const db=CDB[c.type]||{};const nm=c.type==="custom"?(c.customName||"カスタム"):(db.n||c.type);return{value:c.id,label:(db.e||"🌱")+" "+nm+(c.variety?"("+c.variety+")":"")};}),{value:"__eraser",label:"🧹 消しゴム"}]}/>
-                <span style={{display:"inline-block",width:24,height:24,borderRadius:5,background:eraser?"#fff":cropColor(paintCrop),border:"1px solid #d5cdbf",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",fontSize:".8rem"}}>{eraser?"🧹":""}</span>
-              </div>}
-        </div>
-
-        {/* 作付け期間（連作判定の基準）*/}
-        <div style={S.card}>
-          <div style={{fontSize:".74rem",fontWeight:700,color:"#5c3d1e",marginBottom:6}}>📆 作付け時期（連作判定の基準）</div>
-          <R2>
-            <FG label="作付け（定植）日"><Inp type="date" value={editPlot.plantDate||""} onChange={v=>{setEditPlot(p=>({...p,plantDate:v}));setDirty(true);}}/></FG>
-            <FG label="終了日（任意）"><Inp type="date" value={editPlot.endDate||""} onChange={v=>{setEditPlot(p=>({...p,endDate:v}));setDirty(true);}}/></FG>
-          </R2>
-          <FG label="シーズン・年度（表示名）"><Inp value={editPlot.season||""} onChange={v=>{setEditPlot(p=>({...p,season:v}));setDirty(true);}} placeholder="例：2026春"/></FG>
-          <div style={{fontSize:".68rem",color:TX3,lineHeight:1.5}}>
-            💡 作付け日を入れると、同じ場所の前作との年差を正確に計算します。{editPlot.plantDate&&editPlot.endDate?`（栽培日数 ${Math.max(0,Math.round((new Date(editPlot.endDate)-new Date(editPlot.plantDate))/86400000))}日）`:""}
-          </div>
-        </div>
-
-        {/* モード切替 + アンドゥ */}
-        <div style={S.card}>
-          <div style={{display:"flex",gap:6,alignItems:"center",marginBottom:8}}>
-            <button onClick={()=>{setMode("paint");setSelPos(null);}}
-              style={{flex:1,padding:"7px 6px",border:"2px solid "+(mode==="paint"?G2:"#e0d9ce"),borderRadius:8,background:mode==="paint"?G3:"#fff",fontSize:".74rem",fontWeight:700,color:mode==="paint"?G:"#5a5040",cursor:"pointer"}}>🖌️ 塗る</button>
-            <button onClick={()=>setMode("select")}
-              style={{flex:1,padding:"7px 6px",border:"2px solid "+(mode==="select"?G2:"#e0d9ce"),borderRadius:8,background:mode==="select"?G3:"#fff",fontSize:".74rem",fontWeight:700,color:mode==="select"?G:"#5a5040",cursor:"pointer"}}>📍 位置選択</button>
-            <button onClick={doUndo}
-              style={{padding:"7px 12px",border:"1px solid #e0d9ce",borderRadius:8,background:"#fff",fontSize:".74rem",fontWeight:700,color:"#5a5040",cursor:"pointer"}}>↩️ 戻す</button>
-          </div>
-          {mode==="select"
-            ? <div style={{fontSize:".72rem",color:"#5c3d1e",marginBottom:6}}>
-                {selPos ? `選択中: ${selPos.r+1}行 ${selPos.c+1}列目` : "グリッドのマスをタップして位置を選んでください"}
-              </div>
-            : <div style={{fontSize:".7rem",color:TX3,marginBottom:6}}>「位置選択」モードで挿入・削除する位置を指定できます</div>}
-          {/* 行・列の挿入削除（選択位置基準）*/}
-          <div style={{display:"flex",gap:5,flexWrap:"wrap",fontSize:".7rem"}}>
-            <button disabled={!selPos} style={{...S.btn,...S.btnS,padding:"5px 9px",fontSize:".7rem",borderRadius:8,width:"auto",opacity:selPos?1:.4}} onClick={()=>selPos&&insertCol(selPos.c)}>← 左に列挿入</button>
-            <button disabled={!selPos} style={{...S.btn,...S.btnS,padding:"5px 9px",fontSize:".7rem",borderRadius:8,width:"auto",opacity:selPos?1:.4}} onClick={()=>selPos&&insertCol(selPos.c+1)}>右に列挿入 →</button>
-            <button disabled={!selPos} style={{...S.btn,...S.btnR,padding:"5px 9px",fontSize:".7rem",borderRadius:8,width:"auto",opacity:selPos?1:.4}} onClick={()=>selPos&&deleteCol(selPos.c)}>この列を削除</button>
-          </div>
-          <div style={{display:"flex",gap:5,flexWrap:"wrap",fontSize:".7rem",marginTop:5}}>
-            <button disabled={!selPos} style={{...S.btn,...S.btnS,padding:"5px 9px",fontSize:".7rem",borderRadius:8,width:"auto",opacity:selPos?1:.4}} onClick={()=>selPos&&insertRow(selPos.r)}>↑ 上に行挿入</button>
-            <button disabled={!selPos} style={{...S.btn,...S.btnS,padding:"5px 9px",fontSize:".7rem",borderRadius:8,width:"auto",opacity:selPos?1:.4}} onClick={()=>selPos&&insertRow(selPos.r+1)}>下に行挿入 ↓</button>
-            <button disabled={!selPos} style={{...S.btn,...S.btnR,padding:"5px 9px",fontSize:".7rem",borderRadius:8,width:"auto",opacity:selPos?1:.4}} onClick={()=>selPos&&deleteRow(selPos.r)}>この行を削除</button>
-          </div>
-          <div style={{fontSize:".68rem",color:TX3,marginTop:6}}>
-            現在 {editPlot.cols}×{editPlot.rows}マス = {(editPlot.cols*m).toFixed(1)}m × {(editPlot.rows*m).toFixed(1)}m（{(editPlot.cols*editPlot.rows*cellArea(editPlot)).toFixed(1)}㎡）
-          </div>
-        </div>
-
-        {/* 連作警告 */}
-        {warnings.length>0&&<div style={{...S.card,background:"#fff3cd",border:"1px solid #ffc107"}}>
-          <div style={{fontSize:".76rem",fontWeight:700,color:"#856404",marginBottom:4}}>⚠️ 連作注意（{warnings.length}箇所）</div>
-          {warnings.slice(0,5).map((w,i)=>(
-            <div key={i} style={{fontSize:".7rem",color:"#856404",lineHeight:1.5}}>
-              ・{w.crop}（{w.fam}）: 同じ場所に前作{w.past}{w.known?`・${w.gap}年前`:""}{w.pastName?`「${w.pastName}」`:""}。{w.fam}は{w.years}年空けるのが目安{w.known&&w.gap<w.years?`（あと${w.years-w.gap}年）`:""}{!w.known?"（作付け日未設定のため年数不明）":""}
-            </div>
-          ))}
-          {warnings.length>5&&<div style={{fontSize:".68rem",color:"#856404"}}>他 {warnings.length-5} 箇所</div>}
-        </div>}
-
-        {/* グリッド */}
-        <div style={{...S.card,overflowX:"auto",WebkitOverflowScrolling:"touch"}}>
-          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6,gap:8}}>
-            <div style={{fontSize:".7rem",color:TX3,flex:1}}>
-              タップで塗る/消す・ドラッグで連続{bgPlot?"。薄い色は前作（"+bgPlot.name+"）":""}
-            </div>
-            <div style={{display:"flex",gap:4,alignItems:"center",flexShrink:0}}>
-              <button onClick={()=>setZoom(z=>Math.max(0.5,Math.round((z-0.25)*100)/100))} style={{width:28,height:28,borderRadius:7,border:"1px solid #e0d9ce",background:"#fff",fontSize:"1rem",cursor:"pointer",fontWeight:700,color:"#5a5040"}}>−</button>
-              <span style={{fontSize:".68rem",color:TX3,minWidth:34,textAlign:"center"}}>{Math.round(zoom*100)}%</span>
-              <button onClick={()=>setZoom(z=>Math.min(2.5,Math.round((z+0.25)*100)/100))} style={{width:28,height:28,borderRadius:7,border:"1px solid #e0d9ce",background:"#fff",fontSize:"1rem",cursor:"pointer",fontWeight:700,color:"#5a5040"}}>＋</button>
-            </div>
-          </div>
-          <div style={{display:"inline-block",userSelect:"none",touchAction:"none"}}
-            onMouseLeave={()=>setPainting(false)}>
-            {Array.from({length:editPlot.rows}).map((_,r)=>(
-              <div key={r} style={{display:"flex"}}>
-                {Array.from({length:editPlot.cols}).map((_,c)=>{
-                  const cid=getCell(editPlot,r,c);
-                  const bgCid=getBgCell(r,c);
-                  const warn=warnMap[r+":"+c];
-                  return <div key={c}
-                    onMouseDown={()=>{setPainting(true);setCell(r,c,false);}}
-                    onMouseEnter={()=>{if(painting)setCell(r,c,true);}}
-                    onMouseUp={()=>setPainting(false)}
-                    onTouchStart={()=>{setPainting(true);setCell(r,c,false);}}
-                    onTouchMove={e=>{
-                      const t=e.touches[0];
-                      const el=document.elementFromPoint(t.clientX,t.clientY);
-                      if(el&&el.dataset&&el.dataset.r!==undefined){
-                        setCell(parseInt(el.dataset.r),parseInt(el.dataset.c),true);
-                      }
-                    }}
-                    onTouchEnd={()=>setPainting(false)}
-                    data-r={r} data-c={c}
-                    style={{width:cellSize,height:cellSize,border:(selPos&&selPos.r===r&&selPos.c===c)?"2px solid #2d6a3f":"1px solid #d5cdbf",
-                      background: cid ? cropColor(cid) : (bgCid ? cropColor(bgCid)+"33" : "#f0ebe3"),
-                      display:"flex",alignItems:"center",justifyContent:"center",fontSize:cellSize>26?".7rem":".55rem",
-                      cursor:"pointer",position:"relative",boxSizing:"border-box",
-                      boxShadow:(selPos&&selPos.r===r&&selPos.c===c)?"inset 0 0 0 1px #fff":"none"}}>
-                    {cid ? cropEmoji(cid) : (bgCid ? <span style={{opacity:.35}}>{cropEmoji(bgCid)}</span> : "")}
-                    {warn&&<span style={{position:"absolute",top:-1,right:-1,fontSize:".5rem"}}>⚠️</span>}
-                  </div>;
-                })}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* 凡例 */}
-        <div style={S.card}>
-          <div style={{fontSize:".74rem",fontWeight:700,color:"#5c3d1e",marginBottom:6}}>凡例</div>
-          {(()=>{
-            const used={};
-            editPlot.cells.forEach(cell=>{if(cell.cropId)used[cell.cropId]=(used[cell.cropId]||0)+1;});
-            const entries=Object.entries(used);
-            if(!entries.length) return <div style={{fontSize:".72rem",color:TX3}}>まだ何も塗られていません</div>;
-            return entries.map(([cid,cnt])=>(
-              <div key={cid} style={{display:"flex",alignItems:"center",gap:6,fontSize:".74rem",marginBottom:3}}>
-                <span style={{display:"inline-block",width:14,height:14,borderRadius:3,background:cropColor(cid),flexShrink:0}}/>
-                <span>{cropEmoji(cid)} {cropName(cid)}</span>
-                {(()=>{const c=crops.find(x=>x.id===cid);const rot=c&&ROTATION_DB[c.type];if(rot&&rot.years>0)return <span style={{fontSize:".66rem",color:"#856404",background:"#fff3cd",borderRadius:6,padding:"1px 6px"}}>連作{rot.years}年</span>;if(rot&&rot.years===0)return <span style={{fontSize:".66rem",color:"#888"}}>連作可</span>;return null;})()}
-                <span style={{color:TX3,marginLeft:"auto"}}>{cnt}マス（{(cnt*cellArea(editPlot)).toFixed(2)}㎡）</span>
-              </div>
-            ));
-          })()}
-        </div>
+        <div style={S.sec}><span>📅 栽培計画</span></div>
+        <FG label="圃場を選択"><Sel value={selFieldIdx} onChange={v=>setSelFieldIdx(parseInt(v))} options={fields.map((f,i)=>({value:i,label:f.name}))}/></FG>
+        <div style={{color:TX3,fontSize:".82rem",padding:16,textAlign:"center"}}>この圃場の栽培計画はまだありません</div>
+        <button style={{...S.btn,...S.btnG}} onClick={initPlan}>＋ 栽培計画を作る</button>
       </div>
     );
   }
 
-  // ───── 一覧モード ─────
+  // ガント表示用：月のリスト（1〜12月）
+  const months=Array.from({length:12},(_, i)=>i+1);
+  const yearStart=new Date(year,0,1).getTime();
+  const yearEnd=new Date(year,11,31).getTime();
+  const yearSpan=yearEnd-yearStart;
+  const datePct=d=>{const t=new Date(d).getTime();return Math.max(0,Math.min(100,(t-yearStart)/yearSpan*100));};
+  const warns=checkPlanRotation();
+
   return (
     <div style={S.scr} className="scr-inner">
-      <div style={S.sec}><span>🗺️ 作付け図</span></div>
-      {fields.length===0
-        ? <div style={{color:TX3,fontSize:".82rem",padding:16,textAlign:"center"}}>先に圃場を登録してください</div>
-        : <>
-          <FG label="圃場を選択">
-            <Sel value={selFieldIdx} onChange={v=>{setSelFieldIdx(parseInt(v));setEditPlot(null);}} options={fields.map((f,i)=>({value:i,label:f.name}))}/>
-          </FG>
-          <button style={{...S.btn,...S.btnG,marginBottom:10}}
-            onClick={()=>setNewModal({name:selField?.name?selField.name+"の作付け図":"作付け図",widthM:"6",heightM:"6",cols:"20",rows:"20",cellSize:"30",season:String(new Date().getFullYear())})}>
-            ＋ 新しい作付け図を作る
-          </button>
-          {fieldPlots.length===0&&<div style={{color:TX3,fontSize:".82rem",padding:16,textAlign:"center"}}>この圃場の作付け図はまだありません</div>}
-          {fieldPlots.map(p=>{
-            const filled=p.cells.filter(c=>c.cropId).length;
-            const m=cellM(p);
+      <div style={{...S.sec,flexWrap:"wrap",gap:6}}>
+        <span>📅 栽培計画</span>
+        <div style={{display:"flex",gap:6,alignItems:"center"}}>
+          <button onClick={()=>setYear(y=>y-1)} style={{...S.btn,...S.btnS,...S.btnSm}}>‹</button>
+          <span style={{fontSize:".82rem",fontWeight:700,minWidth:46,textAlign:"center"}}>{year}年</span>
+          <button onClick={()=>setYear(y=>y+1)} style={{...S.btn,...S.btnS,...S.btnSm}}>›</button>
+        </div>
+      </div>
+
+      <FG label="圃場を選択"><Sel value={selFieldIdx} onChange={v=>setSelFieldIdx(parseInt(v))} options={fields.map((f,i)=>({value:i,label:f.name}))}/></FG>
+
+      {/* 連作警告 */}
+      {warns.length>0&&<div style={{...S.card,background:"#fff3cd",border:"1px solid #ffc107"}}>
+        <div style={{fontSize:".76rem",fontWeight:700,color:"#856404",marginBottom:4}}>⚠️ 連作注意（{warns.length}件）</div>
+        {warns.slice(0,6).map((w,i)=>(
+          <div key={i} style={{fontSize:".7rem",color:"#856404",lineHeight:1.5}}>
+            ・{w.bed}: {w.cur}（{w.fam}）。前作{w.past}から{w.gap}年（{w.years}年空けるのが目安）
+          </div>
+        ))}
+      </div>}
+
+      {/* ガントチャート */}
+      <div style={{...S.card,overflowX:"auto",WebkitOverflowScrolling:"touch",padding:"10px 8px"}}>
+        <div style={{minWidth:560}}>
+          {/* 月ヘッダー */}
+          <div style={{display:"flex",borderBottom:"2px solid #e0d9ce",marginBottom:4}}>
+            <div style={{width:70,flexShrink:0,fontSize:".68rem",fontWeight:700,color:"#5c3d1e"}}>区画</div>
+            <div style={{flex:1,display:"flex"}}>
+              {months.map(m=>(<div key={m} style={{flex:1,fontSize:".62rem",color:TX3,textAlign:"center",borderLeft:"1px solid #f0ebe3"}}>{m}月</div>))}
+            </div>
+          </div>
+          {/* 区画ごとの行 */}
+          {(plan.beds||[]).map(bed=>{
+            const items=(plan.plantings||[]).filter(p=>p.bedId===bed.id&&p.plantDate);
             return (
-              <div key={p.id} style={S.card}>
-                <div style={{display:"flex",alignItems:"center",gap:8}}>
-                  <div style={{flex:1,minWidth:0}}>
-                    <div style={{fontWeight:700,fontSize:".9rem"}}>{p.name}</div>
-                    <div style={{fontSize:".7rem",color:TX3,marginTop:2}}>
-                      {p.cols}×{p.rows}マス（1マス{m===1?"1m":"30cm"}）· {p.season||""} · {filled}マス使用
-                    </div>
+              <div key={bed.id} style={{display:"flex",alignItems:"stretch",borderBottom:"1px solid #f0ebe3",minHeight:38}}>
+                <div style={{width:70,flexShrink:0,fontSize:".7rem",display:"flex",flexDirection:"column",justifyContent:"center",paddingRight:4}}>
+                  <span onClick={()=>renameBed(bed.id)} style={{fontWeight:700,cursor:"pointer",color:"#5c3d1e"}}>{bed.name}</span>
+                  <div style={{display:"flex",gap:3,marginTop:2}}>
+                    <button onClick={()=>setMPlant({bedId:bed.id,cropId:"",plantDate:"",harvestDate:"",year})} style={{fontSize:".6rem",border:"none",background:G3,color:G,borderRadius:5,padding:"1px 5px",cursor:"pointer"}}>＋作付け</button>
+                    <button onClick={()=>deleteBed(bed.id)} style={{fontSize:".6rem",border:"none",background:"#fee2e2",color:"#b91c1c",borderRadius:5,padding:"1px 4px",cursor:"pointer"}}>×</button>
                   </div>
-                  <button style={{...S.btn,background:G,color:"#fff",padding:"5px 12px",fontSize:".72rem",borderRadius:8,width:"auto",flexShrink:0}} onClick={()=>{setEditPlot(p);setDirty(false);}}>編集</button>
-                  <button style={{...S.btn,background:"#f59e0b",color:"#fff",padding:"5px 10px",fontSize:".72rem",borderRadius:8,width:"auto",flexShrink:0}} onClick={()=>setNewModal({name:p.name.replace(p.season||"","").trim()+" "+(new Date().getFullYear())+"作",widthM:String((p.cols*cellM(p)).toFixed(1)),heightM:String((p.rows*cellM(p)).toFixed(1)),cols:String(p.cols),rows:String(p.rows),cellSize:String(p.cellSize||30),season:String(new Date().getFullYear()),copyFrom:p.id})}>📋 前作コピー</button>
-                  <button style={{...S.btn,...S.btnR,...S.btnSm,flexShrink:0}} onClick={()=>deletePlot(p)}>削除</button>
                 </div>
-                {filled>0&&<div style={{marginTop:8,display:"inline-block",border:"1px solid #e0d9ce",borderRadius:4,overflow:"hidden"}}>
-                  {Array.from({length:Math.min(p.rows,24)}).map((_,r)=>(
-                    <div key={r} style={{display:"flex"}}>
-                      {Array.from({length:Math.min(p.cols,24)}).map((_,c)=>{
-                        const cell=p.cells.find(x=>x.r===r&&x.c===c);
-                        return <div key={c} style={{width:6,height:6,background:cell?cropColor(cell.cropId):"#f0ebe3"}}/>;
-                      })}
-                    </div>
-                  ))}
-                </div>}
+                <div style={{flex:1,position:"relative",borderLeft:"1px solid #f0ebe3"}}>
+                  {/* 月の区切り線 */}
+                  {months.map(m=>(<div key={m} style={{position:"absolute",left:((m-1)/12*100)+"%",top:0,bottom:0,width:1,background:"#f5f0e8"}}/>))}
+                  {/* 作付けバー */}
+                  {items.map(pl=>{
+                    const c=crops.find(x=>x.id===pl.cropId);
+                    if(!c)return null;
+                    const hv=pl.harvestDate||calcHarvest(pl.cropId,pl.plantDate);
+                    const left=datePct(pl.plantDate);
+                    const right=datePct(hv);
+                    const width=Math.max(3,right-left);
+                    // 表示年でフィルタ
+                    const py=new Date(pl.plantDate).getFullYear();
+                    const hy=new Date(hv).getFullYear();
+                    if(hy<year||py>year)return null;
+                    return (
+                      <div key={pl.id} onClick={()=>setMPlant({...pl,year})}
+                        style={{position:"absolute",left:left+"%",width:width+"%",top:4,height:26,background:cropColorByType(c.type),borderRadius:5,display:"flex",alignItems:"center",paddingLeft:4,fontSize:".62rem",color:"#fff",cursor:"pointer",overflow:"hidden",whiteSpace:"nowrap",boxShadow:"0 1px 3px rgba(0,0,0,.2)"}}>
+                        {(CDB[c.type]||{}).e} {(CDB[c.type]||{}).n||c.type}
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             );
           })}
-        </>}
+        </div>
+      </div>
+      <button style={{...S.btn,...S.btnS,marginTop:8}} onClick={addBed}>＋ 区画を追加</button>
 
-      {/* 新規作成モーダル */}
-      <ModalWithSave open={!!newModal} onClose={()=>setNewModal(null)} title="作付け図を新規作成" onSave={createPlot}>
-        {newModal&&<>
-          <FG label="名前"><Inp value={newModal.name} onChange={v=>setNewModal({...newModal,name:v})} placeholder="例：南畑 春作"/></FG>
-          <FG label="シーズン・年度"><Inp value={newModal.season} onChange={v=>setNewModal({...newModal,season:v})} placeholder="例：2026春"/></FG>
-          {fieldPlots.length>0&&<FG label="前作からレイアウトをコピー">
-            <Sel value={newModal.copyFrom||""} onChange={v=>setNewModal({...newModal,copyFrom:v})}
-              options={[{value:"",label:"コピーしない（新規）"},...fieldPlots.map(p=>({value:p.id,label:p.name+(p.season?"（"+p.season+"）":"")}))]}/>
-            <div style={{fontSize:".68rem",color:"#888",marginTop:3}}>選ぶと畑の広さ・形を引き継ぎ、品目だけ塗り直せます。前作は薄く背景表示されます</div>
-          </FG>}
-          {!newModal.copyFrom&&<>
-            <FG label="1マスのサイズ">
-              <div style={{display:"flex",gap:8}}>
-                {[{v:"30",l:"30cm（家庭菜園向け）"},{v:"100",l:"1m（広い圃場向け）"}].map(opt=>(
-                  <button key={opt.v} type="button"
-                    onClick={()=>{
-                      const cm=opt.v==="100"?1:0.3;
-                      setNewModal({...newModal,cellSize:opt.v,
-                        cols:String(Math.max(1,Math.round((parseFloat(newModal.widthM)||0)/cm))),
-                        rows:String(Math.max(1,Math.round((parseFloat(newModal.heightM)||0)/cm)))});
-                    }}
-                    style={{flex:1,padding:"9px 6px",border:"2px solid "+(newModal.cellSize===opt.v?G2:"#e0d9ce"),borderRadius:9,background:newModal.cellSize===opt.v?G3:"#fff",fontSize:".74rem",fontWeight:700,color:newModal.cellSize===opt.v?G:"#5a5040",cursor:"pointer"}}>
-                    {opt.l}
-                  </button>
-                ))}
+      {/* 凡例 */}
+      <div style={{...S.card,marginTop:8}}>
+        <div style={{fontSize:".74rem",fontWeight:700,color:"#5c3d1e",marginBottom:6}}>作付け一覧（{year}年）</div>
+        {(()=>{
+          const all=(plan.plantings||[]).filter(p=>{const hv=p.harvestDate||calcHarvest(p.cropId,p.plantDate);return new Date(hv).getFullYear()>=year&&new Date(p.plantDate).getFullYear()<=year;}).sort((a,b)=>(b.plantDate||"").localeCompare(a.plantDate||""));
+          if(!all.length)return <div style={{fontSize:".72rem",color:TX3}}>作付けがありません。区画の「＋作付け」から追加してください</div>;
+          return all.map(pl=>{
+            const c=crops.find(x=>x.id===pl.cropId);if(!c)return null;
+            const bed=plan.beds.find(b=>b.id===pl.bedId);
+            const hv=pl.harvestDate||calcHarvest(pl.cropId,pl.plantDate);
+            const rot=ROTATION_DB[c.type];
+            return (
+              <div key={pl.id} onClick={()=>setMPlant({...pl,year})} style={{display:"flex",alignItems:"center",gap:8,fontSize:".74rem",padding:"6px 0",borderBottom:"1px solid #f0ebe3",cursor:"pointer"}}>
+                <span style={{display:"inline-block",width:12,height:12,borderRadius:3,background:cropColorByType(c.type),flexShrink:0}}/>
+                <span style={{flex:1}}>{cropLabel(c.type)}{c.variety?"("+c.variety+")":""}</span>
+                <span style={{color:TX3,fontSize:".68rem"}}>{bed?.name} · {pl.plantDate?.slice(5)}〜{hv?.slice(5)}</span>
+                {rot&&rot.years>0&&<span style={{fontSize:".64rem",color:"#856404",background:"#fff3cd",borderRadius:5,padding:"1px 5px"}}>連作{rot.years}年</span>}
               </div>
-            </FG>
-            <R2>
-              <FG label="横の長さ（m）"><Inp type="number" value={newModal.widthM} onChange={v=>{const cm=newModal.cellSize==="100"?1:0.3;setNewModal({...newModal,widthM:v,cols:String(Math.max(1,Math.round((parseFloat(v)||0)/cm)))});}} placeholder="例：6"/></FG>
-              <FG label="縦の長さ（m）"><Inp type="number" value={newModal.heightM} onChange={v=>{const cm=newModal.cellSize==="100"?1:0.3;setNewModal({...newModal,heightM:v,rows:String(Math.max(1,Math.round((parseFloat(v)||0)/cm)))});}} placeholder="例：6"/></FG>
-            </R2>
-            <div style={{fontSize:".72rem",color:TX3,background:"#f5fdf7",borderRadius:8,padding:"8px 10px"}}>
-              {newModal.cols&&newModal.rows
-                ? `→ ${newModal.cols} × ${newModal.rows} マス = ${(newModal.cols*newModal.rows*(newModal.cellSize==="100"?1:0.09)).toFixed(1)}㎡`
-                : "縦横の長さを入力するとマス数を自動計算します"}
-            </div>
-            <div style={{fontSize:".7rem",color:"#888",marginTop:6,lineHeight:1.6}}>
-              💡 不整形な畑は、まず大きめの四角で作り、使わないマスを塗らずに残せば輪郭を表現できます。後から行・列の追加も可能です。
-            </div>
-          </>}
+            );
+          });
+        })()}
+      </div>
+
+      {/* 作付け編集モーダル */}
+      <ModalWithSave open={!!mPlant} onClose={()=>setMPlant(null)} title={mPlant?.id?"作付けを編集":"作付けを追加"} onSave={savePlanting}>
+        {mPlant&&<>
+          <FG label="区画"><Sel value={mPlant.bedId} onChange={v=>setMPlant({...mPlant,bedId:v})} options={(plan.beds||[]).map(b=>({value:b.id,label:b.name}))}/></FG>
+          <FG label="品目">
+            <Sel value={mPlant.cropId} onChange={v=>{const hv=calcHarvest(v,mPlant.plantDate);setMPlant({...mPlant,cropId:v,harvestDate:hv});}}
+              options={[{value:"",label:"（選択）"},...crops.filter(c=>!c.ended).map(c=>{const db=CDB[c.type]||{};return{value:c.id,label:(db.e||"🌱")+" "+(c.type==="custom"?c.customName||"カスタム":db.n||c.type)+(c.variety?"("+c.variety+")":"")};})]}/>
+          </FG>
+          <R2>
+            <FG label="定植・播種日"><Inp type="date" value={mPlant.plantDate} onChange={v=>{const hv=calcHarvest(mPlant.cropId,v);setMPlant({...mPlant,plantDate:v,harvestDate:hv});}}/></FG>
+            <FG label="収穫予定日"><Inp type="date" value={mPlant.harvestDate} onChange={v=>setMPlant({...mPlant,harvestDate:v})}/></FG>
+          </R2>
+          <div style={{fontSize:".68rem",color:TX3,marginBottom:8}}>💡 品目と定植日を選ぶと収穫予定日を自動計算します（手動で調整可）</div>
+          {mPlant.id&&<button onClick={()=>deletePlanting(mPlant.id)} style={{...S.btn,...S.btnR,marginTop:4}}>この作付けを削除</button>}
         </>}
       </ModalWithSave>
     </div>
@@ -3847,7 +3628,7 @@ function SettingsScreen({ showToast, user, uid, signOut, fields, crops, logs, fe
 const SCREENS = [
   { key:"home",    label:"ホーム",     icon:"🏡" },
   { key:"fields",  label:"圃場・品目", icon:"🌾" },
-  { key:"plot",    label:"作付け図",   icon:"🗺️" },
+  { key:"plot",    label:"栽培計画",   icon:"📅" },
   { key:"master",  label:"資材・設備", icon:"📦" },
   { key:"cost",    label:"費用",       icon:"💰" },
   { key:"report",  label:"レポート",   icon:"📊" },
@@ -3964,7 +3745,7 @@ export default function App() {
 
   const signOut=async()=>{ await sb.auth.signOut(); setUser(null);setFieldsR([]);setCropsR([]);setLogsR([]);setFertMsR([]);setPestMsR([]);setEquipsR([]);setCostsR([]);setPlotsR([]); };
 
-  const TITLES={home:"作物の記録アプリ",master:"マスター登録",fields:"圃場・品目管理",plot:"作付け図",log:"作業記録",cost:"費用管理",report:"分析レポート",settings:"設定"};
+  const TITLES={home:"作物の記録アプリ",master:"マスター登録",fields:"圃場・品目管理",plot:"栽培計画",log:"作業記録",cost:"費用管理",report:"分析レポート",settings:"設定"};
 
   const loading_screen = bg => <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100svh",background:"linear-gradient(135deg,"+GD+","+G+")"}}><style>{globalCss}</style><div style={{color:"#fff",textAlign:"center"}}><div style={{fontSize:"2rem",marginBottom:10}}>🌾</div><div>{bg}</div></div></div>;
 
@@ -4026,7 +3807,7 @@ export default function App() {
         }}
       /> }</>}
         
-        {scr==="plot"    &&<PlotScreen    fields={fields} crops={crops} plots={plots} setPlots={setPlots} setPlotsR={setPlotsR} showToast={showToast}/>}
+        {scr==="plot"    &&<PlanScreen    fields={fields} crops={crops} plots={plots} setPlots={setPlots} setPlotsR={setPlotsR} showToast={showToast}/>}
         {scr==="cost"    &&<CostScreen    fields={fields} fertMs={fertMs} pestMs={pestMs} equips={equips} costs={costs} setCosts={setCosts} logs={logs} showToast={showToast}/>}
 
         {scr==="report"  &&<ReportScreen  fields={fields} crops={crops} logs={logs} costs={costs} fertMs={fertMs} pestMs={pestMs} equips={equips}/>}
