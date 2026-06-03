@@ -1121,7 +1121,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.85</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.86</div>
       </div>
     </div>
   );
@@ -1658,7 +1658,7 @@ function FieldsScreen({ fields, setFields, setFieldsR, crops, setCrops, setCrops
             <div style={{display:"flex",gap:5,marginTop:7,paddingTop:7,borderTop:"1px solid #e8e0d5",justifyContent:"flex-end",flexWrap:"wrap"}}>
               <button style={{...S.btn,...S.btnS,...S.btnSm}}
                 onClick={()=>{const existingSeed=costs.find(co=>co.cropId===c.id&&co.cat==="seed");setMCrop({...c,_idx:i,seedCost:c.seedCost||existingSeed?.amt||""});}}>編集</button>
-              <button style={{...S.btn,...S.btnSm,background:"#fff",color:"#b45309",border:"1px solid #f0c27a"}}
+              <button style={{...S.btn,...S.btnSm,background:"#f59e0b",color:"#fff"}}
                 onClick={()=>{const copy={...c,id:uid0(),_idx:undefined};setMCrop(copy);showToast("複製します。内容を確認して保存してください");}}>コピー</button>
               <button style={{...S.btn,...S.btnSm,background:"#fff",color:"#c2410c",border:"1px solid #f0b896"}}
                 onClick={()=>{const ed=window.prompt("栽培終了日を入力してください",todayStr());if(ed===null)return;const u={...c,ended:true,endDate:ed||todayStr()};setCrops(crops.map((x,j)=>j===i?u:x),u);showToast("栽培を終了しました");}}>終了</button>
@@ -2775,6 +2775,8 @@ function PlanScreen({ fields, crops, plots, setPlots, setPlotsR, showToast }) {
     return idx>=0 ? PALETTE30[idx%30] : "#95a5a6";
   };
   const cropLabel = type => { const db=CDB[type]||{}; return (db.e||"🌱")+" "+(db.n||type); };
+  // 品目オブジェクトから「絵文字 名前(品種)」を生成
+  const cropFull = c => { if(!c) return ""; const db=CDB[c.type]||{}; const nm=c.type==="custom"?(c.customName||"カスタム"):(db.n||c.type); return (db.e||"🌱")+" "+nm+(c.variety?"("+c.variety+")":""); };
 
   // 計画を初期化（区画3つ）
   const initPlan = () => {
@@ -2851,7 +2853,7 @@ function PlanScreen({ fields, crops, plots, setPlots, setPlotsR, showToast }) {
           if(!cur.rot.ng.includes(past.fam))continue;
           const gapYears=(new Date(cur.plantDate)-new Date(past.plantDate))/(86400000*365);
           if(gapYears<cur.rot.years){
-            warns.push({bed:bed.name, cur:cropLabel(cur.crop.type), past:cropLabel(past.crop.type), fam:cur.fam, years:cur.rot.years, gap:Math.floor(gapYears*10)/10});
+            warns.push({bed:bed.name, cur:cropFull(cur.crop), past:cropFull(past.crop), fam:cur.fam, years:cur.rot.years, gap:Math.floor(gapYears*10)/10});
           }
         }
       }
@@ -2956,7 +2958,7 @@ function PlanScreen({ fields, crops, plots, setPlots, setPlotsR, showToast }) {
                     return (
                       <div key={pl.id} onClick={()=>setMPlant({...pl,year})}
                         style={{position:"absolute",left:left+"%",width:width+"%",top:(4+(laneOf[pl.id]||0)*30),height:26,background:cropColorByType(c.type),borderRadius:5,display:"flex",alignItems:"center",paddingLeft:4,fontSize:".62rem",color:"#fff",cursor:"pointer",overflow:"hidden",whiteSpace:"nowrap",boxShadow:"0 1px 3px rgba(0,0,0,.2)"}}>
-                        {(CDB[c.type]||{}).e} {(CDB[c.type]||{}).n||c.type}
+                        {cropFull(c)}
                       </div>
                     );
                   })}
