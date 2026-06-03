@@ -41,8 +41,8 @@ const equipToDb   = (o, uid) => ({ id:o.id||uid0(), user_id:uid, name:o.name||nu
 const equipFromDb = r => ({ id:r.id, name:r.name||"", cat:r.cat||"", status:r.status||"", price:r.price||"", date:r.date||"", note:r.note||"" });
 const costToDb    = (o, uid, fields) => ({ id:o.id, user_id:uid, field_id:(fields&&o.fieldIdx!==undefined&&o.fieldIdx!=="")?fields[o.fieldIdx]?.id||o.fieldId||null:o.fieldId||null, crop_id:o.cropId||null, cat:o.cat||null, name:o.name||null, amt:o.amt||null, date:o.date||null, qty:o.qty||null, qunit:o.qunit||null, note:o.note||null, master_id:o.masterId||null, work:o.work||null });
 const costFromDb  = (r, fields) => { const fi=fields.findIndex(f=>f.id===r.field_id); return { id:r.id, fieldId:r.field_id||"", fieldIdx:fi>=0?fi:0, cropId:r.crop_id||"", masterId:r.master_id||"", cat:r.cat||"", name:r.name||"", amt:r.amt||"", date:r.date||"", qty:r.qty||"", qunit:r.qunit||"", note:r.note||"", work:r.work||"" }; };
-const plotToDb    = (o, uid) => ({ id:o.id, user_id:uid, field_id:o.fieldId||null, name:o.name||null, cols:o.cols||20, rows:o.rows||20, cells:o.cells||[], season:o.season||null, cell_size:o.cellSize||30, bg_plot_id:o.bgPlotId||null });
-const plotFromDb  = r => ({ id:r.id, fieldId:r.field_id||"", name:r.name||"", cols:r.cols||20, rows:r.rows||20, cells:Array.isArray(r.cells)?r.cells:(r.cells?JSON.parse(r.cells):[]), season:r.season||"", cellSize:r.cell_size||30, bgPlotId:r.bg_plot_id||"" });
+const plotToDb    = (o, uid) => ({ id:o.id, user_id:uid, field_id:o.fieldId||null, name:o.name||null, cols:o.cols||20, rows:o.rows||20, cells:o.cells||[], season:o.season||null, cell_size:o.cellSize||30, bg_plot_id:o.bgPlotId||null, plant_date:o.plantDate||null, end_date:o.endDate||null });
+const plotFromDb  = r => ({ id:r.id, fieldId:r.field_id||"", name:r.name||"", cols:r.cols||20, rows:r.rows||20, cells:Array.isArray(r.cells)?r.cells:(r.cells?JSON.parse(r.cells):[]), season:r.season||"", cellSize:r.cell_size||30, bgPlotId:r.bg_plot_id||"", plantDate:r.plant_date||"", endDate:r.end_date||"" });
 
 // ============================================================
 // CONSTANTS
@@ -1118,7 +1118,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.80</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.82</div>
       </div>
     </div>
   );
@@ -2770,7 +2770,10 @@ function PlotScreen({ fields, crops, plots, setPlots, setPlotsR, showToast }) {
   const [zoom, setZoom] = useState(1);                 // グリッドのズーム倍率
 
   const selField = fields[selFieldIdx];
-  const fieldPlots = plots.filter(p=>p.fieldId===selField?.id);
+  const fieldPlots = plots.filter(p=>p.fieldId===selField?.id).sort((a,b)=>{
+    const ay=a.plantDate||a.season||"", by=b.plantDate||b.season||"";
+    return by.localeCompare(ay); // 新しい順
+  });
 
   const activeCrops = crops.filter(c=>!c.ended && c.fieldIdx===selFieldIdx);
   const PALETTE30=["#e74c3c","#3498db","#2ecc71","#f39c12","#9b59b6","#1abc9c","#e67e22","#34495e","#e84393","#00b894","#fdcb6e","#6c5ce7","#d63031","#0984e3","#00cec9","#fab1a0","#a29bfe","#ff7675","#55efc4","#ffeaa7","#fd79a8","#74b9ff","#81ecec","#ff7f50","#badc58","#f0932b","#eb4d4b","#22a6b3","#be2edd","#7ed6df"];
@@ -2851,10 +2854,17 @@ function PlotScreen({ fields, crops, plots, setPlots, setPlotsR, showToast }) {
     if(!d) return null;
     return new Date(d).getFullYear();
   };
+  // 作付け図の作付け年（plot.plantDate優先、なければseasonから数字抽出）
+  const plotYear = (plot) => {
+    if(plot.plantDate) return new Date(plot.plantDate).getFullYear();
+    if(plot.season){ const m=plot.season.match(/\d{4}/); if(m) return parseInt(m[0]); }
+    return null;
+  };
   // 連作チェック：同じ圃場・同じマス位置で、過去に植えた品目との定植日の年差を計算
   const checkRotation = (plot) => {
     const warnings = [];
     const otherPlots = plots.filter(p=>p.fieldId===plot.fieldId && p.id!==plot.id);
+    const curYear = plotYear(plot);  // この作付け図の作付け年
     plot.cells.forEach(cell=>{
       if(!cell.cropId) return;
       const c = crops.find(x=>x.id===cell.cropId);
@@ -2862,25 +2872,22 @@ function PlotScreen({ fields, crops, plots, setPlots, setPlotsR, showToast }) {
       const rot = ROTATION_DB[c.type];
       if(!rot || rot.years<=0 || !rot.ng.length) return; // 連作チェック不要な品目
       const curFam = FAMILY_DB[c.type];
-      const curYear = cropYear(cell.cropId);
       otherPlots.forEach(op=>{
         const pastCell = op.cells.find(x=>x.r===cell.r && x.c===cell.c);
         if(!pastCell || !pastCell.cropId) return;
         const pc = crops.find(x=>x.id===pastCell.cropId);
         if(!pc) return;
         const pastFam = FAMILY_DB[pc.type];
-        // 同じ科（NG科）でなければ問題なし
-        if(!rot.ng.includes(pastFam)) return;
-        const pastYear = cropYear(pastCell.cropId);
-        // 年が両方分かる場合は年差を計算、足りなければ警告（年不明）
+        if(!rot.ng.includes(pastFam)) return;  // 同じNG科でなければ問題なし
+        const pastYear = plotYear(op);  // 過去作付け図の作付け年
         if(curYear!==null && pastYear!==null){
           const gap = Math.abs(curYear - pastYear);
           if(gap < rot.years){
-            warnings.push({r:cell.r, c:cell.c, crop:cropName(cell.cropId), past:cropName(pastCell.cropId), years:rot.years, gap, fam:curFam, known:true});
+            warnings.push({r:cell.r, c:cell.c, crop:cropName(cell.cropId), past:cropName(pastCell.cropId), years:rot.years, gap, fam:curFam, known:true, pastName:op.name});
           }
         } else {
-          // 定植日が未設定 → 年差判定できないので注意喚起のみ
-          warnings.push({r:cell.r, c:cell.c, crop:cropName(cell.cropId), past:cropName(pastCell.cropId), years:rot.years, gap:null, fam:curFam, known:false, season:op.season||op.name});
+          // 作付け年が不明 → 注意喚起のみ
+          warnings.push({r:cell.r, c:cell.c, crop:cropName(cell.cropId), past:cropName(pastCell.cropId), years:rot.years, gap:null, fam:curFam, known:false, pastName:op.name});
         }
       });
     });
@@ -2990,6 +2997,19 @@ function PlotScreen({ fields, crops, plots, setPlots, setPlotsR, showToast }) {
               </div>}
         </div>
 
+        {/* 作付け期間（連作判定の基準）*/}
+        <div style={S.card}>
+          <div style={{fontSize:".74rem",fontWeight:700,color:"#5c3d1e",marginBottom:6}}>📆 作付け時期（連作判定の基準）</div>
+          <R2>
+            <FG label="作付け（定植）日"><Inp type="date" value={editPlot.plantDate||""} onChange={v=>{setEditPlot(p=>({...p,plantDate:v}));setDirty(true);}}/></FG>
+            <FG label="終了日（任意）"><Inp type="date" value={editPlot.endDate||""} onChange={v=>{setEditPlot(p=>({...p,endDate:v}));setDirty(true);}}/></FG>
+          </R2>
+          <FG label="シーズン・年度（表示名）"><Inp value={editPlot.season||""} onChange={v=>{setEditPlot(p=>({...p,season:v}));setDirty(true);}} placeholder="例：2026春"/></FG>
+          <div style={{fontSize:".68rem",color:TX3,lineHeight:1.5}}>
+            💡 作付け日を入れると、同じ場所の前作との年差を正確に計算します。{editPlot.plantDate&&editPlot.endDate?`（栽培日数 ${Math.max(0,Math.round((new Date(editPlot.endDate)-new Date(editPlot.plantDate))/86400000))}日）`:""}
+          </div>
+        </div>
+
         {/* モード切替 + アンドゥ */}
         <div style={S.card}>
           <div style={{display:"flex",gap:6,alignItems:"center",marginBottom:8}}>
@@ -3026,7 +3046,7 @@ function PlotScreen({ fields, crops, plots, setPlots, setPlotsR, showToast }) {
           <div style={{fontSize:".76rem",fontWeight:700,color:"#856404",marginBottom:4}}>⚠️ 連作注意（{warnings.length}箇所）</div>
           {warnings.slice(0,5).map((w,i)=>(
             <div key={i} style={{fontSize:".7rem",color:"#856404",lineHeight:1.5}}>
-              ・{w.crop}（{w.fam}）: 同じ場所に前作{w.past}{w.known?`・${w.gap}年前`:""}。{w.fam}は{w.years}年空けるのが目安{w.known&&w.gap<w.years?`（あと${w.years-w.gap}年）`:""}{!w.known?"（前作の定植日未設定のため年数不明）":""}
+              ・{w.crop}（{w.fam}）: 同じ場所に前作{w.past}{w.known?`・${w.gap}年前`:""}{w.pastName?`「${w.pastName}」`:""}。{w.fam}は{w.years}年空けるのが目安{w.known&&w.gap<w.years?`（あと${w.years-w.gap}年）`:""}{!w.known?"（作付け日未設定のため年数不明）":""}
             </div>
           ))}
           {warnings.length>5&&<div style={{fontSize:".68rem",color:"#856404"}}>他 {warnings.length-5} 箇所</div>}
@@ -3290,6 +3310,7 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs, equips=[] })
       kg,cnt,rev,minutes,timeStr,stocks,disc,added,germRate,costTotal,profit:rev-costTotal,
       seedTotal,fertTotal,pestTotal,
       logCount:cl.length,plantDate:c.plantDate||"",sowDate:c.sowDate||"",
+      growDays:(()=>{const st=c.plantDate||c.sowDate;if(!st)return null;const en=c.ended&&c.endDate?new Date(c.endDate):new Date();const d=Math.round((en-new Date(st))/86400000);return d>=0?d:null;})(),
       fertUse,pestUse};
   });
 
@@ -3346,7 +3367,7 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs, equips=[] })
           {/* 品目詳細 */}
           <div style={{...S.card,background:"linear-gradient(135deg,"+G+","+GD+")",color:"#fff",marginBottom:9}}>
             <div style={{fontSize:"1.1rem",fontWeight:700,marginBottom:4}}>{sel.emoji} {sel.name}</div>
-            <div style={{fontSize:".74rem",opacity:.75,marginBottom:10}}>{sel.field}{sel.ended?" · 栽培終了 ("+sel.endDate+")":""}{sel.plantDate?" · 定植:"+sel.plantDate:""}</div>
+            <div style={{fontSize:".74rem",opacity:.75,marginBottom:10}}>{sel.field}{sel.ended?" · 栽培終了 ("+sel.endDate+")":""}{sel.plantDate?" · 定植:"+sel.plantDate:""}{sel.growDays!==null?" · 栽培"+sel.growDays+"日":""}</div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
               {[
                 {n:sel.kg.toFixed(1)+"kg",l:"収穫量"},
@@ -3357,6 +3378,7 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs, equips=[] })
                 {n:sel.timeStr,l:"作業時間"},
                 {n:sel.stocks+"株",l:"現在株数"},
                 {n:sel.germRate!==null?sel.germRate+"%":"—",l:"発芽率"},
+                {n:sel.growDays!==null?sel.growDays+"日":"—",l:sel.ended?"栽培日数":"栽培経過"},
                 {n:sel.logCount+"件",l:"作業記録数"},
               ].map((s,i)=>(
                 <div key={i} style={{background:"rgba(255,255,255,.15)",borderRadius:9,padding:"6px 8px",textAlign:"center"}}>
@@ -3521,7 +3543,7 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs, equips=[] })
                   style={{display:"flex",alignItems:"center",gap:10,padding:"9px 2px",borderBottom:"1px solid #f8f5ef",cursor:"pointer"}}>
                   <div style={{flex:1}}>
                     <div style={{fontSize:".82rem",fontWeight:700,color:"#888"}}>{c.emoji} {c.name}{c.variety?" ("+c.variety+")":""}</div>
-                    <div style={{fontSize:".7rem",color:"#bbb"}}>{c.endDate?c.endDate+"終了 · ":""}{c.logCount}件 / {c.timeStr}</div>
+                    <div style={{fontSize:".7rem",color:"#bbb"}}>{c.endDate?c.endDate+"終了 · ":""}{c.growDays!==null?"栽培"+c.growDays+"日 · ":""}{c.logCount}件 / {c.timeStr}</div>
                   </div>
                   <div style={{textAlign:"right",flexShrink:0}}>
                     <div style={{fontWeight:700,fontSize:".85rem",color:"#aaa"}}>{c.kg.toFixed(1)}kg</div>
