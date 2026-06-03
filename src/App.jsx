@@ -41,8 +41,8 @@ const equipToDb   = (o, uid) => ({ id:o.id||uid0(), user_id:uid, name:o.name||nu
 const equipFromDb = r => ({ id:r.id, name:r.name||"", cat:r.cat||"", status:r.status||"", price:r.price||"", date:r.date||"", note:r.note||"" });
 const costToDb    = (o, uid, fields) => ({ id:o.id, user_id:uid, field_id:(fields&&o.fieldIdx!==undefined&&o.fieldIdx!=="")?fields[o.fieldIdx]?.id||o.fieldId||null:o.fieldId||null, crop_id:o.cropId||null, cat:o.cat||null, name:o.name||null, amt:o.amt||null, date:o.date||null, qty:o.qty||null, qunit:o.qunit||null, note:o.note||null, master_id:o.masterId||null, work:o.work||null });
 const costFromDb  = (r, fields) => { const fi=fields.findIndex(f=>f.id===r.field_id); return { id:r.id, fieldId:r.field_id||"", fieldIdx:fi>=0?fi:0, cropId:r.crop_id||"", masterId:r.master_id||"", cat:r.cat||"", name:r.name||"", amt:r.amt||"", date:r.date||"", qty:r.qty||"", qunit:r.qunit||"", note:r.note||"", work:r.work||"" }; };
-const plotToDb    = (o, uid) => ({ id:o.id, user_id:uid, field_id:o.fieldId||null, name:o.name||null, cols:o.cols||20, rows:o.rows||20, cells:o.cells||[], season:o.season||null, cell_size:o.cellSize||30 });
-const plotFromDb  = r => ({ id:r.id, fieldId:r.field_id||"", name:r.name||"", cols:r.cols||20, rows:r.rows||20, cells:Array.isArray(r.cells)?r.cells:(r.cells?JSON.parse(r.cells):[]), season:r.season||"", cellSize:r.cell_size||30 });
+const plotToDb    = (o, uid) => ({ id:o.id, user_id:uid, field_id:o.fieldId||null, name:o.name||null, cols:o.cols||20, rows:o.rows||20, cells:o.cells||[], season:o.season||null, cell_size:o.cellSize||30, bg_plot_id:o.bgPlotId||null });
+const plotFromDb  = r => ({ id:r.id, fieldId:r.field_id||"", name:r.name||"", cols:r.cols||20, rows:r.rows||20, cells:Array.isArray(r.cells)?r.cells:(r.cells?JSON.parse(r.cells):[]), season:r.season||"", cellSize:r.cell_size||30, bgPlotId:r.bg_plot_id||"" });
 
 // ============================================================
 // CONSTANTS
@@ -122,36 +122,77 @@ const CDB = {
 
 // ─── 科別・連作障害DB ────────────────────────────────────────
 const FAMILY_DB={
-  tomato:"ナス科",cherry_tomato:"ナス科",eggplant:"ナス科",pepper:"ナス科",potato:"ナス科",
-  cucumber:"ウリ科",pumpkin:"ウリ科",watermelon:"ウリ科",bitter_gourd:"ウリ科",zucchini:"ウリ科",
-  cabbage:"アブラナ科",broccoli:"アブラナ科",hakusai:"アブラナ科",radish:"アブラナ科",komatsuna:"アブラナ科",
-  lettuce:"キク科",edamame:"マメ科",green_bean:"マメ科",azuki:"マメ科",spinach:"ヒユ科",
-  onion:"ユリ科",leek:"ユリ科",garlic:"ユリ科",carrot:"セリ科",jinenjo:"ヤマノイモ科",
-  taro:"サトイモ科",strawberry:"バラ科",apple:"バラ科",pear:"バラ科",peach:"バラ科",
-  cherry:"バラ科",plum:"バラ科",biwa:"バラ科",mikan:"ミカン科",lemon:"ミカン科",
-  yuzu:"ミカン科",grape:"ブドウ科",persimmon:"カキノキ科",kiwi:"マタタビ科",fig:"クワ科",
-  blueberry:"ツツジ科",rice:"イネ科",wheat:"イネ科",sweet_corn:"イネ科",soba:"タデ科",
-  sweetpotato:"ヒルガオ科",okra:"アオイ科",
+  rice:"イネ科",wheat:"イネ科",corn:"イネ科",soba:"タデ科",tomato:"ナス科",
+  cherry_tomato:"ナス科",eggplant:"ナス科",pepper:"ナス科",potato:"ナス科",cucumber:"ウリ科",
+  zucchini:"ウリ科",pumpkin:"ウリ科",watermelon:"ウリ科",melon:"ウリ科",bitter_gourd:"ウリ科",
+  cabbage:"アブラナ科",hakusai:"アブラナ科",broccoli:"アブラナ科",radish:"アブラナ科",komatsuna:"アブラナ科",
+  edamame:"マメ科",green_bean:"マメ科",azuki:"マメ科",lettuce:"キク科",carrot:"セリ科",
+  onion:"ヒガンバナ科",leek:"ヒガンバナ科",garlic:"ヒガンバナ科",jinenjo:"ヤマノイモ科",taro:"サトイモ科",
+  sweetpotato:"ヒルガオ科",strawberry:"バラ科",spinach:"アカザ科",okra:"アオイ科",apple:"バラ科",
+  pear:"バラ科",peach:"バラ科",cherry:"バラ科",plum:"バラ科",mikan:"ミカン科",
+  lemon:"ミカン科",yuzu:"ミカン科",grape:"ブドウ科",persimmon:"カキノキ科",blueberry:"ツツジ科",
+  fig:"クワ科",kiwi:"マタタビ科",biwa:"バラ科",
 };
 const ROTATION_DB={
-  tomato:      {years:5,ng:["ナス科"],ok:["アブラナ科","マメ科","ウリ科","イネ科"]},
-  cherry_tomato:{years:5,ng:["ナス科"],ok:["アブラナ科","マメ科","ウリ科"]},
-  eggplant:    {years:5,ng:["ナス科"],ok:["アブラナ科","マメ科","ウリ科"]},
-  pepper:      {years:5,ng:["ナス科"],ok:["アブラナ科","マメ科","ウリ科"]},
-  potato:      {years:4,ng:["ナス科"],ok:["マメ科","イネ科","アブラナ科"]},
-  cucumber:    {years:3,ng:["ウリ科"],ok:["ナス科","アブラナ科","マメ科"]},
-  pumpkin:     {years:3,ng:["ウリ科"],ok:["ナス科","アブラナ科","マメ科"]},
-  watermelon:  {years:5,ng:["ウリ科"],ok:["アブラナ科","ナス科"]},
-  bitter_gourd:{years:3,ng:["ウリ科"],ok:["ナス科","アブラナ科"]},
-  cabbage:     {years:3,ng:["アブラナ科"],ok:["ナス科","ウリ科","マメ科"]},
-  broccoli:    {years:3,ng:["アブラナ科"],ok:["ナス科","ウリ科","マメ科"]},
-  hakusai:     {years:3,ng:["アブラナ科"],ok:["ナス科","ウリ科","マメ科"]},
-  spinach:     {years:3,ng:["ヒユ科"],ok:["ナス科","ウリ科","マメ科","アブラナ科"]},
-  strawberry:  {years:4,ng:["バラ科"],ok:["イネ科","アブラナ科","マメ科"]},
-  onion:       {years:2,ng:["ユリ科"],ok:["ナス科","ウリ科","アブラナ科"]},
-  carrot:      {years:4,ng:["セリ科"],ok:["ナス科","ウリ科","アブラナ科","マメ科"]},
-  sweet_corn:  {years:1,ng:[],ok:["ナス科","ウリ科","アブラナ科","マメ科"]},
-  edamame:     {years:3,ng:["マメ科"],ok:["ナス科","ウリ科","アブラナ科","イネ科"]},
+  // ─── ナス科（連作障害が出やすい）───
+  tomato:      {years:4,ng:["ナス科"]},
+  cherry_tomato:{years:4,ng:["ナス科"]},
+  eggplant:    {years:4,ng:["ナス科"]},
+  pepper:      {years:4,ng:["ナス科"]},
+  potato:      {years:3,ng:["ナス科"]},
+  // ─── ウリ科 ───
+  cucumber:    {years:3,ng:["ウリ科"]},
+  zucchini:    {years:2,ng:["ウリ科"]},
+  pumpkin:     {years:2,ng:["ウリ科"]},
+  watermelon:  {years:5,ng:["ウリ科"]},
+  melon:       {years:4,ng:["ウリ科"]},
+  bitter_gourd:{years:3,ng:["ウリ科"]},
+  // ─── アブラナ科 ───
+  cabbage:     {years:2,ng:["アブラナ科"]},
+  hakusai:     {years:2,ng:["アブラナ科"]},
+  broccoli:    {years:2,ng:["アブラナ科"]},
+  radish:      {years:1,ng:["アブラナ科"]},
+  komatsuna:   {years:1,ng:["アブラナ科"]},
+  // ─── マメ科 ───
+  edamame:     {years:3,ng:["マメ科"]},
+  green_bean:  {years:2,ng:["マメ科"]},
+  azuki:       {years:3,ng:["マメ科"]},
+  // ─── キク科 ───
+  lettuce:     {years:2,ng:["キク科"]},
+  // ─── セリ科 ───
+  carrot:      {years:2,ng:["セリ科"]},
+  // ─── ヒガンバナ科 ───
+  onion:       {years:1,ng:["ヒガンバナ科"]},
+  leek:        {years:1,ng:["ヒガンバナ科"]},
+  garlic:      {years:2,ng:["ヒガンバナ科"]},
+  // ─── 根菜・イモ ───
+  jinenjo:     {years:3,ng:["ヤマノイモ科"]},
+  taro:        {years:3,ng:["サトイモ科"]},
+  sweetpotato: {years:1,ng:["ヒルガオ科"]},
+  // ─── その他葉物・果菜 ───
+  strawberry:  {years:2,ng:["バラ科"]},
+  spinach:     {years:1,ng:["アカザ科"]},
+  okra:        {years:2,ng:["アオイ科"]},
+  // ─── イネ科・穀物（連作可だが目安）───
+  rice:        {years:0,ng:[]},
+  wheat:       {years:1,ng:["イネ科"]},
+  corn:        {years:1,ng:["イネ科"]},
+  soba:        {years:1,ng:["タデ科"]},
+  // ─── 果樹（多年栽培のため連作チェック対象外＝0年）───
+  apple:       {years:0,ng:[]},
+  pear:        {years:0,ng:[]},
+  peach:       {years:0,ng:[]},
+  cherry:      {years:0,ng:[]},
+  plum:        {years:0,ng:[]},
+  mikan:       {years:0,ng:[]},
+  lemon:       {years:0,ng:[]},
+  yuzu:        {years:0,ng:[]},
+  grape:       {years:0,ng:[]},
+  persimmon:   {years:0,ng:[]},
+  blueberry:   {years:0,ng:[]},
+  fig:         {years:0,ng:[]},
+  kiwi:        {years:0,ng:[]},
+  biwa:        {years:0,ng:[]},
 };
 const getFertSchedule=(cropType,plantTargetDate)=>{
   if(!plantTargetDate)return null;
@@ -1077,7 +1118,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.75</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.80</div>
       </div>
     </div>
   );
@@ -1611,12 +1652,14 @@ function FieldsScreen({ fields, setFields, setFieldsR, crops, setCrops, setCrops
               </div>
             </details>}
             {/* ─── 操作ボタン ─── */}
-            <div style={{display:"flex",gap:6,marginTop:8,paddingTop:8,borderTop:"1px solid #e8e0d5"}}>
-              <button style={{...S.btn,...S.btnS,...S.btnSm,flex:1}}
+            <div style={{display:"flex",gap:6,marginTop:8,paddingTop:8,borderTop:"1px solid #e8e0d5",flexWrap:"wrap"}}>
+              <button style={{...S.btn,...S.btnS,...S.btnSm,flex:"1 1 30%"}}
                 onClick={()=>{const existingSeed=costs.find(co=>co.cropId===c.id&&co.cat==="seed");setMCrop({...c,_idx:i,seedCost:c.seedCost||existingSeed?.amt||""});}}>✏️ 編集</button>
-              <button style={{...S.btn,background:"#f59e0b",color:"#fff",padding:"4px 10px",fontSize:".7rem",borderRadius:8,flex:1}}
+              <button style={{...S.btn,background:"#f59e0b",color:"#fff",padding:"4px 10px",fontSize:".7rem",borderRadius:8,flex:"1 1 30%"}}
                 onClick={()=>{const copy={...c,id:uid0(),_idx:undefined};setMCrop(copy);showToast("複製します。内容を確認して保存してください");}}>📋 コピー</button>
-              <button style={{...S.btn,...S.btnR,...S.btnSm,flex:1}}
+              <button style={{...S.btn,background:"#e67e22",color:"#fff",padding:"4px 10px",fontSize:".7rem",borderRadius:8,flex:"1 1 30%"}}
+                onClick={()=>{const ed=window.prompt("栽培終了日を入力してください",todayStr());if(ed===null)return;const u={...c,ended:true,endDate:ed||todayStr()};setCrops(crops.map((x,j)=>j===i?u:x),u);showToast("栽培を終了しました");}}>🏁 終了</button>
+              <button style={{...S.btn,...S.btnR,...S.btnSm,flex:"1 1 30%"}}
                 onClick={()=>{if(!window.confirm("削除しますか?"))return;dbDelete("crops",c.id);const filtered=crops.filter((_,j)=>j!==i);if(typeof setCropsR==="function")setCropsR(filtered);else setCrops(filtered);showToast("削除しました");}}>🗑 削除</button>
             </div>
           </div>
@@ -2724,6 +2767,7 @@ function PlotScreen({ fields, crops, plots, setPlots, setPlotsR, showToast }) {
   const [selPos, setSelPos] = useState(null);          // 選択中のマス {r,c}
   const [mode, setMode] = useState("paint");           // "paint"=塗る / "select"=位置選択
   const undoStack = useRef([]);                        // アンドゥ履歴
+  const [zoom, setZoom] = useState(1);                 // グリッドのズーム倍率
 
   const selField = fields[selFieldIdx];
   const fieldPlots = plots.filter(p=>p.fieldId===selField?.id);
@@ -2799,6 +2843,15 @@ function PlotScreen({ fields, crops, plots, setPlots, setPlotsR, showToast }) {
   const deleteCol = (at) => { if(editPlot.cols<=1)return; pushUndo(); setEditPlot(p=>({...p, cols:p.cols-1, cells:p.cells.filter(x=>x.c!==at).map(x=>x.c>at?{...x,c:x.c-1}:x)})); setDirty(true); setSelPos(null); };
 
   // 連作チェック
+  // 品目の栽培時期（定植日・なければ播種日）の「年」を取得
+  const cropYear = (cropId) => {
+    const c = crops.find(x=>x.id===cropId);
+    if(!c) return null;
+    const d = c.plantDate || c.sowDate;
+    if(!d) return null;
+    return new Date(d).getFullYear();
+  };
+  // 連作チェック：同じ圃場・同じマス位置で、過去に植えた品目との定植日の年差を計算
   const checkRotation = (plot) => {
     const warnings = [];
     const otherPlots = plots.filter(p=>p.fieldId===plot.fieldId && p.id!==plot.id);
@@ -2807,15 +2860,27 @@ function PlotScreen({ fields, crops, plots, setPlots, setPlotsR, showToast }) {
       const c = crops.find(x=>x.id===cell.cropId);
       if(!c) return;
       const rot = ROTATION_DB[c.type];
-      if(!rot) return;
+      if(!rot || rot.years<=0 || !rot.ng.length) return; // 連作チェック不要な品目
+      const curFam = FAMILY_DB[c.type];
+      const curYear = cropYear(cell.cropId);
       otherPlots.forEach(op=>{
         const pastCell = op.cells.find(x=>x.r===cell.r && x.c===cell.c);
-        if(!pastCell) return;
+        if(!pastCell || !pastCell.cropId) return;
         const pc = crops.find(x=>x.id===pastCell.cropId);
         if(!pc) return;
         const pastFam = FAMILY_DB[pc.type];
-        if(rot.ng.includes(pastFam)){
-          warnings.push({r:cell.r, c:cell.c, crop:cropName(cell.cropId), past:cropName(pastCell.cropId), years:rot.years, season:op.season||op.name});
+        // 同じ科（NG科）でなければ問題なし
+        if(!rot.ng.includes(pastFam)) return;
+        const pastYear = cropYear(pastCell.cropId);
+        // 年が両方分かる場合は年差を計算、足りなければ警告（年不明）
+        if(curYear!==null && pastYear!==null){
+          const gap = Math.abs(curYear - pastYear);
+          if(gap < rot.years){
+            warnings.push({r:cell.r, c:cell.c, crop:cropName(cell.cropId), past:cropName(pastCell.cropId), years:rot.years, gap, fam:curFam, known:true});
+          }
+        } else {
+          // 定植日が未設定 → 年差判定できないので注意喚起のみ
+          warnings.push({r:cell.r, c:cell.c, crop:cropName(cell.cropId), past:cropName(pastCell.cropId), years:rot.years, gap:null, fam:curFam, known:false, season:op.season||op.name});
         }
       });
     });
@@ -2824,17 +2889,21 @@ function PlotScreen({ fields, crops, plots, setPlots, setPlotsR, showToast }) {
 
   const createPlot = () => {
     if(!newModal.name){ showToast("名前を入力してください"); return; }
-    const cs = parseInt(newModal.cellSize)||30;
+    // 前作コピーの場合はレイアウト（cols/rows/cellSize）を引き継ぐ。マスの品目は空に
+    const src = newModal.copyFrom ? plots.find(p=>p.id===newModal.copyFrom) : null;
+    const cs = src ? src.cellSize : (parseInt(newModal.cellSize)||30);
     const plot = {
       id: uid0(), fieldId: selField?.id||"", name: newModal.name,
-      cols: parseInt(newModal.cols)||20, rows: parseInt(newModal.rows)||20,
+      cols: src ? src.cols : (parseInt(newModal.cols)||20),
+      rows: src ? src.rows : (parseInt(newModal.rows)||20),
       cells: [], season: newModal.season||"", cellSize: cs,
+      bgPlotId: src ? src.id : "", // 前作を背景表示するための参照
     };
     setPlots([...plots, plot], plot);
     setNewModal(null);
     setEditPlot(plot);
     setDirty(false);
-    showToast("作付け図を作成しました");
+    showToast(src?"前作のレイアウトを引き継ぎました":"作付け図を作成しました");
   };
 
   const savePlot = () => {
@@ -2895,7 +2964,9 @@ function PlotScreen({ fields, crops, plots, setPlots, setPlotsR, showToast }) {
     const warnings = checkRotation(editPlot);
     const warnMap = {};
     warnings.forEach(w=>{ warnMap[w.r+":"+w.c]=w; });
-    const cellSize = Math.max(16, Math.min(34, Math.floor(330/editPlot.cols)));
+    const bgPlot = editPlot.bgPlotId ? plots.find(p=>p.id===editPlot.bgPlotId) : null;
+    const getBgCell = (r,c) => bgPlot ? (bgPlot.cells.find(x=>x.r===r&&x.c===c)?.cropId||"") : "";
+    const cellSize = Math.round(Math.max(14, Math.min(40, 330/editPlot.cols)) * zoom);
     const m = cellM(editPlot);
     return (
       <div style={S.scr} className="scr-inner">
@@ -2955,7 +3026,7 @@ function PlotScreen({ fields, crops, plots, setPlots, setPlotsR, showToast }) {
           <div style={{fontSize:".76rem",fontWeight:700,color:"#856404",marginBottom:4}}>⚠️ 連作注意（{warnings.length}箇所）</div>
           {warnings.slice(0,5).map((w,i)=>(
             <div key={i} style={{fontSize:".7rem",color:"#856404",lineHeight:1.5}}>
-              ・{w.crop} は過去に{w.past}（{w.season}）→ 同じ科は{w.years}年空けて
+              ・{w.crop}（{w.fam}）: 同じ場所に前作{w.past}{w.known?`・${w.gap}年前`:""}。{w.fam}は{w.years}年空けるのが目安{w.known&&w.gap<w.years?`（あと${w.years-w.gap}年）`:""}{!w.known?"（前作の定植日未設定のため年数不明）":""}
             </div>
           ))}
           {warnings.length>5&&<div style={{fontSize:".68rem",color:"#856404"}}>他 {warnings.length-5} 箇所</div>}
@@ -2963,8 +3034,15 @@ function PlotScreen({ fields, crops, plots, setPlots, setPlotsR, showToast }) {
 
         {/* グリッド */}
         <div style={{...S.card,overflowX:"auto",WebkitOverflowScrolling:"touch"}}>
-          <div style={{fontSize:".7rem",color:TX3,marginBottom:6}}>
-            タップで塗る/消す・ドラッグで連続。使わないマスは塗らずに残せば不整形な畑も表現できます
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6,gap:8}}>
+            <div style={{fontSize:".7rem",color:TX3,flex:1}}>
+              タップで塗る/消す・ドラッグで連続{bgPlot?"。薄い色は前作（"+bgPlot.name+"）":""}
+            </div>
+            <div style={{display:"flex",gap:4,alignItems:"center",flexShrink:0}}>
+              <button onClick={()=>setZoom(z=>Math.max(0.5,Math.round((z-0.25)*100)/100))} style={{width:28,height:28,borderRadius:7,border:"1px solid #e0d9ce",background:"#fff",fontSize:"1rem",cursor:"pointer",fontWeight:700,color:"#5a5040"}}>−</button>
+              <span style={{fontSize:".68rem",color:TX3,minWidth:34,textAlign:"center"}}>{Math.round(zoom*100)}%</span>
+              <button onClick={()=>setZoom(z=>Math.min(2.5,Math.round((z+0.25)*100)/100))} style={{width:28,height:28,borderRadius:7,border:"1px solid #e0d9ce",background:"#fff",fontSize:"1rem",cursor:"pointer",fontWeight:700,color:"#5a5040"}}>＋</button>
+            </div>
           </div>
           <div style={{display:"inline-block",userSelect:"none",touchAction:"none"}}
             onMouseLeave={()=>setPainting(false)}>
@@ -2972,6 +3050,7 @@ function PlotScreen({ fields, crops, plots, setPlots, setPlotsR, showToast }) {
               <div key={r} style={{display:"flex"}}>
                 {Array.from({length:editPlot.cols}).map((_,c)=>{
                   const cid=getCell(editPlot,r,c);
+                  const bgCid=getBgCell(r,c);
                   const warn=warnMap[r+":"+c];
                   return <div key={c}
                     onMouseDown={()=>{setPainting(true);setCell(r,c,false);}}
@@ -2987,11 +3066,12 @@ function PlotScreen({ fields, crops, plots, setPlots, setPlotsR, showToast }) {
                     }}
                     onTouchEnd={()=>setPainting(false)}
                     data-r={r} data-c={c}
-                    style={{width:cellSize,height:cellSize,border:(selPos&&selPos.r===r&&selPos.c===c)?"2px solid #2d6a3f":"1px solid #d5cdbf",background:cropColor(cid),
+                    style={{width:cellSize,height:cellSize,border:(selPos&&selPos.r===r&&selPos.c===c)?"2px solid #2d6a3f":"1px solid #d5cdbf",
+                      background: cid ? cropColor(cid) : (bgCid ? cropColor(bgCid)+"33" : "#f0ebe3"),
                       display:"flex",alignItems:"center",justifyContent:"center",fontSize:cellSize>26?".7rem":".55rem",
                       cursor:"pointer",position:"relative",boxSizing:"border-box",
                       boxShadow:(selPos&&selPos.r===r&&selPos.c===c)?"inset 0 0 0 1px #fff":"none"}}>
-                    {cropEmoji(cid)}
+                    {cid ? cropEmoji(cid) : (bgCid ? <span style={{opacity:.35}}>{cropEmoji(bgCid)}</span> : "")}
                     {warn&&<span style={{position:"absolute",top:-1,right:-1,fontSize:".5rem"}}>⚠️</span>}
                   </div>;
                 })}
@@ -3012,6 +3092,7 @@ function PlotScreen({ fields, crops, plots, setPlots, setPlotsR, showToast }) {
               <div key={cid} style={{display:"flex",alignItems:"center",gap:6,fontSize:".74rem",marginBottom:3}}>
                 <span style={{display:"inline-block",width:14,height:14,borderRadius:3,background:cropColor(cid),flexShrink:0}}/>
                 <span>{cropEmoji(cid)} {cropName(cid)}</span>
+                {(()=>{const c=crops.find(x=>x.id===cid);const rot=c&&ROTATION_DB[c.type];if(rot&&rot.years>0)return <span style={{fontSize:".66rem",color:"#856404",background:"#fff3cd",borderRadius:6,padding:"1px 6px"}}>連作{rot.years}年</span>;if(rot&&rot.years===0)return <span style={{fontSize:".66rem",color:"#888"}}>連作可</span>;return null;})()}
                 <span style={{color:TX3,marginLeft:"auto"}}>{cnt}マス（{(cnt*cellArea(editPlot)).toFixed(2)}㎡）</span>
               </div>
             ));
@@ -3049,6 +3130,7 @@ function PlotScreen({ fields, crops, plots, setPlots, setPlotsR, showToast }) {
                     </div>
                   </div>
                   <button style={{...S.btn,background:G,color:"#fff",padding:"5px 12px",fontSize:".72rem",borderRadius:8,width:"auto",flexShrink:0}} onClick={()=>{setEditPlot(p);setDirty(false);}}>編集</button>
+                  <button style={{...S.btn,background:"#f59e0b",color:"#fff",padding:"5px 10px",fontSize:".72rem",borderRadius:8,width:"auto",flexShrink:0}} onClick={()=>setNewModal({name:p.name.replace(p.season||"","").trim()+" "+(new Date().getFullYear())+"作",widthM:String((p.cols*cellM(p)).toFixed(1)),heightM:String((p.rows*cellM(p)).toFixed(1)),cols:String(p.cols),rows:String(p.rows),cellSize:String(p.cellSize||30),season:String(new Date().getFullYear()),copyFrom:p.id})}>📋 前作コピー</button>
                   <button style={{...S.btn,...S.btnR,...S.btnSm,flexShrink:0}} onClick={()=>deletePlot(p)}>削除</button>
                 </div>
                 {filled>0&&<div style={{marginTop:8,display:"inline-block",border:"1px solid #e0d9ce",borderRadius:4,overflow:"hidden"}}>
@@ -3071,34 +3153,41 @@ function PlotScreen({ fields, crops, plots, setPlots, setPlotsR, showToast }) {
         {newModal&&<>
           <FG label="名前"><Inp value={newModal.name} onChange={v=>setNewModal({...newModal,name:v})} placeholder="例：南畑 春作"/></FG>
           <FG label="シーズン・年度"><Inp value={newModal.season} onChange={v=>setNewModal({...newModal,season:v})} placeholder="例：2026春"/></FG>
-          <FG label="1マスのサイズ">
-            <div style={{display:"flex",gap:8}}>
-              {[{v:"30",l:"30cm（家庭菜園向け）"},{v:"100",l:"1m（広い圃場向け）"}].map(opt=>(
-                <button key={opt.v} type="button"
-                  onClick={()=>{
-                    const cm=opt.v==="100"?1:0.3;
-                    setNewModal({...newModal,cellSize:opt.v,
-                      cols:String(Math.max(1,Math.round((parseFloat(newModal.widthM)||0)/cm))),
-                      rows:String(Math.max(1,Math.round((parseFloat(newModal.heightM)||0)/cm)))});
-                  }}
-                  style={{flex:1,padding:"9px 6px",border:"2px solid "+(newModal.cellSize===opt.v?G2:"#e0d9ce"),borderRadius:9,background:newModal.cellSize===opt.v?G3:"#fff",fontSize:".74rem",fontWeight:700,color:newModal.cellSize===opt.v?G:"#5a5040",cursor:"pointer"}}>
-                  {opt.l}
-                </button>
-              ))}
+          {fieldPlots.length>0&&<FG label="前作からレイアウトをコピー">
+            <Sel value={newModal.copyFrom||""} onChange={v=>setNewModal({...newModal,copyFrom:v})}
+              options={[{value:"",label:"コピーしない（新規）"},...fieldPlots.map(p=>({value:p.id,label:p.name+(p.season?"（"+p.season+"）":"")}))]}/>
+            <div style={{fontSize:".68rem",color:"#888",marginTop:3}}>選ぶと畑の広さ・形を引き継ぎ、品目だけ塗り直せます。前作は薄く背景表示されます</div>
+          </FG>}
+          {!newModal.copyFrom&&<>
+            <FG label="1マスのサイズ">
+              <div style={{display:"flex",gap:8}}>
+                {[{v:"30",l:"30cm（家庭菜園向け）"},{v:"100",l:"1m（広い圃場向け）"}].map(opt=>(
+                  <button key={opt.v} type="button"
+                    onClick={()=>{
+                      const cm=opt.v==="100"?1:0.3;
+                      setNewModal({...newModal,cellSize:opt.v,
+                        cols:String(Math.max(1,Math.round((parseFloat(newModal.widthM)||0)/cm))),
+                        rows:String(Math.max(1,Math.round((parseFloat(newModal.heightM)||0)/cm)))});
+                    }}
+                    style={{flex:1,padding:"9px 6px",border:"2px solid "+(newModal.cellSize===opt.v?G2:"#e0d9ce"),borderRadius:9,background:newModal.cellSize===opt.v?G3:"#fff",fontSize:".74rem",fontWeight:700,color:newModal.cellSize===opt.v?G:"#5a5040",cursor:"pointer"}}>
+                    {opt.l}
+                  </button>
+                ))}
+              </div>
+            </FG>
+            <R2>
+              <FG label="横の長さ（m）"><Inp type="number" value={newModal.widthM} onChange={v=>{const cm=newModal.cellSize==="100"?1:0.3;setNewModal({...newModal,widthM:v,cols:String(Math.max(1,Math.round((parseFloat(v)||0)/cm)))});}} placeholder="例：6"/></FG>
+              <FG label="縦の長さ（m）"><Inp type="number" value={newModal.heightM} onChange={v=>{const cm=newModal.cellSize==="100"?1:0.3;setNewModal({...newModal,heightM:v,rows:String(Math.max(1,Math.round((parseFloat(v)||0)/cm)))});}} placeholder="例：6"/></FG>
+            </R2>
+            <div style={{fontSize:".72rem",color:TX3,background:"#f5fdf7",borderRadius:8,padding:"8px 10px"}}>
+              {newModal.cols&&newModal.rows
+                ? `→ ${newModal.cols} × ${newModal.rows} マス = ${(newModal.cols*newModal.rows*(newModal.cellSize==="100"?1:0.09)).toFixed(1)}㎡`
+                : "縦横の長さを入力するとマス数を自動計算します"}
             </div>
-          </FG>
-          <R2>
-            <FG label="横の長さ（m）"><Inp type="number" value={newModal.widthM} onChange={v=>{const cm=newModal.cellSize==="100"?1:0.3;setNewModal({...newModal,widthM:v,cols:String(Math.max(1,Math.round((parseFloat(v)||0)/cm)))});}} placeholder="例：6"/></FG>
-            <FG label="縦の長さ（m）"><Inp type="number" value={newModal.heightM} onChange={v=>{const cm=newModal.cellSize==="100"?1:0.3;setNewModal({...newModal,heightM:v,rows:String(Math.max(1,Math.round((parseFloat(v)||0)/cm)))});}} placeholder="例：6"/></FG>
-          </R2>
-          <div style={{fontSize:".72rem",color:TX3,background:"#f5fdf7",borderRadius:8,padding:"8px 10px"}}>
-            {newModal.cols&&newModal.rows
-              ? `→ ${newModal.cols} × ${newModal.rows} マス = ${(newModal.cols*newModal.rows*(newModal.cellSize==="100"?1:0.09)).toFixed(1)}㎡`
-              : "縦横の長さを入力するとマス数を自動計算します"}
-          </div>
-          <div style={{fontSize:".7rem",color:"#888",marginTop:6,lineHeight:1.6}}>
-            💡 不整形な畑は、まず大きめの四角で作り、使わないマスを塗らずに残せば輪郭を表現できます。後から行・列の追加も可能です。
-          </div>
+            <div style={{fontSize:".7rem",color:"#888",marginTop:6,lineHeight:1.6}}>
+              💡 不整形な畑は、まず大きめの四角で作り、使わないマスを塗らずに残せば輪郭を表現できます。後から行・列の追加も可能です。
+            </div>
+          </>}
         </>}
       </ModalWithSave>
     </div>
