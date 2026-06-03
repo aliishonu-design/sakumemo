@@ -200,6 +200,7 @@ function api(t,p){
 }
 function daysSince(d){return d?Math.floor((Date.now()-new Date(d))/86400000):0;}
 function fmtDate(d){if(!d)return'';var dt=new Date(d);return(dt.getMonth()+1)+'/'+dt.getDate();}
+function fmtYMD(d){if(!d)return'';var dt=new Date(d);if(isNaN(dt))return d;return dt.getFullYear()+'/'+(dt.getMonth()+1)+'/'+dt.getDate();}
 function cropName(c){var db=CDB[c.type]||{};return c.type==='custom'?(c.custom_name||'その他'):(db.n||c.type);}
 function cropEmoji(c){return(CDB[c.type]||{}).e||'🌱';}
 
@@ -512,7 +513,7 @@ function renderTimeline(){
   }
   var cards=groupLogs(logs);
   el.innerHTML=groupByDate(logs).map(function(day){
-    return '<div class="date-header">📅 '+day.date+'</div>'
+    return '<div class="date-header">📅 '+fmtYMD(day.date)+'</div>'
       +day.cards.map(function(c){return makeGroupCard(c,true);}).join('');
   }).join('');
 }
@@ -553,7 +554,7 @@ function renderCrop(cropId){
   var logsHtml=cropLogs.length===0
     ?'<div class="empty"><div class="empty-icon">📝</div><p>作業記録がまだありません</p></div>'
     :groupByDate(cropLogs).map(function(day){
-      return '<div class="date-header">📅 '+day.date+'</div>'
+      return '<div class="date-header">📅 '+fmtYMD(day.date)+'</div>'
         +day.cards.map(function(c){return makeGroupCard(c,false);}).join('');
     }).join('');
 
