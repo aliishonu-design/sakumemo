@@ -835,7 +835,12 @@ const globalCss = `
     #main-scroll{height:calc(100svh - 52px - 44px);overflow-y:auto;scrollbar-width:none;}
     #main-scroll::-webkit-scrollbar{display:none;}
     .scr-inner{padding-bottom:20px!important;}
+    .app-modal{top:96px!important;}
   }
+  .app-modal{top:52px;}
+  /* ガントバーのドラッグ中に文字が選択されないように */
+  .gantt-bar,.gantt-bar *{user-select:none;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;-webkit-touch-callout:none;}
+  .no-select{user-select:none;-webkit-user-select:none;}
 `;
 
 // Small components
@@ -946,7 +951,7 @@ function Modal({ open, onClose, title, children }) {
 function ModalWithSave({ open, onClose, title, onSave, saveLabel="保存", children }) {
   if(!open) return null;
   return (
-    <div style={{position:"fixed",top:52,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:960,bottom:0,zIndex:9999,display:"flex",flexDirection:"column",background:"#f8f5ef"}}>
+    <div className="app-modal" style={{position:"fixed",left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:960,bottom:0,zIndex:9999,display:"flex",flexDirection:"column",background:"#f8f5ef"}}>
       <div style={{background:GD,color:"#fff",padding:"11px 13px",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0,gap:8}}>
         <span style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".92rem",fontWeight:700,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{title}</span>
         <button onClick={onClose} style={{background:"rgba(255,255,255,.18)",border:"1px solid rgba(255,255,255,.25)",color:"#fff",borderRadius:8,padding:"6px 12px",fontSize:".8rem",cursor:"pointer",flexShrink:0,minWidth:40,minHeight:40}}>✕</button>
@@ -1122,7 +1127,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.91</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.92</div>
       </div>
     </div>
   );
@@ -1793,18 +1798,13 @@ function FieldsScreen({ fields, setFields, setFieldsR, crops, setCrops, setCrops
                     }
                   </div>
                   {/* 費用ページに先に登録した種・苗代から選んで紐付け */}
-                  {costs.filter(co=>co.cat==="seed"&&(!co.cropId||co.cropId===mCrop.id)).length>0&&
-                    <FG label="費用ページの種・苗代から紐付け">
-                      <Sel value={mCrop._linkSeedCostId||""} onChange={v=>{
-                        const co=costs.find(x=>x.id===v);
-                        setMCrop({...mCrop,_linkSeedCostId:v,seedCost:co?co.amt:mCrop.seedCost,seedNote:co?(co.note||co.name):mCrop.seedNote});
-                      }} options={[{value:"",label:"（手動入力する）"},...costs.filter(co=>co.cat==="seed"&&(!co.cropId||co.cropId===mCrop.id)).map(co=>({value:co.id,label:co.name+" "+Math.round(co.amt||0).toLocaleString()+"円"+(co.date?" ("+fmtMD(co.date)+")":"")}))]}/>
-                      <div style={{fontSize:".68rem",color:TX3,marginTop:3}}>先に費用ページで入力しておいた種・苗代を選ぶと、この品目に割り当てます</div>
-                    </FG>}
-                  <R2>
-                    <FG label="費用（円）"><Inp type="number" value={mCrop.seedCost} onChange={v=>setMCrop({...mCrop,seedCost:v})} placeholder="0"/></FG>
-                    <FG label="購入先・メモ"><Inp value={mCrop.seedNote} onChange={v=>setMCrop({...mCrop,seedNote:v})} placeholder="例：○○種苗"/></FG>
-                  </R2>
+                  <FG label="費用ページの種・苗代から選択">
+                    <Sel value={mCrop._linkSeedCostId||""} onChange={v=>{
+                      const co=costs.find(x=>x.id===v);
+                      setMCrop({...mCrop,_linkSeedCostId:v,seedCost:co?co.amt:"",seedNote:co?(co.note||co.name):""});
+                    }} options={[{value:"",label:"（割り当てない）"},...costs.filter(co=>co.cat==="seed"&&(!co.cropId||co.cropId===mCrop.id)).map(co=>({value:co.id,label:co.name+" "+Math.round(co.amt||0).toLocaleString()+"円"+(co.date?" ("+fmtMD(co.date)+")":"")}))]}/>
+                    <div style={{fontSize:".68rem",color:TX3,marginTop:3}}>費用ページで先に登録した種・苗代を選ぶと、この品目に割り当てます。{costs.filter(co=>co.cat==="seed"&&(!co.cropId||co.cropId===mCrop.id)).length===0?"（まだ種・苗代の費用がありません。費用ページで登録してください）":""}</div>
+                  </FG>
 
                 </div>
 
@@ -2880,6 +2880,7 @@ function PlanScreen({ fields, crops, plots, setPlots, setPlotsR, showToast }) {
   useEffect(()=>{
     if(!drag) return;
     const onMove = (e)=>{
+      if(e.touches && e.cancelable) e.preventDefault();  // タッチ時はスクロールより移動を優先
       const clientX = e.touches?e.touches[0].clientX:e.clientX;
       const dx = clientX - drag.startX;
       const days = pxToDays(dx);
@@ -3030,7 +3031,7 @@ function PlanScreen({ fields, crops, plots, setPlots, setPlotsR, showToast }) {
 
       {/* ガントチャート */}
       <div style={{...S.card,overflowX:"auto",WebkitOverflowScrolling:"touch",padding:"10px 8px"}}>
-        <div style={{minWidth:560}}>
+        <div className="no-select" style={{minWidth:560,userSelect:"none",WebkitUserSelect:"none"}}>
           {/* 月ヘッダー */}
           <div style={{display:"flex",borderBottom:"2px solid #e0d9ce",marginBottom:4}}>
             <div style={{width:70,flexShrink:0,fontSize:".68rem",fontWeight:700,color:"#5c3d1e"}}>区画</div>
@@ -3079,7 +3080,7 @@ function PlanScreen({ fields, crops, plots, setPlots, setPlotsR, showToast }) {
                     const hy=new Date(hv).getFullYear();
                     if(hy<year||py>year)return null;
                     return (
-                      <div key={pl.id}
+                      <div key={pl.id} className="gantt-bar"
                         style={{position:"absolute",left:left+"%",width:width+"%",top:(4+(laneOf[pl.id]||0)*30),height:26,background:cropColorByType(c.type),borderRadius:5,display:"flex",alignItems:"center",fontSize:".62rem",color:"#fff",overflow:"hidden",whiteSpace:"nowrap",boxShadow:"0 1px 3px rgba(0,0,0,.2)",touchAction:"none"}}>
                         {/* 左端ハンドル（開始日伸縮）*/}
                         <div onMouseDown={e=>onDragStart(e,pl,"start")} onTouchStart={e=>onDragStart(e,pl,"start")}
@@ -3130,7 +3131,7 @@ function PlanScreen({ fields, crops, plots, setPlots, setPlotsR, showToast }) {
       {/* 作付け編集モーダル */}
       <ModalWithSave open={!!mPlant} onClose={()=>setMPlant(null)} title={mPlant?.id?"作付けを編集":"作付けを追加"} onSave={savePlanting}>
         {mPlant&&<>
-          <FG label="区画"><Sel value={mPlant.bedId} onChange={v=>setMPlant({...mPlant,bedId:v})} options={(plan.beds||[]).map(b=>({value:b.id,label:b.name}))}/></FG>
+          <FG label="区画（変更で別区画へ移動）"><Sel value={mPlant.bedId} onChange={v=>setMPlant({...mPlant,bedId:v})} options={(plan.beds||[]).map(b=>({value:b.id,label:b.name}))}/></FG>
           <FG label="品目">
             <Sel value={mPlant.cropId} onChange={v=>{const hv=calcHarvest(v,mPlant.plantDate);setMPlant({...mPlant,cropId:v,harvestDate:hv});}}
               options={[{value:"",label:"（選択）"},...crops.filter(c=>!c.ended).map(c=>{const db=CDB[c.type]||{};return{value:c.id,label:(db.e||"🌱")+" "+(c.type==="custom"?c.customName||"カスタム":db.n||c.type)+(c.variety?"("+c.variety+")":"")};})]}/>
@@ -4004,7 +4005,7 @@ export default function App() {
         ))}
       </nav>
       {/* 作業記録モーダル - 常にDOMに存在させて入力内容を保持 */}
-      {logModal&&<div style={{position:"fixed",top:52,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:960,bottom:0,zIndex:9999,background:"#f8f5ef",display:"flex",flexDirection:"column"}}>
+      {logModal&&<div className="app-modal" style={{position:"fixed",left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:960,bottom:0,zIndex:9999,background:"#f8f5ef",display:"flex",flexDirection:"column"}}>
           <div style={{background:GD,color:"#fff",padding:"11px 13px",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
             <span style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".92rem",fontWeight:700,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{initLog?"✏️ 作業を編集":"📝 記録する"}</span>
             <div style={{display:"flex",gap:6}}>
