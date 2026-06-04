@@ -37,10 +37,10 @@ const logFromDb   = (r, fields) => { const fi=fields.findIndex(f=>f.id===r.field
 const fertMToDb   = (o, uid) => ({ id:o.id||uid0(), user_id:uid, name:o.name||null, type:o.type||null, price:o.price||null, punit:o.punit||null, capacity:o.capacity||null, cunit:o.cunit||null, npk:o.npk||null, stock:o.stock||null, sunit:o.sunit||null, note:o.note||null });
 const fertMFromDb = r => ({ id:r.id, name:r.name||"", type:r.type||"", price:r.price||"", punit:r.punit||"", capacity:r.capacity||"", cunit:r.cunit||"", npk:r.npk||"", stock:r.stock||"", sunit:r.sunit||"", note:r.note||"" });
 const pestMToDb   = (o, uid) => ({ id:o.id||uid0(), user_id:uid, name:o.name||null, type:o.type||null, target:o.target||null, capacity:o.capacity||null, sunit:o.sunit||null, price:o.price||null, note:o.note||null });const pestMFromDb = r => ({ id:r.id, name:r.name||"", type:r.type||"", target:r.target||"", capacity:r.capacity||"", sunit:r.sunit||"", price:r.price||"", note:r.note||"" });
-const equipToDb   = (o, uid) => ({ id:o.id||uid0(), user_id:uid, name:o.name||null, cat:o.cat||null, status:o.status||null, price:o.price||null, date:o.date||null, note:o.note||null });
-const equipFromDb = r => ({ id:r.id, name:r.name||"", cat:r.cat||"", status:r.status||"", price:r.price||"", date:r.date||"", note:r.note||"" });
+const equipToDb   = (o, uid) => ({ id:o.id||uid0(), user_id:uid, name:o.name||null, cat:o.cat||null, status:o.status||null, price:o.price||null, date:o.date||null, note:o.note||null, dep_years:o.depYears||null });
+const equipFromDb = r => ({ id:r.id, name:r.name||"", cat:r.cat||"", status:r.status||"", price:r.price||"", date:r.date||"", note:r.note||"", depYears:r.dep_years||"" });
 const costToDb    = (o, uid, fields) => ({ id:o.id, user_id:uid, field_id:(fields&&o.fieldIdx!==undefined&&o.fieldIdx!=="")?fields[o.fieldIdx]?.id||o.fieldId||null:o.fieldId||null, crop_id:o.cropId||null, cat:o.cat||null, name:o.name||null, amt:o.amt||null, date:o.date||null, qty:o.qty||null, qunit:o.qunit||null, note:o.note||null, master_id:o.masterId||null, work:o.work||null });
-const costFromDb  = (r, fields) => { const fi=fields.findIndex(f=>f.id===r.field_id); return { id:r.id, fieldId:r.field_id||"", fieldIdx:fi>=0?fi:0, cropId:r.crop_id||"", masterId:r.master_id||"", cat:r.cat||"", name:r.name||"", amt:r.amt||"", date:r.date||"", qty:r.qty||"", qunit:r.qunit||"", note:r.note||"", work:r.work||"" }; };
+const costFromDb  = (r, fields) => { const fi=fields.findIndex(f=>f.id===r.field_id); return { id:r.id, fieldId:r.field_id||"", fieldIdx:fi>=0?fi:0, cropId:r.crop_id||"", masterId:r.master_id||"", cat:r.cat||"", name:r.name||"", amt:r.amt||"", date:r.date||"", qty:r.qty||"", qunit:r.qunit||"", note:r.note||"", work:r.work||"", depYears:r.dep_years||"" }; };
 const plotToDb    = (o, uid) => ({ id:o.id, user_id:uid, field_id:o.fieldId||null, name:o.name||null, cols:o.cols||20, rows:o.rows||20, cells:o.cells||[], season:o.season||null, cell_size:o.cellSize||30, bg_plot_id:o.bgPlotId||null, plant_date:o.plantDate||null, end_date:o.endDate||null, kind:o.kind||null, beds:o.beds||null, plantings:o.plantings||null });
 const plotFromDb  = r => ({ id:r.id, fieldId:r.field_id||"", name:r.name||"", cols:r.cols||20, rows:r.rows||20, cells:Array.isArray(r.cells)?r.cells:(r.cells?JSON.parse(r.cells):[]), season:r.season||"", cellSize:r.cell_size||30, bgPlotId:r.bg_plot_id||"", plantDate:r.plant_date||"", endDate:r.end_date||"", kind:r.kind||"", beds:Array.isArray(r.beds)?r.beds:(r.beds?JSON.parse(r.beds):[]), plantings:Array.isArray(r.plantings)?r.plantings:(r.plantings?JSON.parse(r.plantings):[]) });
 
@@ -825,7 +825,8 @@ const S = {
 const globalCss = `
   @import url('https://fonts.googleapis.com/css2?family=BIZ+UDGothic:wght@400;700&family=Shippori+Mincho+B1:wght@400;700&display=swap');
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
-  body{font-family:'BIZ UDGothic',sans-serif;background:#f8f5ef;color:#1c1a14;}
+  html,body{font-family:'BIZ UDGothic',sans-serif;background:#f8f5ef;color:#1c1a14;overflow-x:hidden;max-width:100%;}
+  img,table{max-width:100%;}
   button,input,select,textarea{font-family:inherit;}
   input,select,textarea{font-size:16px!important;}
   @media(min-width:900px){
@@ -945,7 +946,7 @@ function Modal({ open, onClose, title, children }) {
 function ModalWithSave({ open, onClose, title, onSave, saveLabel="保存", children }) {
   if(!open) return null;
   return (
-    <div style={{position:"fixed",top:52,left:0,right:0,bottom:0,zIndex:9999,display:"flex",flexDirection:"column",background:"#f8f5ef"}}>
+    <div style={{position:"fixed",top:52,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:960,bottom:0,zIndex:9999,display:"flex",flexDirection:"column",background:"#f8f5ef"}}>
       <div style={{background:GD,color:"#fff",padding:"11px 13px",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0,gap:8}}>
         <span style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".92rem",fontWeight:700,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{title}</span>
         <button onClick={onClose} style={{background:"rgba(255,255,255,.18)",border:"1px solid rgba(255,255,255,.25)",color:"#fff",borderRadius:8,padding:"6px 12px",fontSize:".8rem",cursor:"pointer",flexShrink:0,minWidth:40,minHeight:40}}>✕</button>
@@ -1121,7 +1122,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.90</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.91</div>
       </div>
     </div>
   );
@@ -1264,8 +1265,8 @@ function MasterScreen({ fertMs, setFertMs, pestMs, setPestMs, equips, setEquips,
           setCosts(updated, updCost);
         }
       } else {
-        // 新規：費用を追加
-        const newCost = {id:uid0(),masterId:item.id,cat:costCat,name:costName,amt:String(item.price),date:todayStr(),qty:"1",qunit:"個",fieldIdx:"",note:"マスター登録時に自動追加"};
+        // 新規：費用を追加（償却資材はdepYearsを引き継ぐ）
+        const newCost = {id:uid0(),masterId:item.id,cat:costCat,name:costName,amt:String(item.price),date:item.date||todayStr(),qty:"1",qunit:"個",fieldIdx:"",depYears:item.depYears||"",note:item.depYears?("減価償却"+item.depYears+"年"):"マスター登録時に自動追加"};
         setCosts([...costs, newCost], newCost);
       }
     }
@@ -1438,6 +1439,11 @@ function MasterScreen({ fertMs, setFertMs, pestMs, setPestMs, equips, setEquips,
               <FG label="購入価格（円）"><Inp type="number" value={mItem.price||""} onChange={v=>setMItem({...mItem,price:v})}/></FG>
               <FG label="購入日"><Inp type="date" value={mItem.date||todayStr()} onChange={v=>setMItem({...mItem,date:v})}/></FG>
             </R2>
+            <FG label="減価償却年数（高額・長期使用の農機具等）">
+              <Sel value={mItem.depYears||""} onChange={v=>setMItem({...mItem,depYears:v})}
+                options={[{value:"",label:"償却しない（購入時に全額計上）"},...[2,3,4,5,6,7,8,10,15,17,22].map(n=>({value:String(n),label:n+"年で償却"}))]}/>
+              <div style={{fontSize:".68rem",color:TX3,marginTop:3}}>例：耕運機7年・トラクター7年・ハウス10〜15年。設定すると購入額を年数で按分してレポートに計上します</div>
+            </FG>
           </>}
 
           <FG label="メモ"><Inp value={mItem.note||""} onChange={v=>setMItem({...mItem,note:v})} placeholder="購入先・注意事項など"/></FG>
@@ -3163,6 +3169,26 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs, equips=[] })
     if(period==="year") return date.startsWith(String(selYear));
     return date.startsWith(String(selYear)+"-"+String(selMonth).padStart(2,"0"));
   };
+  // 費用の計上額を返す（減価償却資産は期間内なら年額、それ以外は購入額）
+  const costAmount = (co) => {
+    const full = parseFloat(co.amt)||0;
+    const dep = parseInt(co.depYears)||0;
+    if(dep<=0) return inPeriod(co.date)?full:0;  // 通常費用：購入日が期間内のみ
+    // 減価償却：購入年から dep 年間、毎年 full/dep を計上
+    if(!co.date) return 0;
+    const buyYear = new Date(co.date).getFullYear();
+    const annual = full/dep;
+    if(period==="month"){
+      // 月単位なら年額の1/12（購入年〜償却終了年の範囲内の月のみ）
+      if(selYear>=buyYear && selYear<buyYear+dep) return annual/12;
+      return 0;
+    }
+    if(period==="year"){
+      if(selYear>=buyYear && selYear<buyYear+dep) return annual;
+      return 0;
+    }
+    return full; // crop期間は全額
+  };
 
   // 全品目のデータ集計
   // デバッグ: costs の内容を確認
@@ -3254,8 +3280,8 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs, equips=[] })
   // 全体集計
   const totalKg  = cropStats.reduce((s,c)=>s+c.kg,0);
   const totalRev = cropStats.reduce((s,c)=>s+c.rev,0);
-  const totalCost= costs.filter(c=>inPeriod(c.date)).reduce((s,c)=>s+(parseFloat(c.amt)||0),0);
-  const commonCost= costs.filter(c=>inPeriod(c.date)&&!c.cropId).reduce((s,c)=>s+(parseFloat(c.amt)||0),0);
+  const totalCost= costs.reduce((s,c)=>s+costAmount(c),0);
+  const commonCost= costs.filter(c=>!c.cropId).reduce((s,c)=>s+costAmount(c),0);
   const totalMin = logs.filter(l=>inPeriod(l.date)).reduce((s,l)=>s+(parseInt(l.duration)||0),0);
   const th=Math.floor(totalMin/60),tm=totalMin%60;
   const totalTimeStr=totalMin>0?(th>0?th+"時間"+tm+"分":tm+"分"):"0分";
@@ -3978,7 +4004,7 @@ export default function App() {
         ))}
       </nav>
       {/* 作業記録モーダル - 常にDOMに存在させて入力内容を保持 */}
-      {logModal&&<div style={{position:"fixed",top:52,left:0,right:0,bottom:0,zIndex:9999,background:"#f8f5ef",display:"flex",flexDirection:"column"}}>
+      {logModal&&<div style={{position:"fixed",top:52,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:960,bottom:0,zIndex:9999,background:"#f8f5ef",display:"flex",flexDirection:"column"}}>
           <div style={{background:GD,color:"#fff",padding:"11px 13px",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
             <span style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".92rem",fontWeight:700,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{initLog?"✏️ 作業を編集":"📝 記録する"}</span>
             <div style={{display:"flex",gap:6}}>
