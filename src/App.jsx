@@ -1121,7 +1121,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.89</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.90</div>
       </div>
     </div>
   );
@@ -1511,6 +1511,17 @@ function FieldsScreen({ fields, setFields, setFieldsR, crops, setCrops, setCrops
     const entry={...mCrop,id:mCrop.id||uid0(),fieldId:fields[mCrop.fieldIdx]?.id||mCrop.fieldId||""};
     const n=mCrop._idx!==undefined?crops.map((x,i)=>i===mCrop._idx?entry:x):[...crops,entry];
     setCrops(n,entry,fields);
+    // 費用ページの既存種苗代を紐付け（選択された場合は品目を割当し、自動追加はスキップ）
+    if(mCrop._linkSeedCostId){
+      const linkCost=costs.find(co=>co.id===mCrop._linkSeedCostId);
+      if(linkCost){
+        const updated={...linkCost,cropId:entry.id};
+        setCosts(costs.map(co=>co.id===linkCost.id?updated:co),updated);
+        showToast("種・苗代を紐付けました");
+        setMCrop(null);
+        return;
+      }
+    }
     // 品目編集時: 費用を完全同期（名前・日付・金額）
     if(mCrop._idx!==undefined && mCrop.id){
       const db2=CDB[entry.type]||{};
@@ -1775,6 +1786,15 @@ function FieldsScreen({ fields, setFields, setFieldsR, crops, setCrops, setCrops
                       </span>
                     }
                   </div>
+                  {/* 費用ページに先に登録した種・苗代から選んで紐付け */}
+                  {costs.filter(co=>co.cat==="seed"&&(!co.cropId||co.cropId===mCrop.id)).length>0&&
+                    <FG label="費用ページの種・苗代から紐付け">
+                      <Sel value={mCrop._linkSeedCostId||""} onChange={v=>{
+                        const co=costs.find(x=>x.id===v);
+                        setMCrop({...mCrop,_linkSeedCostId:v,seedCost:co?co.amt:mCrop.seedCost,seedNote:co?(co.note||co.name):mCrop.seedNote});
+                      }} options={[{value:"",label:"（手動入力する）"},...costs.filter(co=>co.cat==="seed"&&(!co.cropId||co.cropId===mCrop.id)).map(co=>({value:co.id,label:co.name+" "+Math.round(co.amt||0).toLocaleString()+"円"+(co.date?" ("+fmtMD(co.date)+")":"")}))]}/>
+                      <div style={{fontSize:".68rem",color:TX3,marginTop:3}}>先に費用ページで入力しておいた種・苗代を選ぶと、この品目に割り当てます</div>
+                    </FG>}
                   <R2>
                     <FG label="費用（円）"><Inp type="number" value={mCrop.seedCost} onChange={v=>setMCrop({...mCrop,seedCost:v})} placeholder="0"/></FG>
                     <FG label="購入先・メモ"><Inp value={mCrop.seedNote} onChange={v=>setMCrop({...mCrop,seedNote:v})} placeholder="例：○○種苗"/></FG>
@@ -2718,6 +2738,9 @@ function CostScreen({ fields, crops, fertMs, pestMs, equips, costs, setCosts, lo
   const [mCost,setMCost]=useState(null);
   const [filterCrop,setFilterCrop]=useState("");  // 品目フィルター（""=全て, "__common"=共通費）
   const [filterCat,setFilterCat]=useState("");     // カテゴリフィルター
+  const [sortKey,setSortKey]=useState("date");     // 並べ替えキー: date/cat/amt/crop
+  const [sortAsc,setSortAsc]=useState(false);      // 昇順か
+  const toggleSort=k=>{ if(sortKey===k){setSortAsc(a=>!a);}else{setSortKey(k);setSortAsc(k==="date"?false:true);} };
   const empty={id:uid0(),cat:"seed",name:"",amt:"",date:todayStr(),qty:"",qunit:"",fieldIdx:"",cropId:"",note:""};
   const total=costs.reduce((s,c)=>s+(parseFloat(c.amt)||0),0);
   const revenue=logs.reduce((s,l)=>s+(parseFloat(l.hvKg)||0)*(parseFloat(l.hvPrice)||0),0);
@@ -2760,13 +2783,24 @@ function CostScreen({ fields, crops, fertMs, pestMs, equips, costs, setCosts, lo
         })()}
         {!costs.length&&<div style={{color:TX3,fontSize:".82rem"}}>費用がまだ登録されていません</div>}
         <table style={{width:"100%",borderCollapse:"collapse",fontSize:".76rem"}}>
-          {costs.length>0&&<thead><tr>{["日付","種別","品名","品目","金額","操作"].map(h=><th key={h} style={{background:G3,color:G,padding:"5px 6px",textAlign:"left",fontSize:".68rem"}}>{h}</th>)}</tr></thead>}
+          {costs.length>0&&<thead><tr>{[{l:"日付",k:"date"},{l:"種別",k:"cat"},{l:"品名",k:null},{l:"品目",k:"crop"},{l:"金額",k:"amt"},{l:"操作",k:null}].map(h=><th key={h.l} onClick={()=>h.k&&toggleSort(h.k)} style={{background:G3,color:G,padding:"5px 6px",textAlign:"left",fontSize:".68rem",cursor:h.k?"pointer":"default",whiteSpace:"nowrap"}}>{h.l}{h.k&&sortKey===h.k?(sortAsc?" ▲":" ▼"):""}</th>)}</tr></thead>}
           <tbody>{[...costs].filter(c=>{
             if(filterCat&&c.cat!==filterCat)return false;
             if(filterCrop==="__common")return !c.cropId;
             if(filterCrop&&c.cropId!==filterCrop)return false;
             return true;
-          }).sort((a,b)=>(b.date||"").localeCompare(a.date||"")).map((c,ri)=>{const oi=costs.indexOf(c);return<tr key={ri}><td style={{padding:"5px 6px",borderBottom:"1px solid "+BD}}>{c.date?fmtYMD(c.date):"—"}</td><td style={{padding:"5px 6px",borderBottom:"1px solid "+BD}}>{COST_CATS.find(x=>x.value===c.cat)?.label||c.cat}</td><td style={{padding:"5px 6px",borderBottom:"1px solid "+BD}}>{c.name}</td><td style={{padding:"5px 6px",borderBottom:"1px solid "+BD,fontSize:".7rem",color:c.cropId?"#2d6a3f":"#aaa"}}>{(()=>{if(!c.cropId)return"共通";const cr=crops.find(x=>x.id===c.cropId);if(!cr)return"共通";const db=CDB[cr.type]||{};return(db.e||"🌱")+(cr.type==="custom"?cr.customName||"":db.n||cr.type);})()}</td><td style={{padding:"5px 6px",borderBottom:"1px solid "+BD}}><b>{Math.round(c.amt||0).toLocaleString()}円</b></td><td style={{padding:"5px 6px",borderBottom:"1px solid "+BD,whiteSpace:"nowrap"}}><button style={{...S.btn,...S.btnS,...S.btnSm}} onClick={()=>setMCost({...c,_idx:oi})}>編集</button> <button style={{...S.btn,...S.btnR,...S.btnSm}} onClick={()=>{if(!window.confirm("削除しますか?"))return;dbDelete("costs",c.id);setCosts(costs.filter((_,j)=>j!==oi));showToast("削除しました");}}>削除</button></td></tr>;})}
+          }).sort((a,b)=>{
+            let r=0;
+            if(sortKey==="date") r=(a.date||"").localeCompare(b.date||"");
+            else if(sortKey==="cat") r=(a.cat||"").localeCompare(b.cat||"");
+            else if(sortKey==="amt") r=(parseFloat(a.amt)||0)-(parseFloat(b.amt)||0);
+            else if(sortKey==="crop"){
+              const an=a.cropId?(CDB[crops.find(x=>x.id===a.cropId)?.type]?.n||"zzz"):"zzz共通";
+              const bn=b.cropId?(CDB[crops.find(x=>x.id===b.cropId)?.type]?.n||"zzz"):"zzz共通";
+              r=an.localeCompare(bn);
+            }
+            return sortAsc?r:-r;
+          }).map((c,ri)=>{const oi=costs.indexOf(c);return<tr key={ri}><td style={{padding:"5px 6px",borderBottom:"1px solid "+BD}}>{c.date?fmtYMD(c.date):"—"}</td><td style={{padding:"5px 6px",borderBottom:"1px solid "+BD}}>{COST_CATS.find(x=>x.value===c.cat)?.label||c.cat}</td><td style={{padding:"5px 6px",borderBottom:"1px solid "+BD}}>{c.name}</td><td style={{padding:"5px 6px",borderBottom:"1px solid "+BD,fontSize:".7rem",color:c.cropId?"#2d6a3f":"#aaa"}}>{(()=>{if(!c.cropId)return"共通";const cr=crops.find(x=>x.id===c.cropId);if(!cr)return"共通";const db=CDB[cr.type]||{};return(db.e||"🌱")+(cr.type==="custom"?cr.customName||"":db.n||cr.type);})()}</td><td style={{padding:"5px 6px",borderBottom:"1px solid "+BD}}><b>{Math.round(c.amt||0).toLocaleString()}円</b></td><td style={{padding:"5px 6px",borderBottom:"1px solid "+BD,whiteSpace:"nowrap"}}><button style={{...S.btn,...S.btnS,...S.btnSm}} onClick={()=>setMCost({...c,_idx:oi})}>編集</button> <button style={{...S.btn,...S.btnR,...S.btnSm}} onClick={()=>{if(!window.confirm("削除しますか?"))return;dbDelete("costs",c.id);setCosts(costs.filter((_,j)=>j!==oi));showToast("削除しました");}}>削除</button></td></tr>;})}
           </tbody>
         </table>
       </div>
@@ -2833,8 +2867,9 @@ function PlanScreen({ fields, crops, plots, setPlots, setPlotsR, showToast }) {
   const onDragStart = (e, pl, mode)=>{
     e.stopPropagation();
     const clientX = e.touches?e.touches[0].clientX:e.clientX;
+    const clientY = e.touches?e.touches[0].clientY:e.clientY;
     const hv = pl.harvestDate||calcHarvest(pl.cropId,pl.plantDate);
-    setDrag({id:pl.id, mode, startX:clientX, origPlant:pl.plantDate, origHarvest:hv, moved:false});
+    setDrag({id:pl.id, mode, startX:clientX, startY:clientY, origPlant:pl.plantDate, origHarvest:hv, origBed:pl.bedId, moved:false});
   };
   useEffect(()=>{
     if(!drag) return;
@@ -2846,11 +2881,18 @@ function PlanScreen({ fields, crops, plots, setPlots, setPlotsR, showToast }) {
       setDrag(d=>({...d,moved:true}));
       const cur = (plan.plantings||[]).find(p=>p.id===drag.id);
       if(!cur) return;
-      let np=drag.origPlant, nh=drag.origHarvest;
-      if(drag.mode==="move"){ np=addDays(drag.origPlant,days); nh=addDays(drag.origHarvest,days); }
+      let np=drag.origPlant, nh=drag.origHarvest, nbed=drag.origBed;
+      if(drag.mode==="move"){
+        np=addDays(drag.origPlant,days); nh=addDays(drag.origHarvest,days);
+        // 縦方向: ドラッグ位置の区画行を判定して区画変更
+        const clientY=e.touches?e.touches[0].clientY:e.clientY;
+        const el=document.elementFromPoint(clientX, clientY);
+        const bedEl=el&&el.closest?el.closest("[data-bedrow]"):null;
+        if(bedEl&&bedEl.dataset.bedrow){ nbed=bedEl.dataset.bedrow; }
+      }
       else if(drag.mode==="start"){ np=addDays(drag.origPlant,days); if(np>=nh) np=drag.origHarvest; }
       else if(drag.mode==="end"){ nh=addDays(drag.origHarvest,days); if(nh<=np) nh=drag.origPlant; }
-      const plantings=plan.plantings.map(p=>p.id===drag.id?{...p,plantDate:np,harvestDate:nh}:p);
+      const plantings=plan.plantings.map(p=>p.id===drag.id?{...p,plantDate:np,harvestDate:nh,bedId:nbed}:p);
       setPlotsR(plots.map(pp=>pp.id===plan.id?{...plan,plantings}:pp));
     };
     const onUp = ()=>{
@@ -3007,7 +3049,7 @@ function PlanScreen({ fields, crops, plots, setPlots, setPlotsR, showToast }) {
             const laneCount=Math.max(1,lanes.length);
             const rowH=laneCount*30+8;
             return (
-              <div key={bed.id} style={{display:"flex",alignItems:"stretch",borderBottom:"1px solid #f0ebe3",minHeight:rowH}}>
+              <div key={bed.id} data-bedrow={bed.id} style={{display:"flex",alignItems:"stretch",borderBottom:"1px solid #f0ebe3",minHeight:rowH}}>
                 <div style={{width:70,flexShrink:0,fontSize:".7rem",display:"flex",flexDirection:"column",justifyContent:"center",paddingRight:4}}>
                   <span onClick={()=>renameBed(bed.id)} style={{fontWeight:700,cursor:"pointer",color:"#5c3d1e"}}>{bed.name}</span>
                   <div style={{display:"flex",gap:3,marginTop:2}}>
