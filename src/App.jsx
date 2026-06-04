@@ -32,8 +32,8 @@ const fieldToDb   = (o, uid) => ({ id:o.id, user_id:uid, name:o.name||"", area:o
 const fieldFromDb = r => ({ id:r.id, name:r.name||"", area:r.area||"", soil:r.soil||"", addr:r.addr||"", memo:r.memo||"", prefecture:r.prefecture||"" });
 const cropToDb    = (o, uid) => ({ id:o.id, user_id:uid, field_id:o.fieldId||null, type:o.type||null, variety:o.variety||null, germ_rate:o.germRate||null, stocks:o.stocks||null, ridge_w:o.ridgeW||null, ridge_h:o.ridgeH||null, rows:o.rows||null, row_space:o.rowSpace||null, plant_space:o.plantSpace||null, sow_date:o.sowDate||null, plant_date:o.plantDate||null, memo:o.memo||null, cultivation_type:o.cultivationType||null, seed_cost:o.seedCost||null, seed_note:o.seedNote||null, custom_name:o.customName||null, ended:o.ended||false, end_date:o.endDate||null, maturity:o.maturity||null, custom_days:o.customDays||null, custom_water:o.customWater||null, pot_size:o.potSize||null, pot_volume:o.potVolume||null, pot_count:o.potCount||null, grow_env:o.growEnv||null, agri_month_start:o.agriMonthStart||null, ridge_len:o.ridgeLen||null, cultivation_area:o.cultivationArea||null, temp_min:o.tempMin||null, temp_max:o.tempMax||null });
 const cropFromDb  = (r, fields) => { const fi = fields.findIndex(f=>f.id===r.field_id); return { id:r.id, fieldId:r.field_id||"", fieldIdx:fi>=0?fi:0, type:r.type||"", variety:r.variety||"", germRate:r.germ_rate||"", stocks:r.stocks||"", ridgeW:r.ridge_w||"", ridgeH:r.ridge_h||"", rows:r.rows||"", rowSpace:r.row_space||"", plantSpace:r.plant_space||"", sowDate:r.sow_date||"", plantDate:r.plant_date||"", memo:r.memo||"", cultivationType:r.cultivation_type||"transplant", seedCost:r.seed_cost||"", seedNote:r.seed_note||"", customName:r.custom_name||"", ended:r.ended||false, endDate:r.end_date||"", maturity:r.maturity||"mid", customDays:r.custom_days||"", customWater:r.custom_water||"", potSize:r.pot_size||"", potVolume:r.pot_volume||"", potCount:r.pot_count||"", growEnv:r.grow_env||"field", agriMonthStart:r.agri_month_start||"", ridgeLen:r.ridge_len||"", cultivationArea:r.cultivation_area||"", tempMin:r.temp_min||"", tempMax:r.temp_max||"" }; };
-const logToDb     = (o, uid, fields) => ({ id:o.id, user_id:uid, field_id:fields[o.fieldIdx]?.id||o.fieldId||null, crop_id:o.cropId||null, work:o.work||null, memo:o.memo||null, date:o.date||null, time:o.time||null, duration:o.duration||null, img_src:o.imgSrc||null, img2_src:o.imgSrc2||null, img3_src:o.imgSrc3||null, fert_name:o.fertName||null, fert_amt:o.fertAmt||null, fert_unit:o.fertUnit||null, fert_method:o.fertMethod||null, fert_cost:o.fertCost||null, pest_name:o.pestName||null, pest_spray_amt:o.pestSprayAmt||null, pest_dil:o.pestDil||null, pest_amt:o.pestAmt||null, pest_unit:o.pestUnit||null, pest_tgt:o.pestTarget||null, pest_cost:o.pestCost||null, hv_kg:o.hvKg||null, hv_cnt:o.hvCnt||null, hv_q:o.hvQ||null, hv_price:o.hvPrice||null, equip_ids:o.equipIds||null, equip_act:o.equipAct||null, sow_qty:o.sowQty||null, germination_cnt:o.germinationCnt||null, germ_date:o.germinationDate||null, transplant_qty:o.transplantQty||null, discard_cnt:o.discardCnt||null, add_cnt:o.addCnt||null, event_type:o.eventType||null, event_note:o.eventNote||null, hv_grade_str:o.hvGradeStr||null, other_note:o.otherNote||null, repot_size:o.repotSize||null, repot_vol:o.repotVol||null, group_id:o._groupId||null });
-const logFromDb   = (r, fields) => { const fi=fields.findIndex(f=>f.id===r.field_id); return { id:r.id, fieldId:r.field_id||"", fieldIdx:fi>=0?fi:0, cropId:r.crop_id||"", work:r.work||"", memo:r.memo||"", date:r.date||"", time:r.time||"", duration:r.duration||"", imgSrc:r.img_src||null, imgSrc2:r.img2_src||null, imgSrc3:r.img3_src||null, aiReply:"", fertName:r.fert_name||"", fertAmt:r.fert_amt||"", fertUnit:r.fert_unit||"", fertMethod:r.fert_method||"", fertCost:r.fert_cost||"", pestName:r.pest_name||"", pestSprayAmt:r.pest_spray_amt||"", pestDil:r.pest_dil||"", pestAmt:r.pest_amt||"", pestUnit:r.pest_unit||"", pestTarget:r.pest_target||"", pestCost:r.pest_cost||"", hvKg:r.hv_kg!=null?String(r.hv_kg):"", hvCnt:r.hv_cnt!=null?String(r.hv_cnt):"", hvQ:r.hv_q||"", hvPrice:r.hv_price||"", hvImgSrc:r.hv_img_src||null, equipIds:Array.isArray(r.equip_ids)?r.equip_ids:(r.equip_ids?JSON.parse(r.equip_ids):[]), equipAct:r.equip_act||"", hvGradeStr:r.hv_grade_str||"", otherNote:r.other_note||"", repotSize:r.repot_size||"", repotVol:r.repot_vol||"", _groupId:r.group_id||null, sowQty:r.sow_qty||"", germinationCnt:r.germination_cnt||"", germinationDate:r.germination_date||"", transplantQty:r.transplant_qty||"", discardCnt:r.discard_cnt||"", addCnt:r.add_cnt||"", eventType:r.event_type||"", eventNote:r.event_note||"" }; };
+const logToDb     = (o, uid, fields) => ({ id:o.id, user_id:uid, field_id:fields[o.fieldIdx]?.id||o.fieldId||null, crop_id:o.cropId||null, work:o.work||null, memo:o.memo||null, date:o.date||null, time:o.time||null, duration:o.duration||null, img_src:o.imgSrc||null, img2_src:o.imgSrc2||null, img3_src:o.imgSrc3||null, fert_name:o.fertName||null, fert_amt:o.fertAmt||null, fert_unit:o.fertUnit||null, fert_method:o.fertMethod||null, fert_cost:o.fertCost||null, pest_name:o.pestName||null, pest_spray_amt:o.pestSprayAmt||null, pest_dil:o.pestDil||null, pest_amt:o.pestAmt||null, pest_unit:o.pestUnit||null, pest_tgt:o.pestTarget||null, pest_cost:o.pestCost||null, hv_kg:o.hvKg||null, hv_cnt:o.hvCnt||null, hv_q:o.hvQ||null, hv_price:o.hvPrice||null, equip_ids:o.equipIds||null, equip_act:o.equipAct||null, sow_qty:o.sowQty||null, germination_cnt:o.germinationCnt||null, germ_date:o.germinationDate||null, transplant_qty:o.transplantQty||null, discard_cnt:o.discardCnt||null, add_cnt:o.addCnt||null, event_type:o.eventType||null, event_note:o.eventNote||null, hv_grade_str:o.hvGradeStr||null, other_note:o.otherNote||null, repot_size:o.repotSize||null, repot_vol:o.repotVol||null, group_id:o._groupId||null, weather:o.weather||null });
+const logFromDb   = (r, fields) => { const fi=fields.findIndex(f=>f.id===r.field_id); return { id:r.id, fieldId:r.field_id||"", fieldIdx:fi>=0?fi:0, cropId:r.crop_id||"", work:r.work||"", memo:r.memo||"", date:r.date||"", time:r.time||"", duration:r.duration||"", imgSrc:r.img_src||null, imgSrc2:r.img2_src||null, imgSrc3:r.img3_src||null, aiReply:"", fertName:r.fert_name||"", fertAmt:r.fert_amt||"", fertUnit:r.fert_unit||"", fertMethod:r.fert_method||"", fertCost:r.fert_cost||"", pestName:r.pest_name||"", pestSprayAmt:r.pest_spray_amt||"", pestDil:r.pest_dil||"", pestAmt:r.pest_amt||"", pestUnit:r.pest_unit||"", pestTarget:r.pest_target||"", pestCost:r.pest_cost||"", hvKg:r.hv_kg!=null?String(r.hv_kg):"", hvCnt:r.hv_cnt!=null?String(r.hv_cnt):"", hvQ:r.hv_q||"", hvPrice:r.hv_price||"", hvImgSrc:r.hv_img_src||null, equipIds:Array.isArray(r.equip_ids)?r.equip_ids:(r.equip_ids?JSON.parse(r.equip_ids):[]), equipAct:r.equip_act||"", hvGradeStr:r.hv_grade_str||"", otherNote:r.other_note||"", repotSize:r.repot_size||"", repotVol:r.repot_vol||"", _groupId:r.group_id||null, weather:r.weather||"", sowQty:r.sow_qty||"", germinationCnt:r.germination_cnt||"", germinationDate:r.germination_date||"", transplantQty:r.transplant_qty||"", discardCnt:r.discard_cnt||"", addCnt:r.add_cnt||"", eventType:r.event_type||"", eventNote:r.event_note||"" }; };
 const fertMToDb   = (o, uid) => ({ id:o.id||uid0(), user_id:uid, name:o.name||null, type:o.type||null, price:o.price||null, punit:o.punit||null, capacity:o.capacity||null, cunit:o.cunit||null, npk:o.npk||null, stock:o.stock||null, sunit:o.sunit||null, note:o.note||null });
 const fertMFromDb = r => ({ id:r.id, name:r.name||"", type:r.type||"", price:r.price||"", punit:r.punit||"", capacity:r.capacity||"", cunit:r.cunit||"", npk:r.npk||"", stock:r.stock||"", sunit:r.sunit||"", note:r.note||"" });
 const pestMToDb   = (o, uid) => ({ id:o.id||uid0(), user_id:uid, name:o.name||null, type:o.type||null, target:o.target||null, capacity:o.capacity||null, sunit:o.sunit||null, price:o.price||null, note:o.note||null });const pestMFromDb = r => ({ id:r.id, name:r.name||"", type:r.type||"", target:r.target||"", capacity:r.capacity||"", sunit:r.sunit||"", price:r.price||"", note:r.note||"" });
@@ -1127,7 +1127,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.92</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.94</div>
       </div>
     </div>
   );
@@ -1135,6 +1135,38 @@ function LoginScreen() {
 
 function HomeScreen({ fields, crops, logs, costs, onEditCrop }) {
   const [wx, setWx] = useState(null);
+  // 作業リマインダー: 栽培中の品目について追肥時期・収穫時期を提案
+  const reminders = (()=>{
+    const out=[];
+    const today=new Date();
+    crops.filter(c=>!c.ended).forEach(c=>{
+      const db=CDB[c.type]||{};
+      const start=c.plantDate||c.sowDate;
+      if(!start) return;
+      const days=Math.floor((today-new Date(start))/86400000);
+      if(days<0) return;
+      // 収穫予定日（栽培日数 d ベース）
+      const mat=db.maturity?.[c.maturity||"mid"]||db.d||90;
+      const toHarvest=mat-days;
+      // 直近の施肥ログ
+      const fertLogs=logs.filter(l=>l.cropId===c.id&&l.work==="fert").sort((a,b)=>(b.date||"").localeCompare(a.date||""));
+      const lastFert=fertLogs[0];
+      const daysSinceFert=lastFert?Math.floor((today-new Date(lastFert.date))/86400000):null;
+      const cropLabel=(db.e||"🌱")+" "+(c.type==="custom"?c.customName||"カスタム":db.n||c.type)+(c.variety?"("+c.variety+")":"");
+      // 収穫が近い
+      if(toHarvest<=7 && toHarvest>=-30){
+        out.push({crop:c, label:cropLabel, type:"harvest", msg:toHarvest>0?`収穫予定まであと約${toHarvest}日`:`収穫適期です（予定日から${-toHarvest}日経過）`, urgent:toHarvest<=3});
+      }
+      // 追肥（果菜類は定植3週後から2-3週ごと）
+      const needChase=FERT_GUIDE[c.type]?.chase?.length>0;
+      if(needChase && days>=21){
+        if(daysSinceFert===null || daysSinceFert>=21){
+          out.push({crop:c, label:cropLabel, type:"fert", msg:daysSinceFert===null?`定植から${days}日。追肥を検討しましょう`:`前回の追肥から${daysSinceFert}日。追肥時期です`, urgent:false});
+        }
+      }
+    });
+    return out.sort((a,b)=>(b.urgent?1:0)-(a.urgent?1:0));
+  })();
 
   const [wxFieldIdx, setWxFieldIdx] = useState(0);
   const wxField = fields[wxFieldIdx] || fields[0];
@@ -1200,6 +1232,22 @@ function HomeScreen({ fields, crops, logs, costs, onEditCrop }) {
               })}
             </div>
           )}
+        </div>
+      )}
+
+      {/* 作業リマインダー */}
+      {reminders.length>0&&(
+        <div style={{...S.card,marginBottom:12}}>
+          <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".88rem",color:"#5c3d1e",marginBottom:8}}>🔔 作業リマインダー</div>
+          {reminders.map((r,i)=>(
+            <div key={i} onClick={()=>onEditCrop&&onEditCrop(r.crop)} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 10px",marginBottom:6,borderRadius:8,cursor:"pointer",background:r.urgent?"#fff3cd":"#f6f3ec",border:"1px solid "+(r.urgent?"#ffc107":"#e8e0d5")}}>
+              <span style={{fontSize:"1.1rem"}}>{r.type==="harvest"?"🌾":"🌿"}</span>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontSize:".78rem",fontWeight:700,color:"#3a2f1e",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.label}</div>
+                <div style={{fontSize:".72rem",color:r.urgent?"#856404":TX3}}>{r.msg}</div>
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
@@ -1333,6 +1381,10 @@ function MasterScreen({ fertMs, setFertMs, pestMs, setPestMs, equips, setEquips,
           onClick={()=>setMItem({...newPest,_idx:undefined})}>＋ 農薬</button>
         <button style={{...S.btn,background:"#ede9fe",color:"#5b21b6",border:"1px solid #c4b5fd",borderRadius:999,padding:"6px 14px",fontSize:".78rem",fontWeight:700,width:"auto",flexShrink:0}}
           onClick={()=>setMItem({...newEquip,_idx:undefined})}>＋ 資材・設備</button>
+      </div>
+
+      <div style={{fontSize:".7rem",color:TX3,background:"#f6f3ec",borderRadius:8,padding:"8px 10px",marginBottom:10,lineHeight:1.5}}>
+        💡 ここで登録した肥料・農薬は<b>使った分だけ</b>費用に計上されます（作業記録の使用量×単価）。設備・農機具は購入額が費用ページに記録され、減価償却の設定も可能です。
       </div>
 
       {!shown.length&&<div style={{color:TX3,fontSize:".82rem",padding:16,textAlign:"center"}}>資材がまだ登録されていません</div>}
@@ -1862,6 +1914,7 @@ function LogScreen({ fields, crops, setCrops, fertMs, pestMs, equips, costs, set
   });
   const [memo,     setMemo]     = useState("");
   const [date,     setDate]     = useState(todayStr());
+  const [weather,  setWeather]  = useState("");
   const [time,     setTime]     = useState(nowTime());
   const [dur,      setDur]      = useState("");
   const [logImg,   setLogImg]   = useState(null);
@@ -1926,7 +1979,7 @@ useEffect(()=>{
     if(!editLog) {
       setEditId(null);setWorks(new Set());setMemo("");setLogImg(null);setLogImg2(null);setLogImg3(null);
       setHvGrades({秀品:{kg:"",cnt:"",price:""},優品:{kg:"",cnt:"",price:""},良品:{kg:"",cnt:"",price:""},規格外:{kg:"",cnt:"",price:""}});
-      setFieldIdx(0);setCropId("");setDate(todayStr());setTime(nowTime());setDur("");
+      setFieldIdx(0);setCropId("");setDate(todayStr());setTime(nowTime());setDur("");setWeather("");
       setSowQty("");setGermCnt("");setGermDate(todayStr());setTranspQty("");
       setFertIdx("");setFertName("");setFertAmt("");setFertUnit("kg");setFertMeth("追肥");setFertCost("");setFertEntries([]);
       setPestIdx("");setPestName("");setPestDil("");setPestAmt("");setPestUnit("L");setPestTgt("");setPestCost("");setPestEntries([]);setPestSprayAmt("");
@@ -1944,6 +1997,7 @@ useEffect(()=>{
     setWorks(_allWorks);
     setMemo(editLog.memo||"");
     setDate(editLog.date||todayStr());
+    setWeather(editLog.weather||"");
     setTime(editLog.time||nowTime());
     setDur(editLog.duration||"");
 
@@ -2091,7 +2145,7 @@ useEffect(()=>{
       const e = {
         id: existingId || uid0(),
         _groupId: groupId || null,
-        fieldIdx, cropId, date, time, duration:dur, work:w,
+        fieldIdx, cropId, date, time, duration:dur, work:w, weather,
         // メモ・写真は1件目のみ
         memo: isFirst ? memo : '',
         imgSrc: isFirst ? imgUrl||null : null,
@@ -2497,6 +2551,13 @@ useEffect(()=>{
           )}
         </FG>
         <R2><FG label="作業日"><Inp type="date" value={date} onChange={setDate}/></FG><FG label="作業時刻"><Inp type="time" value={time} onChange={setTime}/></FG></R2>
+        <FG label="天気（任意）">
+          <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+            {[{v:"sunny",e:"☀️",l:"晴れ"},{v:"cloudy",e:"☁️",l:"曇り"},{v:"rainy",e:"🌧️",l:"雨"},{v:"snowy",e:"❄️",l:"雪"},{v:"windy",e:"💨",l:"強風"}].map(w=>(
+              <button key={w.v} onClick={()=>setWeather(weather===w.v?"":w.v)} style={{padding:"5px 10px",borderRadius:8,border:"1px solid "+(weather===w.v?G:"#e0d9ce"),background:weather===w.v?G3:"#fff",fontSize:".74rem",cursor:"pointer",color:weather===w.v?G:"#5a5040"}}>{w.e} {w.l}</button>
+            ))}
+          </div>
+        </FG>
         <FG label="作業時間（分）"><Inp type="number" value={dur} onChange={setDur} placeholder="30"/></FG>
         <FG label="メモ・気づき"><TA value={memo} onChange={setMemo} placeholder="天候・生育状態・気づいたことなど…"/></FG>
 
@@ -2641,6 +2702,7 @@ function TimelineScreen({ fields, crops, equips, logs, setLogs, setLogsR, showTo
           {/* 日付ヘッダー */}
           <div style={{fontSize:'.72rem',fontWeight:700,color:'#5c3d1e',padding:'4px 2px',borderBottom:'2px solid #e0d9ce',marginBottom:8}}>
             📅 {fmtYMD(g.date)}
+            {(()=>{const w=g.logs.find(l=>l.weather)?.weather;const m={sunny:"☀️",cloudy:"☁️",rainy:"🌧️",snowy:"❄️",windy:"💨"};return w?<span style={{marginLeft:8,fontSize:".9rem"}}>{m[w]||""}</span>:null;})()}
           </div>
           {/* 品目・圃場でグループ化して表示 */}
           {groupDayLogs(g.logs).map(card=>{
@@ -2823,7 +2885,7 @@ function CostScreen({ fields, crops, fertMs, pestMs, equips, costs, setCosts, lo
 
 
 // PLAN (栽培計画 - ガントチャート)
-function PlanScreen({ fields, crops, plots, setPlots, setPlotsR, showToast }) {
+function PlanScreen({ fields, crops, setCrops, plots, setPlots, setPlotsR, showToast, setScr }) {
   const [selFieldIdx, setSelFieldIdx] = useState(0);
   const [year, setYear] = useState(new Date().getFullYear());
   const [mPlant, setMPlant] = useState(null);  // 作付け編集モーダル
@@ -2949,6 +3011,30 @@ function PlanScreen({ fields, crops, plots, setPlots, setPlotsR, showToast }) {
     savePlan({...plan, plantings:plan.plantings.filter(x=>x.id!==id)});
     setMPlant(null);
     showToast("削除しました");
+  };
+
+  // 計画の作付けを実際の栽培中品目として登録
+  const plantToCrop = (pl) => {
+    const tmpl = crops.find(x=>x.id===pl.cropId);  // 計画で参照していた品目（テンプレ）
+    if(!tmpl){ showToast("品目が見つかりません"); return; }
+    if(!window.confirm(cropFull(tmpl)+"を栽培中の品目として登録しますか？")) return;
+    const fieldIdx = fields.findIndex(f=>f.id===selField?.id);
+    const newCrop = {
+      ...tmpl,
+      id: uid0(),
+      fieldIdx: fieldIdx>=0?fieldIdx:0,
+      fieldId: selField?.id||"",
+      plantDate: pl.plantDate||"",
+      sowDate: tmpl.startMethod==="sow"?(pl.plantDate||""):"",
+      ended:false, endDate:"",
+      _fromPlan:true,
+    };
+    setCrops([...crops, newCrop], newCrop, fields);
+    // 計画側に登録済みフラグ
+    savePlan({...plan, plantings:plan.plantings.map(x=>x.id===pl.id?{...x,registered:true,cropRealId:newCrop.id}:x)});
+    setMPlant(null);
+    showToast("栽培中の品目に登録しました🌱");
+    if(setScr) setScr("fields");
   };
 
   // 収穫予定日を品目から自動計算
@@ -3141,7 +3227,9 @@ function PlanScreen({ fields, crops, plots, setPlots, setPlotsR, showToast }) {
             <FG label="収穫予定日"><Inp type="date" value={mPlant.harvestDate} onChange={v=>setMPlant({...mPlant,harvestDate:v})}/></FG>
           </R2>
           <div style={{fontSize:".68rem",color:TX3,marginBottom:8,lineHeight:1.5}}>💡 品目と定植日を選ぶと収穫予定日を自動計算します（手動で調整可）<br/>同じ区画に同時期の作付けを複数追加すると、混植として縦に並べて表示されます</div>
-          {mPlant.id&&<button onClick={()=>deletePlanting(mPlant.id)} style={{...S.btn,...S.btnR,marginTop:4}}>この作付けを削除</button>}
+          {mPlant.id&&!mPlant.registered&&<button onClick={()=>plantToCrop(mPlant)} style={{...S.btn,...S.btnG,marginTop:8}}>🌱 この作付けを実際に植える（品目登録）</button>}
+          {mPlant.registered&&<div style={{fontSize:".72rem",color:G,background:G3,borderRadius:8,padding:"8px 10px",marginTop:8,textAlign:"center"}}>✓ 栽培中の品目に登録済み</div>}
+          {mPlant.id&&<button onClick={()=>deletePlanting(mPlant.id)} style={{...S.btn,...S.btnR,marginTop:8}}>この作付けを削除</button>}
         </>}
       </ModalWithSave>
     </div>
@@ -3271,6 +3359,7 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs, equips=[] })
       seedTotal,fertTotal,pestTotal,assignedTotal,
       logCount:cl.length,plantDate:c.plantDate||"",sowDate:c.sowDate||"",
       growDays:(()=>{const st=c.plantDate||c.sowDate;if(!st)return null;const en=c.ended&&c.endDate?new Date(c.endDate):new Date();const d=Math.round((en-new Date(st))/86400000);return d>=0?d:null;})(),
+      monthlyKg:(()=>{const mm={};cl.forEach(l=>{if(!l.date||!l.hvKg)return;const k=l.date.slice(0,7);mm[k]=(mm[k]||0)+(parseFloat(l.hvKg)||0);});return Object.entries(mm).sort((a,b)=>a[0].localeCompare(b[0])).map(([k,v])=>({month:k,kg:v}));})(),
       fertUse,pestUse};
   });
 
@@ -3394,6 +3483,28 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs, equips=[] })
               </div>
             );
           })()}
+          {/* 月別収穫推移 */}
+          {sel.monthlyKg&&sel.monthlyKg.length>0&&(
+            <div style={S.card}>
+              <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".86rem",color:"#5c3d1e",marginBottom:10}}>📈 月別収穫量の推移</div>
+              {(()=>{
+                const data=sel.monthlyKg;
+                const maxKg=Math.max(...data.map(d=>d.kg),0.1);
+                return <div style={{display:"flex",alignItems:"flex-end",gap:6,height:120,paddingBottom:24,position:"relative"}}>
+                  {data.map((d,i)=>{
+                    const h=Math.round((d.kg/maxKg)*90);
+                    const [yy,mm]=d.month.split("-");
+                    return <div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",height:"100%",justifyContent:"flex-end",minWidth:0}}>
+                      <div style={{fontSize:".6rem",color:G,fontWeight:700,marginBottom:2,whiteSpace:"nowrap"}}>{d.kg.toFixed(1)}</div>
+                      <div style={{width:"70%",maxWidth:32,height:h+"px",background:"linear-gradient(180deg,#419857,#2d6a3f)",borderRadius:"4px 4px 0 0",minHeight:3}}/>
+                      <div style={{fontSize:".58rem",color:TX3,position:"absolute",bottom:0,whiteSpace:"nowrap"}}>{parseInt(mm)}月</div>
+                    </div>;
+                  })}
+                </div>;
+              })()}
+              <div style={{fontSize:".66rem",color:TX3,textAlign:"right",marginTop:2}}>単位: kg</div>
+            </div>
+          )}
           {/* 費用内訳 */}
           {sel.costTotal>0&&(
             <div style={S.card}>
@@ -3991,7 +4102,7 @@ export default function App() {
         }}
       /> }</>}
         
-        {scr==="plot"    &&<PlanScreen    fields={fields} crops={crops} plots={plots} setPlots={setPlots} setPlotsR={setPlotsR} showToast={showToast}/>}
+        {scr==="plot"    &&<PlanScreen    fields={fields} crops={crops} setCrops={setCrops} plots={plots} setPlots={setPlots} setPlotsR={setPlotsR} showToast={showToast} setScr={setScr}/>}
         {scr==="cost"    &&<CostScreen    fields={fields} crops={crops} fertMs={fertMs} pestMs={pestMs} equips={equips} costs={costs} setCosts={setCosts} logs={logs} showToast={showToast}/>}
 
         {scr==="report"  &&<ReportScreen  fields={fields} crops={crops} logs={logs} costs={costs} fertMs={fertMs} pestMs={pestMs} equips={equips}/>}
