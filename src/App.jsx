@@ -1160,7 +1160,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.7.2</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.7.3</div>
       </div>
     </div>
   );
@@ -3906,16 +3906,16 @@ function PublicSettings({ uid, crops, showToast }) {
   };
 
   if(loading) return (
-    <div style={S.card}>
+    <div style={{...S.card,minHeight:200}}>
       <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".86rem",color:"#5c3d1e",marginBottom:12}}>🌐 栽培記録を公開</div>
-      <div style={{color:TX3,fontSize:".8rem",padding:"20px 0",textAlign:"center"}}>読み込み中…</div>
+      <div style={{color:TX3,fontSize:".8rem",padding:"40px 0",textAlign:"center"}}>読み込み中…</div>
     </div>
   );
   const activeCrops = crops.filter(c=>!c.ended);
   const endedCrops  = crops.filter(c=>c.ended);
 
   return (
-    <div style={S.card}>
+    <div style={{...S.card,minHeight:200}}>
       <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".86rem",color:"#5c3d1e",marginBottom:12}}>🌐 栽培記録を公開</div>
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14,padding:"10px 12px",background:"#f5f5f0",borderRadius:10}}>
         <div>
