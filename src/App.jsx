@@ -30,8 +30,8 @@ const dbDelete = async (table, id) => {
 // Converters
 const fieldToDb   = (o, uid) => ({ id:o.id, user_id:uid, name:o.name||"", area:o.area||null, soil:o.soil||null, addr:o.addr||null, memo:o.memo||null, prefecture:o.prefecture||null });
 const fieldFromDb = r => ({ id:r.id, name:r.name||"", area:r.area||"", soil:r.soil||"", addr:r.addr||"", memo:r.memo||"", prefecture:r.prefecture||"" });
-const cropToDb    = (o, uid) => ({ id:o.id, user_id:uid, field_id:o.fieldId||null, type:o.type||null, variety:o.variety||null, germ_rate:o.germRate||null, stocks:o.stocks||null, ridge_w:o.ridgeW||null, ridge_h:o.ridgeH||null, rows:o.rows||null, row_space:o.rowSpace||null, plant_space:o.plantSpace||null, sow_date:o.sowDate||null, plant_date:o.plantDate||null, memo:o.memo||null, cultivation_type:o.cultivationType||null, seed_cost:o.seedCost||null, seed_note:o.seedNote||null, custom_name:o.customName||null, ended:o.ended||false, end_date:o.endDate||null, maturity:o.maturity||null, custom_days:o.customDays||null, custom_water:o.customWater||null, pot_size:o.potSize||null, pot_volume:o.potVolume||null, pot_count:o.potCount||null, grow_env:o.growEnv||null, agri_month_start:o.agriMonthStart||null, ridge_len:o.ridgeLen||null, cultivation_area:o.cultivationArea||null, temp_min:o.tempMin||null, temp_max:o.tempMax||null, fert_skip_date:o.fertSkipDate||null });
-const cropFromDb  = (r, fields) => { const fi = fields.findIndex(f=>f.id===r.field_id); return { id:r.id, fieldId:r.field_id||"", fieldIdx:fi>=0?fi:0, type:r.type||"", variety:r.variety||"", germRate:r.germ_rate||"", stocks:r.stocks||"", ridgeW:r.ridge_w||"", ridgeH:r.ridge_h||"", rows:r.rows||"", rowSpace:r.row_space||"", plantSpace:r.plant_space||"", sowDate:r.sow_date||"", plantDate:r.plant_date||"", memo:r.memo||"", cultivationType:r.cultivation_type||"transplant", seedCost:r.seed_cost||"", seedNote:r.seed_note||"", customName:r.custom_name||"", ended:r.ended||false, endDate:r.end_date||"", maturity:r.maturity||"mid", customDays:r.custom_days||"", customWater:r.custom_water||"", potSize:r.pot_size||"", potVolume:r.pot_volume||"", potCount:r.pot_count||"", growEnv:r.grow_env||"field", agriMonthStart:r.agri_month_start||"", ridgeLen:r.ridge_len||"", cultivationArea:r.cultivation_area||"", tempMin:r.temp_min||"", tempMax:r.temp_max||"", fertSkipDate:r.fert_skip_date||"" }; };
+const cropToDb    = (o, uid) => ({ id:o.id, user_id:uid, field_id:o.fieldId||null, type:o.type||null, variety:o.variety||null, germ_rate:o.germRate||null, stocks:o.stocks||null, ridge_w:o.ridgeW||null, ridge_h:o.ridgeH||null, rows:o.rows||null, row_space:o.rowSpace||null, plant_space:o.plantSpace||null, sow_date:o.sowDate||null, plant_date:o.plantDate||null, memo:o.memo||null, cultivation_type:o.cultivationType||null, seed_cost:o.seedCost||null, seed_note:o.seedNote||null, custom_name:o.customName||null, ended:o.ended||false, end_date:o.endDate||null, maturity:o.maturity||null, custom_days:o.customDays||null, custom_water:o.customWater||null, pot_size:o.potSize||null, pot_volume:o.potVolume||null, pot_count:o.potCount||null, grow_env:o.growEnv||null, agri_month_start:o.agriMonthStart||null, ridge_len:o.ridgeLen||null, cultivation_area:o.cultivationArea||null, temp_min:o.tempMin||null, temp_max:o.tempMax||null, fert_skip_date:o.fertSkipDate||null, fert_interval:o.fertInterval||null });
+const cropFromDb  = (r, fields) => { const fi = fields.findIndex(f=>f.id===r.field_id); return { id:r.id, fieldId:r.field_id||"", fieldIdx:fi>=0?fi:0, type:r.type||"", variety:r.variety||"", germRate:r.germ_rate||"", stocks:r.stocks||"", ridgeW:r.ridge_w||"", ridgeH:r.ridge_h||"", rows:r.rows||"", rowSpace:r.row_space||"", plantSpace:r.plant_space||"", sowDate:r.sow_date||"", plantDate:r.plant_date||"", memo:r.memo||"", cultivationType:r.cultivation_type||"transplant", seedCost:r.seed_cost||"", seedNote:r.seed_note||"", customName:r.custom_name||"", ended:r.ended||false, endDate:r.end_date||"", maturity:r.maturity||"mid", customDays:r.custom_days||"", customWater:r.custom_water||"", potSize:r.pot_size||"", potVolume:r.pot_volume||"", potCount:r.pot_count||"", growEnv:r.grow_env||"field", agriMonthStart:r.agri_month_start||"", ridgeLen:r.ridge_len||"", cultivationArea:r.cultivation_area||"", tempMin:r.temp_min||"", tempMax:r.temp_max||"", fertSkipDate:r.fert_skip_date||"", fertInterval:r.fert_interval||"" }; };
 const logToDb     = (o, uid, fields) => ({ id:o.id, user_id:uid, field_id:fields[o.fieldIdx]?.id||o.fieldId||null, crop_id:o.cropId||null, work:o.work||null, memo:o.memo||null, date:o.date||null, time:o.time||null, duration:o.duration||null, img_src:o.imgSrc||null, img2_src:o.imgSrc2||null, img3_src:o.imgSrc3||null, fert_name:o.fertName||null, fert_amt:o.fertAmt||null, fert_unit:o.fertUnit||null, fert_method:o.fertMethod||null, fert_cost:o.fertCost||null, pest_name:o.pestName||null, pest_spray_amt:o.pestSprayAmt||null, pest_dil:o.pestDil||null, pest_amt:o.pestAmt||null, pest_unit:o.pestUnit||null, pest_tgt:o.pestTarget||null, pest_cost:o.pestCost||null, hv_kg:o.hvKg||null, hv_cnt:o.hvCnt||null, hv_q:o.hvQ||null, hv_price:o.hvPrice||null, equip_ids:o.equipIds||null, equip_act:o.equipAct||null, sow_qty:o.sowQty||null, germination_cnt:o.germinationCnt||null, germ_date:o.germinationDate||null, transplant_qty:o.transplantQty||null, discard_cnt:o.discardCnt||null, add_cnt:o.addCnt||null, event_type:o.eventType||null, event_note:o.eventNote||null, hv_grade_str:o.hvGradeStr||null, other_note:o.otherNote||null, repot_size:o.repotSize||null, repot_vol:o.repotVol||null, group_id:o._groupId||null, weather:o.weather||null });
 const logFromDb   = (r, fields) => { const fi=fields.findIndex(f=>f.id===r.field_id); return { id:r.id, fieldId:r.field_id||"", fieldIdx:fi>=0?fi:0, cropId:r.crop_id||"", work:r.work||"", memo:r.memo||"", date:r.date||"", time:r.time||"", duration:r.duration||"", imgSrc:r.img_src||null, imgSrc2:r.img2_src||null, imgSrc3:r.img3_src||null, aiReply:"", fertName:r.fert_name||"", fertAmt:r.fert_amt||"", fertUnit:r.fert_unit||"", fertMethod:r.fert_method||"", fertCost:r.fert_cost||"", pestName:r.pest_name||"", pestSprayAmt:r.pest_spray_amt||"", pestDil:r.pest_dil||"", pestAmt:r.pest_amt||"", pestUnit:r.pest_unit||"", pestTarget:r.pest_target||"", pestCost:r.pest_cost||"", hvKg:r.hv_kg!=null?String(r.hv_kg):"", hvCnt:r.hv_cnt!=null?String(r.hv_cnt):"", hvQ:r.hv_q||"", hvPrice:r.hv_price||"", hvImgSrc:r.hv_img_src||null, equipIds:Array.isArray(r.equip_ids)?r.equip_ids:(r.equip_ids?JSON.parse(r.equip_ids):[]), equipAct:r.equip_act||"", hvGradeStr:r.hv_grade_str||"", otherNote:r.other_note||"", repotSize:r.repot_size||"", repotVol:r.repot_vol||"", _groupId:r.group_id||null, weather:r.weather||"", sowQty:r.sow_qty||"", germinationCnt:r.germination_cnt||"", germinationDate:r.germination_date||"", transplantQty:r.transplant_qty||"", discardCnt:r.discard_cnt||"", addCnt:r.add_cnt||"", eventType:r.event_type||"", eventNote:r.event_note||"" }; };
 const fertMToDb   = (o, uid) => ({ id:o.id||uid0(), user_id:uid, name:o.name||null, type:o.type||null, price:o.price||null, punit:o.punit||null, capacity:o.capacity||null, cunit:o.cunit||null, npk:o.npk||null, stock:o.stock||null, sunit:o.sunit||null, note:o.note||null });
@@ -212,6 +212,22 @@ const getFertSchedule=(cropType,plantTargetDate)=>{
 // ─────────────────────────────────────────────────────────────
 
 // ─── 施肥ガイドDB (10㎡あたり・NPK8-8-8換算) ───────────────
+// 品目ごとの標準的な追肥間隔（日）。リマインダーの次回予定計算に使用
+const FERT_INTERVAL = {
+  // 果菜類（長期収穫・多肥）は2週間ごと
+  tomato:14, cherry_tomato:14, eggplant:14, pepper:14, cucumber:14, zucchini:18, pumpkin:21, watermelon:21, melon:21, bitter_gourd:14, okra:18, strawberry:21,
+  // 葉茎菜（生育期間中1〜2回）
+  cabbage:21, hakusai:18, broccoli:18, lettuce:21, spinach:0, komatsuna:0, leek:25,
+  // 根菜（基本は元肥中心、追肥少なめ）
+  radish:0, carrot:25, onion:30, garlic:30, potato:25, sweetpotato:0, taro:30, jinenjo:30,
+  // マメ科（窒素固定するので追肥控えめ）
+  edamame:0, green_bean:21, azuki:0,
+  // 穀物
+  rice:30, wheat:40, corn:21, soba:0,
+  // 果樹（年単位なので追肥リマインダーは出さない）
+  apple:0, pear:0, peach:0, cherry:0, plum:0, mikan:0, lemon:0, yuzu:0, grape:0, persimmon:0, blueberry:0, fig:0, kiwi:0, biwa:0,
+};
+
 const FERT_GUIDE = {
   // ナス科
   tomato:      { base:"定植1週前: 苦土石灰150g→堆肥2kg→化成(8-8-8)150g", chase:[
@@ -1136,13 +1152,13 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.97</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.98</div>
       </div>
     </div>
   );
 }
 
-function HomeScreen({ fields, crops, setCrops, logs, costs, onEditCrop, showToast }) {
+function HomeScreen({ fields, crops, setCrops, logs, costs, onEditCrop, showToast, setScr, onNew }) {
   const [wx, setWx] = useState(null);
   // 作業リマインダー: 栽培中の品目について追肥時期・収穫時期を提案
   const reminders = (()=>{
@@ -1170,11 +1186,13 @@ function HomeScreen({ fields, crops, setCrops, logs, costs, onEditCrop, showToas
       }
 
       // ── 追肥予定（次回の予定日を計算）──
-      const needChase=FERT_GUIDE[c.type]?.chase?.length>0;
+      // 間隔: 品目個別設定(fertInterval) > 標準テーブル(FERT_INTERVAL) の順。0なら追肥リマインダーなし
+      const interval = (c.fertInterval!==undefined&&c.fertInterval!=="")?parseInt(c.fertInterval):(FERT_INTERVAL[c.type]!==undefined?FERT_INTERVAL[c.type]:21);
+      const needChase = interval>0;
       if(needChase){
         const fertLogs=logs.filter(l=>l.cropId===c.id&&l.work==="fert").sort((a,b)=>(b.date||"").localeCompare(a.date||""));
         const lastFert=fertLogs[0];
-        // 次の追肥予定日: 最後の追肥/スキップから21日後、まだなら定植21日後
+        // 次の追肥予定日: 最後の追肥/スキップから interval 日後、まだなら定植 interval 日後
         let baseD;
         const skipD = c.fertSkipDate?new Date(c.fertSkipDate):null;
         if(skipD) skipD.setHours(0,0,0,0);
@@ -1182,7 +1200,7 @@ function HomeScreen({ fields, crops, setCrops, logs, costs, onEditCrop, showToas
         else { baseD=new Date(startD); }
         // スキップ日が最後の追肥より後なら、スキップ日を基準に
         if(skipD && (!lastFert || skipD>baseD)) baseD=skipD;
-        let nextFertD=new Date(baseD); nextFertD.setDate(nextFertD.getDate()+21);
+        let nextFertD=new Date(baseD); nextFertD.setDate(nextFertD.getDate()+interval);
         const toFert=Math.round((nextFertD-today)/86400000);
         // 予定日が近い or 過ぎている（14日先〜7日前まで表示）。収穫期を過ぎたものは除外
         if(toFert<=14 && toFert>=-14 && toHarvest>3){
@@ -1203,6 +1221,28 @@ function HomeScreen({ fields, crops, setCrops, logs, costs, onEditCrop, showToas
 
   return (
     <div style={{padding:"10px 12px 16px"}}>
+
+      {/* 初回ガイド: 圃場or品目が未登録のとき */}
+      {(fields.length===0 || crops.length===0) && (
+        <div style={{background:"linear-gradient(135deg,#2d6a3f,#419857)",borderRadius:14,padding:"16px 16px",color:"#fff",marginBottom:12}}>
+          <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:"1rem",fontWeight:700,marginBottom:4}}>🌱 サクメモへようこそ</div>
+          <div style={{fontSize:".76rem",opacity:.92,marginBottom:12,lineHeight:1.5}}>次の3ステップで記録を始められます。</div>
+          {[
+            {n:1,t:"圃場を登録",d:"畑や区画の場所を登録します",done:fields.length>0,act:()=>setScr&&setScr("fields")},
+            {n:2,t:"育てる品目を登録",d:"栽培する野菜・果物を追加します",done:crops.length>0,act:()=>setScr&&setScr("fields")},
+            {n:3,t:"作業を記録",d:"播種・定植・収穫などを記録します",done:logs.length>0,act:()=>onNew&&onNew()},
+          ].map(s=>(
+            <div key={s.n} onClick={s.act} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 11px",marginBottom:7,borderRadius:10,background:s.done?"rgba(255,255,255,.15)":"rgba(255,255,255,.95)",cursor:"pointer"}}>
+              <div style={{width:26,height:26,borderRadius:"50%",background:s.done?"#fff":"#2d6a3f",color:s.done?"#2d6a3f":"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,fontSize:".82rem",flexShrink:0}}>{s.done?"✓":s.n}</div>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontSize:".82rem",fontWeight:700,color:s.done?"#fff":"#2d6a3f"}}>{s.t}</div>
+                <div style={{fontSize:".68rem",color:s.done?"rgba(255,255,255,.8)":"#7a6f5d"}}>{s.d}</div>
+              </div>
+              {!s.done&&<span style={{color:"#2d6a3f",fontSize:"1rem"}}>›</span>}
+            </div>
+          ))}
+        </div>
+      )}
 
       {wx && (
         <div style={{background:"linear-gradient(135deg,#1565a8,#3498db)",borderRadius:14,padding:"13px 15px",color:"#fff",marginBottom:9}}>
@@ -1927,6 +1967,11 @@ function FieldsScreen({ fields, setFields, setFieldsR, crops, setCrops, setCrops
                       setMCrop({...mCrop,_linkSeedCostId:v,seedCost:co?co.amt:"",seedNote:co?(co.note||co.name):""});
                     }} options={[{value:"",label:"（割り当てない）"},...costs.filter(co=>co.cat==="seed"&&(!co.cropId||co.cropId===mCrop.id)).map(co=>({value:co.id,label:co.name+" "+Math.round(co.amt||0).toLocaleString()+"円"+(co.date?" ("+fmtMD(co.date)+")":"")}))]}/>
                     <div style={{fontSize:".68rem",color:TX3,marginTop:3}}>費用ページで先に登録した種・苗代を選ぶと、この品目に割り当てます。{costs.filter(co=>co.cat==="seed"&&(!co.cropId||co.cropId===mCrop.id)).length===0?"（まだ種・苗代の費用がありません。費用ページで登録してください）":""}</div>
+                  </FG>
+                  <FG label="追肥リマインダーの間隔">
+                    <Sel value={mCrop.fertInterval||""} onChange={v=>setMCrop({...mCrop,fertInterval:v})}
+                      options={[{value:"",label:"標準（"+(FERT_INTERVAL[mCrop.type]>0?FERT_INTERVAL[mCrop.type]+"日ごと":"リマインダーなし")+"）"},{value:"0",label:"追肥リマインダーを出さない"},...[7,10,14,18,21,25,30,40].map(n=>({value:String(n),label:n+"日ごと"}))]}/>
+                    <div style={{fontSize:".68rem",color:TX3,marginTop:3}}>ホーム画面の「次の作業予定」に表示する追肥の間隔。品目に合わせて調整できます</div>
                   </FG>
 
                 </div>
@@ -4045,6 +4090,12 @@ const SCREENS = [
 
 export default function App() {
   const [user,     setUser]    = useState(null);
+  const [offline, setOffline] = useState(typeof navigator!=="undefined" && !navigator.onLine);
+  useEffect(()=>{
+    const on=()=>setOffline(false), off=()=>setOffline(true);
+    window.addEventListener("online",on); window.addEventListener("offline",off);
+    return ()=>{window.removeEventListener("online",on);window.removeEventListener("offline",off);};
+  },[]);
   const [authLoad, setAuthLoad]= useState(true);
   const [inviteMode, setInviteMode] = useState(false);
 
@@ -4176,6 +4227,11 @@ export default function App() {
           <button style={S.tbBtn} onClick={signOut}>ログアウト</button>
         </div>
       </div>
+      {offline && (
+        <div style={{background:"#856404",color:"#fff",fontSize:".72rem",textAlign:"center",padding:"4px 8px",flexShrink:0}}>
+          📡 オフライン中：表示は可能ですが、保存はオンライン復帰後に行ってください
+        </div>
+      )}
       {/* PC horizontal tab nav - hidden on mobile via CSS */}
       <div id="pc-nav" style={{display:"none",background:GD,width:"100%",flexShrink:0,overflowX:"auto"}}>
         <div style={{display:"flex",gap:0,minWidth:"max-content"}}>
@@ -4200,7 +4256,7 @@ export default function App() {
       <div id="main-scroll" style={S.main}>
         {scr==="master"  &&<MasterScreen  fertMs={fertMs} setFertMs={setFertMs} pestMs={pestMs} setPestMs={setPestMs} equips={equips} setEquips={setEquips} costs={costs} setCosts={setCosts} showToast={showToast}/>}
         {scr==="fields"  &&<FieldsScreen  fields={fields} setFields={setFields} setFieldsR={setFieldsR} crops={crops} setCrops={setCrops} setCropsR={setCropsR} costs={costs} setCosts={setCosts} logs={logs} setLogs={setLogs} setLogsR={setLogsR} plots={plots} setPlots={setPlots} setPlotsR={setPlotsR} showToast={showToast} editCrop={pendingEditCrop}/>}
-        {(scr==="log"||scr==="home") && <><HomeScreen fields={fields} crops={crops} setCrops={setCrops} logs={logs} costs={costs} showToast={showToast} onEditCrop={c=>{setPendingEditCrop(c);setScr("fields");}} onNew={()=>{setInitLog(null);setLogModal(true);}}/><TimelineScreen fields={fields} crops={crops} equips={equips} logs={logs} setLogs={setLogs} setLogsR={setLogsR} showToast={showToast}
+        {(scr==="log"||scr==="home") && <><HomeScreen fields={fields} crops={crops} setCrops={setCrops} logs={logs} costs={costs} showToast={showToast} setScr={setScr} onEditCrop={c=>{setPendingEditCrop(c);setScr("fields");}} onNew={()=>{setInitLog(null);setLogModal(true);}}/><TimelineScreen fields={fields} crops={crops} equips={equips} logs={logs} setLogs={setLogs} setLogsR={setLogsR} showToast={showToast}
         onEdit={ls=>{const _ls=Array.isArray(ls)?ls:[ls];const _sorted=[..._ls].sort((a,b)=>(a.imgSrc?-1:0)-(b.imgSrc?-1:0));setInitLogs(_ls);setInitLog(_sorted[0]);setLogModal(true);}}
         onNew={()=>{setInitLog(null);setLogModal(true);}}
         onCopy={ls=>{
