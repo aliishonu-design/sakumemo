@@ -754,7 +754,7 @@ async function fetchWeather(addr) {
       +"&current=temperature_2m,weathercode,precipitation,windspeed_10m,relative_humidity_2m"
       +"&hourly=temperature_2m,weathercode,precipitation_probability,precipitation,windspeed_10m"
       +"&daily=temperature_2m_max,temperature_2m_min,weathercode,precipitation_sum,precipitation_probability_max"
-      +"&timezone=Asia%2FTokyo&forecast_days=5";
+      +"&timezone=Asia%2FTokyo&forecast_days=16";
     const r = await fetch(url);
     const d = await r.json();
     const c = d.current;
@@ -1160,7 +1160,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.99</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.7.0</div>
       </div>
     </div>
   );
@@ -4137,6 +4137,8 @@ export default function App() {
   
   const [dbLoad,   setDbLoad]  = useState(true);
   const [scr,      setScr]     = useState("home");
+  // 画面切替時にスクロール位置を先頭へ（前画面の位置が一瞬残るのを防ぐ）
+  useEffect(()=>{ const el=document.getElementById("main-scroll"); if(el) el.scrollTop=0; window.scrollTo(0,0); },[scr]);
   const [fields,   setFieldsR] = useState([]);
   const [crops,    setCropsR]  = useState([]);
   const [logs,     setLogsR]   = useState([]);
