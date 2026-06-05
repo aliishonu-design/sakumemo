@@ -1,9 +1,10 @@
 {
+  "id": "/app",
   "name": "サクメモ - 農業記録",
   "short_name": "サクメモ",
   "description": "栽培記録・栽培計画・費用管理ができる農業従事者向けアプリ",
-  "start_url": "/",
-  "scope": "/",
+  "start_url": "/app",
+  "scope": "/app",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#f8f5ef",
