@@ -9,7 +9,7 @@ const APP_SHELL = [
 // インストール時: アプリの基本ファイルをキャッシュ
 self.addEventListener('install', (e) => {
   e.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL).catch(()=>{}))
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL).catch(() => {}))
   );
   self.skipWaiting();
 });
@@ -27,14 +27,24 @@ self.addEventListener('activate', (e) => {
 self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
 
-  // Supabase API・外部API（天気・地図など）はネットワーク優先（キャッシュしない）
+  // http / https 以外（chrome-extension など）は一切扱わない
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+    return;
+  }
+
+  // GET 以外、または外部API（Supabase・天気・地図）はネットワークに任せる（キャッシュしない）
   if (
+    e.request.method !== 'GET' ||
     url.hostname.includes('supabase') ||
     url.hostname.includes('open-meteo') ||
-    url.hostname.includes('openstreetmap') ||
-    e.request.method !== 'GET'
+    url.hostname.includes('openstreetmap')
   ) {
-    return; // ブラウザのデフォルト動作（ネットワーク）に任せる
+    return;
+  }
+
+  // 同一オリジンのファイルのみキャッシュ対象（クロスオリジンは対象外）
+  if (url.origin !== self.location.origin) {
+    return;
   }
 
   // アプリのファイル（JS/CSS/HTML/画像）はキャッシュ優先＋裏で更新
@@ -45,7 +55,10 @@ self.addEventListener('fetch', (e) => {
           // 正常なレスポンスのみキャッシュ更新
           if (res && res.status === 200 && res.type === 'basic') {
             const clone = res.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(e.request, clone));
+            caches.open(CACHE_NAME).then((cache) => {
+              // put は try で囲み、失敗してもアプリに影響させない
+              try { cache.put(e.request, clone); } catch (err) {}
+            });
           }
           return res;
         })
