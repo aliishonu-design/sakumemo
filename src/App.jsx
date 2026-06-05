@@ -596,6 +596,15 @@ const COST_CATS = [
 const WX_MAP = [[0,"☀️","快晴"],[3,"⛅","晴れ時々くもり"],[48,"🌫️","霧"],[67,"🌧️","雨"],[77,"❄️","雪"],[82,"🌦️","にわか雨"],[99,"⛈️","雷雨"]];
 const wxIcon  = c => { for(const [t,i] of WX_MAP) if(c<=t) return i; return "⛈️"; };
 const wxLabel = c => { for(const [t,,l] of WX_MAP) if(c<=t) return l; return "雷雨"; };
+// weathercode を作業記録の天気カテゴリに変換
+const wxToCategory = (code, windspeed) => {
+  if(windspeed!==undefined && windspeed>=10) return "windy"; // 強風(10m/s以上)
+  if(code===0||code===1) return "sunny";
+  if(code===2||code===3||code===45||code===48) return "cloudy";
+  if(code>=71&&code<=77) return "snowy";
+  if((code>=51&&code<=67)||(code>=80&&code<=99)) return "rainy";
+  return "cloudy";
+};
 const wxAdvice= w => {
   if(!w) return "取得中…";
   if(w.rain>3)  return "☔ 雨天：水やり不要";
@@ -1127,7 +1136,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.94</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.95</div>
       </div>
     </div>
   );
@@ -1138,34 +1147,47 @@ function HomeScreen({ fields, crops, logs, costs, onEditCrop }) {
   // 作業リマインダー: 栽培中の品目について追肥時期・収穫時期を提案
   const reminders = (()=>{
     const out=[];
-    const today=new Date();
+    const today=new Date(); today.setHours(0,0,0,0);
+    const fmtFuture=(d)=>{const dd=Math.round((d-today)/86400000);if(dd===0)return"今日";if(dd===1)return"明日";if(dd<0)return`${-dd}日前`;return`${dd}日後`;};
     crops.filter(c=>!c.ended).forEach(c=>{
       const db=CDB[c.type]||{};
       const start=c.plantDate||c.sowDate;
       if(!start) return;
-      const days=Math.floor((today-new Date(start))/86400000);
-      if(days<0) return;
-      // 収穫予定日（栽培日数 d ベース）
-      const mat=db.maturity?.[c.maturity||"mid"]||db.d||90;
-      const toHarvest=mat-days;
-      // 直近の施肥ログ
-      const fertLogs=logs.filter(l=>l.cropId===c.id&&l.work==="fert").sort((a,b)=>(b.date||"").localeCompare(a.date||""));
-      const lastFert=fertLogs[0];
-      const daysSinceFert=lastFert?Math.floor((today-new Date(lastFert.date))/86400000):null;
+      const startD=new Date(start); startD.setHours(0,0,0,0);
+      const days=Math.floor((today-startD)/86400000);
+      if(days<0) return; // まだ植えていない
       const cropLabel=(db.e||"🌱")+" "+(c.type==="custom"?c.customName||"カスタム":db.n||c.type)+(c.variety?"("+c.variety+")":"");
-      // 収穫が近い
-      if(toHarvest<=7 && toHarvest>=-30){
-        out.push({crop:c, label:cropLabel, type:"harvest", msg:toHarvest>0?`収穫予定まであと約${toHarvest}日`:`収穫適期です（予定日から${-toHarvest}日経過）`, urgent:toHarvest<=3});
+
+      // ── 収穫予定（今後の予定として）──
+      const mat=db.maturity?.[c.maturity||"mid"]||db.d||90;
+      const harvestD=new Date(startD); harvestD.setDate(harvestD.getDate()+mat);
+      const toHarvest=Math.round((harvestD-today)/86400000);
+      // 既に収穫ログがあれば収穫リマインダーは出さない
+      const hasHarvest=logs.some(l=>l.cropId===c.id&&l.work==="harvest");
+      if(!hasHarvest && toHarvest>=-14 && toHarvest<=30){
+        out.push({crop:c, label:cropLabel, type:"harvest", date:harvestD,
+          msg:toHarvest>0?`収穫予定 ${fmtFuture(harvestD)}`:`収穫適期（予定から${-toHarvest}日経過）`, urgent:toHarvest<=3&&toHarvest>=-7, sortD:harvestD});
       }
-      // 追肥（果菜類は定植3週後から2-3週ごと）
+
+      // ── 追肥予定（次回の予定日を計算）──
       const needChase=FERT_GUIDE[c.type]?.chase?.length>0;
-      if(needChase && days>=21){
-        if(daysSinceFert===null || daysSinceFert>=21){
-          out.push({crop:c, label:cropLabel, type:"fert", msg:daysSinceFert===null?`定植から${days}日。追肥を検討しましょう`:`前回の追肥から${daysSinceFert}日。追肥時期です`, urgent:false});
+      if(needChase){
+        const fertLogs=logs.filter(l=>l.cropId===c.id&&l.work==="fert").sort((a,b)=>(b.date||"").localeCompare(a.date||""));
+        const lastFert=fertLogs[0];
+        // 次の追肥予定日: 最後の追肥から21日後、まだなら定植21日後
+        let nextFertD;
+        if(lastFert){ nextFertD=new Date(lastFert.date); nextFertD.setHours(0,0,0,0); nextFertD.setDate(nextFertD.getDate()+21); }
+        else { nextFertD=new Date(startD); nextFertD.setDate(nextFertD.getDate()+21); }
+        const toFert=Math.round((nextFertD-today)/86400000);
+        // 予定日が近い or 過ぎている（14日先〜7日前まで表示）。収穫期を過ぎたものは除外
+        if(toFert<=14 && toFert>=-14 && toHarvest>3){
+          out.push({crop:c, label:cropLabel, type:"fert", date:nextFertD,
+            msg:toFert>0?`追肥予定 ${fmtFuture(nextFertD)}`:`追肥時期（予定から${-toFert}日経過）`, urgent:false, sortD:nextFertD});
         }
       }
     });
-    return out.sort((a,b)=>(b.urgent?1:0)-(a.urgent?1:0));
+    // 予定日が早い順
+    return out.sort((a,b)=>a.sortD-b.sortD);
   })();
 
   const [wxFieldIdx, setWxFieldIdx] = useState(0);
@@ -1238,7 +1260,7 @@ function HomeScreen({ fields, crops, logs, costs, onEditCrop }) {
       {/* 作業リマインダー */}
       {reminders.length>0&&(
         <div style={{...S.card,marginBottom:12}}>
-          <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".88rem",color:"#5c3d1e",marginBottom:8}}>🔔 作業リマインダー</div>
+          <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".88rem",color:"#5c3d1e",marginBottom:8}}>📅 次の作業予定</div>
           {reminders.map((r,i)=>(
             <div key={i} onClick={()=>onEditCrop&&onEditCrop(r.crop)} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 10px",marginBottom:6,borderRadius:8,cursor:"pointer",background:r.urgent?"#fff3cd":"#f6f3ec",border:"1px solid "+(r.urgent?"#ffc107":"#e8e0d5")}}>
               <span style={{fontSize:"1.1rem"}}>{r.type==="harvest"?"🌾":"🌿"}</span>
@@ -1915,6 +1937,21 @@ function LogScreen({ fields, crops, setCrops, fertMs, pestMs, equips, costs, set
   const [memo,     setMemo]     = useState("");
   const [date,     setDate]     = useState(todayStr());
   const [weather,  setWeather]  = useState("");
+  const [wxAuto, setWxAuto] = useState(false);  // 天気を自動取得したか
+  // 作業記録を開いた時、当日なら圃場の天気を自動取得
+  useEffect(()=>{
+    if(editLog) return; // 編集時は取得しない
+    if(weather) return; // 既に選択済みなら上書きしない
+    if(date!==todayStr()) return; // 当日のみ
+    let cancelled=false;
+    const addr=fields[fieldIdx]?.addr||fields[0]?.addr||"";
+    fetchWeather(addr).then(wx=>{
+      if(cancelled||!wx?.current) return;
+      const cat=wxToCategory(wx.current.code, wx.current.wind);
+      setWeather(cat); setWxAuto(true);
+    }).catch(()=>{});
+    return ()=>{cancelled=true;};
+  },[date, fieldIdx]);
   const [time,     setTime]     = useState(nowTime());
   const [dur,      setDur]      = useState("");
   const [logImg,   setLogImg]   = useState(null);
@@ -2455,7 +2492,10 @@ useEffect(()=>{
         {works.has("pest")&&<div style={panelStyle("#fffdf0","#f9e4a0")}><div style={ctitleStyle}>🐛 農薬詳細</div>
               <div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:8,padding:"8px 10px",marginBottom:9,fontSize:".72rem",color:"#856404",lineHeight:1.6}}>
                 ⚠️ 農薬の使用記録は農薬取締法により保管義務があります。本アプリの記録は補助的なものです。法的義務の履行は別途ご確認ください。
-              </div><FG label="農薬マスターから選ぶ"><Sel value={pestIdx} onChange={v=>{setPestIdx(v);const pm=v&&pestMs[parseInt(v)];if(pm){setPestName(pm.name);setPestDil(pm.dil||"");if(pm.cunit||pm.sunit)setPestUnit(pm.cunit||pm.sunit);}}} options={[{value:"",label:"手動入力"},...pestMs.map((p,i)=>({value:i,label:p.name}))]}/></FG><FG label="農薬名"><Inp value={pestName} onChange={setPestName} placeholder="農薬名"/></FG><R2><FG label="希釈倍数"><Inp type="number" value={pestDil} onChange={setPestDil} placeholder="1000"/></FG><FG label="散布量"><div style={{display:"flex",gap:4}}><Inp type="number" value={pestAmt} onChange={setPestAmt} style={{flex:1}}/><Sel value={pestUnit} onChange={setPestUnit} options={["L","ml"].map(v=>({value:v,label:v}))} style={{width:60,flex:"none"}}/></div></FG></R2><R2><FG label="対象病害虫"><Inp value={pestTgt} onChange={setPestTgt} placeholder="アブラムシ等"/></FG></R2></div>}
+              </div><FG label="農薬名（入力すると登録済みから候補表示）">
+                <Inp value={pestName} onChange={v=>{setPestName(v);const pm=pestMs.find(p=>p.name===v);if(pm){setPestDil(pm.dil||"");if(pm.cunit||pm.sunit)setPestUnit(pm.cunit||pm.sunit);}}} placeholder="農薬名を入力" list="pestlist"/>
+                <datalist id="pestlist">{pestMs.map((p,i)=><option key={i} value={p.name}/>)}</datalist>
+              </FG><R2><FG label="希釈倍数"><Inp type="number" value={pestDil} onChange={setPestDil} placeholder="1000"/></FG><FG label="散布量"><div style={{display:"flex",gap:4}}><Inp type="number" value={pestAmt} onChange={setPestAmt} style={{flex:1}}/><Sel value={pestUnit} onChange={setPestUnit} options={["L","ml"].map(v=>({value:v,label:v}))} style={{width:60,flex:"none"}}/></div></FG></R2><R2><FG label="対象病害虫"><Inp value={pestTgt} onChange={setPestTgt} placeholder="アブラムシ等"/></FG></R2></div>}
         {works.has("harvest")&&<div style={panelStyle("#fff9f0","#ffd9a0")}>
           <div style={ctitleStyle}>🧺 収穫詳細</div>
           <div style={{fontSize:".72rem",color:"#888",marginBottom:8}}>品質別に入力（入力した品質のみ集計されます）</div>
@@ -2551,10 +2591,10 @@ useEffect(()=>{
           )}
         </FG>
         <R2><FG label="作業日"><Inp type="date" value={date} onChange={setDate}/></FG><FG label="作業時刻"><Inp type="time" value={time} onChange={setTime}/></FG></R2>
-        <FG label="天気（任意）">
+        <FG label={"天気（任意）"+(wxAuto&&weather?"  ✓自動取得":"")}>
           <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
             {[{v:"sunny",e:"☀️",l:"晴れ"},{v:"cloudy",e:"☁️",l:"曇り"},{v:"rainy",e:"🌧️",l:"雨"},{v:"snowy",e:"❄️",l:"雪"},{v:"windy",e:"💨",l:"強風"}].map(w=>(
-              <button key={w.v} onClick={()=>setWeather(weather===w.v?"":w.v)} style={{padding:"5px 10px",borderRadius:8,border:"1px solid "+(weather===w.v?G:"#e0d9ce"),background:weather===w.v?G3:"#fff",fontSize:".74rem",cursor:"pointer",color:weather===w.v?G:"#5a5040"}}>{w.e} {w.l}</button>
+              <button key={w.v} onClick={()=>{setWeather(weather===w.v?"":w.v);setWxAuto(false);}} style={{padding:"5px 10px",borderRadius:8,border:"1px solid "+(weather===w.v?G:"#e0d9ce"),background:weather===w.v?G3:"#fff",fontSize:".74rem",cursor:"pointer",color:weather===w.v?G:"#5a5040"}}>{w.e} {w.l}</button>
             ))}
           </div>
         </FG>
