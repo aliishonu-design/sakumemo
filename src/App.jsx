@@ -212,6 +212,14 @@ const getFertSchedule=(cropType,plantTargetDate)=>{
 // ─────────────────────────────────────────────────────────────
 
 // ─── 施肥ガイドDB (10㎡あたり・NPK8-8-8換算) ───────────────
+// 品目ごとの標準的な育苗日数（播種から定植まで・日）。育苗後定植の品目で定植予定の計算に使用
+const NURSERY_DAYS = {
+  tomato:50, cherry_tomato:50, eggplant:55, pepper:55, cucumber:30, zucchini:30, pumpkin:35, watermelon:35, melon:35, bitter_gourd:35, okra:30,
+  cabbage:35, hakusai:30, broccoli:35, lettuce:30, leek:60,
+  strawberry:30, edamame:25, green_bean:25,
+  // その他は概ね30日を目安
+};
+
 // 品目ごとの標準的な追肥間隔（日）。リマインダーの次回予定計算に使用
 const FERT_INTERVAL = {
   // 果菜類（長期収穫・多肥）は2週間ごと
@@ -1152,13 +1160,13 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.98</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.99</div>
       </div>
     </div>
   );
 }
 
-function HomeScreen({ fields, crops, setCrops, logs, costs, onEditCrop, showToast, setScr, onNew }) {
+function HomeScreen({ fields, crops, setCrops, logs, costs, onEditCrop, showToast, setScr, onNew, dbLoad }) {
   const [wx, setWx] = useState(null);
   // 作業リマインダー: 栽培中の品目について追肥時期・収穫時期を提案
   const reminders = (()=>{
@@ -1167,12 +1175,27 @@ function HomeScreen({ fields, crops, setCrops, logs, costs, onEditCrop, showToas
     const fmtFuture=(d)=>{const dd=Math.round((d-today)/86400000);if(dd===0)return"今日";if(dd===1)return"明日";if(dd<0)return`${-dd}日前`;return`${dd}日後`;};
     crops.filter(c=>!c.ended).forEach(c=>{
       const db=CDB[c.type]||{};
+      const cropLabel=(db.e||"🌱")+" "+(c.type==="custom"?c.customName||"カスタム":db.n||c.type)+(c.variety?"("+c.variety+")":"");
+
+      // ── 定植予定（育苗後定植で、播種済み・未定植の品目）──
+      if(c.cultivationType==="nursery" && c.sowDate && !c.plantDate){
+        const sowD=new Date(c.sowDate); sowD.setHours(0,0,0,0);
+        const nDays=NURSERY_DAYS[c.type]||30;
+        const transplantD=new Date(sowD); transplantD.setDate(transplantD.getDate()+nDays);
+        const toTransplant=Math.round((transplantD-today)/86400000);
+        if(toTransplant<=21){ // 3週間先〜過ぎたものまで表示
+          out.push({crop:c, label:cropLabel, type:"transplant", date:transplantD,
+            msg:toTransplant>0?`定植予定 ${fmtFuture(transplantD)}`:`定植適期です（予定から${-toTransplant}日経過）`,
+            urgent:toTransplant<=3&&toTransplant>=-7, sortD:transplantD});
+        }
+        return; // 育苗中は他のリマインダー（追肥・収穫）は出さない
+      }
+
       const start=c.plantDate||c.sowDate;
       if(!start) return;
       const startD=new Date(start); startD.setHours(0,0,0,0);
       const days=Math.floor((today-startD)/86400000);
       if(days<0) return; // まだ植えていない
-      const cropLabel=(db.e||"🌱")+" "+(c.type==="custom"?c.customName||"カスタム":db.n||c.type)+(c.variety?"("+c.variety+")":"");
 
       // ── 収穫予定（今後の予定として）──
       const mat=db.maturity?.[c.maturity||"mid"]||db.d||90;
@@ -1223,7 +1246,7 @@ function HomeScreen({ fields, crops, setCrops, logs, costs, onEditCrop, showToas
     <div style={{padding:"10px 12px 16px"}}>
 
       {/* 初回ガイド: 圃場or品目が未登録のとき */}
-      {(fields.length===0 || crops.length===0) && (
+      {!dbLoad && (fields.length===0 || crops.length===0) && (
         <div style={{background:"linear-gradient(135deg,#2d6a3f,#419857)",borderRadius:14,padding:"16px 16px",color:"#fff",marginBottom:12}}>
           <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:"1rem",fontWeight:700,marginBottom:4}}>🌱 サクメモへようこそ</div>
           <div style={{fontSize:".76rem",opacity:.92,marginBottom:12,lineHeight:1.5}}>次の3ステップで記録を始められます。</div>
@@ -1281,22 +1304,27 @@ function HomeScreen({ fields, crops, setCrops, logs, costs, onEditCrop, showToas
               </div>
             </div>
           )}
-          {/* 3日間予報 */}
+          {/* 2週間予報（横スクロール）*/}
           {wx.daily && (
-            <div style={{display:"flex",gap:6,marginTop:8}}>
-              {[0,1,2,3].map(i=>{
-                const now=new Date();
-                const d=new Date(now); d.setDate(d.getDate()+i);
-                const label=i===0?"今日":i===1?"明日":i===2?"明後日":"3日後";
-                return(
-                  <div key={i} style={{flex:1,background:"rgba(255,255,255,.13)",borderRadius:9,padding:5,textAlign:"center",fontSize:".67rem"}}>
-                    <div style={{opacity:.7,marginBottom:1}}>{label}</div>
-                    <div style={{fontSize:"1.1rem"}}>{wxIcon(wx.daily.weathercode[i])}</div>
-                    <div style={{fontWeight:700,marginTop:1}}>{Math.round(wx.daily.temperature_2m_max[i])}°/<span style={{opacity:.7}}>{Math.round(wx.daily.temperature_2m_min[i])}°</span></div>
-                    {wx.daily.precipitation_probability_max&&<div style={{fontSize:".58rem",opacity:.8,color:"#90caf9"}}>💧{wx.daily.precipitation_probability_max[i]}%</div>}
-                  </div>
-                );
-              })}
+            <div style={{marginTop:8,overflowX:"auto",WebkitOverflowScrolling:"touch",margin:"8px -3px 0"}}>
+              <div style={{display:"flex",gap:5,padding:"0 3px"}}>
+                {(wx.daily.weathercode||[]).slice(0,14).map((wc,i)=>{
+                  const now=new Date();
+                  const d=new Date(now); d.setDate(d.getDate()+i);
+                  const wd=["日","月","火","水","木","金","土"][d.getDay()];
+                  const label=i===0?"今日":i===1?"明日":(d.getMonth()+1)+"/"+d.getDate();
+                  const isWeekend=d.getDay()===0||d.getDay()===6;
+                  return(
+                    <div key={i} style={{flexShrink:0,width:52,background:"rgba(255,255,255,.13)",borderRadius:9,padding:"5px 3px",textAlign:"center",fontSize:".65rem"}}>
+                      <div style={{opacity:.85,marginBottom:1,color:isWeekend?(d.getDay()===0?"#ff9e9e":"#9ec5ff"):"#fff"}}>{label}</div>
+                      <div style={{opacity:.6,fontSize:".55rem"}}>({wd})</div>
+                      <div style={{fontSize:"1.05rem",margin:"1px 0"}}>{wxIcon(wc)}</div>
+                      <div style={{fontWeight:700,fontSize:".62rem"}}>{Math.round(wx.daily.temperature_2m_max[i])}°<span style={{opacity:.6}}>/{Math.round(wx.daily.temperature_2m_min[i])}°</span></div>
+                      {wx.daily.precipitation_probability_max&&<div style={{fontSize:".56rem",opacity:.85,color:"#90caf9"}}>💧{wx.daily.precipitation_probability_max[i]}%</div>}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
         </div>
@@ -1308,7 +1336,7 @@ function HomeScreen({ fields, crops, setCrops, logs, costs, onEditCrop, showToas
           <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".88rem",color:"#5c3d1e",marginBottom:8}}>📅 次の作業予定</div>
           {reminders.map((r,i)=>(
             <div key={i} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 10px",marginBottom:6,borderRadius:8,background:r.urgent?"#fff3cd":"#f6f3ec",border:"1px solid "+(r.urgent?"#ffc107":"#e8e0d5")}}>
-              <span onClick={()=>onEditCrop&&onEditCrop(r.crop)} style={{fontSize:"1.1rem",cursor:"pointer"}}>{r.type==="harvest"?"🌾":"🌿"}</span>
+              <span onClick={()=>onEditCrop&&onEditCrop(r.crop)} style={{fontSize:"1.1rem",cursor:"pointer"}}>{r.type==="harvest"?"🌾":r.type==="transplant"?"🌱":"🌿"}</span>
               <div onClick={()=>onEditCrop&&onEditCrop(r.crop)} style={{flex:1,minWidth:0,cursor:"pointer"}}>
                 <div style={{fontSize:".78rem",fontWeight:700,color:"#3a2f1e",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.label}</div>
                 <div style={{fontSize:".72rem",color:r.urgent?"#856404":TX3}}>{r.msg}</div>
@@ -4017,6 +4045,9 @@ function SettingsScreen({ showToast, user, uid, signOut, fields, crops, logs, fe
         </div>
       )}
 
+      {/* 栽培記録の公開設定 */}
+      <PublicSettings uid={uid} crops={crops} showToast={showToast}/>
+
       {/* データ管理 */}
       <div style={S.card}>
         <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".88rem",color:"#5c3d1e",marginBottom:10}}>📁 データの保存・書き出し</div>
@@ -4028,10 +4059,8 @@ function SettingsScreen({ showToast, user, uid, signOut, fields, crops, logs, fe
         </div>
       </div>
 
-      {/* 栽培記録の公開設定 */}
-      <PublicSettings uid={uid} crops={crops} showToast={showToast}/>
 
-      {/* ログアウト（公開設定の下） */}
+      {/* ログアウト */}
       <div style={S.card}>
         <Btn style={S.btnR} onClick={signOut}>ログアウト</Btn>
       </div>
@@ -4106,7 +4135,7 @@ export default function App() {
 
   // Twemoji: 絵文字をTwitter統一デザインに（render後に適用）
   
-  const [dbLoad,   setDbLoad]  = useState(false);
+  const [dbLoad,   setDbLoad]  = useState(true);
   const [scr,      setScr]     = useState("home");
   const [fields,   setFieldsR] = useState([]);
   const [crops,    setCropsR]  = useState([]);
@@ -4256,7 +4285,7 @@ export default function App() {
       <div id="main-scroll" style={S.main}>
         {scr==="master"  &&<MasterScreen  fertMs={fertMs} setFertMs={setFertMs} pestMs={pestMs} setPestMs={setPestMs} equips={equips} setEquips={setEquips} costs={costs} setCosts={setCosts} showToast={showToast}/>}
         {scr==="fields"  &&<FieldsScreen  fields={fields} setFields={setFields} setFieldsR={setFieldsR} crops={crops} setCrops={setCrops} setCropsR={setCropsR} costs={costs} setCosts={setCosts} logs={logs} setLogs={setLogs} setLogsR={setLogsR} plots={plots} setPlots={setPlots} setPlotsR={setPlotsR} showToast={showToast} editCrop={pendingEditCrop}/>}
-        {(scr==="log"||scr==="home") && <><HomeScreen fields={fields} crops={crops} setCrops={setCrops} logs={logs} costs={costs} showToast={showToast} setScr={setScr} onEditCrop={c=>{setPendingEditCrop(c);setScr("fields");}} onNew={()=>{setInitLog(null);setLogModal(true);}}/><TimelineScreen fields={fields} crops={crops} equips={equips} logs={logs} setLogs={setLogs} setLogsR={setLogsR} showToast={showToast}
+        {(scr==="log"||scr==="home") && <><HomeScreen fields={fields} crops={crops} setCrops={setCrops} logs={logs} costs={costs} showToast={showToast} setScr={setScr} dbLoad={dbLoad} onEditCrop={c=>{setPendingEditCrop(c);setScr("fields");}} onNew={()=>{setInitLog(null);setLogModal(true);}}/><TimelineScreen fields={fields} crops={crops} equips={equips} logs={logs} setLogs={setLogs} setLogsR={setLogsR} showToast={showToast}
         onEdit={ls=>{const _ls=Array.isArray(ls)?ls:[ls];const _sorted=[..._ls].sort((a,b)=>(a.imgSrc?-1:0)-(b.imgSrc?-1:0));setInitLogs(_ls);setInitLog(_sorted[0]);setLogModal(true);}}
         onNew={()=>{setInitLog(null);setLogModal(true);}}
         onCopy={ls=>{
