@@ -1136,7 +1136,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.96</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.6.97</div>
       </div>
     </div>
   );
@@ -1572,7 +1572,7 @@ function MasterScreen({ fertMs, setFertMs, pestMs, setPestMs, equips, setEquips,
 }
 
 // FIELDS
-function FieldsScreen({ fields, setFields, setFieldsR, crops, setCrops, setCropsR, costs, setCosts, logs, showToast, editCrop }) {
+function FieldsScreen({ fields, setFields, setFieldsR, crops, setCrops, setCropsR, costs, setCosts, logs, setLogs, setLogsR, plots, setPlots, setPlotsR, showToast, editCrop }) {
   const [mField, setMField] = useState(null);
   const [mCrop,  setMCrop]  = useState(null);
 
@@ -1644,7 +1644,6 @@ function FieldsScreen({ fields, setFields, setFieldsR, crops, setCrops, setCrops
           fieldId:fields[entry.fieldIdx]?.id||"",
           cropId:entry.id, note:entry.seedNote||""
         };
-        console.log("Adding new cost entry:", newEntry);
         setCosts([...costs,newEntry],newEntry);
       }
     }
@@ -1679,7 +1678,34 @@ function FieldsScreen({ fields, setFields, setFieldsR, crops, setCrops, setCrops
         <div key={f.id} style={S.card}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
             <div><b style={{fontSize:".95rem"}}>{f.name}</b><div style={{fontSize:".7rem",color:TX3,marginTop:1}}>{f.addr||""} / {f.area||"?"}a / {f.soil||""}</div></div>
-            <div style={{display:"flex",gap:4}}><button style={{...S.btn,...S.btnS,...S.btnSm}} onClick={()=>setMField({...f,_idx:i})}>編集</button><button style={{...S.btn,...S.btnR,...S.btnSm}} onClick={()=>{if(!window.confirm("削除しますか?"))return;dbDelete("fields",f.id);if(typeof setFieldsR==="function")setFieldsR(fields.filter((_,j)=>j!==i));else setFields(fields.filter((_,j)=>j!==i));showToast("削除しました");}}>削除</button></div>
+            <div style={{display:"flex",gap:4}}><button style={{...S.btn,...S.btnS,...S.btnSm}} onClick={()=>setMField({...f,_idx:i})}>編集</button><button style={{...S.btn,...S.btnR,...S.btnSm}} onClick={()=>{
+                const relCrops=crops.filter(c=>c.fieldId===f.id||c.fieldIdx===i);
+                const relLogs=logs.filter(l=>l.fieldId===f.id||l.fieldIdx===i);
+                const relCosts=costs.filter(c=>c.fieldId===f.id);
+                const relPlots=(plots||[]).filter(p=>p.fieldId===f.id);
+                const total=relCrops.length+relLogs.length+relCosts.length+relPlots.length;
+                const msg=total>0?`「${f.name}」を削除すると、関連する品目${relCrops.length}件・作業記録${relLogs.length}件・費用${relCosts.length}件・栽培計画${relPlots.length}件も削除されます。よろしいですか？`:`「${f.name}」を削除しますか？`;
+                if(!window.confirm(msg))return;
+                // カスケード削除
+                relCrops.forEach(c=>dbDelete("crops",c.id));
+                relLogs.forEach(l=>dbDelete("logs",l.id));
+                relCosts.forEach(c=>dbDelete("costs",c.id));
+                relPlots.forEach(p=>dbDelete("plots",p.id));
+                dbDelete("fields",f.id);
+                // ローカル状態更新（fieldIdxの再計算込み）
+                const newFields=fields.filter((_,j)=>j!==i);
+                const relCropIds=new Set(relCrops.map(c=>c.id));
+                const relLogIds=new Set(relLogs.map(l=>l.id));
+                const relCostIds=new Set(relCosts.map(c=>c.id));
+                const relPlotIds=new Set(relPlots.map(p=>p.id));
+                if(typeof setFieldsR==="function")setFieldsR(newFields);else setFields(newFields);
+                const fixIdx=o=>{const fi=newFields.findIndex(nf=>nf.id===o.fieldId);return fi>=0?fi:0;};
+                if(setCropsR)setCropsR(crops.filter(c=>!relCropIds.has(c.id)).map(c=>({...c,fieldIdx:fixIdx(c)})));
+                if(setLogsR)setLogsR(logs.filter(l=>!relLogIds.has(l.id)).map(l=>({...l,fieldIdx:fixIdx(l)})));
+                setCosts(costs.filter(c=>!relCostIds.has(c.id)));
+                if(setPlotsR)setPlotsR((plots||[]).filter(p=>!relPlotIds.has(p.id)));
+                showToast("圃場と関連データを削除しました");
+              }}>削除</button></div>
           </div>
           {f.memo&&<div style={{fontSize:".76rem",color:"#5a5040",marginTop:5}}>{f.memo}</div>}
           <div style={{fontSize:".7rem",color:TX3,marginTop:5}}>品目:{crops.filter(c=>c.fieldIdx===i).length}品目 / 記録:{logs.filter(l=>l.fieldIdx===i).length}件</div>
@@ -1766,7 +1792,23 @@ function FieldsScreen({ fields, setFields, setFieldsR, crops, setCrops, setCrops
               <button style={{...S.btn,...S.btnSm,background:"#fff",color:"#c2410c",border:"1px solid #f0b896"}}
                 onClick={()=>{const ed=window.prompt("栽培終了日を入力してください",todayStr());if(ed===null)return;const u={...c,ended:true,endDate:ed||todayStr()};setCrops(crops.map((x,j)=>j===i?u:x),u);showToast("栽培を終了しました");}}>終了</button>
               <button style={{...S.btn,...S.btnR,...S.btnSm}}
-                onClick={()=>{if(!window.confirm("削除しますか?"))return;dbDelete("crops",c.id);const filtered=crops.filter((_,j)=>j!==i);if(typeof setCropsR==="function")setCropsR(filtered);else setCrops(filtered);showToast("削除しました");}}>削除</button>
+                onClick={()=>{
+                  const relLogs=logs.filter(l=>l.cropId===c.id);
+                  const relCosts=costs.filter(co=>co.cropId===c.id);
+                  const total=relLogs.length+relCosts.length;
+                  const msg=total>0?`この品目を削除すると、作業記録${relLogs.length}件・費用${relCosts.length}件も削除されます。よろしいですか？`:"削除しますか?";
+                  if(!window.confirm(msg))return;
+                  dbDelete("crops",c.id);
+                  relLogs.forEach(l=>dbDelete("logs",l.id));
+                  relCosts.forEach(co=>dbDelete("costs",co.id));
+                  const relLogIds=new Set(relLogs.map(l=>l.id));
+                  const relCostIds=new Set(relCosts.map(co=>co.id));
+                  const filtered=crops.filter((_,j)=>j!==i);
+                  if(typeof setCropsR==="function")setCropsR(filtered);else setCrops(filtered);
+                  if(setLogsR)setLogsR(logs.filter(l=>!relLogIds.has(l.id)));
+                  setCosts(costs.filter(co=>!relCostIds.has(co.id)));
+                  showToast("品目と関連データを削除しました");
+                }}>削除</button>
             </div>
           </div>
         );
@@ -2383,7 +2425,6 @@ useEffect(()=>{
     const setters = [setLogImg, setLogImg2, setLogImg3];
     for(let i=0;i<files.length;i++){
       const {base64,blob} = await compressImage(files[i]);
-      console.log("[handleLogImg] file",i,"blob:",blob?.size,"base64:",base64?.length);
       // blobがnullの場合はbase64からblobを生成
       const finalBlob = blob || await fetch(base64).then(r=>r.blob());
       setters[i]({base64, blob:finalBlob, name:uid0()+'-'+Date.now()+".jpg"});
@@ -3893,6 +3934,21 @@ function PwChangeSection() {
 
 function SettingsScreen({ showToast, user, uid, signOut, fields, crops, logs, fertMs, pestMs, equips, costs, setScr }) {
   const doExport=()=>{ const d=JSON.stringify({fields,crops,logs,fertMs,pestMs,equips,costs},null,2);const a=document.createElement("a");a.href="data:application/json;charset=utf-8,"+encodeURIComponent(d);a.download="farm-ai-export-"+todayStr()+".json";a.click(); };
+  const csvEsc=v=>{const s=String(v==null?"":v);return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;};
+  const downloadCsv=(rows,name)=>{const bom="\uFEFF";const csv=bom+rows.map(r=>r.map(csvEsc).join(",")).join("\r\n");const a=document.createElement("a");a.href="data:text/csv;charset=utf-8,"+encodeURIComponent(csv);a.download=name+"-"+todayStr()+".csv";a.click();};
+  const exportCostCsv=()=>{
+    const cropName=id=>{if(!id)return"共通";const c=crops.find(x=>x.id===id);if(!c)return"共通";const db=CDB[c.type]||{};return(db.n||c.type)+(c.variety?"("+c.variety+")":"");};
+    const catLabel=cat=>({seed:"種苗費",fert:"肥料費",pest:"農薬費",equip:"資材・設備費",labor:"人件費",other:"その他"}[cat]||cat);
+    const rows=[["日付","種別","品名","品目","金額","数量","単位","メモ"]];
+    [...costs].sort((a,b)=>(a.date||"").localeCompare(b.date||"")).forEach(c=>rows.push([c.date||"",catLabel(c.cat),c.name||"",cropName(c.cropId),c.amt||"",c.qty||"",c.qunit||"",c.note||""]));
+    downloadCsv(rows,"費用一覧");
+  };
+  const exportLogCsv=()=>{
+    const cropName=id=>{if(!id)return"";const c=crops.find(x=>x.id===id);if(!c)return"";const db=CDB[c.type]||{};return(db.n||c.type)+(c.variety?"("+c.variety+")":"");};
+    const rows=[["日付","時刻","品目","作業","作業時間(分)","天気","メモ"]];
+    [...logs].sort((a,b)=>(a.date||"").localeCompare(b.date||"")).forEach(l=>rows.push([l.date||"",l.time||"",cropName(l.cropId),WORK_LABELS[l.work]||l.work||"",l.duration||"",({sunny:"晴れ",cloudy:"曇り",rainy:"雨",snowy:"雪",windy:"強風"}[l.weather]||""),l.memo||""]));
+    downloadCsv(rows,"作業記録");
+  };
   return (
     <div style={S.scr} className="scr-inner">
       <div style={S.sec}>
@@ -3915,6 +3971,17 @@ function SettingsScreen({ showToast, user, uid, signOut, fields, crops, logs, fe
           </div>
         </div>
       )}
+
+      {/* データ管理 */}
+      <div style={S.card}>
+        <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".88rem",color:"#5c3d1e",marginBottom:10}}>📁 データの保存・書き出し</div>
+        <div style={{fontSize:".72rem",color:TX3,marginBottom:10,lineHeight:1.5}}>記録を手元に保存できます。CSVは確定申告や表計算ソフトでの集計に、JSONは全データのバックアップに使えます。</div>
+        <div style={{display:"flex",flexDirection:"column",gap:8}}>
+          <button onClick={exportCostCsv} style={{...S.btn,...S.btnS}}>💰 費用一覧をCSVで書き出す</button>
+          <button onClick={exportLogCsv} style={{...S.btn,...S.btnS}}>📝 作業記録をCSVで書き出す</button>
+          <button onClick={doExport} style={{...S.btn,...S.btnS}}>💾 全データをバックアップ（JSON）</button>
+        </div>
+      </div>
 
       {/* 栽培記録の公開設定 */}
       <PublicSettings uid={uid} crops={crops} showToast={showToast}/>
@@ -4063,7 +4130,7 @@ export default function App() {
   // ── DB保存ヘルパー（1件だけ保存・非同期） ──
   const dbSaveField = o => { if(!uid) return; const item = {...o, id:o.id||uid0()}; dbUpsert("fields", fieldToDb(item, uid)); return item; };
   const dbSaveCrop  = (o, flds) => { if(!uid) return; const fId = (flds||fields)[o.fieldIdx]?.id || o.fieldId || null; dbUpsert("crops", cropToDb({...o, fieldId:fId}, uid)); };
-  const dbSaveLog   = o => { if(!uid){console.error('dbSaveLog: no uid');return;} console.log('[dbSaveLog] work:',o.work,'img:',o.imgSrc?'yes':'no'); dbUpsert("logs", logToDb(o, uid, fields)); };
+  const dbSaveLog   = o => { if(!uid){console.error('dbSaveLog: no uid');return;} dbUpsert("logs", logToDb(o, uid, fields)); };
   const dbSaveFertM = o => { if(!uid){console.error("dbSaveFertM: no uid");return;} dbUpsert("fert_masters", fertMToDb(o, uid)).catch(e=>console.error("fertM save err:",e)); };
   const dbSavePestM = o => { if(!uid) return; dbUpsert("pest_masters", pestMToDb(o, uid)); };
   const dbSaveEquip = o => { if(!uid) return; dbUpsert("equipments",   equipToDb(o, uid)); };
@@ -4132,7 +4199,7 @@ export default function App() {
       </div>
       <div id="main-scroll" style={S.main}>
         {scr==="master"  &&<MasterScreen  fertMs={fertMs} setFertMs={setFertMs} pestMs={pestMs} setPestMs={setPestMs} equips={equips} setEquips={setEquips} costs={costs} setCosts={setCosts} showToast={showToast}/>}
-        {scr==="fields"  &&<FieldsScreen  fields={fields} setFields={setFields} setFieldsR={setFieldsR} crops={crops} setCrops={setCrops} setCropsR={setCropsR} costs={costs} setCosts={setCosts} logs={logs} showToast={showToast} editCrop={pendingEditCrop}/>}
+        {scr==="fields"  &&<FieldsScreen  fields={fields} setFields={setFields} setFieldsR={setFieldsR} crops={crops} setCrops={setCrops} setCropsR={setCropsR} costs={costs} setCosts={setCosts} logs={logs} setLogs={setLogs} setLogsR={setLogsR} plots={plots} setPlots={setPlots} setPlotsR={setPlotsR} showToast={showToast} editCrop={pendingEditCrop}/>}
         {(scr==="log"||scr==="home") && <><HomeScreen fields={fields} crops={crops} setCrops={setCrops} logs={logs} costs={costs} showToast={showToast} onEditCrop={c=>{setPendingEditCrop(c);setScr("fields");}} onNew={()=>{setInitLog(null);setLogModal(true);}}/><TimelineScreen fields={fields} crops={crops} equips={equips} logs={logs} setLogs={setLogs} setLogsR={setLogsR} showToast={showToast}
         onEdit={ls=>{const _ls=Array.isArray(ls)?ls:[ls];const _sorted=[..._ls].sort((a,b)=>(a.imgSrc?-1:0)-(b.imgSrc?-1:0));setInitLogs(_ls);setInitLog(_sorted[0]);setLogModal(true);}}
         onNew={()=>{setInitLog(null);setLogModal(true);}}
