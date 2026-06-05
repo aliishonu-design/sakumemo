@@ -1,7 +1,7 @@
 // サクメモ Service Worker - オフライン対応
-const CACHE_NAME = 'sakumemo-v1';
+const CACHE_NAME = 'sakumemo-v2';
 const APP_SHELL = [
-  '/',
+  '/app',
   '/index.html',
   '/manifest.webmanifest',
 ];
