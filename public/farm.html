@@ -378,7 +378,11 @@ function makeGroupCard(card,showCropTag){
 
   // 詳細（メモより前）
   var detailParts=[];
-  card.logs.forEach(function(l){
+  var detailLogs=[].concat(card.logs).sort(function(a,b){
+    var oa=WORK_ORDER.indexOf(a.work),ob=WORK_ORDER.indexOf(b.work);
+    return (oa<0?99:oa)-(ob<0?99:ob);
+  });
+  detailLogs.forEach(function(l){
     // 施肥（App.jsxと同じ: fert_name → fertName対応）
     var fn=l.fert_name||l.fertName;
     var fa=l.fert_amt||l.fertAmt;
