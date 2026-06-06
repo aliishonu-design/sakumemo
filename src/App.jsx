@@ -1162,7 +1162,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.7.7</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.7.8</div>
       </div>
     </div>
   );
@@ -2382,7 +2382,7 @@ useEffect(()=>{
       }));
       allNewLogs = [...allNewLogs, ...displayEditEntries];
       setLogsR(allNewLogs);
-      newEntries.forEach(e=>dbSaveLog(e));
+      (async()=>{ for(const e of newEntries){ await dbSaveLog(e); } })();
       // 削除された余分なエントリをDBから削除
       editLogIds.slice(newEntries.length).forEach(id=>dbDelete('logs',id));
       // 費用更新（施肥/農薬）
@@ -2442,7 +2442,7 @@ useEffect(()=>{
       }));
       const allNewLogs = [...logs, ...displayEntries];
       setLogsR(allNewLogs);
-      newEntries.forEach(e=>dbSaveLog(e));
+      (async()=>{ for(const e of newEntries){ await dbSaveLog(e); } })();
       // 費用自動追加（施肥/農薬）
       if(workList[0]==='fert'&&fertName&&fertCost&&cropId) {
         const fc={id:uid0(),cat:'fert',cropId,name:fertName,amt:fertCost,date,qty:'1',qunit:'式',fieldIdx,fieldId:fields[fieldIdx]?.id||'',logId:newEntries[0].id,note:''};
@@ -4218,7 +4218,7 @@ export default function App() {
   // ── DB保存ヘルパー（1件だけ保存・非同期） ──
   const dbSaveField = o => { if(!uid) return; const item = {...o, id:o.id||uid0()}; dbUpsert("fields", fieldToDb(item, uid)); return item; };
   const dbSaveCrop  = (o, flds) => { if(!uid) return; const fId = (flds||fields)[o.fieldIdx]?.id || o.fieldId || null; dbUpsert("crops", cropToDb({...o, fieldId:fId}, uid)); };
-  const dbSaveLog   = o => { if(!uid){console.error('dbSaveLog: no uid');return;} dbUpsert("logs", logToDb(o, uid, fields)); };
+  const dbSaveLog   = o => { if(!uid){console.error('dbSaveLog: no uid');return Promise.resolve();} return dbUpsert("logs", logToDb(o, uid, fields)); };
   const dbSaveFertM = o => { if(!uid){console.error("dbSaveFertM: no uid");return;} dbUpsert("fert_masters", fertMToDb(o, uid)).catch(e=>console.error("fertM save err:",e)); };
   const dbSavePestM = o => { if(!uid) return; dbUpsert("pest_masters", pestMToDb(o, uid)); };
   const dbSaveEquip = o => { if(!uid) return; dbUpsert("equipments",   equipToDb(o, uid)); };
