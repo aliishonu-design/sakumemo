@@ -1162,7 +1162,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.7.8</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.7.9</div>
       </div>
     </div>
   );
@@ -2372,6 +2372,16 @@ useEffect(()=>{
             editEntriesAll.push(ex);
           });
         }
+        // 資材の追加エントリ（編集時も新規IDで追加）
+        if(w==='equip' && equipEntries.length>0){
+          equipEntries.forEach(ee=>{
+            const ex=makeEntry('equip',false,null,editGroupId);
+            const _en2=ee.idx!==""?equips[ee.idx]?.name||'':'';
+            const _fa2=(_en2+(_en2?' ':'')+ee.act).trim();
+            ex.equipIds=ee.idx!==""?[ee.idx]:[];ex.equipAct=_fa2||ee.act;
+            editEntriesAll.push(ex);
+          });
+        }
       }
       const newEntries = editEntriesAll;
       const displayEditEntries = newEntries.map((e,i)=>({
@@ -2408,7 +2418,7 @@ useEffect(()=>{
         // 施肥の追加エントリ
         if(w==='fert' && fertEntries.length>0){
           fertEntries.forEach(fe=>{
-            const ex=makeEntry('fert',false,null);
+            const ex=makeEntry('fert',false,null,newGroupId);
             ex.fertName=fe.name;ex.fertAmt=fe.amt;ex.fertUnit=fe.unit;ex.fertMethod=fe.meth;ex.fertCost=fe.cost;
             allEntriesNew.push(ex);
           });
