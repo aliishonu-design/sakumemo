@@ -1,16 +1,8 @@
-// サクメモ Service Worker - オフライン対応
-const CACHE_NAME = 'sakumemo-v2';
-const APP_SHELL = [
-  '/app',
-  '/index.html',
-  '/manifest.webmanifest',
-];
+// サクメモ Service Worker - オフライン対応（v3）
+const CACHE_NAME = 'sakumemo-v3';
 
-// インストール時: アプリの基本ファイルをキャッシュ
-self.addEventListener('install', (e) => {
-  e.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL).catch(() => {}))
-  );
+// インストール時: 即座に有効化
+self.addEventListener('install', () => {
   self.skipWaiting();
 });
 
@@ -19,22 +11,21 @@ self.addEventListener('activate', (e) => {
   e.waitUntil(
     caches.keys().then((keys) =>
       Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
-    )
+    ).then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
 self.addEventListener('fetch', (e) => {
-  const url = new URL(e.request.url);
+  const req = e.request;
+  const url = new URL(req.url);
 
-  // http / https 以外（chrome-extension など）は一切扱わない
-  if (url.protocol !== 'http:' && url.protocol !== 'https:') {
-    return;
-  }
+  // http / https 以外（chrome-extension など）は扱わない
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') return;
 
-  // GET 以外、または外部API（Supabase・天気・地図）はネットワークに任せる（キャッシュしない）
+  // GET 以外、外部API、別オリジンはネットワークに任せる
   if (
-    e.request.method !== 'GET' ||
+    req.method !== 'GET' ||
+    url.origin !== self.location.origin ||
     url.hostname.includes('supabase') ||
     url.hostname.includes('open-meteo') ||
     url.hostname.includes('openstreetmap')
@@ -42,27 +33,42 @@ self.addEventListener('fetch', (e) => {
     return;
   }
 
-  // 同一オリジンのファイルのみキャッシュ対象（クロスオリジンは対象外）
-  if (url.origin !== self.location.origin) {
+  // HTML（ページ本体）は「ネットワーク優先」: 常に最新を取得し、最新のJS参照を保つ
+  // オフライン時のみキャッシュした /app を返す
+  const isHTML =
+    req.mode === 'navigate' ||
+    (req.headers.get('accept') || '').includes('text/html');
+
+  if (isHTML) {
+    e.respondWith(
+      fetch(req)
+        .then((res) => {
+          const clone = res.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            try { cache.put('/app', clone); } catch (err) {}
+          });
+          return res;
+        })
+        .catch(() => caches.match('/app'))
+    );
     return;
   }
 
-  // アプリのファイル（JS/CSS/HTML/画像）はキャッシュ優先＋裏で更新
+  // それ以外（ハッシュ付きJS/CSS/画像など）は「キャッシュ優先＋裏で更新」
+  // ファイル名にハッシュが付くため、古いファイルは自然に使われなくなる
   e.respondWith(
-    caches.match(e.request).then((cached) => {
-      const fetchPromise = fetch(e.request)
+    caches.match(req).then((cached) => {
+      const fetchPromise = fetch(req)
         .then((res) => {
-          // 正常なレスポンスのみキャッシュ更新
           if (res && res.status === 200 && res.type === 'basic') {
             const clone = res.clone();
             caches.open(CACHE_NAME).then((cache) => {
-              // put は try で囲み、失敗してもアプリに影響させない
-              try { cache.put(e.request, clone); } catch (err) {}
+              try { cache.put(req, clone); } catch (err) {}
             });
           }
           return res;
         })
-        .catch(() => cached); // オフライン時はキャッシュを返す
+        .catch(() => cached);
       return cached || fetchPromise;
     })
   );
