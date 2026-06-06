@@ -836,7 +836,7 @@ const S = {
   logo:  { fontFamily:"'Shippori Mincho B1',serif", fontSize:"1.1rem", letterSpacing:".06em" },
   tbBtn: { background:"rgba(255,255,255,.18)", border:"1px solid rgba(255,255,255,.25)", color:"#fff", borderRadius:8, padding:"5px 10px", fontSize:".72rem", cursor:"pointer", flexShrink:0 },
   main:  { flex:1, overflowY:"auto", WebkitOverflowScrolling:"touch" },
-  scr:   { padding:"12px 12px 80px" },
+  scr:   { padding:"12px 12px calc(90px + env(safe-area-inset-bottom))" },
   bnav:  { background:GD, display:"flex", borderTop:"1px solid rgba(255,255,255,.08)", flexShrink:0, height:58, paddingBottom:"env(safe-area-inset-bottom)" },
   bBtn:  { flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:2, background:"none", border:"none", color:"rgba(255,255,255,.33)", fontSize:".52rem", cursor:"pointer", minWidth:0 },
   bBtnOn:{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:2, background:"none", border:"none", color:"#9ffcb4", fontSize:".52rem", cursor:"pointer", minWidth:0 },
@@ -862,6 +862,8 @@ const globalCss = `
   img,table{max-width:100%;}
   button,input,select,textarea{font-family:inherit;}
   input,select,textarea{font-size:16px!important;}
+  /* スマホ: 下部ナビに隠れないよう十分な余白 */
+  .scr-inner{padding-bottom:calc(90px + env(safe-area-inset-bottom));}
   @media(min-width:900px){
     #bot-nav{display:none!important;}
     #pc-nav{display:flex!important;}
@@ -1160,7 +1162,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.7.3</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.7.4</div>
       </div>
     </div>
   );
