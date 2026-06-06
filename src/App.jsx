@@ -831,13 +831,13 @@ const ALERT="#c0392b", WARN="#e67e22", INFO="#2471a3";
 const TX3="#a09070", BD="#e0d9ce";
 const TAG_COLORS = { blue:{background:"#dbeafe",color:"#1e40af"}, green:{background:"#d1fae5",color:"#065f46"}, yellow:{background:"#fef3c7",color:"#92400e"}, pink:{background:"#fce7f3",color:"#831843"}, purple:{background:"#ede9fe",color:"#5b21b6"}, gray:{background:"#f3f4f6",color:"#374151"} };
 const S = {
-  app:   { display:"flex", flexDirection:"column", height:"100svh", maxWidth:960, margin:"0 auto", background:"#f8f5ef", boxShadow:"0 0 40px rgba(0,0,0,.15)" },
+  app:   { display:"flex", flexDirection:"column", height:"100dvh", maxWidth:960, margin:"0 auto", background:"#f8f5ef", boxShadow:"0 0 40px rgba(0,0,0,.15)" },
   topbar:{ background:G, color:"#fff", height:52, display:"flex", alignItems:"center", padding:"0 13px", gap:8, flexShrink:0 },
   logo:  { fontFamily:"'Shippori Mincho B1',serif", fontSize:"1.1rem", letterSpacing:".06em" },
   tbBtn: { background:"rgba(255,255,255,.18)", border:"1px solid rgba(255,255,255,.25)", color:"#fff", borderRadius:8, padding:"5px 10px", fontSize:".72rem", cursor:"pointer", flexShrink:0 },
   main:  { flex:1, overflowY:"auto", WebkitOverflowScrolling:"touch" },
   scr:   { padding:"12px 12px calc(90px + env(safe-area-inset-bottom))" },
-  bnav:  { background:GD, display:"flex", borderTop:"1px solid rgba(255,255,255,.08)", flexShrink:0, height:58, paddingBottom:"env(safe-area-inset-bottom)" },
+  bnav:  { background:GD, display:"flex", borderTop:"1px solid rgba(255,255,255,.08)", flexShrink:0, height:"calc(58px + env(safe-area-inset-bottom))", paddingBottom:"env(safe-area-inset-bottom)", boxSizing:"border-box" },
   bBtn:  { flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:2, background:"none", border:"none", color:"rgba(255,255,255,.33)", fontSize:".52rem", cursor:"pointer", minWidth:0 },
   bBtnOn:{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:2, background:"none", border:"none", color:"#9ffcb4", fontSize:".52rem", cursor:"pointer", minWidth:0 },
   card:  { background:"#fff", borderRadius:14, boxShadow:"0 2px 12px rgba(0,0,0,.08)", padding:13, marginBottom:9, border:"1px solid "+BD },
@@ -1162,7 +1162,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.7.4</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.7.5</div>
       </div>
     </div>
   );
