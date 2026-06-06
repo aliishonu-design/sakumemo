@@ -1162,7 +1162,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.7.6</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.7.7</div>
       </div>
     </div>
   );
@@ -2492,18 +2492,35 @@ useEffect(()=>{
   // 写真一括選択（1枚目からEXIF取得、最大3枚）
   const handleLogImg = async e => {
     const allFiles = Array.from(e.target.files);
-    if(allFiles.length > 3){ showToast("写真は3枚までです"); e.target.value=""; return; }
-    const files = allFiles.slice(0,3);
+    // 既存の枚数と合わせて3枚を超えないように
+    const existing = [logImg, logImg2, logImg3].filter(Boolean).length;
+    const room = 3 - existing;
+    if(room <= 0){ showToast("写真は3枚までです"); e.target.value=""; return; }
+    if(allFiles.length > room){ showToast(`あと${room}枚まで選択できます`); e.target.value=""; return; }
+    const files = allFiles.slice(0, room);
     if(!files.length) return;
-    const exif = await extractExifDate(files[0]);
-    if(exif){setDate(exif.date);setTime(exif.time);showToast("写真から日時を取得しました");}
-    const setters = [setLogImg, setLogImg2, setLogImg3];
-    for(let i=0;i<files.length;i++){
-      const {base64,blob} = await compressImage(files[i]);
-      // blobがnullの場合はbase64からblobを生成
-      const finalBlob = blob || await fetch(base64).then(r=>r.blob());
-      setters[i]({base64, blob:finalBlob, name:uid0()+'-'+Date.now()+".jpg"});
+    // 全ファイルのEXIF撮影日時を取得し、最も早いものを採用
+    let earliest = null;
+    for(const f of files){
+      const ex = await extractExifDate(f);
+      if(ex){
+        const dt = new Date(ex.date + "T" + (ex.time||"00:00"));
+        if(!earliest || dt < earliest.dt) earliest = {dt, date:ex.date, time:ex.time};
+      }
     }
+    if(earliest){ setDate(earliest.date); setTime(earliest.time); showToast("写真から日時を取得しました（最も早い撮影日時）"); }
+    // 空いているスロットに順番に入れる
+    const slots = [[logImg,setLogImg],[logImg2,setLogImg2],[logImg3,setLogImg3]];
+    let fi = 0;
+    for(const [cur,setter] of slots){
+      if(cur) continue;
+      if(fi >= files.length) break;
+      const {base64,blob} = await compressImage(files[fi]);
+      const finalBlob = blob || await fetch(base64).then(r=>r.blob());
+      setter({base64, blob:finalBlob, name:uid0()+'-'+Date.now()+'-'+fi+".jpg"});
+      fi++;
+    }
+    e.target.value="";
   };
   const handleLogImg2 = async e => {
     const f=e.target.files[0]; if(!f) return;
@@ -2674,44 +2691,26 @@ useEffect(()=>{
             </div>
           ))}
         </div>}
-        <FG label="📷 生育状況の写真（撮影日時を自動取得）">
-          <div style={{border:"2px dashed "+BD,borderRadius:10,padding:14,textAlign:"center",cursor:"pointer",background:"#fafafa"}} onClick={()=>document.getElementById("logImgInp").click()}>
-            <input id="logImgInp" type="file" accept="image/*" multiple style={{display:"none"}} onChange={e=>{if(Array.from(e.target.files).length>3){showToast("写真は3枚まで選択できます");e.target.value="";return;}handleLogImg(e);}}/>
-            <div style={{fontSize:"1.5rem",marginBottom:2}}>📷</div>
-            <p style={{fontSize:".72rem",color:TX3}}>タップして写真を追加（撮影日時を自動取得）</p>
-          </div>
-          {logImg&&(
-            <div style={{position:"relative",marginTop:7}}>
-              <img src={logImg.base64||logImg} alt="" style={{width:"100%",borderRadius:8,maxHeight:170,objectFit:"cover"}}/>
-              <button onClick={()=>setLogImg(null)} style={{position:"absolute",top:4,right:4,background:"rgba(0,0,0,.5)",border:"none",color:"#fff",borderRadius:"50%",width:24,height:24,cursor:"pointer",fontSize:".8rem",lineHeight:"24px",textAlign:"center"}}>✕</button>
+        <FG label="📷 生育状況の写真（最大3枚・撮影日時を自動取得）">
+          {(()=>{const imgs=[[logImg,setLogImg],[logImg2,setLogImg2],[logImg3,setLogImg3]];const count=imgs.filter(([v])=>v).length;return <>
+          {count<3 && (
+            <div style={{border:"2px dashed "+BD,borderRadius:10,padding:14,textAlign:"center",cursor:"pointer",background:"#fafafa"}} onClick={()=>document.getElementById("logImgInp").click()}>
+              <input id="logImgInp" type="file" accept="image/*" multiple style={{display:"none"}} onChange={handleLogImg}/>
+              <div style={{fontSize:"1.5rem",marginBottom:2}}>📷</div>
+              <p style={{fontSize:".72rem",color:TX3}}>タップして写真を選択（まとめて{3-count}枚まで）</p>
             </div>
           )}
-          {logImg&&!logImg2&&(
-            <div onClick={()=>document.getElementById("logImgInp2").click()}
-              style={{marginTop:6,padding:"8px",border:"1.5px dashed #ccc",borderRadius:8,textAlign:"center",cursor:"pointer",fontSize:".72rem",color:TX3}}>
-              <input id="logImgInp2" type="file" accept="image/*" style={{display:"none"}} onChange={handleLogImg2}/>
-              ＋ 写真2枚目を追加
+          {count>0 && (
+            <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:6,marginTop:7}}>
+              {imgs.map(([v,setter],i)=>v?(
+                <div key={i} style={{position:"relative",aspectRatio:"1",borderRadius:8,overflow:"hidden"}}>
+                  <img src={v.base64||v} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+                  <button onClick={()=>setter(null)} style={{position:"absolute",top:3,right:3,background:"rgba(0,0,0,.55)",border:"none",color:"#fff",borderRadius:"50%",width:22,height:22,cursor:"pointer",fontSize:".75rem",lineHeight:"22px",textAlign:"center"}}>✕</button>
+                </div>
+              ):null)}
             </div>
           )}
-          {logImg2&&(
-            <div style={{position:"relative",marginTop:6}}>
-              <img src={logImg2.base64||logImg2} alt="" style={{width:"100%",borderRadius:8,maxHeight:170,objectFit:"cover"}}/>
-              <button onClick={()=>setLogImg2(null)} style={{position:"absolute",top:4,right:4,background:"rgba(0,0,0,.5)",border:"none",color:"#fff",borderRadius:"50%",width:24,height:24,cursor:"pointer",fontSize:".8rem",lineHeight:"24px",textAlign:"center"}}>✕</button>
-            </div>
-          )}
-          {logImg2&&!logImg3&&(
-            <div onClick={()=>document.getElementById("logImgInp3").click()}
-              style={{marginTop:6,padding:"8px",border:"1.5px dashed #ccc",borderRadius:8,textAlign:"center",cursor:"pointer",fontSize:".72rem",color:TX3}}>
-              <input id="logImgInp3" type="file" accept="image/*" style={{display:"none"}} onChange={handleLogImg3}/>
-              ＋ 写真3枚目を追加
-            </div>
-          )}
-          {logImg3&&(
-            <div style={{position:"relative",marginTop:6}}>
-              <img src={logImg3.base64||logImg3} alt="" style={{width:"100%",borderRadius:8,maxHeight:170,objectFit:"cover"}}/>
-              <button onClick={()=>setLogImg3(null)} style={{position:"absolute",top:4,right:4,background:"rgba(0,0,0,.5)",border:"none",color:"#fff",borderRadius:"50%",width:24,height:24,cursor:"pointer",fontSize:".8rem",lineHeight:"24px",textAlign:"center"}}>✕</button>
-            </div>
-          )}
+          </>;})()}
         </FG>
         <R2><FG label="作業日"><Inp type="date" value={date} onChange={setDate}/></FG><FG label="作業時刻"><Inp type="time" value={time} onChange={setTime}/></FG></R2>
         <FG label={"天気（任意）"+(wxAuto&&weather?"  ✓自動取得":"")}>
@@ -2884,7 +2883,7 @@ function TimelineScreen({ fields, crops, equips, logs, setLogs, setLogsR, showTo
               const oa=WORK_TYPES.findIndex(w=>w.value===a.work);
               const ob=WORK_TYPES.findIndex(w=>w.value===b.work);
               return (oa<0?99:oa)-(ob<0?99:ob);
-            }).filter(l=>{ if(seenW.has(l.work))return false; seenW.add(l.work); return true; });
+            }).filter(l=>{ const multi=l.work==="fert"||l.work==="pest"||l.work==="equip"; if(!multi){ if(seenW.has(l.work))return false; seenW.add(l.work); } return true; });
             return (
               <div key={card.key} style={{...S.card,padding:0,overflow:'hidden',marginBottom:8}}>
                 <div style={{padding:'9px 11px'}}>
@@ -3821,7 +3820,7 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs, equips=[] })
               const oa=WORK_TYPES.findIndex(w=>w.value===a.work);
               const ob=WORK_TYPES.findIndex(w=>w.value===b.work);
               return (oa<0?99:oa)-(ob<0?99:ob);
-            }).filter(l=>{ if(seenW.has(l.work))return false; seenW.add(l.work); return true; });
+            }).filter(l=>{ const multi=l.work==="fert"||l.work==="pest"||l.work==="equip"; if(!multi){ if(seenW.has(l.work))return false; seenW.add(l.work); } return true; });
             return (
               <div key={card.key} style={{...S.card,padding:0,overflow:'hidden',marginBottom:8}}>
                 <div style={{padding:'8px 11px'}}>
