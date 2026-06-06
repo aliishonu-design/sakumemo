@@ -1162,7 +1162,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.7.5</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.7.6</div>
       </div>
     </div>
   );
@@ -4346,7 +4346,7 @@ export default function App() {
       {/* 全画面共通: トップに戻るボタン */}
       <button
         onClick={()=>{const el=document.getElementById('main-scroll');if(el)el.scrollTo({top:0,behavior:'smooth'});}}
-        style={{position:'fixed',bottom:66,right:14,width:38,height:38,borderRadius:'50%',
+        style={{position:'fixed',bottom:'calc(72px + env(safe-area-inset-bottom))',right:14,width:38,height:38,borderRadius:'50%',
           background:G,color:'#fff',border:'none',fontSize:'1rem',cursor:'pointer',
           boxShadow:'0 2px 8px rgba(0,0,0,.3)',zIndex:500,display:'flex',alignItems:'center',justifyContent:'center',
           opacity:.85}}>↑</button>
