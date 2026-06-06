@@ -1162,7 +1162,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.7.9</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.0</div>
       </div>
     </div>
   );
@@ -2745,7 +2745,10 @@ function TimelineScreen({ fields, crops, equips, logs, setLogs, setLogsR, showTo
   const [selCropId, setSelCropId] = useState(""); // 品目フィルタ
   const [openDd, setOpenDd] = useState(false);    // 品目ドロップダウン
   const [ddPos,  setDdPos]  = useState({top:0,left:0,above:false});
+  const [visibleDays, setVisibleDays] = useState(7); // 「もっと見る」用: 表示する日付グループ数
   const ddBtnRef = useRef(null);
+  // フィルタ変更時は表示数をリセット
+  useEffect(()=>{ setVisibleDays(7); },[q, selCropId, fW]);
 
   // ひらがな↔カタカナ変換
   const toHira = s => s.replace(/[\u30a1-\u30f6]/g, c=>String.fromCharCode(c.charCodeAt(0)-0x60));
@@ -2869,7 +2872,7 @@ function TimelineScreen({ fields, crops, equips, logs, setLogs, setLogsR, showTo
 
       {/* 日付グループ別表示 */}
       {!grouped.length&&<div style={{color:TX3,fontSize:'.82rem',padding:16,textAlign:'center'}}>記録がありません</div>}
-      {grouped.map(g=>(
+      {grouped.slice(0,visibleDays).map(g=>(
         <div key={g.date} style={{marginBottom:16}}>
           {/* 日付ヘッダー */}
           <div style={{fontSize:'.72rem',fontWeight:700,color:'#5c3d1e',padding:'4px 2px',borderBottom:'2px solid #e0d9ce',marginBottom:8}}>
@@ -2966,6 +2969,16 @@ function TimelineScreen({ fields, crops, equips, logs, setLogs, setLogsR, showTo
 
         </div>
       ))}
+
+      {/* もっと見る */}
+      {grouped.length>visibleDays&&(
+        <div style={{textAlign:'center',padding:'8px 0 4px'}}>
+          <button onClick={()=>setVisibleDays(v=>v+7)}
+            style={{padding:'9px 22px',borderRadius:999,border:'1px solid '+G,background:'#fff',color:G,fontSize:'.8rem',fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>
+            もっと見る（残り{grouped.length-visibleDays}日分）
+          </button>
+        </div>
+      )}
 
       {/* 外クリックでドロップダウン閉じる */}
       {openDd&&<div style={{position:'fixed',top:0,left:0,right:0,bottom:0,zIndex:9998}} onClick={()=>setOpenDd(false)}/>}
