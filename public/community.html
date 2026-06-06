@@ -176,6 +176,8 @@ function makeLatestHtml(l){
   if(l.fert_name) detail=l.fert_name+(l.fert_amt?' '+l.fert_amt+(l.fert_unit||''):'');
   else if(l.pest_name) detail=l.pest_name+(l.pest_dil?' '+l.pest_dil+'倍':'');
   else if(l.hv_kg||l.hv_cnt) detail=(l.hv_kg||0)+'kg'+(l.hv_cnt?' '+l.hv_cnt+'個':'');
+  else if(l.transplant_qty) detail='定植 '+l.transplant_qty+'株';
+  else if(l.work==='equip'&&l.equip_act) detail=l.equip_act;
   else if(l.event_type) detail=l.event_type;
   var html='<div class="latest-log">';
   html+='<div class="latest-top">';
