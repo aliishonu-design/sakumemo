@@ -1162,7 +1162,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.1</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.2</div>
       </div>
     </div>
   );
@@ -4334,7 +4334,7 @@ export default function App() {
           setInitLogs(copied);setInitLog(base);setLogModal(true);
           showToast('記録をコピーしました。内容を確認して保存してください');
         }}
-      /> }</>}
+      /></>}
         
         {scr==="plot"    &&<PlanScreen    fields={fields} crops={crops} setCrops={setCrops} plots={plots} setPlots={setPlots} setPlotsR={setPlotsR} showToast={showToast} setScr={setScr}/>}
         {scr==="cost"    &&<CostScreen    fields={fields} crops={crops} fertMs={fertMs} pestMs={pestMs} equips={equips} costs={costs} setCosts={setCosts} logs={logs} showToast={showToast}/>}
