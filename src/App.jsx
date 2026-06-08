@@ -1162,7 +1162,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.2</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.3</div>
       </div>
     </div>
   );
@@ -1444,7 +1444,7 @@ function MasterScreen({ fertMs, setFertMs, pestMs, setPestMs, equips, setEquips,
 
   // 購入保存
   const saveBuy = () => {
-    if(!mBuy.cnt||!mBuy.amt){showToast("個数と金額を入力してください");return;}
+    if(!mBuy.cnt){showToast("個数を入力してください");return;}
     const cnt = parseFloat(mBuy.cnt)||0;
     const cap = parseFloat(mBuy.capacity)||0;
     const addStock = cap>0 ? cnt*cap : cnt;
@@ -1622,7 +1622,7 @@ function MasterScreen({ fertMs, setFertMs, pestMs, setPestMs, equips, setEquips,
                 setMBuy({...mBuy,cnt:v,amt:autoAmt,_addStock:cap>0?cnt*cap:cnt});
               }} placeholder="例：3"/>
             </FG>
-            <FG label="購入金額（円）">
+            <FG label="購入金額（円・任意）">
               <Inp type="number" value={mBuy.amt||""} onChange={v=>setMBuy({...mBuy,amt:v})} placeholder="自動計算"/>
             </FG>
           </R2>
