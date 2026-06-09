@@ -753,8 +753,8 @@ async function fetchWeather(addr) {
       +"?latitude="+lat+"&longitude="+lon
       +"&current=temperature_2m,weathercode,precipitation,windspeed_10m,relative_humidity_2m"
       +"&hourly=temperature_2m,weathercode,precipitation_probability,precipitation,windspeed_10m"
-      +"&daily=temperature_2m_max,temperature_2m_min,weathercode,precipitation_sum,precipitation_probability_max"
-      +"&timezone=Asia%2FTokyo&forecast_days=16";
+      +"&daily=temperature_2m_max,temperature_2m_min,weathercode,precipitation_sum,precipitation_probability_max,sunshine_duration"
+      +"&timezone=Asia%2FTokyo&forecast_days=16&wind_speed_unit=ms";
     const r = await fetch(url);
     const d = await r.json();
     const c = d.current;
@@ -774,6 +774,7 @@ async function fetchWeather(addr) {
       wind:  Math.round(c.windspeed_10m),
       humid: Math.round(c.relative_humidity_2m),
       daily: d.daily,
+      sunshine: (d.daily?.sunshine_duration||[])[0]||null, // 今日の日照時間(秒)
       hourly: hourSlots.map(({t,i})=>({
         hour: new Date(t).getHours(),
         temp: Math.round(hourly.temperature_2m[i]),
@@ -1162,7 +1163,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.3</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.4</div>
       </div>
     </div>
   );
@@ -1286,7 +1287,7 @@ function HomeScreen({ fields, crops, setCrops, logs, costs, onEditCrop, showToas
             <div>
               <div style={{fontSize:"1.8rem",fontWeight:700,lineHeight:1}}>{wx.temp}°C</div>
               <div style={{fontSize:".72rem",opacity:.8,marginTop:2}}>{wx.label} / {wxLabel(wx.code)}</div>
-              <div style={{display:"flex",gap:8,marginTop:3,fontSize:".68rem",opacity:.78}}><span>💧{wx.rain}mm</span><span>💨{wx.wind}m/s</span><span>💦{wx.humid}%</span></div>
+              <div style={{display:"flex",gap:8,marginTop:3,fontSize:".68rem",opacity:.78}}><span>💧{wx.rain}mm</span><span>💨{wx.wind}m/s</span><span>💦{wx.humid}%</span>{wx.sunshine!==null&&wx.sunshine!==undefined&&<span>☀️{Math.round(wx.sunshine/3600)}h</span>}</div>
             </div>
             <div style={{background:"rgba(255,255,255,.19)",borderRadius:9,padding:"7px 11px",fontSize:".73rem",lineHeight:1.4,textAlign:"center",marginLeft:"auto"}}>{wxAdvice(wx)}</div>
           </div>
@@ -1323,6 +1324,7 @@ function HomeScreen({ fields, crops, setCrops, logs, costs, onEditCrop, showToas
                       <div style={{fontSize:"1.05rem",margin:"1px 0"}}>{wxIcon(wc)}</div>
                       <div style={{fontWeight:700,fontSize:".62rem"}}>{Math.round(wx.daily.temperature_2m_max[i])}°<span style={{opacity:.6}}>/{Math.round(wx.daily.temperature_2m_min[i])}°</span></div>
                       {wx.daily.precipitation_probability_max&&<div style={{fontSize:".56rem",opacity:.85,color:"#90caf9"}}>💧{wx.daily.precipitation_probability_max[i]}%</div>}
+                      {wx.daily.sunshine_duration&&<div style={{fontSize:".54rem",opacity:.85,color:"#ffd700"}}>☀️{Math.round((wx.daily.sunshine_duration[i]||0)/3600)}h</div>}
                     </div>
                   );
                 })}
@@ -3564,8 +3566,16 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs, equips=[] })
   const totalMin = logs.filter(l=>inPeriod(l.date)).reduce((s,l)=>s+(parseInt(l.duration)||0),0);
   const th=Math.floor(totalMin/60),tm=totalMin%60;
   const totalTimeStr=totalMin>0?(th>0?th+"時間"+tm+"分":tm+"分"):"0分";
-
-
+  // 天気別作業日数集計
+  const wxStats=(()=>{
+    const periodLogs=logs.filter(l=>inPeriod(l.date)&&l.weather);
+    const dateWx={};
+    periodLogs.forEach(l=>{if(l.date&&l.weather)dateWx[l.date]=l.weather;});
+    const cnt={sunny:0,cloudy:0,rainy:0,snowy:0,windy:0};
+    Object.values(dateWx).forEach(w=>{if(cnt[w]!==undefined)cnt[w]++;});
+    return cnt;
+  })();
+  const wxTotal=Object.values(wxStats).reduce((s,v)=>s+v,0);
 
   return (
     <div style={S.scr} className="scr-inner">
@@ -3823,6 +3833,23 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs, equips=[] })
       )}
 
       {/* 品目詳細: 作業記録カード */}
+      {/* 天気別作業日数 */}
+      {wxTotal>0&&(
+        <div style={{...S.card,marginBottom:8}}>
+          <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".86rem",color:"#5c3d1e",marginBottom:8}}>🌤 天気別の作業日数</div>
+          <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+            {[{k:"sunny",e:"☀️",l:"晴れ"},{k:"cloudy",e:"☁️",l:"曇り"},{k:"rainy",e:"🌧️",l:"雨"},{k:"snowy",e:"❄️",l:"雪"},{k:"windy",e:"💨",l:"強風"}].map(w=>(
+              wxStats[w.k]>0&&<div key={w.k} style={{textAlign:"center",background:"#f6f3ec",borderRadius:8,padding:"8px 12px",minWidth:54}}>
+                <div style={{fontSize:"1.2rem"}}>{w.e}</div>
+                <div style={{fontSize:".76rem",fontWeight:700,color:G}}>{wxStats[w.k]}日</div>
+                <div style={{fontSize:".62rem",color:TX3}}>{w.l}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{fontSize:".66rem",color:TX3,marginTop:6}}>※ 天気を記録した日数のみ集計（全{wxTotal}日）</div>
+        </div>
+      )}
+
       {sel&&dispLogs.length>0&&(
         <div style={{marginTop:8}}>
           <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".82rem",color:"#5c3d1e",fontWeight:700,marginBottom:8,paddingLeft:2}}>
