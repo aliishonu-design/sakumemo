@@ -739,6 +739,35 @@ async function uploadPhoto(blob, userId, filename) {
   }
 }
 
+// 過去気象データ取得（Open-Meteo Archive API）
+async function fetchClimateData(addr, startDate, endDate) {
+  let lat=34.9756, lon=138.3827;
+  if(addr) {
+    try {
+      const r=await fetch("https://nominatim.openstreetmap.org/search?q="+encodeURIComponent(addr+" Japan")+"&format=json&limit=1",{headers:{"User-Agent":"FarmAI/1.0"}});
+      const d=await r.json(); if(d[0]){lat=parseFloat(d[0].lat);lon=parseFloat(d[0].lon);}
+    } catch {}
+  }
+  try {
+    const url="https://archive-api.open-meteo.com/v1/archive"
+      +"?latitude="+lat+"&longitude="+lon
+      +"&start_date="+startDate+"&end_date="+endDate
+      +"&daily=sunshine_duration,precipitation_sum&timezone=Asia%2FTokyo";
+    const r=await fetch(url); const d=await r.json();
+    if(!d.daily) return null;
+    const monthly={};
+    d.daily.time.forEach((t,i)=>{
+      const ym=t.slice(0,7);
+      if(!monthly[ym]) monthly[ym]={sunshine:0,precip:0};
+      monthly[ym].sunshine+=(d.daily.sunshine_duration[i]||0)/3600;
+      monthly[ym].precip+=(d.daily.precipitation_sum[i]||0);
+    });
+    return Object.entries(monthly).sort((a,b)=>a[0].localeCompare(b[0])).map(([ym,v])=>({
+      month:ym, sunshine:Math.round(v.sunshine*10)/10, precip:Math.round(v.precip*10)/10,
+    }));
+  } catch { return null; }
+}
+
 async function fetchWeather(addr) {
   let lat=34.9756, lon=138.3827, label="沼津（デフォルト）";
   if(addr) {
@@ -1163,7 +1192,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.4</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.6</div>
       </div>
     </div>
   );
@@ -1239,10 +1268,7 @@ function HomeScreen({ fields, crops, setCrops, logs, costs, onEditCrop, showToas
     return out.sort((a,b)=>a.sortD-b.sortD);
   })();
 
-  const [wxFieldIdx, setWxFieldIdx] = useState(0);
-  const wxField = fields[wxFieldIdx] || fields[0];
-  const addr0   = wxField?.addr || "";
-  useEffect(() => { fetchWeather(addr0).then(setWx); }, [addr0]);
+  // 作業リマインダー: 栽培中の品目について追肥時期・収穫時期を提案
 
 
   return (
@@ -1270,69 +1296,6 @@ function HomeScreen({ fields, crops, setCrops, logs, costs, onEditCrop, showToas
         </div>
       )}
 
-      {wx && (
-        <div style={{background:"linear-gradient(135deg,#1565a8,#3498db)",borderRadius:14,padding:"13px 15px",color:"#fff",marginBottom:9}}>
-          {fields.length > 1 && (
-            <div style={{display:"flex",gap:5,marginBottom:10,flexWrap:"wrap"}}>
-              {fields.map((f,i)=>(
-                <button key={f.id} onClick={()=>setWxFieldIdx(i)}
-                  style={{background:wxFieldIdx===i?"rgba(255,255,255,.9)":"rgba(255,255,255,.18)",color:wxFieldIdx===i?"#1565a8":"#fff",border:"1px solid rgba(255,255,255,.3)",borderRadius:999,padding:"3px 10px",fontSize:".71rem",cursor:"pointer",fontFamily:"inherit",fontWeight:wxFieldIdx===i?700:400}}>
-                  {f.name}
-                </button>
-              ))}
-            </div>
-          )}
-          <div style={{display:"flex",alignItems:"center",gap:11,flexWrap:"wrap"}}>
-            <span style={{fontSize:"2.3rem"}}>{wxIcon(wx.code)}</span>
-            <div>
-              <div style={{fontSize:"1.8rem",fontWeight:700,lineHeight:1}}>{wx.temp}°C</div>
-              <div style={{fontSize:".72rem",opacity:.8,marginTop:2}}>{wx.label} / {wxLabel(wx.code)}</div>
-              <div style={{display:"flex",gap:8,marginTop:3,fontSize:".68rem",opacity:.78}}><span>💧{wx.rain}mm</span><span>💨{wx.wind}m/s</span><span>💦{wx.humid}%</span>{wx.sunshine!==null&&wx.sunshine!==undefined&&<span>☀️{Math.round(wx.sunshine/3600)}h</span>}</div>
-            </div>
-            <div style={{background:"rgba(255,255,255,.19)",borderRadius:9,padding:"7px 11px",fontSize:".73rem",lineHeight:1.4,textAlign:"center",marginLeft:"auto"}}>{wxAdvice(wx)}</div>
-          </div>
-          {/* 時間別予報 */}
-          {wx.hourly && wx.hourly.length > 0 && (
-            <div style={{marginTop:10}}>
-              <div style={{fontSize:".63rem",opacity:.6,marginBottom:5}}>時間別予報</div>
-              <div style={{display:"flex",gap:5,overflowX:"auto",paddingBottom:4,WebkitOverflowScrolling:"touch"}}>
-                {wx.hourly.filter((_,i)=>i%2===0).slice(0,12).map((h,i)=>(
-                  <div key={i} style={{flexShrink:0,background:"rgba(255,255,255,.13)",borderRadius:9,padding:"5px 7px",textAlign:"center",minWidth:44}}>
-                    <div style={{fontSize:".6rem",opacity:.7}}>{h.hour}時</div>
-                    <div style={{fontSize:"1rem",margin:"2px 0"}}>{wxIcon(h.code)}</div>
-                    <div style={{fontSize:".7rem",fontWeight:700}}>{h.temp}°</div>
-                    {h.pop>0&&<div style={{fontSize:".58rem",opacity:.8,color:"#90caf9"}}>💧{h.pop}%</div>}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-          {/* 2週間予報（横スクロール）*/}
-          {wx.daily && (
-            <div style={{marginTop:8,overflowX:"auto",WebkitOverflowScrolling:"touch",margin:"8px -3px 0"}}>
-              <div style={{display:"flex",gap:5,padding:"0 3px"}}>
-                {(wx.daily.weathercode||[]).slice(0,14).map((wc,i)=>{
-                  const now=new Date();
-                  const d=new Date(now); d.setDate(d.getDate()+i);
-                  const wd=["日","月","火","水","木","金","土"][d.getDay()];
-                  const label=i===0?"今日":i===1?"明日":(d.getMonth()+1)+"/"+d.getDate();
-                  const isWeekend=d.getDay()===0||d.getDay()===6;
-                  return(
-                    <div key={i} style={{flexShrink:0,width:52,background:"rgba(255,255,255,.13)",borderRadius:9,padding:"5px 3px",textAlign:"center",fontSize:".65rem"}}>
-                      <div style={{opacity:.85,marginBottom:1,color:isWeekend?(d.getDay()===0?"#ff9e9e":"#9ec5ff"):"#fff"}}>{label}</div>
-                      <div style={{opacity:.6,fontSize:".55rem"}}>({wd})</div>
-                      <div style={{fontSize:"1.05rem",margin:"1px 0"}}>{wxIcon(wc)}</div>
-                      <div style={{fontWeight:700,fontSize:".62rem"}}>{Math.round(wx.daily.temperature_2m_max[i])}°<span style={{opacity:.6}}>/{Math.round(wx.daily.temperature_2m_min[i])}°</span></div>
-                      {wx.daily.precipitation_probability_max&&<div style={{fontSize:".56rem",opacity:.85,color:"#90caf9"}}>💧{wx.daily.precipitation_probability_max[i]}%</div>}
-                      {wx.daily.sunshine_duration&&<div style={{fontSize:".54rem",opacity:.85,color:"#ffd700"}}>☀️{Math.round((wx.daily.sunshine_duration[i]||0)/3600)}h</div>}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
 
       {/* 作業リマインダー */}
       {reminders.length>0&&(
@@ -2062,22 +2025,7 @@ function LogScreen({ fields, crops, setCrops, fertMs, pestMs, equips, costs, set
   });
   const [memo,     setMemo]     = useState("");
   const [date,     setDate]     = useState(todayStr());
-  const [weather,  setWeather]  = useState("");
-  const [wxAuto, setWxAuto] = useState(false);  // 天気を自動取得したか
-  // 作業記録を開いた時、当日なら圃場の天気を自動取得
-  useEffect(()=>{
-    if(editLog) return; // 編集時は取得しない
-    if(weather) return; // 既に選択済みなら上書きしない
-    if(date!==todayStr()) return; // 当日のみ
-    let cancelled=false;
-    const addr=fields[fieldIdx]?.addr||fields[0]?.addr||"";
-    fetchWeather(addr).then(wx=>{
-      if(cancelled||!wx||wx.code===undefined) return;
-      const cat=wxToCategory(wx.code, wx.wind);
-      setWeather(cat); setWxAuto(true);
-    }).catch(()=>{});
-    return ()=>{cancelled=true;};
-  },[date, fieldIdx]);
+
   const [time,     setTime]     = useState(nowTime());
   const [dur,      setDur]      = useState("");
   const [logImg,   setLogImg]   = useState(null);
@@ -2142,7 +2090,7 @@ useEffect(()=>{
     if(!editLog) {
       setEditId(null);setWorks(new Set());setMemo("");setLogImg(null);setLogImg2(null);setLogImg3(null);
       setHvGrades({秀品:{kg:"",cnt:"",price:""},優品:{kg:"",cnt:"",price:""},良品:{kg:"",cnt:"",price:""},規格外:{kg:"",cnt:"",price:""}});
-      setFieldIdx(0);setCropId("");setDate(todayStr());setTime(nowTime());setDur("");setWeather("");
+      setFieldIdx(0);setCropId("");setDate(todayStr());setTime(nowTime());setDur("");
       setSowQty("");setGermCnt("");setGermDate(todayStr());setTranspQty("");
       setFertIdx("");setFertName("");setFertAmt("");setFertUnit("kg");setFertMeth("追肥");setFertCost("");setFertEntries([]);
       setPestIdx("");setPestName("");setPestDil("");setPestAmt("");setPestUnit("L");setPestTgt("");setPestCost("");setPestEntries([]);setPestSprayAmt("");
@@ -2160,7 +2108,6 @@ useEffect(()=>{
     setWorks(_allWorks);
     setMemo(editLog.memo||"");
     setDate(editLog.date||todayStr());
-    setWeather(editLog.weather||"");
     setTime(editLog.time||nowTime());
     setDur(editLog.duration||"");
 
@@ -2308,7 +2255,7 @@ useEffect(()=>{
       const e = {
         id: existingId || uid0(),
         _groupId: groupId || null,
-        fieldIdx, cropId, date, time, duration:dur, work:w, weather,
+        fieldIdx, cropId, date, time, duration:dur, work:w,
         // メモ・写真は1件目のみ
         memo: isFirst ? memo : '',
         imgSrc: isFirst ? imgUrl||null : null,
@@ -2725,13 +2672,7 @@ useEffect(()=>{
           </>;})()}
         </FG>
         <R2><FG label="作業日"><Inp type="date" value={date} onChange={setDate}/></FG><FG label="作業時刻"><Inp type="time" value={time} onChange={setTime}/></FG></R2>
-        <FG label={"天気（任意）"+(wxAuto&&weather?"  ✓自動取得":"")}>
-          <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-            {[{v:"sunny",e:"☀️",l:"晴れ"},{v:"cloudy",e:"☁️",l:"曇り"},{v:"rainy",e:"🌧️",l:"雨"},{v:"snowy",e:"❄️",l:"雪"},{v:"windy",e:"💨",l:"強風"}].map(w=>(
-              <button key={w.v} onClick={()=>{setWeather(weather===w.v?"":w.v);setWxAuto(false);}} style={{padding:"5px 10px",borderRadius:8,border:"1px solid "+(weather===w.v?G:"#e0d9ce"),background:weather===w.v?G3:"#fff",fontSize:".74rem",cursor:"pointer",color:weather===w.v?G:"#5a5040"}}>{w.e} {w.l}</button>
-            ))}
-          </div>
-        </FG>
+
         <FG label="作業時間（分）"><Inp type="number" value={dur} onChange={setDur} placeholder="30"/></FG>
         <FG label="メモ・気づき"><TA value={memo} onChange={setMemo} placeholder="天候・生育状態・気づいたことなど…"/></FG>
 
@@ -2878,25 +2819,23 @@ function TimelineScreen({ fields, crops, equips, logs, setLogs, setLogsR, showTo
         // 全カードをフラット化してvisibleCards件に絞る
         const allCards=[];
         grouped.forEach(g=>{
-          groupDayLogs(g.logs).forEach(card=>allCards.push({...card,_date:g.date,_weather:g.logs.find(l=>l.weather)?.weather}));
+          groupDayLogs(g.logs).forEach(card=>allCards.push({...card,_date:g.date}));
         });
         const shown=allCards.slice(0,visibleCards);
         // 表示分を日付でまとめ直す
         const dateOrder=[]; const byDate={};
         shown.forEach(card=>{
-          if(!byDate[card._date]){byDate[card._date]={cards:[],weather:card._weather};dateOrder.push(card._date);}
+          if(!byDate[card._date]){byDate[card._date]={cards:[]};dateOrder.push(card._date);}
           byDate[card._date].cards.push(card);
         });
         return <>
           {dateOrder.map(date=>{
-            const {cards:dcards,weather:dwx}=byDate[date];
-            const wxMap={sunny:"☀️",cloudy:"☁️",rainy:"🌧️",snowy:"❄️",windy:"💨"};
+            const {cards:dcards}=byDate[date];
             return (
               <div key={date} style={{marginBottom:16}}>
                 {/* 日付ヘッダー */}
                 <div style={{fontSize:'.72rem',fontWeight:700,color:'#5c3d1e',padding:'4px 2px',borderBottom:'2px solid #e0d9ce',marginBottom:8}}>
                   📅 {fmtYMD(date)}
-                  {dwx&&<span style={{marginLeft:8,fontSize:'.9rem'}}>{wxMap[dwx]||''}</span>}
                 </div>
                 {/* カード */}
                 {dcards.map(card=>{
@@ -2994,441 +2933,170 @@ function TimelineScreen({ fields, crops, equips, logs, setLogs, setLogsR, showTo
 }
 
 function CostScreen({ fields, crops, fertMs, pestMs, equips, costs, setCosts, logs, showToast }) {
-  const [mCost,setMCost]=useState(null);
-  const [filterCrop,setFilterCrop]=useState("");  // 品目フィルター（""=全て, "__common"=共通費）
-  const [filterCat,setFilterCat]=useState("");     // カテゴリフィルター
-  const [sortKey,setSortKey]=useState("date");     // 並べ替えキー: date/cat/amt/crop
-  const [sortAsc,setSortAsc]=useState(false);      // 昇順か
-  const toggleSort=k=>{ if(sortKey===k){setSortAsc(a=>!a);}else{setSortKey(k);setSortAsc(k==="date"?false:true);} };
-  const empty={id:uid0(),cat:"seed",name:"",amt:"",date:todayStr(),qty:"",qunit:"",fieldIdx:"",cropId:"",note:""};
-  const total=costs.reduce((s,c)=>s+(parseFloat(c.amt)||0),0);
-  const revenue=logs.reduce((s,l)=>s+(parseFloat(l.hvKg)||0)*(parseFloat(l.hvPrice)||0),0);
-  const totalHv=logs.reduce((s,l)=>s+(parseFloat(l.hvKg)||0),0);
-  const byCat=Object.fromEntries(COST_CATS.map(c=>[c.value,0]));
-  costs.forEach(c=>{if(byCat[c.cat]!==undefined)byCat[c.cat]+=(parseFloat(c.amt)||0);});
-  const maxC=Math.max(...Object.values(byCat),1);
-  const sv=()=>{ const item={...mCost,id:mCost.id||uid0()}; const n=mCost._idx!==undefined?costs.map((x,i)=>i===mCost._idx?item:x):[...costs,item]; setCosts(n,item);setMCost(null);showToast("保存しました"); };
-  const catItems=mCost?(mCost.cat==="fert"?fertMs:mCost.cat==="pest"?pestMs:mCost.cat==="equip"?equips:[]):[];
+  const today = new Date();
+  const curYear  = String(today.getFullYear());
+  const curMonth = today.toISOString().slice(0,7);
+
+  const [unit,    setUnit]    = useState("month"); // "year" | "month"
+  const [selYear, setSelYear] = useState(curYear);
+  const [selMon,  setSelMon]  = useState(curMonth);
+  const [mCost,   setMCost]   = useState(null);
+  const [sortKey, setSortKey] = useState("date");
+  const [sortAsc, setSortAsc] = useState(false);
+
+  // 年リスト（費用の年 + 今年）
+  const years = [...new Set([curYear, ...costs.map(c=>(c.date||"").slice(0,4)).filter(Boolean)])].sort((a,b)=>b.localeCompare(a));
+  // 月リスト（選択年の月）
+  const months = Array.from({length:12},(_,i)=>selYear+"-"+String(i+1).padStart(2,"0"));
+
+  // 期間フィルタ
+  const inPeriod = d => {
+    if(!d) return false;
+    if(unit==="year")  return d.slice(0,4)===selYear;
+    if(unit==="month") return d.slice(0,7)===selMon;
+    return true;
+  };
+  const filtered = costs.filter(c=>inPeriod(c.date));
+
+  // 集計
+  const total   = filtered.reduce((s,c)=>s+(parseFloat(c.amt)||0),0);
+  const revenue = logs.filter(l=>inPeriod(l.date)).reduce((s,l)=>s+(parseFloat(l.hvKg)||0)*(parseFloat(l.hvPrice)||0),0);
+  const byCat   = Object.fromEntries(COST_CATS.map(c=>[c.value,0]));
+  filtered.forEach(c=>{if(byCat[c.cat]!==undefined)byCat[c.cat]+=(parseFloat(c.amt)||0);});
+  const maxC    = Math.max(...Object.values(byCat),1);
+
+  // ソート
+  const sorted = [...filtered].sort((a,b)=>{
+    let va,vb;
+    if(sortKey==="date") { va=a.date||""; vb=b.date||""; }
+    else if(sortKey==="amt") { va=parseFloat(a.amt)||0; vb=parseFloat(b.amt)||0; }
+    else if(sortKey==="cat") { va=a.cat||""; vb=b.cat||""; }
+    else { va=a.name||""; vb=b.name||""; }
+    return sortAsc?(va>vb?1:-1):(va<vb?1:-1);
+  });
+
+  const empty = {id:"",cat:"equip",name:"",amt:"",date:todayStr(),qty:"1",qunit:"個",cropId:"",note:""};
+  const sv = () => {
+    if(!mCost.name){showToast("品名を入力してください");return;}
+    const item={...mCost,id:mCost.id||uid0()};
+    const n=mCost._idx!==undefined?costs.map((x,i)=>i===mCost._idx?item:x):[...costs,item];
+    setCosts(n,item); setMCost(null); showToast("保存しました");
+  };
+  const cropName = id => {if(!id)return"共通";const c=crops.find(x=>x.id===id);if(!c)return"共通";const db=CDB[c.type]||{};return(db.e||"🌱")+" "+(db.n||c.type)+(c.variety?"("+c.variety+")":"");};
+  const thStyle = k => ({fontSize:".64rem",color:sortKey===k?G:TX3,cursor:"pointer",userSelect:"none",padding:"2px 4px",fontWeight:sortKey===k?700:400});
+
   return (
     <div style={S.scr} className="scr-inner">
       <div style={S.sec}><span>💰 費用管理</span><button style={S.secBtn} onClick={()=>setMCost({...empty})}>＋ 費用追加</button></div>
+
+      {/* 年/月切り替え */}
+      <div style={{display:"flex",gap:6,marginBottom:8,alignItems:"center",flexWrap:"wrap"}}>
+        <div style={{display:"flex",borderRadius:8,overflow:"hidden",border:"1px solid #e0d9ce",flexShrink:0}}>
+          {[["year","年単位"],["month","月単位"]].map(([v,l])=>(
+            <button key={v} onClick={()=>setUnit(v)} style={{padding:"6px 14px",border:"none",background:unit===v?G:"#fff",color:unit===v?"#fff":"#888",fontWeight:unit===v?700:400,fontSize:".78rem",cursor:"pointer",fontFamily:"inherit"}}>{l}</button>
+          ))}
+        </div>
+        {unit==="year"&&(
+          <select value={selYear} onChange={e=>setSelYear(e.target.value)} style={{...S.inp,width:"auto",padding:"5px 8px"}}>
+            {years.map(y=><option key={y} value={y}>{y}年</option>)}
+          </select>
+        )}
+        {unit==="month"&&(
+          <div style={{display:"flex",gap:4}}>
+            <select value={selMon.slice(0,4)} onChange={e=>setSelMon(e.target.value+"-"+selMon.slice(5,7))} style={{...S.inp,width:"auto",padding:"5px 8px"}}>
+              {years.map(y=><option key={y} value={y}>{y}年</option>)}
+            </select>
+            <select value={selMon} onChange={e=>setSelMon(e.target.value)} style={{...S.inp,width:"auto",padding:"5px 8px"}}>
+              {months.map(m=><option key={m} value={m}>{parseInt(m.slice(5))}月</option>)}
+            </select>
+          </div>
+        )}
+        <span style={{fontSize:".72rem",color:TX3}}>{filtered.length}件・合計 {Math.round(total).toLocaleString()}円</span>
+      </div>
+
+      {/* サマリー（3枚）*/}
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:7,marginBottom:9}}>
-        {[{n:Math.round(total).toLocaleString()+"円",l:"総支出",c:ALERT},{n:Math.round(revenue).toLocaleString()+"円",l:"推定収益",c:INFO},{n:Math.round(revenue-total).toLocaleString()+"円",l:"損益",c:revenue-total>=0?G:ALERT},{n:totalHv.toFixed(1)+"kg",l:"累計収穫量",c:G}].map((s,i)=>(
-          <div key={i} style={{...S.card,textAlign:"center"}}><div style={{fontSize:"1.65rem",fontWeight:700,color:s.c,lineHeight:1}}>{s.n}</div><div style={{fontSize:".66rem",color:TX3,marginTop:3}}>{s.l}</div></div>
+        {[
+          {n:Math.round(total).toLocaleString()+"円",l:"総支出",c:ALERT},
+          {n:Math.round(revenue).toLocaleString()+"円",l:"推定収益",c:INFO},
+          {n:Math.round(revenue-total).toLocaleString()+"円",l:"損益",c:revenue-total>=0?G:ALERT},
+        ].map((s,i)=>(
+          <div key={i} style={{...S.card,textAlign:"center"}}>
+            <div style={{fontSize:"1.35rem",fontWeight:700,color:s.c,lineHeight:1}}>{s.n}</div>
+            <div style={{fontSize:".66rem",color:TX3,marginTop:3}}>{s.l}</div>
+          </div>
         ))}
       </div>
-      <div style={S.card}><div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".86rem",color:"#5c3d1e",marginBottom:8}}>カテゴリ別支出</div>
+
+      {/* カテゴリ別支出 */}
+      <div style={S.card}>
+        <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".86rem",color:"#5c3d1e",marginBottom:8}}>カテゴリ別支出</div>
         {COST_CATS.map(cat=>(
           <div key={cat.value} style={{display:"flex",alignItems:"center",gap:7,marginBottom:5}}>
             <div style={{fontSize:".7rem",minWidth:96,textAlign:"right"}}>{cat.label}</div>
-            <div style={{flex:1,background:"#eee",borderRadius:999,height:8,overflow:"hidden"}}><div style={{height:"100%",borderRadius:999,background:"linear-gradient(90deg,"+G+","+G2+")",width:Math.round(byCat[cat.value]/maxC*100)+"%",transition:"width .7s ease"}}/></div>
+            <div style={{flex:1,background:"#eee",borderRadius:999,height:8,overflow:"hidden"}}>
+              <div style={{height:"100%",borderRadius:999,background:"linear-gradient(90deg,"+G+","+G2+")",width:Math.round(byCat[cat.value]/maxC*100)+"%",transition:"width .7s ease"}}/>
+            </div>
             <div style={{fontSize:".68rem",color:TX3,minWidth:60}}>{Math.round(byCat[cat.value]).toLocaleString()}円</div>
           </div>
         ))}
       </div>
-      <div style={S.card}><div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".86rem",color:"#5c3d1e",marginBottom:8}}>費用一覧</div>
-        {/* フィルター */}
-        <div style={{display:"flex",gap:6,marginBottom:10,flexWrap:"wrap"}}>
-          <Sel value={filterCrop} onChange={setFilterCrop} style={{flex:"1 1 45%",fontSize:".78rem"}}
-            options={[{value:"",label:"🌱 全ての品目"},{value:"__common",label:"📦 共通費（未割当）"},...crops.map(c=>{const db=CDB[c.type]||{};return{value:c.id,label:(db.e||"🌱")+" "+(c.type==="custom"?c.customName||"カスタム":db.n||c.type)+(c.variety?"("+c.variety+")":"")};})]}/>
-          <Sel value={filterCat} onChange={setFilterCat} style={{flex:"1 1 45%",fontSize:".78rem"}}
-            options={[{value:"",label:"全カテゴリ"},...COST_CATS]}/>
+
+      {/* 費用一覧 */}
+      <div style={S.card}>
+        <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".86rem",color:"#5c3d1e",marginBottom:8}}>費用一覧</div>
+        {/* ソートヘッダー */}
+        <div style={{display:"flex",gap:2,paddingBottom:4,borderBottom:"1px solid #f0ebe3",marginBottom:4}}>
+          {[["date","日付"],["cat","種別"],["name","品名"],["amt","金額"]].map(([k,l])=>(
+            <span key={k} style={thStyle(k)} onClick={()=>{if(sortKey===k)setSortAsc(!sortAsc);else{setSortKey(k);setSortAsc(k==="date"?false:false);}}}>
+              {l}{sortKey===k?(sortAsc?"▲":"▼"):""}
+            </span>
+          ))}
         </div>
-        {/* フィルター中の合計 */}
-        {(filterCrop||filterCat)&&(()=>{
-          const fc=costs.filter(c=>{if(filterCat&&c.cat!==filterCat)return false;if(filterCrop==="__common")return !c.cropId;if(filterCrop&&c.cropId!==filterCrop)return false;return true;});
-          const ft=fc.reduce((s,c)=>s+(parseFloat(c.amt)||0),0);
-          return <div style={{fontSize:".78rem",color:G,background:G3,borderRadius:8,padding:"6px 10px",marginBottom:8}}>該当 {fc.length}件 · 合計 {Math.round(ft).toLocaleString()}円</div>;
-        })()}
-        {!costs.length&&<div style={{color:TX3,fontSize:".82rem"}}>費用がまだ登録されていません</div>}
-        <table style={{width:"100%",borderCollapse:"collapse",fontSize:".76rem"}}>
-          {costs.length>0&&<thead><tr>{[{l:"日付",k:"date"},{l:"種別",k:"cat"},{l:"品名",k:null},{l:"品目",k:"crop"},{l:"金額",k:"amt"},{l:"操作",k:null}].map(h=><th key={h.l} onClick={()=>h.k&&toggleSort(h.k)} style={{background:G3,color:G,padding:"5px 6px",textAlign:"left",fontSize:".68rem",cursor:h.k?"pointer":"default",whiteSpace:"nowrap"}}>{h.l}{h.k&&sortKey===h.k?(sortAsc?" ▲":" ▼"):""}</th>)}</tr></thead>}
-          <tbody>{[...costs].filter(c=>{
-            if(filterCat&&c.cat!==filterCat)return false;
-            if(filterCrop==="__common")return !c.cropId;
-            if(filterCrop&&c.cropId!==filterCrop)return false;
-            return true;
-          }).sort((a,b)=>{
-            let r=0;
-            if(sortKey==="date") r=(a.date||"").localeCompare(b.date||"");
-            else if(sortKey==="cat") r=(a.cat||"").localeCompare(b.cat||"");
-            else if(sortKey==="amt") r=(parseFloat(a.amt)||0)-(parseFloat(b.amt)||0);
-            else if(sortKey==="crop"){
-              const an=a.cropId?(CDB[crops.find(x=>x.id===a.cropId)?.type]?.n||"zzz"):"zzz共通";
-              const bn=b.cropId?(CDB[crops.find(x=>x.id===b.cropId)?.type]?.n||"zzz"):"zzz共通";
-              r=an.localeCompare(bn);
-            }
-            return sortAsc?r:-r;
-          }).map((c,ri)=>{const oi=costs.indexOf(c);return<tr key={ri}><td style={{padding:"5px 6px",borderBottom:"1px solid "+BD}}>{c.date?fmtYMD(c.date):"—"}</td><td style={{padding:"5px 6px",borderBottom:"1px solid "+BD}}>{COST_CATS.find(x=>x.value===c.cat)?.label||c.cat}</td><td style={{padding:"5px 6px",borderBottom:"1px solid "+BD}}>{c.name}</td><td style={{padding:"5px 6px",borderBottom:"1px solid "+BD,fontSize:".7rem",color:c.cropId?"#2d6a3f":"#aaa"}}>{(()=>{if(!c.cropId)return"共通";const cr=crops.find(x=>x.id===c.cropId);if(!cr)return"共通";const db=CDB[cr.type]||{};return(db.e||"🌱")+(cr.type==="custom"?cr.customName||"":db.n||cr.type);})()}</td><td style={{padding:"5px 6px",borderBottom:"1px solid "+BD}}><b>{Math.round(c.amt||0).toLocaleString()}円</b></td><td style={{padding:"5px 6px",borderBottom:"1px solid "+BD,whiteSpace:"nowrap"}}><button style={{...S.btn,...S.btnS,...S.btnSm}} onClick={()=>setMCost({...c,_idx:oi})}>編集</button> <button style={{...S.btn,...S.btnR,...S.btnSm}} onClick={()=>{if(!window.confirm("削除しますか?"))return;dbDelete("costs",c.id);setCosts(costs.filter((_,j)=>j!==oi));showToast("削除しました");}}>削除</button></td></tr>;})}
-          </tbody>
-        </table>
-      </div>
-      <ModalWithSave open={!!mCost} onSave={sv} onClose={()=>setMCost(null)} title={mCost?._idx!==undefined?"費用を編集":"購入費用を登録"}>
-        {mCost&&<><FG label="カテゴリ"><Sel value={mCost.cat} onChange={v=>setMCost({...mCost,cat:v})} options={COST_CATS}/></FG>{catItems.length>0&&<FG label="品目から選ぶ"><Sel value="" onChange={v=>{const item=catItems[parseInt(v)];if(item)setMCost({...mCost,name:item.name,...(mCost.cat==="equip"?{amt:item.price||""}:{})});}} options={[{value:"",label:"手動入力"},...catItems.map((x,i)=>({value:i,label:x.name}))]}/></FG>}<FG label="品名"><Inp value={mCost.name} onChange={v=>setMCost({...mCost,name:v})} placeholder="例：トマト種子"/></FG><R2><FG label="金額（円）"><Inp type="number" value={mCost.amt} onChange={v=>setMCost({...mCost,amt:v})}/></FG><FG label="購入日"><Inp type="date" value={mCost.date} onChange={v=>setMCost({...mCost,date:v})}/></FG></R2><R2><FG label="数量"><Inp type="number" value={mCost.qty} onChange={v=>setMCost({...mCost,qty:v})}/></FG><FG label="単位"><Inp value={mCost.qunit} onChange={v=>setMCost({...mCost,qunit:v})} placeholder="袋"/></FG></R2><FG label="関連圃場"><Sel value={mCost.fieldIdx} onChange={v=>setMCost({...mCost,fieldIdx:v})} options={[{value:"",label:"全体"},...fields.map((f,i)=>({value:i,label:f.name}))]}/></FG>
-        <FG label="品目に割り当て（任意・未割当は共通費）">
-          <Sel value={mCost.cropId||""} onChange={v=>setMCost({...mCost,cropId:v})}
-            options={[{value:"",label:"未割当（共通費）"},...crops.map(c=>{const db=CDB[c.type]||{};return{value:c.id,label:(db.e||"🌱")+" "+(c.type==="custom"?c.customName||"カスタム":db.n||c.type)+(c.variety?"("+c.variety+")":"")+(c.ended?"（終了）":"")};})]}/>
-        </FG><FG label="メモ"><Inp value={mCost.note} onChange={v=>setMCost({...mCost,note:v})}/></FG></>}
-      </ModalWithSave>
-    </div>
-  );
-}
-
-
-// PLAN (栽培計画 - ガントチャート)
-function PlanScreen({ fields, crops, setCrops, plots, setPlots, setPlotsR, showToast, setScr }) {
-  const [selFieldIdx, setSelFieldIdx] = useState(0);
-  const [year, setYear] = useState(new Date().getFullYear());
-  const [mPlant, setMPlant] = useState(null);  // 作付け編集モーダル
-  const [drag, setDrag] = useState(null);     // ドラッグ中 {id, mode:"move"|"start"|"end", startX, origPlant, origHarvest}
-  const laneRef = useRef(null);                // ガント行の幅取得用
-
-  const selField = fields[selFieldIdx];
-  // この圃場の計画データ（plotsを流用。type:"plan"で区別）
-  const plan = plots.find(p=>p.fieldId===selField?.id && p.kind==="plan");
-
-  const PALETTE30=["#e74c3c","#3498db","#2ecc71","#f39c12","#9b59b6","#1abc9c","#e67e22","#34495e","#e84393","#00b894","#fdcb6e","#6c5ce7","#d63031","#0984e3","#00cec9","#fab1a0","#a29bfe","#ff7675","#55efc4","#ffeaa7","#fd79a8","#74b9ff","#81ecec","#ff7f50","#badc58","#f0932b","#eb4d4b","#22a6b3","#be2edd","#7ed6df"];
-  const cropColorByType = type => {
-    const keys = Object.keys(CDB);
-    const idx = keys.indexOf(type);
-    return idx>=0 ? PALETTE30[idx%30] : "#95a5a6";
-  };
-  const cropLabel = type => { const db=CDB[type]||{}; return (db.e||"🌱")+" "+(db.n||type); };
-  // 品目オブジェクトから「絵文字 名前(品種)」を生成
-  const cropFull = c => { if(!c) return ""; const db=CDB[c.type]||{}; const nm=c.type==="custom"?(c.customName||"カスタム"):(db.n||c.type); return (db.e||"🌱")+" "+nm+(c.variety?"("+c.variety+")":""); };
-
-  // 計画を初期化（区画3つ）
-  const initPlan = () => {
-    const p = {
-      id: uid0(), fieldId: selField?.id||"", kind:"plan", name:(selField?.name||"")+" 栽培計画",
-      beds:[{id:uid0(),name:"区画1"},{id:uid0(),name:"区画2"},{id:uid0(),name:"区画3"}],
-      plantings:[],
-      cols:20,rows:20,cells:[],season:"",cellSize:30,  // plot互換用ダミー
-    };
-    setPlots([...plots, p], p);
-    showToast("栽培計画を作成しました");
-  };
-
-  const savePlan = (updated) => {
-    const n = plots.map(p=>p.id===updated.id?updated:p);
-    setPlots(n, updated);
-  };
-
-  // ガントバーのドラッグ（伸縮・移動）
-  const yearStartMs = ()=> new Date(year,0,1).getTime();
-  const yearSpanMs  = ()=> new Date(year,11,31).getTime()-new Date(year,0,1).getTime();
-  const pxToDays = (dx)=>{
-    const w = laneRef.current?.offsetWidth || 1;
-    const msPerPx = yearSpanMs()/w;
-    return Math.round(dx*msPerPx/86400000);
-  };
-  const addDays = (dateStr, days)=>{ const d=new Date(dateStr); d.setDate(d.getDate()+days); return d.toISOString().slice(0,10); };
-  const onDragStart = (e, pl, mode)=>{
-    e.stopPropagation();
-    const clientX = e.touches?e.touches[0].clientX:e.clientX;
-    const clientY = e.touches?e.touches[0].clientY:e.clientY;
-    const hv = pl.harvestDate||calcHarvest(pl.cropId,pl.plantDate);
-    setDrag({id:pl.id, mode, startX:clientX, startY:clientY, origPlant:pl.plantDate, origHarvest:hv, origBed:pl.bedId, moved:false});
-  };
-  useEffect(()=>{
-    if(!drag) return;
-    const onMove = (e)=>{
-      if(e.touches && e.cancelable) e.preventDefault();  // タッチ時はスクロールより移動を優先
-      const clientX = e.touches?e.touches[0].clientX:e.clientX;
-      const dx = clientX - drag.startX;
-      const days = pxToDays(dx);
-      if(Math.abs(days)<1 && !drag.moved) return;
-      setDrag(d=>({...d,moved:true}));
-      const cur = (plan.plantings||[]).find(p=>p.id===drag.id);
-      if(!cur) return;
-      let np=drag.origPlant, nh=drag.origHarvest, nbed=drag.origBed;
-      if(drag.mode==="move"){
-        np=addDays(drag.origPlant,days); nh=addDays(drag.origHarvest,days);
-        // 縦方向: ドラッグ位置の区画行を判定して区画変更
-        const clientY=e.touches?e.touches[0].clientY:e.clientY;
-        const el=document.elementFromPoint(clientX, clientY);
-        const bedEl=el&&el.closest?el.closest("[data-bedrow]"):null;
-        if(bedEl&&bedEl.dataset.bedrow){ nbed=bedEl.dataset.bedrow; }
-      }
-      else if(drag.mode==="start"){ np=addDays(drag.origPlant,days); if(np>=nh) np=drag.origHarvest; }
-      else if(drag.mode==="end"){ nh=addDays(drag.origHarvest,days); if(nh<=np) nh=drag.origPlant; }
-      const plantings=plan.plantings.map(p=>p.id===drag.id?{...p,plantDate:np,harvestDate:nh,bedId:nbed}:p);
-      setPlotsR(plots.map(pp=>pp.id===plan.id?{...plan,plantings}:pp));
-    };
-    const onUp = ()=>{
-      const cur=(plots.find(p=>p.id===plan.id)?.plantings||[]).find(p=>p.id===drag.id);
-      if(cur && drag.moved){ savePlan(plots.find(p=>p.id===plan.id)); showToast("期間を変更しました"); }
-      setDrag(null);
-    };
-    window.addEventListener("mousemove",onMove);
-    window.addEventListener("mouseup",onUp);
-    window.addEventListener("touchmove",onMove,{passive:false});
-    window.addEventListener("touchend",onUp);
-    return ()=>{
-      window.removeEventListener("mousemove",onMove);
-      window.removeEventListener("mouseup",onUp);
-      window.removeEventListener("touchmove",onMove);
-      window.removeEventListener("touchend",onUp);
-    };
-  },[drag, plan, plots]);
-
-  const addBed = () => {
-    const beds=[...(plan.beds||[]), {id:uid0(), name:"区画"+((plan.beds?.length||0)+1)}];
-    savePlan({...plan, beds});
-  };
-  const renameBed = (bedId) => {
-    const bed=plan.beds.find(b=>b.id===bedId);
-    const nm=window.prompt("区画名を変更", bed?.name||"");
-    if(nm===null)return;
-    savePlan({...plan, beds:plan.beds.map(b=>b.id===bedId?{...b,name:nm}:b)});
-  };
-  const deleteBed = (bedId) => {
-    if(!window.confirm("この区画と作付けを削除しますか？"))return;
-    savePlan({...plan, beds:plan.beds.filter(b=>b.id!==bedId), plantings:(plan.plantings||[]).filter(pl=>pl.bedId!==bedId)});
-  };
-
-  // 作付けの保存
-  const savePlanting = () => {
-    if(!mPlant.cropId){ showToast("品目を選択してください"); return; }
-    if(!mPlant.plantDate){ showToast("定植日を入力してください"); return; }
-    const pl={...mPlant, id:mPlant.id||uid0()};
-    const exists=(plan.plantings||[]).some(x=>x.id===pl.id);
-    const plantings=exists?plan.plantings.map(x=>x.id===pl.id?pl:x):[...(plan.plantings||[]),pl];
-    savePlan({...plan, plantings});
-    setMPlant(null);
-    showToast("保存しました");
-  };
-  const deletePlanting = (id) => {
-    savePlan({...plan, plantings:plan.plantings.filter(x=>x.id!==id)});
-    setMPlant(null);
-    showToast("削除しました");
-  };
-
-  // 計画の作付けを実際の栽培中品目として登録
-  const plantToCrop = (pl) => {
-    const tmpl = crops.find(x=>x.id===pl.cropId);  // 計画で参照していた品目（テンプレ）
-    if(!tmpl){ showToast("品目が見つかりません"); return; }
-    if(!window.confirm(cropFull(tmpl)+"を栽培中の品目として登録しますか？")) return;
-    const fieldIdx = fields.findIndex(f=>f.id===selField?.id);
-    const newCrop = {
-      ...tmpl,
-      id: uid0(),
-      fieldIdx: fieldIdx>=0?fieldIdx:0,
-      fieldId: selField?.id||"",
-      plantDate: pl.plantDate||"",
-      sowDate: tmpl.startMethod==="sow"?(pl.plantDate||""):"",
-      ended:false, endDate:"",
-      _fromPlan:true,
-    };
-    setCrops([...crops, newCrop], newCrop, fields);
-    // 計画側に登録済みフラグ
-    savePlan({...plan, plantings:plan.plantings.map(x=>x.id===pl.id?{...x,registered:true,cropRealId:newCrop.id}:x)});
-    setMPlant(null);
-    showToast("栽培中の品目に登録しました🌱");
-    if(setScr) setScr("fields");
-  };
-
-  // 収穫予定日を品目から自動計算
-  const calcHarvest = (cropId, plantDate) => {
-    if(!plantDate) return "";
-    const c=crops.find(x=>x.id===cropId);
-    const db=c?CDB[c.type]||{}:{};
-    const days=db.maturity?.[c?.maturity||"mid"]||db.d||90;
-    const d=new Date(plantDate); d.setDate(d.getDate()+days);
-    return d.toISOString().slice(0,10);
-  };
-
-  // 連作チェック：同じ区画で前作と次作が同じNG科＆間隔がNG年数未満
-  const checkPlanRotation = () => {
-    const warns=[];
-    if(!plan) return warns;
-    (plan.beds||[]).forEach(bed=>{
-      const items=(plan.plantings||[]).filter(p=>p.bedId===bed.id&&p.plantDate)
-        .map(p=>{const c=crops.find(x=>x.id===p.cropId);return{...p,crop:c,fam:c?FAMILY_DB[c.type]:null,rot:c?ROTATION_DB[c.type]:null};})
-        .sort((a,b)=>a.plantDate.localeCompare(b.plantDate));
-      for(let i=0;i<items.length;i++){
-        for(let j=0;j<i;j++){
-          const cur=items[i], past=items[j];
-          if(!cur.rot||cur.rot.years<=0||!cur.rot.ng.length)continue;
-          if(!cur.fam||!past.fam)continue;
-          if(!cur.rot.ng.includes(past.fam))continue;
-          const gapYears=(new Date(cur.plantDate)-new Date(past.plantDate))/(86400000*365);
-          if(gapYears<cur.rot.years){
-            warns.push({bed:bed.name, cur:cropFull(cur.crop), past:cropFull(past.crop), fam:cur.fam, years:cur.rot.years, gap:Math.floor(gapYears*10)/10});
-          }
-        }
-      }
-    });
-    return warns;
-  };
-
-  if(fields.length===0) return <div style={S.scr} className="scr-inner"><div style={{color:TX3,fontSize:".82rem",padding:16,textAlign:"center"}}>先に圃場を登録してください</div></div>;
-
-  if(!plan){
-    return (
-      <div style={S.scr} className="scr-inner">
-        <div style={S.sec}><span>📅 栽培計画</span></div>
-        <FG label="圃場を選択"><Sel value={selFieldIdx} onChange={v=>setSelFieldIdx(parseInt(v))} options={fields.map((f,i)=>({value:i,label:f.name}))}/></FG>
-        <div style={{color:TX3,fontSize:".82rem",padding:16,textAlign:"center"}}>この圃場の栽培計画はまだありません</div>
-        <button style={{...S.btn,...S.btnG}} onClick={initPlan}>＋ 栽培計画を作る</button>
-      </div>
-    );
-  }
-
-  // ガント表示用：月のリスト（1〜12月）
-  const months=Array.from({length:12},(_, i)=>i+1);
-  const yearStart=new Date(year,0,1).getTime();
-  const yearEnd=new Date(year,11,31).getTime();
-  const yearSpan=yearEnd-yearStart;
-  const datePct=d=>{const t=new Date(d).getTime();return Math.max(0,Math.min(100,(t-yearStart)/yearSpan*100));};
-  const warns=checkPlanRotation();
-
-  return (
-    <div style={S.scr} className="scr-inner">
-      <div style={{...S.sec,flexWrap:"wrap",gap:6}}>
-        <span>📅 栽培計画</span>
-        <div style={{display:"flex",gap:6,alignItems:"center"}}>
-          <button onClick={()=>setYear(y=>y-1)} style={{...S.btn,...S.btnS,...S.btnSm}}>‹</button>
-          <span style={{fontSize:".82rem",fontWeight:700,minWidth:46,textAlign:"center"}}>{year}年</span>
-          <button onClick={()=>setYear(y=>y+1)} style={{...S.btn,...S.btnS,...S.btnSm}}>›</button>
-        </div>
-      </div>
-
-      <FG label="圃場を選択"><Sel value={selFieldIdx} onChange={v=>setSelFieldIdx(parseInt(v))} options={fields.map((f,i)=>({value:i,label:f.name}))}/></FG>
-
-      {/* 連作警告 */}
-      {warns.length>0&&<div style={{...S.card,background:"#fff3cd",border:"1px solid #ffc107"}}>
-        <div style={{fontSize:".76rem",fontWeight:700,color:"#856404",marginBottom:4}}>⚠️ 連作注意（{warns.length}件）</div>
-        {warns.slice(0,6).map((w,i)=>(
-          <div key={i} style={{fontSize:".7rem",color:"#856404",lineHeight:1.5}}>
-            ・{w.bed}: {w.cur}（{w.fam}）。前作{w.past}から{w.gap}年（{w.years}年空けるのが目安）
-          </div>
-        ))}
-      </div>}
-
-      {/* ガントチャート */}
-      <div style={{...S.card,overflowX:"auto",WebkitOverflowScrolling:"touch",padding:"10px 8px"}}>
-        <div className="no-select" style={{minWidth:560,userSelect:"none",WebkitUserSelect:"none"}}>
-          {/* 月ヘッダー */}
-          <div style={{display:"flex",borderBottom:"2px solid #e0d9ce",marginBottom:4}}>
-            <div style={{width:70,flexShrink:0,fontSize:".68rem",fontWeight:700,color:"#5c3d1e"}}>区画</div>
-            <div ref={laneRef} style={{flex:1,display:"flex"}}>
-              {months.map(m=>(<div key={m} style={{flex:1,fontSize:".62rem",color:TX3,textAlign:"center",borderLeft:"1px solid #f0ebe3"}}>{m}月</div>))}
+        {!sorted.length&&<div style={{color:TX3,fontSize:".8rem",textAlign:"center",padding:12}}>この期間の費用はありません</div>}
+        {sorted.map((c,i)=>{
+          const cat=COST_CATS.find(x=>x.value===c.cat);
+          return (
+            <div key={c.id||i} style={{display:"flex",alignItems:"center",gap:6,padding:"7px 0",borderBottom:"1px solid #f6f3ec",cursor:"pointer"}}
+              onClick={()=>setMCost({...c,_idx:costs.indexOf(c)})}>
+              <div style={{minWidth:52,fontSize:".66rem",color:TX3}}>{c.date?fmtMD(c.date):""}</div>
+              <Tag type={cat?.tag||"gray"}>{cat?.label||c.cat}</Tag>
+              <div style={{flex:1,fontSize:".78rem",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                {c.name}
+                {c.cropId&&<span style={{fontSize:".64rem",color:TX3,marginLeft:4}}>{cropName(c.cropId)}</span>}
+              </div>
+              <div style={{fontWeight:700,fontSize:".82rem",color:ALERT,flexShrink:0}}>{(parseFloat(c.amt)||0).toLocaleString()}円</div>
             </div>
-          </div>
-          {/* 区画ごとの行 */}
-          {(plan.beds||[]).map(bed=>{
-            const items=(plan.plantings||[]).filter(p=>p.bedId===bed.id&&p.plantDate);
-            // 重なる作付けをレーン（行）に振り分け（混植・連続作付けを縦積み表示）
-            const sorted=[...items].sort((a,b)=>(a.plantDate||"").localeCompare(b.plantDate||""));
-            const lanes=[];  // 各レーンの最後の収穫日
-            const laneOf={};
-            sorted.forEach(pl=>{
-              const hv=pl.harvestDate||calcHarvest(pl.cropId,pl.plantDate);
-              let placed=-1;
-              for(let li=0;li<lanes.length;li++){ if(pl.plantDate>=lanes[li]){ placed=li; break; } }
-              if(placed<0){ placed=lanes.length; lanes.push(hv); } else { lanes[placed]=hv; }
-              laneOf[pl.id]=placed;
-            });
-            const laneCount=Math.max(1,lanes.length);
-            const rowH=laneCount*30+8;
-            return (
-              <div key={bed.id} data-bedrow={bed.id} style={{display:"flex",alignItems:"stretch",borderBottom:"1px solid #f0ebe3",minHeight:rowH}}>
-                <div style={{width:70,flexShrink:0,fontSize:".7rem",display:"flex",flexDirection:"column",justifyContent:"center",paddingRight:4}}>
-                  <span onClick={()=>renameBed(bed.id)} style={{fontWeight:700,cursor:"pointer",color:"#5c3d1e"}}>{bed.name}</span>
-                  <div style={{display:"flex",gap:3,marginTop:2}}>
-                    <button onClick={()=>setMPlant({bedId:bed.id,cropId:"",plantDate:"",harvestDate:"",year})} style={{fontSize:".6rem",border:"none",background:G3,color:G,borderRadius:5,padding:"1px 5px",cursor:"pointer"}}>＋作付け</button>
-                    <button onClick={()=>deleteBed(bed.id)} style={{fontSize:".6rem",border:"none",background:"#fee2e2",color:"#b91c1c",borderRadius:5,padding:"1px 4px",cursor:"pointer"}}>×</button>
-                  </div>
-                </div>
-                <div style={{flex:1,position:"relative",borderLeft:"1px solid #f0ebe3"}}>
-                  {/* 月の区切り線 */}
-                  {months.map(m=>(<div key={m} style={{position:"absolute",left:((m-1)/12*100)+"%",top:0,bottom:0,width:1,background:"#f5f0e8"}}/>))}
-                  {/* 作付けバー */}
-                  {items.map(pl=>{
-                    const c=crops.find(x=>x.id===pl.cropId);
-                    if(!c)return null;
-                    const hv=pl.harvestDate||calcHarvest(pl.cropId,pl.plantDate);
-                    const left=datePct(pl.plantDate);
-                    const right=datePct(hv);
-                    const width=Math.max(3,right-left);
-                    // 表示年でフィルタ
-                    const py=new Date(pl.plantDate).getFullYear();
-                    const hy=new Date(hv).getFullYear();
-                    if(hy<year||py>year)return null;
-                    return (
-                      <div key={pl.id} className="gantt-bar"
-                        style={{position:"absolute",left:left+"%",width:width+"%",top:(4+(laneOf[pl.id]||0)*30),height:26,background:cropColorByType(c.type),borderRadius:5,display:"flex",alignItems:"center",fontSize:".62rem",color:"#fff",overflow:"hidden",whiteSpace:"nowrap",boxShadow:"0 1px 3px rgba(0,0,0,.2)",touchAction:"none"}}>
-                        {/* 左端ハンドル（開始日伸縮）*/}
-                        <div onMouseDown={e=>onDragStart(e,pl,"start")} onTouchStart={e=>onDragStart(e,pl,"start")}
-                          style={{width:8,height:"100%",cursor:"ew-resize",flexShrink:0,background:"rgba(255,255,255,.25)"}}/>
-                        {/* 中央（移動 or タップで編集）*/}
-                        <div onMouseDown={e=>onDragStart(e,pl,"move")} onTouchStart={e=>onDragStart(e,pl,"move")}
-                          onClick={()=>{ if(!drag||!drag.moved) setMPlant({...pl,year}); }}
-                          style={{flex:1,height:"100%",display:"flex",alignItems:"center",paddingLeft:3,cursor:"grab",overflow:"hidden"}}>
-                          {cropFull(c)}
-                        </div>
-                        {/* 右端ハンドル（収穫日伸縮）*/}
-                        <div onMouseDown={e=>onDragStart(e,pl,"end")} onTouchStart={e=>onDragStart(e,pl,"end")}
-                          style={{width:8,height:"100%",cursor:"ew-resize",flexShrink:0,background:"rgba(255,255,255,.25)"}}/>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-      <button style={{...S.btn,...S.btnS,marginTop:8}} onClick={addBed}>＋ 区画を追加</button>
-
-      {/* 凡例 */}
-      <div style={{...S.card,marginTop:8}}>
-        <div style={{fontSize:".74rem",fontWeight:700,color:"#5c3d1e",marginBottom:6}}>作付け一覧（{year}年）</div>
-        {(()=>{
-          const all=(plan.plantings||[]).filter(p=>{const hv=p.harvestDate||calcHarvest(p.cropId,p.plantDate);return new Date(hv).getFullYear()>=year&&new Date(p.plantDate).getFullYear()<=year;}).sort((a,b)=>(b.plantDate||"").localeCompare(a.plantDate||""));
-          if(!all.length)return <div style={{fontSize:".72rem",color:TX3}}>作付けがありません。区画の「＋作付け」から追加してください</div>;
-          return all.map(pl=>{
-            const c=crops.find(x=>x.id===pl.cropId);if(!c)return null;
-            const bed=plan.beds.find(b=>b.id===pl.bedId);
-            const hv=pl.harvestDate||calcHarvest(pl.cropId,pl.plantDate);
-            const rot=ROTATION_DB[c.type];
-            return (
-              <div key={pl.id} onClick={()=>setMPlant({...pl,year})} style={{display:"flex",alignItems:"center",gap:8,fontSize:".74rem",padding:"6px 0",borderBottom:"1px solid #f0ebe3",cursor:"pointer"}}>
-                <span style={{display:"inline-block",width:12,height:12,borderRadius:3,background:cropColorByType(c.type),flexShrink:0}}/>
-                <span style={{flex:1}}>{cropLabel(c.type)}{c.variety?"("+c.variety+")":""}</span>
-                <span style={{color:TX3,fontSize:".68rem"}}>{bed?.name} · {fmtMD(pl.plantDate)}〜{fmtMD(hv)}</span>
-                {rot&&rot.years>0&&<span style={{fontSize:".64rem",color:"#856404",background:"#fff3cd",borderRadius:5,padding:"1px 5px"}}>連作{rot.years}年</span>}
-              </div>
-            );
-          });
-        })()}
+          );
+        })}
       </div>
 
-      {/* 作付け編集モーダル */}
-      <ModalWithSave open={!!mPlant} onClose={()=>setMPlant(null)} title={mPlant?.id?"作付けを編集":"作付けを追加"} onSave={savePlanting}>
-        {mPlant&&<>
-          <FG label="区画（変更で別区画へ移動）"><Sel value={mPlant.bedId} onChange={v=>setMPlant({...mPlant,bedId:v})} options={(plan.beds||[]).map(b=>({value:b.id,label:b.name}))}/></FG>
-          <FG label="品目">
-            <Sel value={mPlant.cropId} onChange={v=>{const hv=calcHarvest(v,mPlant.plantDate);setMPlant({...mPlant,cropId:v,harvestDate:hv});}}
-              options={[{value:"",label:"（選択）"},...crops.filter(c=>!c.ended).map(c=>{const db=CDB[c.type]||{};return{value:c.id,label:(db.e||"🌱")+" "+(c.type==="custom"?c.customName||"カスタム":db.n||c.type)+(c.variety?"("+c.variety+")":"")};})]}/>
-          </FG>
-          <R2>
-            <FG label="定植・播種日"><Inp type="date" value={mPlant.plantDate} onChange={v=>{const hv=calcHarvest(mPlant.cropId,v);setMPlant({...mPlant,plantDate:v,harvestDate:hv});}}/></FG>
-            <FG label="収穫予定日"><Inp type="date" value={mPlant.harvestDate} onChange={v=>setMPlant({...mPlant,harvestDate:v})}/></FG>
-          </R2>
-          <div style={{fontSize:".68rem",color:TX3,marginBottom:8,lineHeight:1.5}}>💡 品目と定植日を選ぶと収穫予定日を自動計算します（手動で調整可）<br/>同じ区画に同時期の作付けを複数追加すると、混植として縦に並べて表示されます</div>
-          {mPlant.id&&!mPlant.registered&&<button onClick={()=>plantToCrop(mPlant)} style={{...S.btn,...S.btnG,marginTop:8}}>🌱 この作付けを実際に植える（品目登録）</button>}
-          {mPlant.registered&&<div style={{fontSize:".72rem",color:G,background:G3,borderRadius:8,padding:"8px 10px",marginTop:8,textAlign:"center"}}>✓ 栽培中の品目に登録済み</div>}
-          {mPlant.id&&<button onClick={()=>deletePlanting(mPlant.id)} style={{...S.btn,...S.btnR,marginTop:8}}>この作付けを削除</button>}
-        </>}
-      </ModalWithSave>
+      {/* 費用編集モーダル */}
+      {mCost&&<ModalWithSave title={mCost.id?"費用を編集":"費用を追加"} onSave={sv} onClose={()=>setMCost(null)}>
+        <FG label="カテゴリ"><Sel value={mCost.cat} onChange={v=>setMCost({...mCost,cat:v})} options={COST_CATS.map(c=>({value:c.value,label:c.label}))}/></FG>
+        <FG label="品名 *"><Inp value={mCost.name} onChange={v=>setMCost({...mCost,name:v})} placeholder="例：苦土石灰 20kg"/></FG>
+        <R2>
+          <FG label="金額（円）"><Inp type="number" value={mCost.amt} onChange={v=>setMCost({...mCost,amt:v})} placeholder="0"/></FG>
+          <FG label="日付"><Inp type="date" value={mCost.date} onChange={v=>setMCost({...mCost,date:v})}/></FG>
+        </R2>
+        <R2>
+          <FG label="数量"><Inp type="number" value={mCost.qty} onChange={v=>setMCost({...mCost,qty:v})} placeholder="1"/></FG>
+          <FG label="単位"><Inp value={mCost.qunit} onChange={v=>setMCost({...mCost,qunit:v})} placeholder="個"/></FG>
+        </R2>
+        <FG label="品目（任意）">
+          <Sel value={mCost.cropId||""} onChange={v=>setMCost({...mCost,cropId:v})}
+            options={[{value:"",label:"共通（品目割当なし）"},...crops.filter(c=>!c.ended).map(c=>{const db=CDB[c.type]||{};return{value:c.id,label:(db.e||"🌱")+" "+(db.n||c.type)+(c.variety?"("+c.variety+")":"")};})]}/></FG>
+        <FG label="メモ"><Inp value={mCost.note||""} onChange={v=>setMCost({...mCost,note:v})} placeholder="購入先など"/></FG>
+        {mCost._idx!==undefined&&<button onClick={()=>{if(!window.confirm("削除しますか?"))return;const n=costs.filter((_,j)=>j!==mCost._idx);setCosts(n);setMCost(null);showToast("削除しました");}} style={{...S.btn,...S.btnR,marginTop:8}}>削除</button>}
+      </ModalWithSave>}
     </div>
   );
 }
 
 function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs, equips=[] }) {
   const [selCropId, setSelCropId] = useState("all");
+  const [climateData, setClimateData] = useState(null); // 月別気象データ
+  const [climateLoading, setClimateLoading] = useState(false);
   const [period,    setPeriod]    = useState("year");  // "year" or "month"
   const [selYear,   setSelYear]   = useState(new Date().getFullYear());
   const [selMonth,  setSelMonth]  = useState(new Date().getMonth()+1);
@@ -3566,16 +3234,26 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs, equips=[] })
   const totalMin = logs.filter(l=>inPeriod(l.date)).reduce((s,l)=>s+(parseInt(l.duration)||0),0);
   const th=Math.floor(totalMin/60),tm=totalMin%60;
   const totalTimeStr=totalMin>0?(th>0?th+"時間"+tm+"分":tm+"分"):"0分";
-  // 天気別作業日数集計
-  const wxStats=(()=>{
-    const periodLogs=logs.filter(l=>inPeriod(l.date)&&l.weather);
-    const dateWx={};
-    periodLogs.forEach(l=>{if(l.date&&l.weather)dateWx[l.date]=l.weather;});
-    const cnt={sunny:0,cloudy:0,rainy:0,snowy:0,windy:0};
-    Object.values(dateWx).forEach(w=>{if(cnt[w]!==undefined)cnt[w]++;});
-    return cnt;
-  })();
-  const wxTotal=Object.values(wxStats).reduce((s,v)=>s+v,0);
+
+
+  // 品目選択時に栽培期間の気候データを取得
+  useEffect(()=>{
+    if(!sel) { setClimateData(null); return; }
+    const crop=crops.find(c=>c.id===sel.id);
+    if(!crop) return;
+    const start=crop.plantDate||crop.sowDate;
+    const end=crop.ended&&crop.endDate?crop.endDate:new Date().toISOString().slice(0,10);
+    if(!start) { setClimateData(null); return; }
+    // 開始から1年以内のデータのみ（API制限考慮）
+    const startD=new Date(start), endD=new Date(end);
+    const diffDays=Math.floor((endD-startD)/86400000);
+    if(diffDays<1){ setClimateData(null); return; }
+    const fieldAddr=fields[crop.fieldIdx]?.addr||fields[0]?.addr||"";
+    setClimateLoading(true);
+    fetchClimateData(fieldAddr, start, end).then(data=>{
+      setClimateData(data); setClimateLoading(false);
+    }).catch(()=>{ setClimateLoading(false); });
+  },[sel?.id]);
 
   return (
     <div style={S.scr} className="scr-inner">
@@ -3704,6 +3382,48 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs, equips=[] })
               <div style={{fontSize:".66rem",color:TX3,textAlign:"right",marginTop:2}}>単位: kg</div>
             </div>
           )}
+          {/* 月別気象データ（日照時間・降水量） */}
+          {climateLoading&&<div style={{...S.card,textAlign:"center",fontSize:".8rem",color:TX3,padding:16}}>🌤 気象データ読み込み中…</div>}
+          {climateData&&climateData.length>0&&(
+            <div style={S.card}>
+              <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".86rem",color:"#5c3d1e",marginBottom:10}}>☀️🌧 栽培期間の気象データ（月別）</div>
+              {(()=>{
+                const months=climateData.map(d=>d.month);
+                const maxSun=Math.max(...climateData.map(d=>d.sunshine),1);
+                const maxPre=Math.max(...climateData.map(d=>d.precip),1);
+                return <>
+                  {/* 日照時間グラフ */}
+                  <div style={{fontSize:".72rem",color:"#b45309",fontWeight:700,marginBottom:4}}>☀️ 日照時間（時間/月）</div>
+                  <div style={{display:"flex",alignItems:"flex-end",gap:4,height:80,marginBottom:12}}>
+                    {climateData.map((d,i)=>{
+                      const h=Math.round((d.sunshine/maxSun)*70);
+                      const [,mm]=d.month.split("-");
+                      return <div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",height:"100%",justifyContent:"flex-end",minWidth:0}}>
+                        <div style={{fontSize:".5rem",color:"#b45309",marginBottom:1,whiteSpace:"nowrap"}}>{Math.round(d.sunshine)}</div>
+                        <div style={{width:"80%",height:h+"px",background:"linear-gradient(180deg,#fbbf24,#f59e0b)",borderRadius:"3px 3px 0 0",minHeight:2}}/>
+                        <div style={{fontSize:".52rem",color:TX3,marginTop:1,whiteSpace:"nowrap"}}>{parseInt(mm)}月</div>
+                      </div>;
+                    })}
+                  </div>
+                  {/* 降水量グラフ */}
+                  <div style={{fontSize:".72rem",color:"#1d4ed8",fontWeight:700,marginBottom:4}}>🌧 降水量（mm/月）</div>
+                  <div style={{display:"flex",alignItems:"flex-end",gap:4,height:80,marginBottom:4}}>
+                    {climateData.map((d,i)=>{
+                      const h=Math.round((d.precip/maxPre)*70);
+                      const [,mm]=d.month.split("-");
+                      return <div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",height:"100%",justifyContent:"flex-end",minWidth:0}}>
+                        <div style={{fontSize:".5rem",color:"#1d4ed8",marginBottom:1,whiteSpace:"nowrap"}}>{Math.round(d.precip)}</div>
+                        <div style={{width:"80%",height:h+"px",background:"linear-gradient(180deg,#60a5fa,#3b82f6)",borderRadius:"3px 3px 0 0",minHeight:2}}/>
+                        <div style={{fontSize:".52rem",color:TX3,marginTop:1,whiteSpace:"nowrap"}}>{parseInt(mm)}月</div>
+                      </div>;
+                    })}
+                  </div>
+                  <div style={{fontSize:".62rem",color:TX3,textAlign:"right"}}>出典: Open-Meteo Archive（{fields[crops.find(c=>c.id===sel.id)?.fieldIdx]?.addr||"デフォルト地点"}）</div>
+                </>;
+              })()}
+            </div>
+          )}
+
           {/* 費用内訳 */}
           {sel.costTotal>0&&(
             <div style={S.card}>
@@ -3833,22 +3553,7 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs, equips=[] })
       )}
 
       {/* 品目詳細: 作業記録カード */}
-      {/* 天気別作業日数 */}
-      {wxTotal>0&&(
-        <div style={{...S.card,marginBottom:8}}>
-          <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".86rem",color:"#5c3d1e",marginBottom:8}}>🌤 天気別の作業日数</div>
-          <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-            {[{k:"sunny",e:"☀️",l:"晴れ"},{k:"cloudy",e:"☁️",l:"曇り"},{k:"rainy",e:"🌧️",l:"雨"},{k:"snowy",e:"❄️",l:"雪"},{k:"windy",e:"💨",l:"強風"}].map(w=>(
-              wxStats[w.k]>0&&<div key={w.k} style={{textAlign:"center",background:"#f6f3ec",borderRadius:8,padding:"8px 12px",minWidth:54}}>
-                <div style={{fontSize:"1.2rem"}}>{w.e}</div>
-                <div style={{fontSize:".76rem",fontWeight:700,color:G}}>{wxStats[w.k]}日</div>
-                <div style={{fontSize:".62rem",color:TX3}}>{w.l}</div>
-              </div>
-            ))}
-          </div>
-          <div style={{fontSize:".66rem",color:TX3,marginTop:6}}>※ 天気を記録した日数のみ集計（全{wxTotal}日）</div>
-        </div>
-      )}
+
 
       {sel&&dispLogs.length>0&&(
         <div style={{marginTop:8}}>
