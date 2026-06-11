@@ -1192,7 +1192,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.7</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.8</div>
       </div>
     </div>
   );
@@ -3088,6 +3088,357 @@ function CostScreen({ fields, crops, fertMs, pestMs, equips, costs, setCosts, lo
         <FG label="メモ"><Inp value={mCost.note||""} onChange={v=>setMCost({...mCost,note:v})} placeholder="購入先など"/></FG>
         {mCost._idx!==undefined&&<button onClick={()=>{if(!window.confirm("削除しますか?"))return;const n=costs.filter((_,j)=>j!==mCost._idx);setCosts(n);setMCost(null);showToast("削除しました");}} style={{...S.btn,...S.btnR,marginTop:8}}>削除</button>}
       </ModalWithSave>}
+    </div>
+  );
+}
+
+function PlanScreen({ fields, crops, setCrops, plots, setPlots, setPlotsR, showToast, setScr }) {
+  const [selFieldIdx, setSelFieldIdx] = useState(0);
+  const [year, setYear] = useState(new Date().getFullYear());
+  const [mPlant, setMPlant] = useState(null);  // 作付け編集モーダル
+  const [drag, setDrag] = useState(null);     // ドラッグ中 {id, mode:"move"|"start"|"end", startX, origPlant, origHarvest}
+  const laneRef = useRef(null);                // ガント行の幅取得用
+
+  const selField = fields[selFieldIdx];
+  // この圃場の計画データ（plotsを流用。type:"plan"で区別）
+  const plan = plots.find(p=>p.fieldId===selField?.id && p.kind==="plan");
+
+  const PALETTE30=["#e74c3c","#3498db","#2ecc71","#f39c12","#9b59b6","#1abc9c","#e67e22","#34495e","#e84393","#00b894","#fdcb6e","#6c5ce7","#d63031","#0984e3","#00cec9","#fab1a0","#a29bfe","#ff7675","#55efc4","#ffeaa7","#fd79a8","#74b9ff","#81ecec","#ff7f50","#badc58","#f0932b","#eb4d4b","#22a6b3","#be2edd","#7ed6df"];
+  const cropColorByType = type => {
+    const keys = Object.keys(CDB);
+    const idx = keys.indexOf(type);
+    return idx>=0 ? PALETTE30[idx%30] : "#95a5a6";
+  };
+  const cropLabel = type => { const db=CDB[type]||{}; return (db.e||"🌱")+" "+(db.n||type); };
+  // 品目オブジェクトから「絵文字 名前(品種)」を生成
+  const cropFull = c => { if(!c) return ""; const db=CDB[c.type]||{}; const nm=c.type==="custom"?(c.customName||"カスタム"):(db.n||c.type); return (db.e||"🌱")+" "+nm+(c.variety?"("+c.variety+")":""); };
+
+  // 計画を初期化（区画3つ）
+  const initPlan = () => {
+    const p = {
+      id: uid0(), fieldId: selField?.id||"", kind:"plan", name:(selField?.name||"")+" 栽培計画",
+      beds:[{id:uid0(),name:"区画1"},{id:uid0(),name:"区画2"},{id:uid0(),name:"区画3"}],
+      plantings:[],
+      cols:20,rows:20,cells:[],season:"",cellSize:30,  // plot互換用ダミー
+    };
+    setPlots([...plots, p], p);
+    showToast("栽培計画を作成しました");
+  };
+
+  const savePlan = (updated) => {
+    const n = plots.map(p=>p.id===updated.id?updated:p);
+    setPlots(n, updated);
+  };
+
+  // ガントバーのドラッグ（伸縮・移動）
+  const yearStartMs = ()=> new Date(year,0,1).getTime();
+  const yearSpanMs  = ()=> new Date(year,11,31).getTime()-new Date(year,0,1).getTime();
+  const pxToDays = (dx)=>{
+    const w = laneRef.current?.offsetWidth || 1;
+    const msPerPx = yearSpanMs()/w;
+    return Math.round(dx*msPerPx/86400000);
+  };
+  const addDays = (dateStr, days)=>{ const d=new Date(dateStr); d.setDate(d.getDate()+days); return d.toISOString().slice(0,10); };
+  const onDragStart = (e, pl, mode)=>{
+    e.stopPropagation();
+    const clientX = e.touches?e.touches[0].clientX:e.clientX;
+    const clientY = e.touches?e.touches[0].clientY:e.clientY;
+    const hv = pl.harvestDate||calcHarvest(pl.cropId,pl.plantDate);
+    setDrag({id:pl.id, mode, startX:clientX, startY:clientY, origPlant:pl.plantDate, origHarvest:hv, origBed:pl.bedId, moved:false});
+  };
+  useEffect(()=>{
+    if(!drag) return;
+    const onMove = (e)=>{
+      if(e.touches && e.cancelable) e.preventDefault();  // タッチ時はスクロールより移動を優先
+      const clientX = e.touches?e.touches[0].clientX:e.clientX;
+      const dx = clientX - drag.startX;
+      const days = pxToDays(dx);
+      if(Math.abs(days)<1 && !drag.moved) return;
+      setDrag(d=>({...d,moved:true}));
+      const cur = (plan.plantings||[]).find(p=>p.id===drag.id);
+      if(!cur) return;
+      let np=drag.origPlant, nh=drag.origHarvest, nbed=drag.origBed;
+      if(drag.mode==="move"){
+        np=addDays(drag.origPlant,days); nh=addDays(drag.origHarvest,days);
+        // 縦方向: ドラッグ位置の区画行を判定して区画変更
+        const clientY=e.touches?e.touches[0].clientY:e.clientY;
+        const el=document.elementFromPoint(clientX, clientY);
+        const bedEl=el&&el.closest?el.closest("[data-bedrow]"):null;
+        if(bedEl&&bedEl.dataset.bedrow){ nbed=bedEl.dataset.bedrow; }
+      }
+      else if(drag.mode==="start"){ np=addDays(drag.origPlant,days); if(np>=nh) np=drag.origHarvest; }
+      else if(drag.mode==="end"){ nh=addDays(drag.origHarvest,days); if(nh<=np) nh=drag.origPlant; }
+      const plantings=plan.plantings.map(p=>p.id===drag.id?{...p,plantDate:np,harvestDate:nh,bedId:nbed}:p);
+      setPlotsR(plots.map(pp=>pp.id===plan.id?{...plan,plantings}:pp));
+    };
+    const onUp = ()=>{
+      const cur=(plots.find(p=>p.id===plan.id)?.plantings||[]).find(p=>p.id===drag.id);
+      if(cur && drag.moved){ savePlan(plots.find(p=>p.id===plan.id)); showToast("期間を変更しました"); }
+      setDrag(null);
+    };
+    window.addEventListener("mousemove",onMove);
+    window.addEventListener("mouseup",onUp);
+    window.addEventListener("touchmove",onMove,{passive:false});
+    window.addEventListener("touchend",onUp);
+    return ()=>{
+      window.removeEventListener("mousemove",onMove);
+      window.removeEventListener("mouseup",onUp);
+      window.removeEventListener("touchmove",onMove);
+      window.removeEventListener("touchend",onUp);
+    };
+  },[drag, plan, plots]);
+
+  const addBed = () => {
+    const beds=[...(plan.beds||[]), {id:uid0(), name:"区画"+((plan.beds?.length||0)+1)}];
+    savePlan({...plan, beds});
+  };
+  const renameBed = (bedId) => {
+    const bed=plan.beds.find(b=>b.id===bedId);
+    const nm=window.prompt("区画名を変更", bed?.name||"");
+    if(nm===null)return;
+    savePlan({...plan, beds:plan.beds.map(b=>b.id===bedId?{...b,name:nm}:b)});
+  };
+  const deleteBed = (bedId) => {
+    if(!window.confirm("この区画と作付けを削除しますか？"))return;
+    savePlan({...plan, beds:plan.beds.filter(b=>b.id!==bedId), plantings:(plan.plantings||[]).filter(pl=>pl.bedId!==bedId)});
+  };
+
+  // 作付けの保存
+  const savePlanting = () => {
+    if(!mPlant.cropId){ showToast("品目を選択してください"); return; }
+    if(!mPlant.plantDate){ showToast("定植日を入力してください"); return; }
+    const pl={...mPlant, id:mPlant.id||uid0()};
+    const exists=(plan.plantings||[]).some(x=>x.id===pl.id);
+    const plantings=exists?plan.plantings.map(x=>x.id===pl.id?pl:x):[...(plan.plantings||[]),pl];
+    savePlan({...plan, plantings});
+    setMPlant(null);
+    showToast("保存しました");
+  };
+  const deletePlanting = (id) => {
+    savePlan({...plan, plantings:plan.plantings.filter(x=>x.id!==id)});
+    setMPlant(null);
+    showToast("削除しました");
+  };
+
+  // 計画の作付けを実際の栽培中品目として登録
+  const plantToCrop = (pl) => {
+    const tmpl = crops.find(x=>x.id===pl.cropId);  // 計画で参照していた品目（テンプレ）
+    if(!tmpl){ showToast("品目が見つかりません"); return; }
+    if(!window.confirm(cropFull(tmpl)+"を栽培中の品目として登録しますか？")) return;
+    const fieldIdx = fields.findIndex(f=>f.id===selField?.id);
+    const newCrop = {
+      ...tmpl,
+      id: uid0(),
+      fieldIdx: fieldIdx>=0?fieldIdx:0,
+      fieldId: selField?.id||"",
+      plantDate: pl.plantDate||"",
+      sowDate: tmpl.startMethod==="sow"?(pl.plantDate||""):"",
+      ended:false, endDate:"",
+      _fromPlan:true,
+    };
+    setCrops([...crops, newCrop], newCrop, fields);
+    // 計画側に登録済みフラグ
+    savePlan({...plan, plantings:plan.plantings.map(x=>x.id===pl.id?{...x,registered:true,cropRealId:newCrop.id}:x)});
+    setMPlant(null);
+    showToast("栽培中の品目に登録しました🌱");
+    if(setScr) setScr("fields");
+  };
+
+  // 収穫予定日を品目から自動計算
+  const calcHarvest = (cropId, plantDate) => {
+    if(!plantDate) return "";
+    const c=crops.find(x=>x.id===cropId);
+    const db=c?CDB[c.type]||{}:{};
+    const days=db.maturity?.[c?.maturity||"mid"]||db.d||90;
+    const d=new Date(plantDate); d.setDate(d.getDate()+days);
+    return d.toISOString().slice(0,10);
+  };
+
+  // 連作チェック：同じ区画で前作と次作が同じNG科＆間隔がNG年数未満
+  const checkPlanRotation = () => {
+    const warns=[];
+    if(!plan) return warns;
+    (plan.beds||[]).forEach(bed=>{
+      const items=(plan.plantings||[]).filter(p=>p.bedId===bed.id&&p.plantDate)
+        .map(p=>{const c=crops.find(x=>x.id===p.cropId);return{...p,crop:c,fam:c?FAMILY_DB[c.type]:null,rot:c?ROTATION_DB[c.type]:null};})
+        .sort((a,b)=>a.plantDate.localeCompare(b.plantDate));
+      for(let i=0;i<items.length;i++){
+        for(let j=0;j<i;j++){
+          const cur=items[i], past=items[j];
+          if(!cur.rot||cur.rot.years<=0||!cur.rot.ng.length)continue;
+          if(!cur.fam||!past.fam)continue;
+          if(!cur.rot.ng.includes(past.fam))continue;
+          const gapYears=(new Date(cur.plantDate)-new Date(past.plantDate))/(86400000*365);
+          if(gapYears<cur.rot.years){
+            warns.push({bed:bed.name, cur:cropFull(cur.crop), past:cropFull(past.crop), fam:cur.fam, years:cur.rot.years, gap:Math.floor(gapYears*10)/10});
+          }
+        }
+      }
+    });
+    return warns;
+  };
+
+  if(fields.length===0) return <div style={S.scr} className="scr-inner"><div style={{color:TX3,fontSize:".82rem",padding:16,textAlign:"center"}}>先に圃場を登録してください</div></div>;
+
+  if(!plan){
+    return (
+      <div style={S.scr} className="scr-inner">
+        <div style={S.sec}><span>📅 栽培計画</span></div>
+        <FG label="圃場を選択"><Sel value={selFieldIdx} onChange={v=>setSelFieldIdx(parseInt(v))} options={fields.map((f,i)=>({value:i,label:f.name}))}/></FG>
+        <div style={{color:TX3,fontSize:".82rem",padding:16,textAlign:"center"}}>この圃場の栽培計画はまだありません</div>
+        <button style={{...S.btn,...S.btnG}} onClick={initPlan}>＋ 栽培計画を作る</button>
+      </div>
+    );
+  }
+
+  // ガント表示用：月のリスト（1〜12月）
+  const months=Array.from({length:12},(_, i)=>i+1);
+  const yearStart=new Date(year,0,1).getTime();
+  const yearEnd=new Date(year,11,31).getTime();
+  const yearSpan=yearEnd-yearStart;
+  const datePct=d=>{const t=new Date(d).getTime();return Math.max(0,Math.min(100,(t-yearStart)/yearSpan*100));};
+  const warns=checkPlanRotation();
+
+  return (
+    <div style={S.scr} className="scr-inner">
+      <div style={{...S.sec,flexWrap:"wrap",gap:6}}>
+        <span>📅 栽培計画</span>
+        <div style={{display:"flex",gap:6,alignItems:"center"}}>
+          <button onClick={()=>setYear(y=>y-1)} style={{...S.btn,...S.btnS,...S.btnSm}}>‹</button>
+          <span style={{fontSize:".82rem",fontWeight:700,minWidth:46,textAlign:"center"}}>{year}年</span>
+          <button onClick={()=>setYear(y=>y+1)} style={{...S.btn,...S.btnS,...S.btnSm}}>›</button>
+        </div>
+      </div>
+
+      <FG label="圃場を選択"><Sel value={selFieldIdx} onChange={v=>setSelFieldIdx(parseInt(v))} options={fields.map((f,i)=>({value:i,label:f.name}))}/></FG>
+
+      {/* 連作警告 */}
+      {warns.length>0&&<div style={{...S.card,background:"#fff3cd",border:"1px solid #ffc107"}}>
+        <div style={{fontSize:".76rem",fontWeight:700,color:"#856404",marginBottom:4}}>⚠️ 連作注意（{warns.length}件）</div>
+        {warns.slice(0,6).map((w,i)=>(
+          <div key={i} style={{fontSize:".7rem",color:"#856404",lineHeight:1.5}}>
+            ・{w.bed}: {w.cur}（{w.fam}）。前作{w.past}から{w.gap}年（{w.years}年空けるのが目安）
+          </div>
+        ))}
+      </div>}
+
+      {/* ガントチャート */}
+      <div style={{...S.card,overflowX:"auto",WebkitOverflowScrolling:"touch",padding:"10px 8px"}}>
+        <div className="no-select" style={{minWidth:560,userSelect:"none",WebkitUserSelect:"none"}}>
+          {/* 月ヘッダー */}
+          <div style={{display:"flex",borderBottom:"2px solid #e0d9ce",marginBottom:4}}>
+            <div style={{width:70,flexShrink:0,fontSize:".68rem",fontWeight:700,color:"#5c3d1e"}}>区画</div>
+            <div ref={laneRef} style={{flex:1,display:"flex"}}>
+              {months.map(m=>(<div key={m} style={{flex:1,fontSize:".62rem",color:TX3,textAlign:"center",borderLeft:"1px solid #f0ebe3"}}>{m}月</div>))}
+            </div>
+          </div>
+          {/* 区画ごとの行 */}
+          {(plan.beds||[]).map(bed=>{
+            const items=(plan.plantings||[]).filter(p=>p.bedId===bed.id&&p.plantDate);
+            // 重なる作付けをレーン（行）に振り分け（混植・連続作付けを縦積み表示）
+            const sorted=[...items].sort((a,b)=>(a.plantDate||"").localeCompare(b.plantDate||""));
+            const lanes=[];  // 各レーンの最後の収穫日
+            const laneOf={};
+            sorted.forEach(pl=>{
+              const hv=pl.harvestDate||calcHarvest(pl.cropId,pl.plantDate);
+              let placed=-1;
+              for(let li=0;li<lanes.length;li++){ if(pl.plantDate>=lanes[li]){ placed=li; break; } }
+              if(placed<0){ placed=lanes.length; lanes.push(hv); } else { lanes[placed]=hv; }
+              laneOf[pl.id]=placed;
+            });
+            const laneCount=Math.max(1,lanes.length);
+            const rowH=laneCount*30+8;
+            return (
+              <div key={bed.id} data-bedrow={bed.id} style={{display:"flex",alignItems:"stretch",borderBottom:"1px solid #f0ebe3",minHeight:rowH}}>
+                <div style={{width:70,flexShrink:0,fontSize:".7rem",display:"flex",flexDirection:"column",justifyContent:"center",paddingRight:4}}>
+                  <span onClick={()=>renameBed(bed.id)} style={{fontWeight:700,cursor:"pointer",color:"#5c3d1e"}}>{bed.name}</span>
+                  <div style={{display:"flex",gap:3,marginTop:2}}>
+                    <button onClick={()=>setMPlant({bedId:bed.id,cropId:"",plantDate:"",harvestDate:"",year})} style={{fontSize:".6rem",border:"none",background:G3,color:G,borderRadius:5,padding:"1px 5px",cursor:"pointer"}}>＋作付け</button>
+                    <button onClick={()=>deleteBed(bed.id)} style={{fontSize:".6rem",border:"none",background:"#fee2e2",color:"#b91c1c",borderRadius:5,padding:"1px 4px",cursor:"pointer"}}>×</button>
+                  </div>
+                </div>
+                <div style={{flex:1,position:"relative",borderLeft:"1px solid #f0ebe3"}}>
+                  {/* 月の区切り線 */}
+                  {months.map(m=>(<div key={m} style={{position:"absolute",left:((m-1)/12*100)+"%",top:0,bottom:0,width:1,background:"#f5f0e8"}}/>))}
+                  {/* 作付けバー */}
+                  {items.map(pl=>{
+                    const c=crops.find(x=>x.id===pl.cropId);
+                    if(!c)return null;
+                    const hv=pl.harvestDate||calcHarvest(pl.cropId,pl.plantDate);
+                    const left=datePct(pl.plantDate);
+                    const right=datePct(hv);
+                    const width=Math.max(3,right-left);
+                    // 表示年でフィルタ
+                    const py=new Date(pl.plantDate).getFullYear();
+                    const hy=new Date(hv).getFullYear();
+                    if(hy<year||py>year)return null;
+                    return (
+                      <div key={pl.id} className="gantt-bar"
+                        style={{position:"absolute",left:left+"%",width:width+"%",top:(4+(laneOf[pl.id]||0)*30),height:26,background:cropColorByType(c.type),borderRadius:5,display:"flex",alignItems:"center",fontSize:".62rem",color:"#fff",overflow:"hidden",whiteSpace:"nowrap",boxShadow:"0 1px 3px rgba(0,0,0,.2)",touchAction:"none"}}>
+                        {/* 左端ハンドル（開始日伸縮）*/}
+                        <div onMouseDown={e=>onDragStart(e,pl,"start")} onTouchStart={e=>onDragStart(e,pl,"start")}
+                          style={{width:8,height:"100%",cursor:"ew-resize",flexShrink:0,background:"rgba(255,255,255,.25)"}}/>
+                        {/* 中央（移動 or タップで編集）*/}
+                        <div onMouseDown={e=>onDragStart(e,pl,"move")} onTouchStart={e=>onDragStart(e,pl,"move")}
+                          onClick={()=>{ if(!drag||!drag.moved) setMPlant({...pl,year}); }}
+                          style={{flex:1,height:"100%",display:"flex",alignItems:"center",paddingLeft:3,cursor:"grab",overflow:"hidden"}}>
+                          {cropFull(c)}
+                        </div>
+                        {/* 右端ハンドル（収穫日伸縮）*/}
+                        <div onMouseDown={e=>onDragStart(e,pl,"end")} onTouchStart={e=>onDragStart(e,pl,"end")}
+                          style={{width:8,height:"100%",cursor:"ew-resize",flexShrink:0,background:"rgba(255,255,255,.25)"}}/>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      <button style={{...S.btn,...S.btnS,marginTop:8}} onClick={addBed}>＋ 区画を追加</button>
+
+      {/* 凡例 */}
+      <div style={{...S.card,marginTop:8}}>
+        <div style={{fontSize:".74rem",fontWeight:700,color:"#5c3d1e",marginBottom:6}}>作付け一覧（{year}年）</div>
+        {(()=>{
+          const all=(plan.plantings||[]).filter(p=>{const hv=p.harvestDate||calcHarvest(p.cropId,p.plantDate);return new Date(hv).getFullYear()>=year&&new Date(p.plantDate).getFullYear()<=year;}).sort((a,b)=>(b.plantDate||"").localeCompare(a.plantDate||""));
+          if(!all.length)return <div style={{fontSize:".72rem",color:TX3}}>作付けがありません。区画の「＋作付け」から追加してください</div>;
+          return all.map(pl=>{
+            const c=crops.find(x=>x.id===pl.cropId);if(!c)return null;
+            const bed=plan.beds.find(b=>b.id===pl.bedId);
+            const hv=pl.harvestDate||calcHarvest(pl.cropId,pl.plantDate);
+            const rot=ROTATION_DB[c.type];
+            return (
+              <div key={pl.id} onClick={()=>setMPlant({...pl,year})} style={{display:"flex",alignItems:"center",gap:8,fontSize:".74rem",padding:"6px 0",borderBottom:"1px solid #f0ebe3",cursor:"pointer"}}>
+                <span style={{display:"inline-block",width:12,height:12,borderRadius:3,background:cropColorByType(c.type),flexShrink:0}}/>
+                <span style={{flex:1}}>{cropLabel(c.type)}{c.variety?"("+c.variety+")":""}</span>
+                <span style={{color:TX3,fontSize:".68rem"}}>{bed?.name} · {fmtMD(pl.plantDate)}〜{fmtMD(hv)}</span>
+                {rot&&rot.years>0&&<span style={{fontSize:".64rem",color:"#856404",background:"#fff3cd",borderRadius:5,padding:"1px 5px"}}>連作{rot.years}年</span>}
+              </div>
+            );
+          });
+        })()}
+      </div>
+
+      {/* 作付け編集モーダル */}
+      <ModalWithSave open={!!mPlant} onClose={()=>setMPlant(null)} title={mPlant?.id?"作付けを編集":"作付けを追加"} onSave={savePlanting}>
+        {mPlant&&<>
+          <FG label="区画（変更で別区画へ移動）"><Sel value={mPlant.bedId} onChange={v=>setMPlant({...mPlant,bedId:v})} options={(plan.beds||[]).map(b=>({value:b.id,label:b.name}))}/></FG>
+          <FG label="品目">
+            <Sel value={mPlant.cropId} onChange={v=>{const hv=calcHarvest(v,mPlant.plantDate);setMPlant({...mPlant,cropId:v,harvestDate:hv});}}
+              options={[{value:"",label:"（選択）"},...crops.filter(c=>!c.ended).map(c=>{const db=CDB[c.type]||{};return{value:c.id,label:(db.e||"🌱")+" "+(c.type==="custom"?c.customName||"カスタム":db.n||c.type)+(c.variety?"("+c.variety+")":"")};})]}/>
+          </FG>
+          <R2>
+            <FG label="定植・播種日"><Inp type="date" value={mPlant.plantDate} onChange={v=>{const hv=calcHarvest(mPlant.cropId,v);setMPlant({...mPlant,plantDate:v,harvestDate:hv});}}/></FG>
+            <FG label="収穫予定日"><Inp type="date" value={mPlant.harvestDate} onChange={v=>setMPlant({...mPlant,harvestDate:v})}/></FG>
+          </R2>
+          <div style={{fontSize:".68rem",color:TX3,marginBottom:8,lineHeight:1.5}}>💡 品目と定植日を選ぶと収穫予定日を自動計算します（手動で調整可）<br/>同じ区画に同時期の作付けを複数追加すると、混植として縦に並べて表示されます</div>
+          {mPlant.id&&!mPlant.registered&&<button onClick={()=>plantToCrop(mPlant)} style={{...S.btn,...S.btnG,marginTop:8}}>🌱 この作付けを実際に植える（品目登録）</button>}
+          {mPlant.registered&&<div style={{fontSize:".72rem",color:G,background:G3,borderRadius:8,padding:"8px 10px",marginTop:8,textAlign:"center"}}>✓ 栽培中の品目に登録済み</div>}
+          {mPlant.id&&<button onClick={()=>deletePlanting(mPlant.id)} style={{...S.btn,...S.btnR,marginTop:8}}>この作付けを削除</button>}
+        </>}
+      </ModalWithSave>
     </div>
   );
 }
