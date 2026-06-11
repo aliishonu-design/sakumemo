@@ -1192,14 +1192,13 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.6</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.7</div>
       </div>
     </div>
   );
 }
 
 function HomeScreen({ fields, crops, setCrops, logs, costs, onEditCrop, showToast, setScr, onNew, dbLoad }) {
-  const [wx, setWx] = useState(null);
   // 作業リマインダー: 栽培中の品目について追肥時期・収穫時期を提案
   const reminders = (()=>{
     const out=[];
