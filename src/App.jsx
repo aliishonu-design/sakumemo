@@ -1192,7 +1192,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.8</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.9</div>
       </div>
     </div>
   );
@@ -2105,7 +2105,9 @@ useEffect(()=>{
       ? new Set(editLogs.map(l=>l.work).filter(Boolean))
       : new Set(editLog.work?[editLog.work]:[]);
     setWorks(_allWorks);
-    setMemo(editLog.memo||"");
+    // memoはグループ内のどのlogにあっても復元する
+    const _memoLog = (editLogs&&editLogs.length>0?editLogs:[editLog]).find(l=>l.memo);
+    setMemo(_memoLog?.memo||"");
     setDate(editLog.date||todayStr());
     setTime(editLog.time||nowTime());
     setDur(editLog.duration||"");
@@ -2590,9 +2592,10 @@ useEffect(()=>{
         {works.has("pest")&&<div style={panelStyle("#fffdf0","#f9e4a0")}><div style={ctitleStyle}>🐛 農薬詳細</div>
               <div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:8,padding:"8px 10px",marginBottom:9,fontSize:".72rem",color:"#856404",lineHeight:1.6}}>
                 ⚠️ 農薬の使用記録は農薬取締法により保管義務があります。本アプリの記録は補助的なものです。法的義務の履行は別途ご確認ください。
-              </div><FG label="農薬名（入力すると登録済みから候補表示）">
-                <Inp value={pestName} onChange={v=>{setPestName(v);const pm=pestMs.find(p=>p.name===v);if(pm){setPestDil(pm.dil||"");if(pm.cunit||pm.sunit)setPestUnit(pm.cunit||pm.sunit);}}} placeholder="農薬名を入力" list="pestlist"/>
-                <datalist id="pestlist">{pestMs.map((p,i)=><option key={i} value={p.name}/>)}</datalist>
+              </div><FG label="農薬名">
+                {pestMs.length>0&&<Sel value={pestMs.findIndex(p=>p.name===pestName)} onChange={v=>{if(v===""){setPestName("");setPestDil("");setPestUnit("");}else{const pm=pestMs[parseInt(v)];if(pm){setPestName(pm.name);setPestDil(pm.dil||"");if(pm.cunit||pm.sunit)setPestUnit(pm.cunit||pm.sunit);}}}}
+                  options={[{value:"",label:"── マスターから選ぶ ──"},...pestMs.map((p,i)=>({value:i,label:p.name}))]}/>}
+                <Inp value={pestName} onChange={v=>setPestName(v)} placeholder="農薬名を入力（直接入力も可）" style={{marginTop:pestMs.length>0?5:0}}/>
               </FG><R2><FG label="希釈倍数"><Inp type="number" value={pestDil} onChange={setPestDil} placeholder="1000"/></FG><FG label="散布量"><div style={{display:"flex",gap:4}}><Inp type="number" value={pestAmt} onChange={setPestAmt} style={{flex:1}}/><Sel value={pestUnit} onChange={setPestUnit} options={["L","ml"].map(v=>({value:v,label:v}))} style={{width:60,flex:"none"}}/></div></FG></R2><R2><FG label="対象病害虫"><Inp value={pestTgt} onChange={setPestTgt} placeholder="アブラムシ等"/></FG></R2></div>}
         {works.has("harvest")&&<div style={panelStyle("#fff9f0","#ffd9a0")}>
           <div style={ctitleStyle}>🧺 収穫詳細</div>
