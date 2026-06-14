@@ -1192,7 +1192,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.9</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.10</div>
       </div>
     </div>
   );
@@ -2158,7 +2158,7 @@ useEffect(()=>{
     setPestCost(pestLog.pestCost||"");
     // 農薬の追加エントリ復元
     const extraPests = allL.filter(l=>l.work==='pest').slice(1);
-    setPestEntries(extraPests.map(l=>({name:l.pestName||"",dil:l.pestDil||"",sprayAmt:l.pestSprayAmt||"",sprayUnit:l.pestUnit||"L",tgt:l.pestTarget||"",cost:l.pestCost||""})));
+    setPestEntries(extraPests.map(l=>({name:l.pestName||"",dil:l.pestDil||"",sprayAmt:l.pestAmt||"",sprayUnit:l.pestUnit||"L",tgt:l.pestTarget||"",cost:l.pestCost||""})));
 
     // 収穫
     setHvKg(hvLog.hvKg||"");
@@ -2318,7 +2318,7 @@ useEffect(()=>{
           const fertExtraCount=fertEntries.length;
           pestEntries.forEach((pe,pi)=>{
             const ex=makeEntry('pest',false,editLogIds[workList.length+fertExtraCount+pi]);
-            ex.pestName=pe.name;ex.pestDil=pe.dil;ex.pestSprayAmt=pe.sprayAmt;ex.pestUnit=pe.sprayUnit;ex.pestTarget=pe.tgt;ex.pestCost=pe.cost;
+            ex.pestName=pe.name;ex.pestDil=pe.dil;ex.pestAmt=pe.sprayAmt;ex.pestUnit=pe.sprayUnit;ex.pestTarget=pe.tgt;ex.pestCost=pe.cost;
             editEntriesAll.push(ex);
           });
         }
@@ -2377,7 +2377,7 @@ useEffect(()=>{
         if(w==='pest' && pestEntries.length>0){
           pestEntries.forEach(pe=>{
             const ex=makeEntry('pest',false,null,newGroupId);
-            ex.pestName=pe.name;ex.pestDil=pe.dil;ex.pestSprayAmt=pe.sprayAmt;ex.pestUnit=pe.sprayUnit;ex.pestTarget=pe.tgt;ex.pestCost=pe.cost;
+            ex.pestName=pe.name;ex.pestDil=pe.dil;ex.pestAmt=pe.sprayAmt;ex.pestUnit=pe.sprayUnit;ex.pestTarget=pe.tgt;ex.pestCost=pe.cost;
             allEntriesNew.push(ex);
           });
         }
@@ -2589,14 +2589,48 @@ useEffect(()=>{
             </div>
           ))}
         </div>}
-        {works.has("pest")&&<div style={panelStyle("#fffdf0","#f9e4a0")}><div style={ctitleStyle}>🐛 農薬詳細</div>
-              <div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:8,padding:"8px 10px",marginBottom:9,fontSize:".72rem",color:"#856404",lineHeight:1.6}}>
-                ⚠️ 農薬の使用記録は農薬取締法により保管義務があります。本アプリの記録は補助的なものです。法的義務の履行は別途ご確認ください。
-              </div><FG label="農薬名">
-                {pestMs.length>0&&<Sel value={pestMs.findIndex(p=>p.name===pestName)} onChange={v=>{if(v===""){setPestName("");setPestDil("");setPestUnit("");}else{const pm=pestMs[parseInt(v)];if(pm){setPestName(pm.name);setPestDil(pm.dil||"");if(pm.cunit||pm.sunit)setPestUnit(pm.cunit||pm.sunit);}}}}
-                  options={[{value:"",label:"── マスターから選ぶ ──"},...pestMs.map((p,i)=>({value:i,label:p.name}))]}/>}
-                <Inp value={pestName} onChange={v=>setPestName(v)} placeholder="農薬名を入力（直接入力も可）" style={{marginTop:pestMs.length>0?5:0}}/>
-              </FG><R2><FG label="希釈倍数"><Inp type="number" value={pestDil} onChange={setPestDil} placeholder="1000"/></FG><FG label="散布量"><div style={{display:"flex",gap:4}}><Inp type="number" value={pestAmt} onChange={setPestAmt} style={{flex:1}}/><Sel value={pestUnit} onChange={setPestUnit} options={["L","ml"].map(v=>({value:v,label:v}))} style={{width:60,flex:"none"}}/></div></FG></R2><R2><FG label="対象病害虫"><Inp value={pestTgt} onChange={setPestTgt} placeholder="アブラムシ等"/></FG></R2></div>}
+        {works.has("pest")&&<div style={panelStyle("#fffdf0","#f9e4a0")}>
+          <div style={{...ctitleStyle,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+            <span>🐛 防除</span>
+            <button onClick={()=>setPestEntries(prev=>[...prev,emptyPest()])}
+              style={{...S.btn,...S.btnSm,background:"#d97706",color:"#fff",fontSize:".72rem"}}>＋ 追加</button>
+          </div>
+          <div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:8,padding:"8px 10px",marginBottom:6,fontSize:".72rem",color:"#856404",lineHeight:1.6}}>
+            ⚠️ 農薬の使用記録は農薬取締法により保管義務があります。本アプリの記録は補助的なものです。法的義務の履行は別途ご確認ください。
+          </div>
+          <div style={{background:"#fffaf0",border:"1px solid #f9e4a0",borderRadius:8,padding:"8px 10px",marginBottom:6}}>
+            <div style={{fontSize:".72rem",fontWeight:700,color:"#92400e",marginBottom:5}}>農薬 1</div>
+            <FG label="農薬を選ぶ">
+              <Sel value={pestMs.findIndex(p=>p.name===pestName)} onChange={v=>{if(v===""){setPestName("");}else{const pm=pestMs[parseInt(v)];if(pm){setPestName(pm.name);setPestDil(pm.dil||"");if(pm.cunit||pm.sunit)setPestUnit(pm.cunit||pm.sunit);}}}}
+                options={[{value:"",label:"（選択）"},...pestMs.map((p,i)=>({value:i,label:p.name}))]}/>
+            </FG>
+            <R2>
+              <FG label="希釈倍数"><Inp type="number" value={pestDil} onChange={setPestDil} placeholder="1000"/></FG>
+              <FG label="散布量（希釈後）"><div style={{display:"flex",gap:4}}><Inp type="number" value={pestAmt} onChange={setPestAmt} style={{flex:1}}/><Sel value={pestUnit} onChange={setPestUnit} options={["L","ml"].map(v=>({value:v,label:v}))} style={{width:60,flex:"none"}}/></div></FG>
+            </R2>
+            <FG label="対象病害虫"><Inp value={pestTgt} onChange={setPestTgt} placeholder="アブラムシ等"/></FG>
+          </div>
+          {pestEntries.map((pe,pi)=>(
+            <div key={pi} style={{background:"#fffaf0",border:"1px solid #f9e4a0",borderRadius:8,padding:"8px 10px",marginTop:6}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5}}>
+                <span style={{fontSize:".72rem",fontWeight:700,color:"#92400e"}}>農薬 {pi+2}</span>
+                <button onClick={()=>setPestEntries(prev=>prev.filter((_,i)=>i!==pi))}
+                  style={{...S.btn,...S.btnR,...S.btnSm,fontSize:".65rem",padding:"2px 8px"}}>✕</button>
+              </div>
+              <FG label="農薬を選ぶ">
+                <Sel value={pe.name?pestMs.findIndex(p=>p.name===pe.name):""} onChange={v=>{
+                  if(v===""){setPestEntries(p=>p.map((x,i)=>i===pi?{...x,name:""}:x));}
+                  else{const pm=pestMs[parseInt(v)];setPestEntries(p=>p.map((x,i)=>i===pi?{...x,name:pm.name,dil:pm.dil||x.dil,sprayUnit:(pm.cunit||pm.sunit)||x.sprayUnit}:x));}
+                }} options={[{value:"",label:"（選択）"},...pestMs.map((p,i)=>({value:i,label:p.name}))]}/>
+              </FG>
+              <R2>
+                <FG label="希釈倍数"><Inp type="number" value={pe.dil} onChange={v=>setPestEntries(p=>p.map((x,i)=>i===pi?{...x,dil:v}:x))} placeholder="1000"/></FG>
+                <FG label="散布量（希釈後）"><div style={{display:"flex",gap:4}}><Inp type="number" value={pe.sprayAmt} onChange={v=>setPestEntries(p=>p.map((x,i)=>i===pi?{...x,sprayAmt:v}:x))} style={{flex:1}}/><Sel value={pe.sprayUnit} onChange={v=>setPestEntries(p=>p.map((x,i)=>i===pi?{...x,sprayUnit:v}:x))} options={["L","ml"].map(v=>({value:v,label:v}))} style={{width:60,flex:"none"}}/></div></FG>
+              </R2>
+              <FG label="対象病害虫"><Inp value={pe.tgt} onChange={v=>setPestEntries(p=>p.map((x,i)=>i===pi?{...x,tgt:v}:x))} placeholder="アブラムシ等"/></FG>
+            </div>
+          ))}
+        </div>}
         {works.has("harvest")&&<div style={panelStyle("#fff9f0","#ffd9a0")}>
           <div style={ctitleStyle}>🧺 収穫詳細</div>
           <div style={{fontSize:".72rem",color:"#888",marginBottom:8}}>品質別に入力（入力した品質のみ集計されます）</div>
@@ -2877,7 +2911,7 @@ function TimelineScreen({ fields, crops, equips, logs, setLogs, setLogsR, showTo
                         {card.logs.map((l,li)=>(
                           <div key={li}>
                             {l.fertName&&<div style={{fontSize:'.75rem',color:'#065f46'}}>🌿 {l.fertName}{l.fertAmt?` ${l.fertAmt}${l.fertUnit||''}`:''}{l.fertMethod?` (${l.fertMethod})`:''}</div>}
-                            {l.pestName&&<div style={{fontSize:'.75rem',color:'#92400e'}}>🐛 {l.pestName}{l.pestDil?` ${l.pestDil}倍`:''}{l.pestSprayAmt?` 散布${l.pestSprayAmt}${l.pestUnit||''}`:''}{l.pestTarget?` 対象:${l.pestTarget}`:''}</div>}
+                            {l.pestName&&<div style={{fontSize:'.75rem',color:'#92400e'}}>🐛 {l.pestName}{l.pestDil?` ${l.pestDil}倍`:''}{l.pestAmt?` 散布${l.pestAmt}${l.pestUnit||''}`:''}{l.pestTarget?` 対象:${l.pestTarget}`:''}</div>}
                             {(l.hvKg||l.hvCnt)&&<div style={{fontSize:'.75rem',color:'#059669'}}>🧺 {l.hvGradeStr||`${l.hvKg||''}${l.hvKg?'kg':''}${l.hvCnt?` ${l.hvCnt}個`:''}`}</div>}
                             {l.sowQty&&<div style={{fontSize:'.75rem',color:'#5a5040'}}>🌰 播種 {l.sowQty}粒</div>}
                             {l.germinationCnt&&<div style={{fontSize:'.75rem',color:'#065f46'}}>🌱 発芽 {l.germinationCnt}粒{l.germinationDate?` (${fmtMD(l.germinationDate)})`:''}</div>}
@@ -3538,8 +3572,11 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs, equips=[] })
       if(l.pestName && l.pestAmt && parseFloat(l.pestAmt)>0) {
         const pm=pestMs.find(p=>p.name===l.pestName);
         if(pm?.price && pm?.capacity && parseFloat(pm.capacity)>0) {
-          // 使用量をマスターの内容量単位に変換
-          const normalizedAmt = normalizeToMasterUnit(l.pestAmt, l.pestUnit, pm.cunit||pm.sunit);
+          // 散布量（希釈後）を希釈倍数で割って原液使用量を算出
+          const dil = parseFloat(l.pestDil)||1;
+          const concAmt = parseFloat(l.pestAmt) / (dil>0?dil:1);
+          // 原液使用量をマスターの内容量単位に変換
+          const normalizedAmt = normalizeToMasterUnit(concAmt, l.pestUnit, pm.cunit||pm.sunit);
           const unitCost = parseFloat(pm.price) / parseFloat(pm.capacity);
           pestTotal += Math.round(unitCost * normalizedAmt);
         }
@@ -3950,7 +3987,7 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs, equips=[] })
                   {card.logs.map((l,li)=>(
                     <div key={li}>
                       {l.fertName&&<div style={{fontSize:'.75rem',color:'#065f46'}}>🌿 {l.fertName}{l.fertAmt?` ${l.fertAmt}${l.fertUnit||''}`:''}{l.fertMethod?` (${l.fertMethod})`:''}</div>}
-                      {l.pestName&&<div style={{fontSize:'.75rem',color:'#92400e'}}>🐛 {l.pestName}{l.pestDil?` ${l.pestDil}倍`:''}{l.pestSprayAmt?` 散布${l.pestSprayAmt}${l.pestUnit||''}`:''}{l.pestTarget?` 対象:${l.pestTarget}`:''}</div>}
+                      {l.pestName&&<div style={{fontSize:'.75rem',color:'#92400e'}}>🐛 {l.pestName}{l.pestDil?` ${l.pestDil}倍`:''}{l.pestAmt?` 散布${l.pestAmt}${l.pestUnit||''}`:''}{l.pestTarget?` 対象:${l.pestTarget}`:''}</div>}
                       {(l.hvKg||l.hvCnt)&&<div style={{fontSize:'.75rem',color:'#059669'}}>🧺 {l.hvGradeStr||`${l.hvKg||''}${l.hvKg?'kg':''}${l.hvCnt?` ${l.hvCnt}個`:''}`}</div>}
                       {l.sowQty&&<div style={{fontSize:'.75rem',color:'#5a5040'}}>🌰 播種 {l.sowQty}粒</div>}
                       {l.germinationCnt&&<div style={{fontSize:'.75rem',color:'#065f46'}}>🌱 発芽 {l.germinationCnt}粒{l.germinationDate?` (${fmtMD(l.germinationDate)})`:''}</div>}
