@@ -1192,7 +1192,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.10</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.11</div>
       </div>
     </div>
   );
@@ -2309,7 +2309,7 @@ useEffect(()=>{
         editEntriesAll.push(makeEntry(w, wi===0, editLogIds[wi], editGroupId));
         if(w==='fert' && fertEntries.length>0){
           fertEntries.forEach((fe,fi)=>{
-            const ex=makeEntry('fert',false,editLogIds[workList.length+fi]);
+            const ex=makeEntry('fert',false,editLogIds[workList.length+fi],editGroupId);
             ex.fertName=fe.name;ex.fertAmt=fe.amt;ex.fertUnit=fe.unit;ex.fertMethod=fe.meth;ex.fertCost=fe.cost;
             editEntriesAll.push(ex);
           });
@@ -2317,7 +2317,7 @@ useEffect(()=>{
         if(w==='pest' && pestEntries.length>0){
           const fertExtraCount=fertEntries.length;
           pestEntries.forEach((pe,pi)=>{
-            const ex=makeEntry('pest',false,editLogIds[workList.length+fertExtraCount+pi]);
+            const ex=makeEntry('pest',false,editLogIds[workList.length+fertExtraCount+pi],editGroupId);
             ex.pestName=pe.name;ex.pestDil=pe.dil;ex.pestAmt=pe.sprayAmt;ex.pestUnit=pe.sprayUnit;ex.pestTarget=pe.tgt;ex.pestCost=pe.cost;
             editEntriesAll.push(ex);
           });
