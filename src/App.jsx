@@ -1192,7 +1192,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.11</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.12</div>
       </div>
     </div>
   );
@@ -3134,6 +3134,8 @@ function PlanScreen({ fields, crops, setCrops, plots, setPlots, setPlotsR, showT
   const [year, setYear] = useState(new Date().getFullYear());
   const [mPlant, setMPlant] = useState(null);  // 作付け編集モーダル
   const [drag, setDrag] = useState(null);     // ドラッグ中 {id, mode:"move"|"start"|"end", startX, origPlant, origHarvest}
+  const [history,    setHistory]    = useState([]);   // undo/redo 履歴
+  const [historyIdx, setHistoryIdx] = useState(-1);  // 現在の履歴位置
   const laneRef = useRef(null);                // ガント行の幅取得用
 
   const selField = fields[selFieldIdx];
@@ -3162,10 +3164,48 @@ function PlanScreen({ fields, crops, setCrops, plots, setPlots, setPlotsR, showT
     showToast("栽培計画を作成しました");
   };
 
-  const savePlan = (updated) => {
+  // undo/redo: historyは [{planId, before, after}] の配列
+  const pushHistory = (planId, before, after) => {
+    setHistory(h=>{
+      const trimmed = h.slice(0, historyIdx+1);
+      return [...trimmed, {planId, before, after}].slice(-50);
+    });
+    setHistoryIdx(i=>i+1);
+  };
+  const savePlan = (updated, _before) => {
+    if(_before) pushHistory(updated.id, _before, updated.plantings||[]);
     const n = plots.map(p=>p.id===updated.id?updated:p);
     setPlots(n, updated);
   };
+  const undo = () => {
+    if(historyIdx<0) return;
+    const h = history[historyIdx];
+    const target = plots.find(p=>p.id===h.planId);
+    if(!target) return;
+    const restored = {...target, plantings: h.before};
+    setPlots(plots.map(p=>p.id===restored.id?restored:p), restored);
+    setHistoryIdx(i=>i-1);
+    showToast("元に戻しました");
+  };
+  const redo = () => {
+    if(historyIdx>=history.length-1) return;
+    const h = history[historyIdx+1];
+    const target = plots.find(p=>p.id===h.planId);
+    if(!target) return;
+    const restored = {...target, plantings: h.after};
+    setPlots(plots.map(p=>p.id===restored.id?restored:p), restored);
+    setHistoryIdx(i=>i+1);
+    showToast("やり直しました");
+  };
+  // Ctrl+Z / Ctrl+Y キーボードショートカット
+  useEffect(()=>{
+    const onKey = e => {
+      if((e.ctrlKey||e.metaKey) && e.key==='z' && !e.shiftKey){ e.preventDefault(); undo(); }
+      if((e.ctrlKey||e.metaKey) && (e.key==='y' || (e.key==='z'&&e.shiftKey))){ e.preventDefault(); redo(); }
+    };
+    window.addEventListener('keydown', onKey);
+    return ()=>window.removeEventListener('keydown', onKey);
+  },[historyIdx, history, plots]);
 
   // ガントバーのドラッグ（伸縮・移動）
   const yearStartMs = ()=> new Date(year,0,1).getTime();
@@ -3209,8 +3249,15 @@ function PlanScreen({ fields, crops, setCrops, plots, setPlots, setPlotsR, showT
       setPlotsR(plots.map(pp=>pp.id===plan.id?{...plan,plantings}:pp));
     };
     const onUp = ()=>{
-      const cur=(plots.find(p=>p.id===plan.id)?.plantings||[]).find(p=>p.id===drag.id);
-      if(cur && drag.moved){ savePlan(plots.find(p=>p.id===plan.id)); showToast("期間を変更しました"); }
+      const planNow=plots.find(p=>p.id===plan.id);
+      const cur=(planNow?.plantings||[]).find(p=>p.id===drag.id);
+      if(cur && drag.moved){
+        const beforePlantings=(planNow?.plantings||[]).map(p=>
+          p.id===drag.id?{...p,plantDate:drag.origPlant,harvestDate:drag.origHarvest,bedId:drag.origBed}:p
+        );
+        savePlan(planNow, beforePlantings);
+        showToast("期間を変更しました");
+      }
       setDrag(null);
     };
     window.addEventListener("mousemove",onMove);
@@ -3340,10 +3387,17 @@ function PlanScreen({ fields, crops, setCrops, plots, setPlots, setPlotsR, showT
     <div style={S.scr} className="scr-inner">
       <div style={{...S.sec,flexWrap:"wrap",gap:6}}>
         <span>📅 栽培計画</span>
-        <div style={{display:"flex",gap:6,alignItems:"center"}}>
+        <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
           <button onClick={()=>setYear(y=>y-1)} style={{...S.btn,...S.btnS,...S.btnSm}}>‹</button>
           <span style={{fontSize:".82rem",fontWeight:700,minWidth:46,textAlign:"center"}}>{year}年</span>
           <button onClick={()=>setYear(y=>y+1)} style={{...S.btn,...S.btnS,...S.btnSm}}>›</button>
+          <div style={{width:1,height:16,background:"#e0d9ce",margin:"0 2px"}}/>
+          <button onClick={undo} disabled={historyIdx<0}
+            title="元に戻す (Ctrl+Z)"
+            style={{...S.btn,...S.btnS,...S.btnSm,opacity:historyIdx<0?.35:1,fontSize:".8rem",padding:"4px 10px"}}>↩ 戻る</button>
+          <button onClick={redo} disabled={historyIdx>=history.length-1}
+            title="やり直す (Ctrl+Y)"
+            style={{...S.btn,...S.btnS,...S.btnSm,opacity:historyIdx>=history.length-1?.35:1,fontSize:".8rem",padding:"4px 10px"}}>↪ 進む</button>
         </div>
       </div>
 
