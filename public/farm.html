@@ -719,7 +719,7 @@ async function main(){
       +(farm.description?'<p class="farm-desc">'+farm.description+'</p>':'')+'</div>';
 
     var res=await Promise.all([
-      api('crops','user_id=eq.'+farmUid+'&is_public=eq.true&select=*&order=created_at'),
+      api('crops','user_id=eq.'+farmUid+'&select=*&order=created_at'),
       api('logs','user_id=eq.'+farmUid+'&select=*&order=date.desc,time.desc'),
       api('equipments','user_id=eq.'+farmUid+'&select=id,name,cat&order=created_at')
     ]);
