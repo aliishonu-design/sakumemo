@@ -1192,7 +1192,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.12</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.13</div>
       </div>
     </div>
   );
@@ -1382,7 +1382,7 @@ function MasterScreen({ fertMs, setFertMs, pestMs, setPestMs, equips, setEquips,
         }
       } else {
         // 新規：費用を追加（償却資材はdepYearsを引き継ぐ）
-        const newCost = {id:uid0(),masterId:item.id,cat:costCat,name:costName,amt:String(item.price),date:item.date||todayStr(),qty:"1",qunit:"個",fieldIdx:"",depYears:item.depYears||"",note:item.depYears?("減価償却"+item.depYears+"年"):"マスター登録時に自動追加"};
+        const newCost = {id:uid0(),masterId:item.id,cat:costCat,name:costName,amt:String(item.price),date:item.buyDate||item.date||todayStr(),qty:String(item.capacity||"1"),qunit:item.cunit||item.sunit||"個",fieldIdx:"",depYears:item.depYears||"",note:item.depYears?("減価償却"+item.depYears+"年"):"マスター登録時に自動追加"};
         setCosts([...costs, newCost], newCost);
       }
     }
@@ -1536,6 +1536,15 @@ function MasterScreen({ fertMs, setFertMs, pestMs, setPestMs, equips, setEquips,
               <FG label="状態"><Sel value={mItem.status||"使用中"} onChange={v=>setMItem({...mItem,status:v})}
                 options={["使用中","保管中","メンテナンス中","廃棄"].map(v=>({value:v,label:v}))}/></FG>
             </R2>
+            <div style={{background:"#f0f9f0",borderRadius:10,padding:"10px 12px",marginBottom:9}}>
+              <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".82rem",color:"#5c3d1e",marginBottom:8}}>💰 購入情報</div>
+              <R2>
+                <FG label="単価（円）"><Inp type="number" value={mItem.price||""} onChange={v=>setMItem({...mItem,price:v})} placeholder="例：1500"/></FG>
+                <FG label="数量"><div style={{display:"flex",gap:4}}><Inp type="number" value={mItem.capacity||""} onChange={v=>setMItem({...mItem,capacity:v})} placeholder="1" style={{flex:1}}/><Inp value={mItem.cunit||"個"} onChange={v=>setMItem({...mItem,cunit:v})} placeholder="個" style={{width:48,flex:"none"}}/></div></FG>
+              </R2>
+              <FG label="購入日"><Inp type="date" value={mItem.buyDate||""} onChange={v=>setMItem({...mItem,buyDate:v})}/></FG>
+              <div style={{fontSize:".68rem",color:TX3,marginTop:4}}>💡 単価・数量を入力すると費用ページに自動で記録されます</div>
+            </div>
           </>}
 
           {mItem._type!=="equip"&&<>
@@ -2047,7 +2056,7 @@ function LogScreen({ fields, crops, setCrops, fertMs, pestMs, equips, costs, set
   // 施肥複数登録用
   const emptyFert = () => ({name:"",amt:"",unit:"kg",meth:"追肥",cost:""});
   const emptyPest = () => ({name:"",dil:"",sprayAmt:"",sprayUnit:"L",tgt:"",cost:""});
-  const emptyEquip = () => ({idx:"",act:"設置"});
+  const emptyEquip = () => ({_id:null,idx:"",act:"設置"});
   const [fertEntries, setFertEntries] = useState([]);
   const [pestIdx,  setPestIdx]  = useState("");
   const [pestEntries, setPestEntries] = useState([]); // 農薬複数登録
@@ -2206,7 +2215,7 @@ useEffect(()=>{
     const extraEquips = allL.filter(l=>l.work==='equip').slice(1);
     setEquipEntries(extraEquips.map(l=>{
       const ids=Array.isArray(l.equipIds)?l.equipIds:(l.equipIds?JSON.parse(l.equipIds):[]);
-      return {idx:ids.length>0?ids[0]:"", act:l.equipAct||"設置"};
+      return {_id:l.id, idx:ids.length>0?ids[0]:"", act:l.equipAct||"設置"};
     }));
 
     // 既存写真をプレビューとして保持
@@ -2325,7 +2334,7 @@ useEffect(()=>{
         // 資材の追加エントリ（編集時も新規IDで追加）
         if(w==='equip' && equipEntries.length>0){
           equipEntries.forEach(ee=>{
-            const ex=makeEntry('equip',false,null,editGroupId);
+            const ex=makeEntry('equip',false,ee._id||null,editGroupId);
             const _en2=ee.idx!==""?equips[ee.idx]?.name||'':'';
             const _fa2=(_en2+(_en2?' ':'')+ee.act).trim();
             ex.equipIds=ee.idx!==""?[ee.idx]:[];ex.equipAct=_fa2||ee.act;
