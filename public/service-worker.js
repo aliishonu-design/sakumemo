@@ -1,5 +1,5 @@
 // サクメモ Service Worker - オフライン対応（v3）
-const CACHE_NAME = 'sakumemo-v3';
+const CACHE_NAME = 'sakumemo-v4';
 
 // インストール時: 即座に有効化
 self.addEventListener('install', () => {
