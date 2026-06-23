@@ -1192,7 +1192,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.14</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.15</div>
       </div>
     </div>
   );
@@ -2306,9 +2306,24 @@ useEffect(()=>{
 
     if(editId) {
       // 編集: editLogsの各IDをworkListに対応
-      const editLogIds = (editLogs&&editLogs.length>0) ? editLogs.map(l=>l.id) : [editId];
+      // editLogsが不完全な場合（group化できていない）、logsから同じgroupIdで補完
+      const _rawEditLogs = (editLogs&&editLogs.length>0) ? editLogs : [editLog];
+      const _gid = _rawEditLogs[0]?._groupId;
+      const _fullEditLogs = _gid
+        ? logs.filter(l=>l._groupId===_gid)
+        : _rawEditLogs;
+      const editLogIds = (_fullEditLogs.length>0 ? _fullEditLogs : _rawEditLogs).map(l=>l.id);
       // 既存ログを削除してから再追加
-      const removeIds = new Set(editLogIds);
+      // editLogIds + 同じgroupIdを持つ全ログも削除対象に（groupが不完全に渡された場合の保険）
+      const editGroupIdForRemove = editLogIds[0]
+        ? (logs.find(l=>l.id===editLogIds[0])?._groupId || null)
+        : null;
+      const removeIds = new Set([
+        ...editLogIds,
+        ...(editGroupIdForRemove
+          ? logs.filter(l=>l._groupId===editGroupIdForRemove).map(l=>l.id)
+          : [])
+      ]);
       let allNewLogs = logs.filter(l=>!removeIds.has(l.id));
       // 編集: 施肥複数対応
       const editEntriesAll = [];
