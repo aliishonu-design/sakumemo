@@ -1192,7 +1192,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.15</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.16</div>
       </div>
     </div>
   );
@@ -2784,8 +2784,13 @@ function TimelineScreen({ fields, crops, equips, logs, setLogs, setLogsR, showTo
 
   // 日付でグループ化
   // 日付でグループ化
+  // date降順→同日内はcreated_at/id順にソートしてからグループ化
+  const filteredSorted = [...filtered].sort((a,b)=>{
+    if((b.date||'') !== (a.date||'')) return (b.date||'') > (a.date||'') ? 1 : -1;
+    return 0; // 同日内はDB取得順を維持
+  });
   const grouped = [];
-  filtered.forEach(l=>{
+  filteredSorted.forEach(l=>{
     const d = l.date||'日付なし';
     const last = grouped[grouped.length-1];
     if(last && last.date===d) last.logs.push(l);
