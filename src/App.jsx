@@ -1192,7 +1192,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.13</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.14</div>
       </div>
     </div>
   );
@@ -2333,8 +2333,10 @@ useEffect(()=>{
         }
         // 資材の追加エントリ（編集時も新規IDで追加）
         if(w==='equip' && equipEntries.length>0){
-          equipEntries.forEach(ee=>{
-            const ex=makeEntry('equip',false,ee._id||null,editGroupId);
+          const fertExtraCount2=fertEntries.length;
+          const pestExtraCount2=pestEntries.length;
+          equipEntries.forEach((ee,ei)=>{
+            const ex=makeEntry('equip',false,editLogIds[workList.length+fertExtraCount2+pestExtraCount2+ei]||null,editGroupId);
             const _en2=ee.idx!==""?equips[ee.idx]?.name||'':'';
             const _fa2=(_en2+(_en2?' ':'')+ee.act).trim();
             ex.equipIds=ee.idx!==""?[ee.idx]:[];ex.equipAct=_fa2||ee.act;
@@ -2896,7 +2898,7 @@ function TimelineScreen({ fields, crops, equips, logs, setLogs, setLogsR, showTo
                     const oa=WORK_TYPES.findIndex(w=>w.value===a.work);
                     const ob=WORK_TYPES.findIndex(w=>w.value===b.work);
                     return (oa<0?99:oa)-(ob<0?99:ob);
-                  }).filter(l=>{ const multi=l.work==="fert"||l.work==="pest"||l.work==="equip"; if(!multi){ if(seenW[l.work])return false; seenW[l.work]=true; } return true; });
+                  }).filter(l=>{ if(seenW[l.work])return false; seenW[l.work]=true; return true; });
                   return (
                     <div key={card.key} style={{...S.card,padding:0,overflow:'hidden',marginBottom:8}}>
                       <div style={{padding:'9px 11px'}}>
@@ -3024,7 +3026,7 @@ function CostScreen({ fields, crops, fertMs, pestMs, equips, costs, setCosts, lo
   const sv = () => {
     if(!mCost.name){showToast("品名を入力してください");return;}
     const item={...mCost,id:mCost.id||uid0()};
-    const n=mCost._idx!==undefined?costs.map((x,i)=>i===mCost._idx?item:x):[...costs,item];
+    const n=mCost.id&&costs.find(x=>x.id===mCost.id)?costs.map(x=>x.id===mCost.id?item:x):[...costs,item];
     setCosts(n,item); setMCost(null); showToast("保存しました");
   };
   const cropName = id => {if(!id)return"共通";const c=crops.find(x=>x.id===id);if(!c)return"共通";const db=CDB[c.type]||{};return(db.e||"🌱")+" "+(db.n||c.type)+(c.variety?"("+c.variety+")":"");};
@@ -3103,7 +3105,7 @@ function CostScreen({ fields, crops, fertMs, pestMs, equips, costs, setCosts, lo
           const cat=COST_CATS.find(x=>x.value===c.cat);
           return (
             <div key={c.id||i} style={{display:"flex",alignItems:"center",gap:6,padding:"7px 0",borderBottom:"1px solid #f6f3ec",cursor:"pointer"}}
-              onClick={()=>setMCost({...c,_idx:costs.indexOf(c)})}>
+              onClick={()=>{const _i=costs.findIndex(x=>x.id===c.id);setMCost({...c,_idx:_i});}}>
               <div style={{minWidth:52,fontSize:".66rem",color:TX3}}>{c.date?fmtMD(c.date):""}</div>
               <Tag type={cat?.tag||"gray"}>{cat?.label||c.cat}</Tag>
               <div style={{flex:1,fontSize:".78rem",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
@@ -3132,7 +3134,7 @@ function CostScreen({ fields, crops, fertMs, pestMs, equips, costs, setCosts, lo
           <Sel value={mCost.cropId||""} onChange={v=>setMCost({...mCost,cropId:v})}
             options={[{value:"",label:"共通（品目割当なし）"},...crops.filter(c=>!c.ended).map(c=>{const db=CDB[c.type]||{};return{value:c.id,label:(db.e||"🌱")+" "+(db.n||c.type)+(c.variety?"("+c.variety+")":"")};})]}/></FG>
         <FG label="メモ"><Inp value={mCost.note||""} onChange={v=>setMCost({...mCost,note:v})} placeholder="購入先など"/></FG>
-        {mCost._idx!==undefined&&<button onClick={()=>{if(!window.confirm("削除しますか?"))return;const n=costs.filter((_,j)=>j!==mCost._idx);setCosts(n);setMCost(null);showToast("削除しました");}} style={{...S.btn,...S.btnR,marginTop:8}}>削除</button>}
+        {mCost.id&&costs.find(x=>x.id===mCost.id)&&<button onClick={()=>{if(!window.confirm("削除しますか?"))return;const n=costs.filter(x=>x.id!==mCost.id);setCosts(n);setMCost(null);showToast("削除しました");}} style={{...S.btn,...S.btnR,marginTop:8}}>削除</button>}
       </ModalWithSave>}
     </div>
   );
