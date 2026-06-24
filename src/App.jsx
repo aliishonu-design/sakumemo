@@ -1192,7 +1192,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.16</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.17</div>
       </div>
     </div>
   );
@@ -2204,7 +2204,7 @@ useEffect(()=>{
 
     // 資材作業 ─ equipIdsからインデックスを復元
     // equipActから純粋な作業種別のみを復元（資材名が混入している場合を除去）
-    const _equipActs=["設置","撤去","交換","修理","保管","その他"];
+    const _equipActs=["設置","撤去","着用","脱去","点検","修理","その他"];
     const _rawAct=equipLog.equipAct||"設置";
     const _pureAct=_equipActs.find(a=>_rawAct===a||_rawAct.endsWith(" "+a))||_rawAct;
     setEquipAct(_pureAct);
@@ -2215,7 +2215,8 @@ useEffect(()=>{
     const extraEquips = allL.filter(l=>l.work==='equip').slice(1);
     setEquipEntries(extraEquips.map(l=>{
       const ids=Array.isArray(l.equipIds)?l.equipIds:(l.equipIds?JSON.parse(l.equipIds):[]);
-      return {_id:l.id, idx:ids.length>0?ids[0]:"", act:l.equipAct||"設置"};
+      const _pureAct2=_equipActs.find(a=>l.equipAct===a||l.equipAct.endsWith(" "+a))||"設置";
+      return {_id:l.id, idx:ids.length>0?ids[0]:"", act:_pureAct2};
     }));
 
     // 既存写真をプレビューとして保持
