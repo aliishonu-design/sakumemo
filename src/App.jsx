@@ -1192,7 +1192,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.17</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.18</div>
       </div>
     </div>
   );
@@ -3140,7 +3140,7 @@ function CostScreen({ fields, crops, fertMs, pestMs, equips, costs, setCosts, lo
       </div>
 
       {/* 費用編集モーダル */}
-      {mCost&&<ModalWithSave title={mCost.id?"費用を編集":"費用を追加"} onSave={sv} onClose={()=>setMCost(null)}>
+      {mCost&&<ModalWithSave open={!!mCost} title={mCost.id?"費用を編集":"費用を追加"} onSave={sv} onClose={()=>setMCost(null)}>
         <FG label="カテゴリ"><Sel value={mCost.cat} onChange={v=>setMCost({...mCost,cat:v})} options={COST_CATS.map(c=>({value:c.value,label:c.label}))}/></FG>
         <FG label="品名 *"><Inp value={mCost.name} onChange={v=>setMCost({...mCost,name:v})} placeholder="例：苦土石灰 20kg"/></FG>
         <R2>
