@@ -658,7 +658,7 @@ function normalizeToMasterUnit(value, valueUnit, masterUnit) {
 }
 const daysSince= d => d ? Math.floor((Date.now()-new Date(d))/86400000) : 0;
 const fmtDate  = d => (d.getMonth()+1)+"/"+d.getDate();
-const todayStr = () => new Date().toISOString().slice(0,10);
+const todayStr = () => {const d=new Date();const y=d.getFullYear();const m=String(d.getMonth()+1).padStart(2,"0");const day=String(d.getDate()).padStart(2,"0");return y+"-"+m+"-"+day;};
 const nowTime  = () => new Date().toTimeString().slice(0,5);
 // 日付表記の統一: fmtYMD="2026/5/20", fmtMD="5/20"（先頭ゼロなし・スラッシュ区切り）
 const fmtYMD = d => { if(!d) return ""; const dt=new Date(d); if(isNaN(dt)) return ""; return dt.getFullYear()+"/"+(dt.getMonth()+1)+"/"+dt.getDate(); };
@@ -1192,7 +1192,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.18</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.19</div>
       </div>
     </div>
   );
