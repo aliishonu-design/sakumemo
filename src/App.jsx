@@ -1192,7 +1192,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.19</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.20</div>
       </div>
     </div>
   );
@@ -3168,6 +3168,7 @@ function PlanScreen({ fields, crops, setCrops, plots, setPlots, setPlotsR, showT
   const [drag, setDrag] = useState(null);     // ドラッグ中 {id, mode:"move"|"start"|"end", startX, origPlant, origHarvest}
   const [history,    setHistory]    = useState([]);   // undo/redo 履歴
   const [historyIdx, setHistoryIdx] = useState(-1);  // 現在の履歴位置
+  const histRef = useRef({hist:[], idx:-1}); // 同期的なundo/redo管理
   const laneRef = useRef(null);                // ガント行の幅取得用
 
   const selField = fields[selFieldIdx];
@@ -3198,11 +3199,13 @@ function PlanScreen({ fields, crops, setCrops, plots, setPlots, setPlotsR, showT
 
   // undo/redo: historyは [{planId, before, after}] の配列
   const pushHistory = (planId, before, after) => {
-    setHistory(h=>{
-      const trimmed = h.slice(0, historyIdx+1);
-      return [...trimmed, {planId, before, after}].slice(-50);
-    });
-    setHistoryIdx(i=>i+1);
+    const {hist, idx} = histRef.current;
+    const trimmed = hist.slice(0, idx+1);
+    const newHist = [...trimmed, {planId, before, after}].slice(-50);
+    const newIdx = newHist.length - 1;
+    histRef.current = {hist:newHist, idx:newIdx};
+    setHistory(newHist);
+    setHistoryIdx(newIdx);
   };
   const savePlan = (updated, _before) => {
     if(_before) pushHistory(updated.id, _before, updated.plantings||[]);
@@ -3210,23 +3213,29 @@ function PlanScreen({ fields, crops, setCrops, plots, setPlots, setPlotsR, showT
     setPlots(n, updated);
   };
   const undo = () => {
-    if(historyIdx<0) return;
-    const h = history[historyIdx];
+    const {hist, idx} = histRef.current;
+    if(idx<0) return;
+    const h = hist[idx];
     const target = plots.find(p=>p.id===h.planId);
     if(!target) return;
     const restored = {...target, plantings: h.before};
+    const newIdx = idx - 1;
+    histRef.current = {hist, idx:newIdx};
     setPlots(plots.map(p=>p.id===restored.id?restored:p), restored);
-    setHistoryIdx(i=>i-1);
+    setHistoryIdx(newIdx);
     showToast("元に戻しました");
   };
   const redo = () => {
-    if(historyIdx>=history.length-1) return;
-    const h = history[historyIdx+1];
+    const {hist, idx} = histRef.current;
+    if(idx>=hist.length-1) return;
+    const h = hist[idx+1];
     const target = plots.find(p=>p.id===h.planId);
     if(!target) return;
     const restored = {...target, plantings: h.after};
+    const newIdx = idx + 1;
+    histRef.current = {hist, idx:newIdx};
     setPlots(plots.map(p=>p.id===restored.id?restored:p), restored);
-    setHistoryIdx(i=>i+1);
+    setHistoryIdx(newIdx);
     showToast("やり直しました");
   };
   // Ctrl+Z / Ctrl+Y キーボードショートカット
