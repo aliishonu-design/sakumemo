@@ -1192,7 +1192,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.20</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.21</div>
       </div>
     </div>
   );
@@ -3393,9 +3393,17 @@ function PlanScreen({ fields, crops, setCrops, plots, setPlots, setPlotsR, showT
           if(!cur.rot||cur.rot.years<=0||!cur.rot.ng.length)continue;
           if(!cur.fam||!past.fam)continue;
           if(!cur.rot.ng.includes(past.fam))continue;
+          // 混植チェック：期間が重なっている場合は混植なので警告しない
+          const curEnd=cur.harvestDate||cur.plantDate;
+          const pastEnd=past.harvestDate||past.plantDate;
+          const overlap=cur.plantDate<=pastEnd && past.plantDate<=curEnd;
+          if(overlap) continue;
+          // curはpastより後に植えられるもののみ（ソート済みなので常にcur>=past）
           const gapYears=(new Date(cur.plantDate)-new Date(past.plantDate))/(86400000*365);
           if(gapYears<cur.rot.years){
-            warns.push({bed:bed.name, cur:cropFull(cur.crop), past:cropFull(past.crop), fam:cur.fam, years:cur.rot.years, gap:Math.floor(gapYears*10)/10});
+            const needYears=cur.rot.years;
+            const shortYears=Math.round((needYears-gapYears)*10)/10;
+            warns.push({bed:bed.name, cur:cropFull(cur.crop), past:cropFull(past.crop), fam:cur.fam, years:needYears, gap:Math.floor(gapYears*10)/10, short:shortYears, curCrop:cur.crop});
           }
         }
       }
@@ -3445,13 +3453,40 @@ function PlanScreen({ fields, crops, setCrops, plots, setPlots, setPlotsR, showT
       <FG label="圃場を選択"><Sel value={selFieldIdx} onChange={v=>setSelFieldIdx(parseInt(v))} options={fields.map((f,i)=>({value:i,label:f.name}))}/></FG>
 
       {/* 連作警告 */}
-      {warns.length>0&&<div style={{...S.card,background:"#fff3cd",border:"1px solid #ffc107"}}>
-        <div style={{fontSize:".76rem",fontWeight:700,color:"#856404",marginBottom:4}}>⚠️ 連作注意（{warns.length}件）</div>
-        {warns.slice(0,6).map((w,i)=>(
-          <div key={i} style={{fontSize:".7rem",color:"#856404",lineHeight:1.5}}>
-            ・{w.bed}: {w.cur}（{w.fam}）。前作{w.past}から{w.gap}年（{w.years}年空けるのが目安）
+      {warns.length>0&&<div style={{...S.card,background:"#fff8e1",border:"1px solid #f59e0b",padding:"10px 12px"}}>
+        <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}>
+          <span style={{fontSize:"1.1rem"}}>⚠️</span>
+          <span style={{fontSize:".78rem",fontWeight:700,color:"#92400e"}}>連作注意</span>
+          <span style={{background:"#f59e0b",color:"#fff",borderRadius:999,fontSize:".65rem",fontWeight:700,padding:"1px 7px"}}>{warns.length}件</span>
+        </div>
+        <div style={{display:"flex",flexDirection:"column",gap:6}}>
+        {warns.slice(0,8).map((w,i)=>{
+          const pct=Math.min(100,Math.round((w.gap/w.years)*100));
+          const col=pct<33?"#ef4444":pct<66?"#f59e0b":"#84cc16";
+          return (
+          <div key={i} style={{background:"#fff",borderRadius:8,padding:"7px 10px",border:"1px solid #fde68a"}}>
+            <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:4}}>
+              <span style={{fontSize:".8rem",fontWeight:700,color:"#1c1a14"}}>{w.cur}</span>
+              <span style={{fontSize:".6rem",background:"#fef3c7",color:"#92400e",borderRadius:4,padding:"1px 5px"}}>{w.fam}</span>
+              <span style={{fontSize:".6rem",color:"#6b7280",marginLeft:"auto"}}>{w.bed}</span>
+            </div>
+            <div style={{display:"flex",alignItems:"center",gap:4,marginBottom:3}}>
+              <span style={{fontSize:".62rem",color:"#6b7280"}}>前作:</span>
+              <span style={{fontSize:".66rem",color:"#5a5040"}}>{w.past}</span>
+            </div>
+            <div style={{display:"flex",alignItems:"center",gap:6}}>
+              <div style={{flex:1,background:"#e5e7eb",borderRadius:999,height:6,overflow:"hidden"}}>
+                <div style={{width:pct+"%",height:"100%",background:col,borderRadius:999,transition:"width .5s"}}/>
+              </div>
+              <span style={{fontSize:".62rem",color:col,fontWeight:700,minWidth:60,textAlign:"right"}}>
+                {w.gap}年/{w.years}年
+              </span>
+            </div>
+            <div style={{fontSize:".6rem",color:"#ef4444",marginTop:2}}>あと{w.short}年必要</div>
           </div>
-        ))}
+          );
+        })}
+        </div>
       </div>}
 
       {/* ガントチャート */}
