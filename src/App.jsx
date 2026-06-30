@@ -1192,7 +1192,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.21</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.22</div>
       </div>
     </div>
   );
@@ -2902,8 +2902,15 @@ function TimelineScreen({ fields, crops, equips, logs, setLogs, setLogsR, showTo
             return (
               <div key={date} style={{marginBottom:16}}>
                 {/* 日付ヘッダー */}
-                <div style={{fontSize:'.72rem',fontWeight:700,color:'#5c3d1e',padding:'4px 2px',borderBottom:'2px solid #e0d9ce',marginBottom:8}}>
-                  📅 {fmtYMD(date)}
+                <div style={{fontSize:'.72rem',fontWeight:700,color:'#5c3d1e',padding:'4px 2px',borderBottom:'2px solid #e0d9ce',marginBottom:8,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                  <span>📅 {fmtYMD(date)}</span>
+                  {(()=>{
+                    const totalMin=dcards.reduce((s,card)=>s+(parseInt(card.logs[0]?.duration)||0),0);
+                    if(totalMin<=0) return null;
+                    const h=Math.floor(totalMin/60), m=totalMin%60;
+                    const timeStr=h>0?(m>0?h+'時間'+m+'分':h+'時間'):m+'分';
+                    return <span style={{fontSize:'.66rem',fontWeight:400,color:'#888'}}>⏱ 合計 {timeStr}</span>;
+                  })()}
                 </div>
                 {/* カード */}
                 {dcards.map(card=>{
