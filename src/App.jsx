@@ -1195,13 +1195,34 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.26</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.27</div>
       </div>
     </div>
   );
 }
 
-function HomeScreen({ fields, crops, setCrops, logs, costs, onEditCrop, showToast, setScr, onNew, dbLoad }) {
+function HomeScreen({ fields, crops, setCrops, logs, setLogs, costs, onEditCrop, showToast, setScr, onNew, dbLoad, dbSaveLog, dbDelete }) {
+  const [reminderMode, setReminderMode] = useState("both"); // "auto"|"custom"|"both"
+  const [mSched, setMSched] = useState(null); // カスタム予定モーダル {date,title,cropId,id}
+  // カスタム予定（work="schedule"のlogs）
+  const schedules = logs.filter(l=>l.work==="schedule").sort((a,b)=>(a.date||"").localeCompare(b.date||""));
+  const saveSchedule = () => {
+    if(!mSched.title){showToast("タイトルを入力してください");return;}
+    const item = {id:mSched.id||uid0(), _groupId:null, fieldIdx:0, cropId:mSched.cropId||"",
+      work:"schedule", memo:mSched.title, date:mSched.date||todayStr(), time:"", duration:"",
+      imgSrc:null,imgSrc2:null,imgSrc3:null};
+    if(mSched.id){
+      setLogs(logs.map(l=>l.id===mSched.id?item:l)); dbSaveLog(item);
+    } else {
+      setLogs([...logs,item]); dbSaveLog(item);
+    }
+    setMSched(null); showToast("予定を保存しました");
+  };
+  const deleteSchedule = (id) => {
+    if(!window.confirm("削除しますか？"))return;
+    setLogs(logs.filter(l=>l.id!==id)); dbDelete("logs",id);
+    showToast("削除しました");
+  };
   // 作業リマインダー: 栽培中の品目について追肥時期・収穫時期を提案
   const reminders = (()=>{
     const out=[];
@@ -1299,24 +1320,75 @@ function HomeScreen({ fields, crops, setCrops, logs, costs, onEditCrop, showToas
       )}
 
 
-      {/* 作業リマインダー */}
-      {reminders.length>0&&(
-        <div style={{...S.card,marginBottom:12}}>
-          <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".88rem",color:"#5c3d1e",marginBottom:8}}>📅 次の作業予定</div>
-          {reminders.map((r,i)=>(
-            <div key={i} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 10px",marginBottom:6,borderRadius:8,background:r.urgent?"#fff3cd":"#f6f3ec",border:"1px solid "+(r.urgent?"#ffc107":"#e8e0d5")}}>
-              <span onClick={()=>onEditCrop&&onEditCrop(r.crop)} style={{fontSize:"1.1rem",cursor:"pointer"}}>{r.type==="harvest"?"🌾":r.type==="transplant"?"🌱":"🌿"}</span>
-              <div onClick={()=>onEditCrop&&onEditCrop(r.crop)} style={{flex:1,minWidth:0,cursor:"pointer"}}>
-                <div style={{fontSize:".78rem",fontWeight:700,color:"#3a2f1e",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.label}</div>
-                <div style={{fontSize:".72rem",color:r.urgent?"#856404":TX3}}>{r.msg}</div>
-              </div>
-              {r.type==="fert"&&<button onClick={()=>{const u={...r.crop,fertSkipDate:todayStr()};setCrops&&setCrops(crops.map(x=>x.id===r.crop.id?u:x),u);showToast&&showToast("追肥をスキップしました（次回予定を先送り）");}}
-                style={{flexShrink:0,fontSize:".68rem",padding:"4px 9px",borderRadius:7,border:"1px solid #d5cdbf",background:"#fff",color:"#7a6f5d",cursor:"pointer"}}>スキップ</button>}
-            </div>
+            {/* 次の作業予定 */}
+      <div style={{...S.card,marginBottom:12}}>
+        {/* ヘッダー */}
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
+          <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".88rem",color:"#5c3d1e"}}>📅 次の作業予定</div>
+          <button onClick={()=>setMSched({date:todayStr(),title:"",cropId:"",id:null})}
+            style={{...S.btn,...S.btnSm,background:G,color:"#fff",fontSize:".72rem"}}>＋ 予定追加</button>
+        </div>
+        {/* モード切替タブ */}
+        <div style={{display:"flex",borderRadius:8,overflow:"hidden",border:"1px solid #e0d9ce",marginBottom:10}}>
+          {[["both","すべて"],["auto","自動"],["custom","カスタム"]].map(([v,l])=>(
+            <button key={v} onClick={()=>setReminderMode(v)}
+              style={{flex:1,padding:"5px 0",border:"none",background:reminderMode===v?G:"#fff",color:reminderMode===v?"#fff":"#888",fontWeight:reminderMode===v?700:400,fontSize:".72rem",cursor:"pointer",fontFamily:"inherit"}}>{l}</button>
           ))}
         </div>
-      )}
-
+        {/* 自動リマインダー */}
+        {(reminderMode==="both"||reminderMode==="auto")&&reminders.map((r,i)=>(
+          <div key={"a"+i} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 10px",marginBottom:6,borderRadius:8,background:r.urgent?"#fff3cd":"#f6f3ec",border:"1px solid "+(r.urgent?"#ffc107":"#e8e0d5")}}>
+            <span onClick={()=>onEditCrop&&onEditCrop(r.crop)} style={{fontSize:"1.1rem",cursor:"pointer"}}>{r.type==="harvest"?"🧺":r.type==="fert"?"🌿":r.type==="transplant"?"🪴":"📋"}</span>
+            <div style={{flex:1}}>
+              <div style={{fontSize:".75rem",fontWeight:700,color:"#1c1a14"}}>{r.label}</div>
+              <div style={{fontSize:".7rem",color:r.urgent?"#856404":"#5a5040"}}>{r.msg}</div>
+            </div>
+            {r.urgent&&<span style={{fontSize:".65rem",background:"#ffc107",color:"#856404",borderRadius:4,padding:"1px 5px",fontWeight:700}}>要対応</span>}
+          </div>
+        ))}
+        {/* カスタム予定 */}
+        {(reminderMode==="both"||reminderMode==="custom")&&schedules.filter(s=>{
+          const d=new Date(s.date); d.setHours(0,0,0,0);
+          const today=new Date(); today.setHours(0,0,0,0);
+          return Math.round((d-today)/86400000)>=-1; // 昨日以前は非表示
+        }).map((s,i)=>{
+          const d=new Date(s.date); d.setHours(0,0,0,0);
+          const today=new Date(); today.setHours(0,0,0,0);
+          const dd=Math.round((d-today)/86400000);
+          const dayStr=dd===0?"今日":dd===1?"明日":dd<0?`${-dd}日前`:`${dd}日後`;
+          const urgent=dd<=1&&dd>=-1;
+          const cr=crops.find(c=>c.id===s.cropId);
+          const db=CDB[cr?.type]||{};
+          return (
+            <div key={"c"+i} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 10px",marginBottom:6,borderRadius:8,background:urgent?"#e8f5e9":"#f0f9f0",border:"1px solid "+(urgent?"#81c784":"#c8e6c9")}}>
+              <span style={{fontSize:"1.1rem"}}>📌</span>
+              <div style={{flex:1}}>
+                {cr&&<div style={{fontSize:".65rem",color:"#5a5040"}}>{db.e||"🌱"} {db.n||cr.type}{cr.variety?"("+cr.variety+")":""}</div>}
+                <div style={{fontSize:".75rem",fontWeight:700,color:"#1c1a14"}}>{s.memo}</div>
+                <div style={{fontSize:".7rem",color:urgent?"#388e3c":"#5a5040"}}>{dayStr} ({s.date})</div>
+              </div>
+              <div style={{display:"flex",gap:4}}>
+                <button onClick={()=>setMSched({id:s.id,date:s.date,title:s.memo,cropId:s.cropId||""})}
+                  style={{...S.btn,...S.btnS,...S.btnSm,fontSize:".65rem"}}>✏️</button>
+                <button onClick={()=>deleteSchedule(s.id)}
+                  style={{...S.btn,...S.btnR,...S.btnSm,fontSize:".65rem"}}>✕</button>
+              </div>
+            </div>
+          );
+        })}
+        {/* 何もない場合 */}
+        {reminders.length===0&&schedules.length===0&&(
+          <div style={{color:"#aaa",fontSize:".78rem",textAlign:"center",padding:"8px 0"}}>予定はありません</div>
+        )}
+      </div>
+      {/* カスタム予定モーダル */}
+      {mSched&&<ModalWithSave open={!!mSched} title={mSched.id?"予定を編集":"予定を追加"} onSave={saveSchedule} onClose={()=>setMSched(null)}>
+        <FG label="タイトル *"><Inp value={mSched.title} onChange={v=>setMSched({...mSched,title:v})} placeholder="例：追肥・収穫など"/></FG>
+        <FG label="予定日"><Inp type="date" value={mSched.date} onChange={v=>setMSched({...mSched,date:v})}/></FG>
+        <FG label="品目（任意）"><Sel value={mSched.cropId||""} onChange={v=>setMSched({...mSched,cropId:v})}
+          options={[{value:"",label:"品目なし"},...crops.filter(c=>!c.ended).map(c=>{const db=CDB[c.type]||{};return{value:c.id,label:(db.e||"🌱")+" "+(db.n||c.type)+(c.variety?"("+c.variety+")":"")};})]}/>
+        </FG>
+      </ModalWithSave>}
       {/* みんなのサクメモ */}
       <a href="/community.html" style={{display:"flex",alignItems:"center",justifyContent:"space-between",background:"linear-gradient(135deg,#2d6a3f,#419857)",borderRadius:14,padding:"13px 16px",marginBottom:9,textDecoration:"none"}}>
         <div>
@@ -4591,7 +4663,7 @@ export default function App() {
       <div id="main-scroll" style={S.main}>
         {scr==="master"  &&<MasterScreen  fertMs={fertMs} setFertMs={setFertMs} pestMs={pestMs} setPestMs={setPestMs} equips={equips} setEquips={setEquips} costs={costs} setCosts={setCosts} showToast={showToast}/>}
         {scr==="fields"  &&<FieldsScreen  fields={fields} setFields={setFields} setFieldsR={setFieldsR} crops={crops} setCrops={setCrops} setCropsR={setCropsR} costs={costs} setCosts={setCosts} logs={logs} setLogs={setLogs} setLogsR={setLogsR} plots={plots} setPlots={setPlots} setPlotsR={setPlotsR} showToast={showToast} editCrop={pendingEditCrop}/>}
-        {(scr==="log"||scr==="home") && <><HomeScreen fields={fields} crops={crops} setCrops={setCrops} logs={logs} costs={costs} showToast={showToast} setScr={setScr} dbLoad={dbLoad} onEditCrop={c=>{setPendingEditCrop(c);setScr("fields");}} onNew={()=>{setInitLog(null);setLogModal(true);}}/><TimelineScreen fields={fields} crops={crops} equips={equips} logs={logs} setLogs={setLogs} setLogsR={setLogsR} showToast={showToast} openLb={openLb}
+        {(scr==="log"||scr==="home") && <><HomeScreen fields={fields} crops={crops} setCrops={setCrops} logs={logs} costs={costs} showToast={showToast} setScr={setScr} dbLoad={dbLoad} onEditCrop={c=>{setPendingEditCrop(c);setScr("fields");}} onNew={()=>{setInitLog(null);setLogModal(true);}} setLogs={setLogs} dbSaveLog={dbSaveLog} dbDelete={dbDelete}/><TimelineScreen fields={fields} crops={crops} equips={equips} logs={logs} setLogs={setLogs} setLogsR={setLogsR} showToast={showToast} openLb={openLb}
         onEdit={ls=>{const _ls=Array.isArray(ls)?ls:[ls];const _sorted=[..._ls].sort((a,b)=>(a.imgSrc?-1:0)-(b.imgSrc?-1:0));setInitLogs(_ls);setInitLog(_sorted[0]);setLogModal(true);}}
         onNew={()=>{setInitLog(null);setLogModal(true);}}
         onCopy={ls=>{
