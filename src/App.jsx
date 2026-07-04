@@ -892,6 +892,9 @@ const globalCss = `
   img,table{max-width:100%;}
   button,input,select,textarea{font-family:inherit;}
   input,select,textarea{font-size:16px!important;}
+  /* ライトボックス以外ではピンチ拡大を防止 */
+  body{touch-action:pan-x pan-y;}
+  .lb-open{touch-action:pinch-zoom;}
   /* スマホ: 下部ナビに隠れないよう十分な余白 */
   .scr-inner{padding-bottom:calc(90px + env(safe-area-inset-bottom));}
   @media(min-width:900px){
@@ -1192,7 +1195,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.24</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.26</div>
       </div>
     </div>
   );
@@ -3617,7 +3620,7 @@ function PlanScreen({ fields, crops, setCrops, plots, setPlots, setPlotsR, showT
   );
 }
 
-function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs, equips=[] }) {
+function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs, equips=[], openLb }) {
   const [selCropId, setSelCropId] = useState("all");
   const [climateData, setClimateData] = useState(null); // 月別気象データ
   const [climateLoading, setClimateLoading] = useState(false);
@@ -4443,15 +4446,11 @@ export default function App() {
   const [toast,    setToast]   = useState("");
   const [lb, setLb] = useState(null); // ライトボックス {photos:[], idx:0}
   const openLb = (photos, idx) => {
-    // ライトボックス表示中はピンチ拡大を許可
-    const vp = document.querySelector('meta[name="viewport"]');
-    if(vp) vp.content = 'width=device-width, initial-scale=1.0, viewport-fit=cover';
+    document.body.classList.add('lb-open');
     setLb({photos, idx});
   };
   const closeLb = () => {
-    // ライトボックスを閉じたら元に戻す
-    const vp = document.querySelector('meta[name="viewport"]');
-    if(vp) vp.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover';
+    document.body.classList.remove('lb-open');
     setLb(null);
   };
   const [initWork,     setInitWork]    = useState("");
@@ -4611,17 +4610,17 @@ export default function App() {
         {scr==="plot"    &&<PlanScreen    fields={fields} crops={crops} setCrops={setCrops} plots={plots} setPlots={setPlots} setPlotsR={setPlotsR} showToast={showToast} setScr={setScr}/>}
         {scr==="cost"    &&<CostScreen    fields={fields} crops={crops} fertMs={fertMs} pestMs={pestMs} equips={equips} costs={costs} setCosts={setCosts} logs={logs} showToast={showToast}/>}
 
-        {scr==="report"  &&<ReportScreen  fields={fields} crops={crops} logs={logs} costs={costs} fertMs={fertMs} pestMs={pestMs} equips={equips}/>}
+        {scr==="report"  &&<ReportScreen  fields={fields} crops={crops} logs={logs} costs={costs} fertMs={fertMs} pestMs={pestMs} equips={equips} openLb={openLb}/>}
         {scr==="settings"&&<SettingsScreen showToast={showToast} user={user} uid={uid} signOut={signOut} fields={fields} crops={crops} logs={logs} fertMs={fertMs} pestMs={pestMs} equips={equips} costs={costs} setScr={setScr}/>}
       </div>
       {/* ライトボックス */}
-      {lb&&<div onClick={closeLb} style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,.92)',zIndex:9999,display:'flex',alignItems:'center',justifyContent:'center'}}>
+      {lb&&<div onClick={closeLb} style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,.92)',zIndex:9999,display:'flex',alignItems:'center',justifyContent:'center',touchAction:'pinch-zoom',overflow:'hidden'}}>
         {/* 閉じるボタン */}
         <button onClick={closeLb} style={{position:'absolute',top:16,right:16,background:'rgba(255,255,255,.2)',border:'none',color:'#fff',width:40,height:40,borderRadius:'50%',fontSize:'1.2rem',cursor:'pointer',zIndex:10000}}>✕</button>
         {/* 前へ */}
         {lb.photos.length>1&&<button onClick={e=>{e.stopPropagation();setLb(l=>({...l,idx:(l.idx-1+l.photos.length)%l.photos.length}));}} style={{position:'absolute',left:12,top:'50%',transform:'translateY(-50%)',background:'rgba(255,255,255,.2)',border:'none',color:'#fff',width:44,height:44,borderRadius:'50%',fontSize:'1.5rem',cursor:'pointer',zIndex:10000}}>‹</button>}
         {/* 画像 */}
-        <img src={lb.photos[lb.idx]} alt="" style={{maxWidth:'94vw',maxHeight:'88vh',objectFit:'contain',borderRadius:8,boxShadow:'0 4px 32px rgba(0,0,0,.5)',touchAction:'pinch-zoom'}}/>
+        <img src={lb.photos[lb.idx]} alt="" style={{maxWidth:'94vw',maxHeight:'88vh',objectFit:'contain',borderRadius:8,boxShadow:'0 4px 32px rgba(0,0,0,.5)',touchAction:'pinch-zoom',WebkitUserSelect:'none',userSelect:'none'}}/>
         {/* 次へ */}
         {lb.photos.length>1&&<button onClick={e=>{e.stopPropagation();setLb(l=>({...l,idx:(l.idx+1)%l.photos.length}));}} style={{position:'absolute',right:12,top:'50%',transform:'translateY(-50%)',background:'rgba(255,255,255,.2)',border:'none',color:'#fff',width:44,height:44,borderRadius:'50%',fontSize:'1.5rem',cursor:'pointer',zIndex:10000}}>›</button>}
         {/* カウンター */}
