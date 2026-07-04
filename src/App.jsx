@@ -1192,7 +1192,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.22</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.23</div>
       </div>
     </div>
   );
@@ -2745,7 +2745,7 @@ useEffect(()=>{
 }
 
 // TIMELINE
-function TimelineScreen({ fields, crops, equips, logs, setLogs, setLogsR, showToast, onEdit, onNew, onCopy }) {
+function TimelineScreen({ fields, crops, equips, logs, setLogs, setLogsR, showToast, onEdit, onNew, onCopy, openLb }) {
   const [q,    setQ]    = useState("");
   const [fW,   setFW]   = useState("");
   const [selCropId, setSelCropId] = useState(""); // 品目フィルタ
@@ -4441,6 +4441,9 @@ export default function App() {
   const [plots,    setPlotsR]  = useState([]);
   const [apiKey,   setApiKeyR] = useState(()=>localStorage.getItem("sakumemo_key")||"");
   const [toast,    setToast]   = useState("");
+  const [lb, setLb] = useState(null); // ライトボックス {photos:[], idx:0}
+  const openLb = (photos, idx) => setLb({photos, idx});
+  const closeLb = () => setLb(null);
   const [initWork,     setInitWork]    = useState("");
   const [initLog,      setInitLog]     = useState(null);
   const [initLogs,     setInitLogs]    = useState([]);   // 複数作業編集用
@@ -4579,7 +4582,7 @@ export default function App() {
       <div id="main-scroll" style={S.main}>
         {scr==="master"  &&<MasterScreen  fertMs={fertMs} setFertMs={setFertMs} pestMs={pestMs} setPestMs={setPestMs} equips={equips} setEquips={setEquips} costs={costs} setCosts={setCosts} showToast={showToast}/>}
         {scr==="fields"  &&<FieldsScreen  fields={fields} setFields={setFields} setFieldsR={setFieldsR} crops={crops} setCrops={setCrops} setCropsR={setCropsR} costs={costs} setCosts={setCosts} logs={logs} setLogs={setLogs} setLogsR={setLogsR} plots={plots} setPlots={setPlots} setPlotsR={setPlotsR} showToast={showToast} editCrop={pendingEditCrop}/>}
-        {(scr==="log"||scr==="home") && <><HomeScreen fields={fields} crops={crops} setCrops={setCrops} logs={logs} costs={costs} showToast={showToast} setScr={setScr} dbLoad={dbLoad} onEditCrop={c=>{setPendingEditCrop(c);setScr("fields");}} onNew={()=>{setInitLog(null);setLogModal(true);}}/><TimelineScreen fields={fields} crops={crops} equips={equips} logs={logs} setLogs={setLogs} setLogsR={setLogsR} showToast={showToast}
+        {(scr==="log"||scr==="home") && <><HomeScreen fields={fields} crops={crops} setCrops={setCrops} logs={logs} costs={costs} showToast={showToast} setScr={setScr} dbLoad={dbLoad} onEditCrop={c=>{setPendingEditCrop(c);setScr("fields");}} onNew={()=>{setInitLog(null);setLogModal(true);}}/><TimelineScreen fields={fields} crops={crops} equips={equips} logs={logs} setLogs={setLogs} setLogsR={setLogsR} showToast={showToast} openLb={openLb}
         onEdit={ls=>{const _ls=Array.isArray(ls)?ls:[ls];const _sorted=[..._ls].sort((a,b)=>(a.imgSrc?-1:0)-(b.imgSrc?-1:0));setInitLogs(_ls);setInitLog(_sorted[0]);setLogModal(true);}}
         onNew={()=>{setInitLog(null);setLogModal(true);}}
         onCopy={ls=>{
@@ -4601,6 +4604,20 @@ export default function App() {
         {scr==="report"  &&<ReportScreen  fields={fields} crops={crops} logs={logs} costs={costs} fertMs={fertMs} pestMs={pestMs} equips={equips}/>}
         {scr==="settings"&&<SettingsScreen showToast={showToast} user={user} uid={uid} signOut={signOut} fields={fields} crops={crops} logs={logs} fertMs={fertMs} pestMs={pestMs} equips={equips} costs={costs} setScr={setScr}/>}
       </div>
+      {/* ライトボックス */}
+      {lb&&<div onClick={closeLb} style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,.92)',zIndex:9999,display:'flex',alignItems:'center',justifyContent:'center'}}>
+        {/* 閉じるボタン */}
+        <button onClick={closeLb} style={{position:'absolute',top:16,right:16,background:'rgba(255,255,255,.2)',border:'none',color:'#fff',width:40,height:40,borderRadius:'50%',fontSize:'1.2rem',cursor:'pointer',zIndex:10000}}>✕</button>
+        {/* 前へ */}
+        {lb.photos.length>1&&<button onClick={e=>{e.stopPropagation();setLb(l=>({...l,idx:(l.idx-1+l.photos.length)%l.photos.length}));}} style={{position:'absolute',left:12,top:'50%',transform:'translateY(-50%)',background:'rgba(255,255,255,.2)',border:'none',color:'#fff',width:44,height:44,borderRadius:'50%',fontSize:'1.5rem',cursor:'pointer',zIndex:10000}}>‹</button>}
+        {/* 画像 */}
+        <img src={lb.photos[lb.idx]} alt="" onClick={e=>e.stopPropagation()} style={{maxWidth:'94vw',maxHeight:'88vh',objectFit:'contain',borderRadius:8,boxShadow:'0 4px 32px rgba(0,0,0,.5)',pointerEvents:'none'}}/>
+        {/* 次へ */}
+        {lb.photos.length>1&&<button onClick={e=>{e.stopPropagation();setLb(l=>({...l,idx:(l.idx+1)%l.photos.length}));}} style={{position:'absolute',right:12,top:'50%',transform:'translateY(-50%)',background:'rgba(255,255,255,.2)',border:'none',color:'#fff',width:44,height:44,borderRadius:'50%',fontSize:'1.5rem',cursor:'pointer',zIndex:10000}}>›</button>}
+        {/* カウンター */}
+        {lb.photos.length>1&&<div style={{position:'absolute',bottom:20,left:'50%',transform:'translateX(-50%)',color:'rgba(255,255,255,.7)',fontSize:'.78rem'}}>{lb.idx+1} / {lb.photos.length}</div>}
+      </div>}
+
       <nav id="bot-nav" style={S.bnav}>
         {SCREENS.map(s=>(
           <button key={s.key} onClick={()=>{if(s.key!=="fields")setPendingEditCrop(null);setScr(s.key);}} style={s.key==="log"?S.bBtn:scr===s.key?S.bBtnOn:S.bBtn}>
