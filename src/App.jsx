@@ -1195,7 +1195,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.28</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.30</div>
       </div>
     </div>
   );
@@ -1299,7 +1299,7 @@ function HomeScreen({ fields, crops, setCrops, logs, setLogs, costs, onEditCrop,
         const dd=Math.round((evD-today2)/86400000);
         if(dd<-1) return; // 昨日以前は非表示
         const typeIcon=ev.type==="harvest"?"🧺":ev.type==="fert"?"🌿":ev.type==="pest"?"🐛":"📌";
-        out.push({crop:c, label:cropLabel, type:ev.type||"work", date:evD,
+        out.push({crop:c, cropId:c.id, label:cropLabel, type:ev.type||"work", date:evD,
           msg:ev.title||"作業予定", icon:typeIcon, isCustom:true, evIdx:(c.customEvents||[]).indexOf(ev),
           urgent:dd<=1&&dd>=-1, sortD:evD, dateStr:ev.date});
       });
@@ -1307,8 +1307,50 @@ function HomeScreen({ fields, crops, setCrops, logs, setLogs, costs, onEditCrop,
     return out.sort((a,b)=>a.sortD-b.sortD);
   })();
 
-  // 作業リマインダー: 栽培中の品目について追肥時期・収穫時期を提案
-
+  // shownItems: 表示モードに応じたリマインダー一覧（日付順）
+  const today0s = new Date(); today0s.setHours(0,0,0,0);
+  const fmtDayStr = d => { const dd=Math.round((new Date(d)-today0s)/86400000); if(dd===0)return"今日"; if(dd===1)return"明日"; if(dd<0)return`${-dd}日前`; return`${dd}日後`; };
+  // 自動リマインダー（remindersのisCustomでないもの）
+  const autoItems = reminders.filter(r=>!r.isCustom).map(r=>({
+    key:"auto_"+(r.crop?.id||"")+"_"+r.type+"_"+(r.sortD.toISOString().slice(0,10)),
+    isCustom:false, isCropEvent:false,
+    sortD:r.sortD, urgent:r.urgent,
+    icon:r.type==="harvest"?"🧺":r.type==="fert"?"🌿":r.type==="transplant"?"🪴":"📋",
+    label:r.label, msg:r.msg,
+    dateStr:r.sortD.toISOString().slice(0,10),
+    dayStr:fmtDayStr(r.sortD.toISOString().slice(0,10)),
+    crop:r.crop
+  }));
+  // カスタムリマインダー（customEventsとschedules）
+  const customItems = [
+    ...reminders.filter(r=>r.isCustom).map(r=>({
+      key:"cust_"+(r.crop?.id||"")+"_"+(r.evIdx||0)+"_"+(r.dateStr||""),
+      isCustom:true, isCropEvent:true,
+      sortD:r.sortD, urgent:r.urgent,
+      icon:r.icon||"📌",
+      label:r.label, msg:r.msg,
+      dateStr:r.dateStr, dayStr:fmtDayStr(r.dateStr),
+      crop:r.crop, cropId:r.crop?.id, evIdx:r.evIdx
+    })),
+    ...schedules.filter(s=>{
+      const d=new Date(s.date); d.setHours(0,0,0,0);
+      return Math.round((d-today0s)/86400000)>=-1;
+    }).map(s=>{
+      const d=new Date(s.date); d.setHours(0,0,0,0);
+      const cr=crops.find(c=>c.id===s.cropId);
+      const db=CDB[cr?.type]||{};
+      const lbl=cr?(db.e||"🌱")+" "+(db.n||cr.type)+(cr.variety?"("+cr.variety+")":""):"";
+      return {
+        key:"s"+s.id, isCustom:true, isCropEvent:false,
+        sortD:d, urgent:Math.round((d-today0s)/86400000)<=1,
+        icon:"📌", label:lbl, msg:s.memo,
+        dateStr:s.date, dayStr:fmtDayStr(s.date), schedId:s.id
+      };
+    })
+  ].sort((a,b)=>a.sortD-b.sortD);
+  const shownItems = reminderMode==="auto" ? autoItems
+    : reminderMode==="custom" ? customItems
+    : [...autoItems,...customItems].sort((a,b)=>a.sortD-b.sortD);
 
   return (
     <div style={{padding:"10px 12px 16px"}}>
@@ -1351,38 +1393,9 @@ function HomeScreen({ fields, crops, setCrops, logs, setLogs, costs, onEditCrop,
           ))}
         </div>
         {/* 統合リスト（日付順） */}
-        {(()=>{
-          const today0=new Date(); today0.setHours(0,0,0,0);
-          const fmtD=d=>{const dd=Math.round((new Date(d)-today0)/86400000);if(dd===0)return"今日";if(dd===1)return"明日";if(dd<0)return`${-dd}日前`;return`${dd}日後`;};
-          // 自動リマインダー
-          const autoItems=reminders.filter(r=>!r.isCustom).map(r=>({
-            key:"a"+r.sortD.getTime(),isCustom:false,sortD:r.sortD,urgent:r.urgent,
-            icon:r.type==="harvest"?"🧺":r.type==="fert"?"🌿":r.type==="transplant"?"🪴":"📋",
-            label:r.label, msg:r.msg, dateStr:r.sortD.toISOString().slice(0,10), crop:r.crop
-          }));
-          // カスタムリマインダー（logsのschedule + remindersのisCustom）
-          const customItems=[
-            ...reminders.filter(r=>r.isCustom).map(r=>({
-              key:"rc"+r.sortD.getTime()+r.label, isCustom:true, isCropEvent:true,
-              sortD:r.sortD, urgent:r.urgent, icon:r.icon||"📌",
-              label:r.label, msg:r.msg, dateStr:r.dateStr,
-              crop:r.crop, evIdx:r.evIdx
-            })),
-            ...schedules.filter(s=>{
-              const d=new Date(s.date); d.setHours(0,0,0,0);
-              return Math.round((d-today0)/86400000)>=-1;
-            }).map(s=>{
-              const d=new Date(s.date); d.setHours(0,0,0,0);
-              const cr=crops.find(c=>c.id===s.cropId);
-              const db=CDB[cr?.type]||{};
-              const cropLabel=cr?(db.e||"🌱")+" "+(db.n||cr.type)+(cr.variety?"("+cr.variety+")":""):"";
-              return {key:"s"+s.id, isCustom:true, isCropEvent:false, sortD:d, urgent:Math.round((d-today0)/86400000)<=1,
-                icon:"📌", label:cropLabel, msg:s.memo, dateStr:s.date, schedId:s.id};
-            })
-          ].sort((a,b)=>a.sortD-b.sortD);
-          const shown=reminderMode==="auto"?autoItems:reminderMode==="custom"?customItems:[...autoItems,...customItems].sort((a,b)=>a.sortD-b.sortD);
-          if(shown.length===0) return <div style={{color:"#aaa",fontSize:".78rem",textAlign:"center",padding:"8px 0"}}>予定はありません</div>;
-          return shown.map((item,i)=>(
+        {shownItems.length===0
+          ? <div style={{color:"#aaa",fontSize:".78rem",textAlign:"center",padding:"8px 0"}}>予定はありません</div>
+          : shownItems.map((item,i)=>(
             <div key={item.key} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 10px",marginBottom:6,borderRadius:8,
               background:item.urgent?"#fff3cd":"#f6f3ec",border:"1px solid "+(item.urgent?"#ffc107":"#e8e0d5")}}>
               <span style={{fontSize:"1.1rem",flexShrink:0}}>{item.icon}</span>
@@ -1391,29 +1404,28 @@ function HomeScreen({ fields, crops, setCrops, logs, setLogs, costs, onEditCrop,
                   <span style={{fontSize:".75rem",fontWeight:700,color:"#1c1a14",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.label&&<span style={{color:"#888",fontWeight:400}}>{item.label} </span>}{item.msg}</span>
                 </div>
                 <div style={{fontSize:".68rem",color:item.urgent?"#856404":"#888"}}>
-                  {item.dateStr} （{fmtD(item.dateStr)}）
+                  {item.dateStr} （{item.dayStr}）
                   {item.urgent&&<span style={{marginLeft:6,background:"#ffc107",color:"#856404",borderRadius:3,padding:"0 4px",fontSize:".62rem",fontWeight:700}}>要対応</span>}
                 </div>
               </div>
-              {/* チェック（完了・非表示）ボタン */}
               <button onClick={()=>{
                 if(!window.confirm("この予定を完了済みにして非表示にしますか？")) return;
-                if(item.isCropEvent){
-                  // cropのcustomEventsのdoneをtrueに
-                  const c=item.crop;
-                  const newEvs=(c.customEvents||[]).map((ev,i)=>i===item.evIdx?{...ev,done:true}:ev);
-                  const updated={...c,customEvents:newEvs};
-                  setCrops(crops.map(cr=>cr.id===c.id?updated:cr),updated);
+                if(item.isCropEvent&&item.cropId){
+                  // 最新のcropを取得（古い参照でなく）
+                  const latestCrop=crops.find(cr=>cr.id===item.cropId);
+                  if(!latestCrop){showToast("品目が見つかりません");return;}
+                  const newEvs=(latestCrop.customEvents||[]).map((ev,ei)=>ei===item.evIdx?{...ev,done:true}:ev);
+                  const updated={...latestCrop,customEvents:newEvs};
+                  setCrops(crops.map(cr=>cr.id===item.cropId?updated:cr),updated,fields);
                 } else if(item.schedId){
                   deleteSchedule(item.schedId);
                 } else {
-                  // 自動リマインダーは非表示できない（cropの設定に誘導）
                   showToast("自動リマインダーは品目設定から変更できます");
                 }
               }} style={{...S.btn,...S.btnSm,background:"#e8f5e9",border:"1px solid #81c784",color:"#388e3c",fontSize:".75rem",flexShrink:0,padding:"4px 8px"}} title="完了・非表示">✓</button>
             </div>
-          ));
-        })()}
+          ))
+        }
       </div>
       {/* カスタム予定モーダル */}
       {mSched&&<ModalWithSave open={!!mSched} title={mSched.id?"予定を編集":"予定を追加"} onSave={saveSchedule} onClose={()=>setMSched(null)}>
