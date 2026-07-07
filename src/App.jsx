@@ -30,8 +30,8 @@ const dbDelete = async (table, id) => {
 // Converters
 const fieldToDb   = (o, uid) => ({ id:o.id, user_id:uid, name:o.name||"", area:o.area||null, soil:o.soil||null, addr:o.addr||null, memo:o.memo||null, prefecture:o.prefecture||null });
 const fieldFromDb = r => ({ id:r.id, name:r.name||"", area:r.area||"", soil:r.soil||"", addr:r.addr||"", memo:r.memo||"", prefecture:r.prefecture||"" });
-const cropToDb    = (o, uid) => ({ id:o.id, user_id:uid, field_id:o.fieldId||null, type:o.type||null, variety:o.variety||null, germ_rate:o.germRate||null, stocks:o.stocks||null, ridge_w:o.ridgeW||null, ridge_h:o.ridgeH||null, rows:o.rows||null, row_space:o.rowSpace||null, plant_space:o.plantSpace||null, sow_date:o.sowDate||null, plant_date:o.plantDate||null, memo:o.memo||null, cultivation_type:o.cultivationType||null, seed_cost:o.seedCost||null, seed_note:o.seedNote||null, custom_name:o.customName||null, ended:o.ended||false, end_date:o.endDate||null, maturity:o.maturity||null, custom_days:o.customDays||null, custom_water:o.customWater||null, pot_size:o.potSize||null, pot_volume:o.potVolume||null, pot_count:o.potCount||null, grow_env:o.growEnv||null, agri_month_start:o.agriMonthStart||null, ridge_len:o.ridgeLen||null, cultivation_area:o.cultivationArea||null, temp_min:o.tempMin||null, temp_max:o.tempMax||null, fert_skip_date:o.fertSkipDate||null, fert_interval:o.fertInterval||null, reminder_mode:o.reminderMode||null, custom_events:o.customEvents?JSON.stringify(o.customEvents):null });
-const cropFromDb  = (r, fields) => { const fi = fields.findIndex(f=>f.id===r.field_id); return { id:r.id, fieldId:r.field_id||"", fieldIdx:fi>=0?fi:0, type:r.type||"", variety:r.variety||"", germRate:r.germ_rate||"", stocks:r.stocks||"", ridgeW:r.ridge_w||"", ridgeH:r.ridge_h||"", rows:r.rows||"", rowSpace:r.row_space||"", plantSpace:r.plant_space||"", sowDate:r.sow_date||"", plantDate:r.plant_date||"", memo:r.memo||"", cultivationType:r.cultivation_type||"transplant", seedCost:r.seed_cost||"", seedNote:r.seed_note||"", customName:r.custom_name||"", ended:r.ended||false, endDate:r.end_date||"", maturity:r.maturity||"mid", customDays:r.custom_days||"", customWater:r.custom_water||"", potSize:r.pot_size||"", potVolume:r.pot_volume||"", potCount:r.pot_count||"", growEnv:r.grow_env||"field", agriMonthStart:r.agri_month_start||"", ridgeLen:r.ridge_len||"", cultivationArea:r.cultivation_area||"", tempMin:r.temp_min||"", tempMax:r.temp_max||"", fertSkipDate:r.fert_skip_date||"", fertInterval:r.fert_interval||"", reminderMode:r.reminder_mode||"auto", customEvents:r.custom_events?(typeof r.custom_events==="string"?JSON.parse(r.custom_events):r.custom_events):[] }; };
+const cropToDb    = (o, uid) => ({ id:o.id, user_id:uid, field_id:o.fieldId||null, type:o.type||null, variety:o.variety||null, germ_rate:o.germRate||null, stocks:o.stocks||null, ridge_w:o.ridgeW||null, ridge_h:o.ridgeH||null, rows:o.rows||null, row_space:o.rowSpace||null, plant_space:o.plantSpace||null, sow_date:o.sowDate||null, plant_date:o.plantDate||null, memo:o.memo||null, cultivation_type:o.cultivationType||null, seed_cost:o.seedCost||null, seed_note:o.seedNote||null, custom_name:o.customName||null, ended:o.ended||false, end_date:o.endDate||null, maturity:o.maturity||null, custom_days:o.customDays||null, custom_water:o.customWater||null, pot_size:o.potSize||null, pot_volume:o.potVolume||null, pot_count:o.potCount||null, grow_env:o.growEnv||null, agri_month_start:o.agriMonthStart||null, ridge_len:o.ridgeLen||null, cultivation_area:o.cultivationArea||null, temp_min:o.tempMin||null, temp_max:o.tempMax||null, fert_skip_date:o.fertSkipDate||null, fert_interval:o.fertInterval||null, reminder_mode:o.reminderMode||null, custom_events:o.customEvents?JSON.stringify(o.customEvents):null, harvest_days:o.harvestDays?parseInt(o.harvestDays):null });
+const cropFromDb  = (r, fields) => { const fi = fields.findIndex(f=>f.id===r.field_id); return { id:r.id, fieldId:r.field_id||"", fieldIdx:fi>=0?fi:0, type:r.type||"", variety:r.variety||"", germRate:r.germ_rate||"", stocks:r.stocks||"", ridgeW:r.ridge_w||"", ridgeH:r.ridge_h||"", rows:r.rows||"", rowSpace:r.row_space||"", plantSpace:r.plant_space||"", sowDate:r.sow_date||"", plantDate:r.plant_date||"", memo:r.memo||"", cultivationType:r.cultivation_type||"transplant", seedCost:r.seed_cost||"", seedNote:r.seed_note||"", customName:r.custom_name||"", ended:r.ended||false, endDate:r.end_date||"", maturity:r.maturity||"mid", customDays:r.custom_days||"", customWater:r.custom_water||"", potSize:r.pot_size||"", potVolume:r.pot_volume||"", potCount:r.pot_count||"", growEnv:r.grow_env||"field", agriMonthStart:r.agri_month_start||"", ridgeLen:r.ridge_len||"", cultivationArea:r.cultivation_area||"", tempMin:r.temp_min||"", tempMax:r.temp_max||"", fertSkipDate:r.fert_skip_date||"", fertInterval:r.fert_interval||"", reminderMode:r.reminder_mode||"auto", customEvents:r.custom_events?(typeof r.custom_events==="string"?JSON.parse(r.custom_events):r.custom_events):[], harvestDays:r.harvest_days||null, fertInterval:r.fert_interval||"" }; };
 const logToDb     = (o, uid, fields) => ({ id:o.id, user_id:uid, field_id:fields[o.fieldIdx]?.id||o.fieldId||null, crop_id:o.cropId||null, work:o.work||null, memo:o.memo||null, date:o.date||null, time:o.time||null, duration:o.duration||null, img_src:o.imgSrc||null, img2_src:o.imgSrc2||null, img3_src:o.imgSrc3||null, fert_name:o.fertName||null, fert_amt:o.fertAmt||null, fert_unit:o.fertUnit||null, fert_method:o.fertMethod||null, fert_cost:o.fertCost||null, pest_name:o.pestName||null, pest_spray_amt:o.pestSprayAmt||null, pest_dil:o.pestDil||null, pest_amt:o.pestAmt||null, pest_unit:o.pestUnit||null, pest_tgt:o.pestTarget||null, pest_cost:o.pestCost||null, hv_kg:o.hvKg||null, hv_cnt:o.hvCnt||null, hv_q:o.hvQ||null, hv_price:o.hvPrice||null, equip_ids:o.equipIds||null, equip_act:o.equipAct||null, sow_qty:o.sowQty||null, germination_cnt:o.germinationCnt||null, germ_date:o.germinationDate||null, transplant_qty:o.transplantQty||null, discard_cnt:o.discardCnt||null, add_cnt:o.addCnt||null, event_type:o.eventType||null, event_note:o.eventNote||null, hv_grade_str:o.hvGradeStr||null, other_note:o.otherNote||null, repot_size:o.repotSize||null, repot_vol:o.repotVol||null, group_id:o._groupId||null, weather:o.weather||null });
 const logFromDb   = (r, fields) => { const fi=fields.findIndex(f=>f.id===r.field_id); return { id:r.id, fieldId:r.field_id||"", fieldIdx:fi>=0?fi:0, cropId:r.crop_id||"", work:r.work||"", memo:r.memo||"", date:r.date||"", time:r.time||"", duration:r.duration||"", imgSrc:r.img_src||null, imgSrc2:r.img2_src||null, imgSrc3:r.img3_src||null, aiReply:"", fertName:r.fert_name||"", fertAmt:r.fert_amt||"", fertUnit:r.fert_unit||"", fertMethod:r.fert_method||"", fertCost:r.fert_cost||"", pestName:r.pest_name||"", pestSprayAmt:r.pest_spray_amt||"", pestDil:r.pest_dil||"", pestAmt:r.pest_amt||"", pestUnit:r.pest_unit||"", pestTarget:r.pest_target||"", pestCost:r.pest_cost||"", hvKg:r.hv_kg!=null?String(r.hv_kg):"", hvCnt:r.hv_cnt!=null?String(r.hv_cnt):"", hvQ:r.hv_q||"", hvPrice:r.hv_price||"", hvImgSrc:r.hv_img_src||null, equipIds:Array.isArray(r.equip_ids)?r.equip_ids:(r.equip_ids?JSON.parse(r.equip_ids):[]), equipAct:r.equip_act||"", hvGradeStr:r.hv_grade_str||"", otherNote:r.other_note||"", repotSize:r.repot_size||"", repotVol:r.repot_vol||"", _groupId:r.group_id||null, weather:r.weather||"", sowQty:r.sow_qty||"", germinationCnt:r.germination_cnt||"", germinationDate:r.germination_date||"", transplantQty:r.transplant_qty||"", discardCnt:r.discard_cnt||"", addCnt:r.add_cnt||"", eventType:r.event_type||"", eventNote:r.event_note||"" }; };
 const fertMToDb   = (o, uid) => ({ id:o.id||uid0(), user_id:uid, name:o.name||null, type:o.type||null, price:o.price||null, punit:o.punit||null, capacity:o.capacity||null, cunit:o.cunit||null, npk:o.npk||null, stock:o.stock||null, sunit:o.sunit||null, note:o.note||null });
@@ -1195,7 +1195,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.30</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.31</div>
       </div>
     </div>
   );
@@ -1204,6 +1204,15 @@ function LoginScreen() {
 function HomeScreen({ fields, crops, setCrops, logs, setLogs, costs, onEditCrop, showToast, setScr, onNew, dbLoad, dbSaveLog, dbDelete }) {
   const [reminderMode, setReminderMode] = useState("both"); // "auto"|"custom"|"both"
   const [mSched, setMSched] = useState(null); // カスタム予定モーダル {date,title,cropId,id}
+  // 自動リマインダーの非表示リスト（key→true）、localStorageで永続化
+  const [dismissedAuto, setDismissedAuto] = useState(()=>{
+    try{return JSON.parse(localStorage.getItem('sakumemo_dismissed_auto')||'{}');}catch{return{};}
+  });
+  const dismissAutoItem = (key) => {
+    const next={...dismissedAuto,[key]:true};
+    setDismissedAuto(next);
+    try{localStorage.setItem('sakumemo_dismissed_auto',JSON.stringify(next));}catch{}
+  };
   // カスタム予定（work="schedule"のlogs）
   const schedules = logs.filter(l=>l.work==="schedule").sort((a,b)=>(a.date||"").localeCompare(b.date||""));
   const saveSchedule = () => {
@@ -1311,7 +1320,7 @@ function HomeScreen({ fields, crops, setCrops, logs, setLogs, costs, onEditCrop,
   const today0s = new Date(); today0s.setHours(0,0,0,0);
   const fmtDayStr = d => { const dd=Math.round((new Date(d)-today0s)/86400000); if(dd===0)return"今日"; if(dd===1)return"明日"; if(dd<0)return`${-dd}日前`; return`${dd}日後`; };
   // 自動リマインダー（remindersのisCustomでないもの）
-  const autoItems = reminders.filter(r=>!r.isCustom).map(r=>({
+  const autoItems = reminders.filter(r=>!r.isCustom).filter(r=>!dismissedAuto["auto_"+(r.crop?.id||"")+"_"+r.type+"_"+(r.sortD.toISOString().slice(0,10))]).map(r=>({
     key:"auto_"+(r.crop?.id||"")+"_"+r.type+"_"+(r.sortD.toISOString().slice(0,10)),
     isCustom:false, isCropEvent:false,
     sortD:r.sortD, urgent:r.urgent,
@@ -1419,6 +1428,9 @@ function HomeScreen({ fields, crops, setCrops, logs, setLogs, costs, onEditCrop,
                   setCrops(crops.map(cr=>cr.id===item.cropId?updated:cr),updated,fields);
                 } else if(item.schedId){
                   deleteSchedule(item.schedId);
+                } else if(!item.isCustom && item.key){
+                  // 自動リマインダーを非表示
+                  dismissAutoItem(item.key);
                 } else {
                   showToast("自動リマインダーは品目設定から変更できます");
                 }
@@ -2119,6 +2131,14 @@ function FieldsScreen({ fields, setFields, setFieldsR, crops, setCrops, setCrops
                   {/* カスタムイベント入力 */}
                   {(mCrop.reminderMode||"auto")==="custom"&&<>
                     <div style={{fontSize:".72rem",color:"#5a5040",marginBottom:6}}>予定を追加してください（収穫・追肥・作業など）</div>
+                    <R2>
+                      <FG label="熟期（定植〜収穫の日数）">
+                        <Inp type="number" value={mCrop.harvestDays||""} onChange={v=>setMCrop({...mCrop,harvestDays:v})} placeholder={"例："+((CDB[mCrop.type]?.d)||90)}/>
+                      </FG>
+                      <FG label="追肥間隔（日）">
+                        <Inp type="number" value={mCrop.fertInterval||""} onChange={v=>setMCrop({...mCrop,fertInterval:v})} placeholder={"例：21"}/>
+                      </FG>
+                    </R2>
                     {(mCrop.customEvents||[]).map((ev,ei)=>(
                       <div key={ei} style={{display:"flex",gap:6,alignItems:"center",marginBottom:6}}>
                         <Inp type="date" value={ev.date||""} onChange={v=>setMCrop({...mCrop,customEvents:(mCrop.customEvents||[]).map((e,i)=>i===ei?{...e,date:v}:e)})}
@@ -2171,52 +2191,6 @@ function FieldsScreen({ fields, setFields, setFieldsR, crops, setCrops, setCrops
                   options={[{value:"",label:"設定しない（暦年）"},...[1,2,3,4,5,6,7,8,9,10,11,12].map(m=>({value:String(m),label:m+"月始まり"}))]}/>
                 <div style={{fontSize:".7rem",color:"#888",marginTop:3}}>年またぎミカンなど必要な場合のみ設定</div>
               </FG>}
-              {/* リマインダー設定 */}
-          <div style={{background:"#f0f9f0",borderRadius:10,padding:"10px 12px",marginBottom:8}}>
-            <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".82rem",color:"#5c3d1e",marginBottom:8}}>📅 リマインダー設定</div>
-            <div style={{display:"flex",borderRadius:8,overflow:"hidden",border:"1px solid #e0d9ce",marginBottom:8}}>
-              {[["auto","自動（推定）"],["custom","カスタム（手動）"]].map(([v,l])=>(
-                <button key={v} onClick={()=>setMCrop(p=>({...p,reminderMode:v}))}
-                  style={{flex:1,padding:"7px 0",border:"none",background:(mCrop.reminderMode||"auto")===v?"#2d6a3f":"#fff",
-                    color:(mCrop.reminderMode||"auto")===v?"#fff":"#888",fontWeight:(mCrop.reminderMode||"auto")===v?700:400,
-                    fontSize:".74rem",cursor:"pointer",fontFamily:"inherit"}}>{l}</button>
-              ))}
-            </div>
-            {(mCrop.reminderMode||"auto")==="auto"&&(
-              <div style={{fontSize:".68rem",color:"#6b7280"}}>定植・播種日をもとに収穫・追肥時期を自動予測します。</div>
-            )}
-            {(mCrop.reminderMode||"auto")==="custom"&&(<>
-              <div style={{fontSize:".68rem",color:"#6b7280",marginBottom:8}}>手動で予定を登録します。「次の作業予定」に表示されます。</div>
-              {(mCrop._customScheds||[]).map((s,si)=>(
-                <div key={si} style={{display:"flex",alignItems:"center",gap:6,marginBottom:5,background:"#fff",borderRadius:7,padding:"6px 8px",border:"1px solid #c8e6c9"}}>
-                  <div style={{flex:1}}>
-                    <div style={{fontSize:".72rem",fontWeight:700}}>{s.title}</div>
-                    <div style={{fontSize:".65rem",color:"#6b7280"}}>{s.date}</div>
-                  </div>
-                  <button onClick={()=>setMCrop(p=>({...p,_customScheds:(p._customScheds||[]).filter((_,i)=>i!==si)}))}
-                    style={{...S.btn,...S.btnR,...S.btnSm,fontSize:".65rem",padding:"2px 7px"}}>✕</button>
-                </div>
-              ))}
-              {mCrop._addSched?(
-                <div style={{background:"#fff",borderRadius:8,padding:"8px 10px",border:"1px solid #a5d6a7",marginBottom:6}}>
-                  <FG label="作業タイトル"><Inp value={mCrop._addSched.title||""} onChange={v=>setMCrop(p=>({...p,_addSched:{...p._addSched,title:v}}))} placeholder="例：追肥・収穫・農薬散布"/></FG>
-                  <FG label="予定日"><Inp type="date" value={mCrop._addSched.date||""} onChange={v=>setMCrop(p=>({...p,_addSched:{...p._addSched,date:v}}))}/></FG>
-                  <div style={{display:"flex",gap:6,marginTop:6}}>
-                    <button onClick={()=>{
-                      if(!mCrop._addSched.title||!mCrop._addSched.date){showToast("タイトルと日付を入力してください");return;}
-                      setMCrop(p=>({...p,_customScheds:[...(p._customScheds||[]),{...p._addSched,id:uid0()}],_addSched:null}));
-                    }} style={{...S.btn,background:G,color:"#fff",flex:1,fontSize:".74rem"}}>追加</button>
-                    <button onClick={()=>setMCrop(p=>({...p,_addSched:null}))} style={{...S.btn,...S.btnS,flex:1,fontSize:".74rem"}}>キャンセル</button>
-                  </div>
-                </div>
-              ):(
-                <button onClick={()=>setMCrop(p=>({...p,_addSched:{title:"",date:todayStr()}}))}
-                  style={{...S.btn,background:"#e8f5e9",color:"#2d6a3f",border:"1px dashed #81c784",width:"100%",marginBottom:4,fontSize:".74rem"}}>
-                  ＋ 予定を追加
-                </button>
-              )}
-            </>)}
-          </div>
           <FG label="メモ"><TA value={mCrop.memo} onChange={v=>setMCrop({...mCrop,memo:v})}/></FG></>}
       </ModalWithSave>
     </div>
