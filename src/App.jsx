@@ -1195,7 +1195,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.31</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.32</div>
       </div>
     </div>
   );
@@ -1262,7 +1262,7 @@ function HomeScreen({ fields, crops, setCrops, logs, setLogs, costs, onEditCrop,
       if(days<0) return; // まだ植えていない
 
       // ── 収穫予定（今後の予定として）──
-      const mat=db.maturity?.[c.maturity||"mid"]||db.d||90;
+      const mat=parseInt(c.harvestDays)||db.maturity?.[c.maturity||"mid"]||db.d||90; // カスタム熟期日数を優先
       const harvestD=new Date(startD); harvestD.setDate(harvestD.getDate()+mat);
       const toHarvest=Math.round((harvestD-today)/86400000);
       // 既に収穫ログがあれば収穫リマインダーは出さない
