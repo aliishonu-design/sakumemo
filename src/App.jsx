@@ -456,7 +456,7 @@ const getRecommendedTasks = (crop, logs) => {
   const month = today.getMonth() + 1; // 1-12
   const plantDate = crop.plantDate || crop.sowDate;
   const days = plantDate ? Math.floor((Date.now() - new Date(plantDate)) / 86400000) : null;
-  const harvestD = db.d || 90;
+  const harvestD = parseInt(crop.harvestDays)||db.maturity?.[crop.maturity||"mid"]||db.d||90;
   const pct = days !== null ? Math.min(100, Math.round(days / harvestD * 100)) : null;
   const lastLog = logs.length > 0 ? logs.reduce((a,b)=>(a.date||'')>(b.date||'')?a:b) : null;
   const daysSinceLog = lastLog?.date ? Math.floor((Date.now()-new Date(lastLog.date))/86400000) : 99;
@@ -1195,7 +1195,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.32</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.33</div>
       </div>
     </div>
   );
@@ -3559,7 +3559,7 @@ function PlanScreen({ fields, crops, setCrops, plots, setPlots, setPlotsR, showT
     if(!plantDate) return "";
     const c=crops.find(x=>x.id===cropId);
     const db=c?CDB[c.type]||{}:{};
-    const days=db.maturity?.[c?.maturity||"mid"]||db.d||90;
+    const days=parseInt(c?.harvestDays)||db.maturity?.[c?.maturity||"mid"]||db.d||90;
     const d=new Date(plantDate); d.setDate(d.getDate()+days);
     return d.toISOString().slice(0,10);
   };
@@ -3575,20 +3575,28 @@ function PlanScreen({ fields, crops, setCrops, plots, setPlots, setPlotsR, showT
       for(let i=0;i<items.length;i++){
         for(let j=0;j<i;j++){
           const cur=items[i], past=items[j];
-          if(!cur.rot||cur.rot.years<=0||!cur.rot.ng.length)continue;
           if(!cur.fam||!past.fam)continue;
-          if(!cur.rot.ng.includes(past.fam))continue;
           // 混植チェック：期間が重なっている場合は混植なので警告しない
           const curEnd=cur.harvestDate||cur.plantDate;
           const pastEnd=past.harvestDate||past.plantDate;
           const overlap=cur.plantDate<=pastEnd && past.plantDate<=curEnd;
           if(overlap) continue;
-          // curはpastより後に植えられるもののみ（ソート済みなので常にcur>=past）
+          // 前作(past)が後作(cur)に影響するか：同じ科かどうか確認
+          // 必要な空き年数は「前作の連作回避年数（past.rot.years）」が正しい
+          const pastRot=past.rot;
+          const curRot=cur.rot;
+          // どちらかのrotがあり、同じ科 or NGリストに含まれる場合
+          const sameFam = cur.fam===past.fam;
+          const pastNgCur = pastRot?.ng?.includes(cur.fam);
+          const curNgPast = curRot?.ng?.includes(past.fam);
+          if(!sameFam && !pastNgCur && !curNgPast) continue;
+          // 必要年数：前作の連作回避年数を優先、なければ後作の年数
+          const needYears = pastRot?.years>0 ? pastRot.years : (curRot?.years||0);
+          if(needYears<=0) continue;
           const gapYears=(new Date(cur.plantDate)-new Date(past.plantDate))/(86400000*365);
-          if(gapYears<cur.rot.years){
-            const needYears=cur.rot.years;
+          if(gapYears<needYears){
             const shortYears=Math.round((needYears-gapYears)*10)/10;
-            warns.push({bed:bed.name, cur:cropFull(cur.crop), past:cropFull(past.crop), fam:cur.fam, years:needYears, gap:Math.floor(gapYears*10)/10, short:shortYears, curCrop:cur.crop});
+            warns.push({bed:bed.name, cur:cropFull(cur.crop), past:cropFull(past.crop), fam:past.fam, years:needYears, gap:Math.floor(gapYears*10)/10, short:shortYears, curCrop:cur.crop});
           }
         }
       }
