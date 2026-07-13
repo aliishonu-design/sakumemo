@@ -71,6 +71,7 @@ const CDB = {
   hakusai:      { n:"白菜",       e:"🥬", d:90,  w:2, cat:"アブラナ科",hs:"頭部を押して固く締まっていたら",              events:["結球開始","収穫"], maturity:{early:70,mid:90,late:110} },
   broccoli:     { n:"ブロッコリー",e:"🥦", d:90,  w:2, cat:"アブラナ科",hs:"花蕾が緊密で15〜18cm・黄色くなる前に",       events:["頂花蕾形成","収穫"], maturity:{early:75,mid:90,late:110} },
   radish:       { n:"ダイコン",   e:"🌰", d:60, hd:30,  w:2, cat:"アブラナ科",hs:"根が地表に出て肩の直径6〜8cm",               events:["間引き完了","収穫"], maturity:{early:50,mid:60,late:75} },
+  turnip:       { n:"カブ",       e:"🫚", d:50, hd:20,  w:2, cat:"アブラナ科",hs:"根径5〜6cmで葉が黄化し始めたら収穫" },
   komatsuna:    { n:"小松菜",     e:"🥬", d:35, hd:14,  w:1, cat:"アブラナ科",hs:"草丈20〜25cmで収穫",                         events:["収穫"], maturity:{early:30,mid:35,late:45} },
   // ─── マメ科 ───
   edamame:      { n:"枝豆",       e:"🫘", d:70,  w:2, cat:"マメ科",   hs:"さやが膨らんで豆の形がはっきりわかる状態",    events:["開花","さや形成","収穫"], maturity:{early:60,mid:70,late:85} },
@@ -126,6 +127,7 @@ const FAMILY_DB={
   cherry_tomato:"ナス科",eggplant:"ナス科",pepper:"ナス科",potato:"ナス科",cucumber:"ウリ科",
   zucchini:"ウリ科",pumpkin:"ウリ科",watermelon:"ウリ科",melon:"ウリ科",bitter_gourd:"ウリ科",
   cabbage:"アブラナ科",hakusai:"アブラナ科",broccoli:"アブラナ科",radish:"アブラナ科",komatsuna:"アブラナ科",
+  turnip:"アブラナ科",
   edamame:"マメ科",green_bean:"マメ科",azuki:"マメ科",lettuce:"キク科",carrot:"セリ科",
   onion:"ヒガンバナ科",leek:"ヒガンバナ科",garlic:"ヒガンバナ科",jinenjo:"ヤマノイモ科",taro:"サトイモ科",
   sweetpotato:"ヒルガオ科",strawberry:"バラ科",spinach:"アカザ科",okra:"アオイ科",apple:"バラ科",
@@ -152,6 +154,7 @@ const ROTATION_DB={
   hakusai:     {years:2,ng:["アブラナ科"]},
   broccoli:    {years:2,ng:["アブラナ科"]},
   radish:      {years:1,ng:["アブラナ科"]},
+  turnip:      {years:1,ng:["アブラナ科"]},
   komatsuna:   {years:1,ng:["アブラナ科"]},
   // ─── マメ科 ───
   edamame:     {years:3,ng:["マメ科"]},
@@ -1195,7 +1198,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.33</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.34</div>
       </div>
     </div>
   );
