@@ -70,12 +70,15 @@ const CDB = {
   cabbage:      { n:"キャベツ",   e:"🥬", d:90,  w:2, cat:"アブラナ科",hs:"結球が固く締まり外葉に張りがある状態",        events:["結球開始","収穫"], maturity:{early:70,mid:90,late:120} },
   hakusai:      { n:"白菜",       e:"🥬", d:90,  w:2, cat:"アブラナ科",hs:"頭部を押して固く締まっていたら",              events:["結球開始","収穫"], maturity:{early:70,mid:90,late:110} },
   broccoli:     { n:"ブロッコリー",e:"🥦", d:90,  w:2, cat:"アブラナ科",hs:"花蕾が緊密で15〜18cm・黄色くなる前に",       events:["頂花蕾形成","収穫"], maturity:{early:75,mid:90,late:110} },
-  radish:       { n:"ダイコン",   e:"🌰", d:60, hd:30,  w:2, cat:"アブラナ科",hs:"根が地表に出て肩の直径6〜8cm",               events:["間引き完了","収穫"], maturity:{early:50,mid:60,late:75} },
-  turnip:       { n:"カブ",       e:"🫚", d:50, hd:20,  w:2, cat:"アブラナ科",hs:"根径5〜6cmで葉が黄化し始めたら収穫" },
+  radish:       { n:"ダイコン",   e:"🫜", d:60, hd:30,  w:2, cat:"アブラナ科",hs:"根が地表に出て肩の直径6〜8cm",               events:["間引き完了","収穫"], maturity:{early:50,mid:60,late:75} },
+  turnip:       { n:"カブ",       e:"🫜", d:50, hd:20,  w:2, cat:"アブラナ科",hs:"根径5〜6cmで葉が黄化し始めたら収穫" },
   komatsuna:    { n:"小松菜",     e:"🥬", d:35, hd:14,  w:1, cat:"アブラナ科",hs:"草丈20〜25cmで収穫",                         events:["収穫"], maturity:{early:30,mid:35,late:45} },
   // ─── マメ科 ───
-  edamame:      { n:"枝豆",       e:"🫘", d:70,  w:2, cat:"マメ科",   hs:"さやが膨らんで豆の形がはっきりわかる状態",    events:["開花","さや形成","収穫"], maturity:{early:60,mid:70,late:85} },
-  green_bean:   { n:"インゲン",   e:"🫘", d:55, hd:30,  w:2, cat:"マメ科",   hs:"さやが膨らむ前・すじが出る前に収穫",          events:["開花","さや形成","収穫"], maturity:{early:45,mid:55,late:65} },
+  edamame:      { n:"枝豆",       e:"🫛", d:70,  w:2, cat:"マメ科",   hs:"さやが膨らんで豆の形がはっきりわかる状態",    events:["開花","さや形成","収穫"], maturity:{early:60,mid:70,late:85} },
+  green_bean:   { n:"インゲン",   e:"🫛", d:55, hd:30,  w:2, cat:"マメ科",   hs:"さやが膨らむ前・すじが出る前に収穫",          events:["開花","さや形成","収穫"], maturity:{early:45,mid:55,late:65} },
+  pea:          { n:"エンドウ",   e:"🫛", d:60, hd:20,  w:1, cat:"マメ科",   hs:"さやが膨らみ豆が見えてきたら（実エンドウ）" },
+  peanut:       { n:"落花生",     e:"🥜", d:120,hd:40,  w:2, cat:"マメ科",   hs:"葉が黄化してきたら試し掘り。完全乾燥前に収穫" },
+  ginger:       { n:"ショウガ",   e:"🫚", d:150,hd:60,  w:1, cat:"ショウガ科",hs:"葉が枯れ始めたら収穫。新生姜は8〜9月" },
   azuki:        { n:"小豆",       e:"🫘", d:100, w:3, cat:"マメ科",   hs:"さやが黄褐色になり乾燥してきたら",            events:["開花","さや形成","収穫"], maturity:{early:90,mid:100,late:115} },
   // ─── キク科 ───
   lettuce:      { n:"レタス",     e:"🥬", d:55,  w:1, cat:"キク科",   hs:"結球部を押して固くなったら",                  events:["結球開始","収穫"], maturity:{early:45,mid:55,late:70} },
@@ -129,6 +132,9 @@ const FAMILY_DB={
   cabbage:"アブラナ科",hakusai:"アブラナ科",broccoli:"アブラナ科",radish:"アブラナ科",komatsuna:"アブラナ科",
   turnip:"アブラナ科",
   edamame:"マメ科",green_bean:"マメ科",azuki:"マメ科",lettuce:"キク科",carrot:"セリ科",
+  pea:"マメ科",
+  peanut:"マメ科",
+  ginger:"ショウガ科",
   onion:"ヒガンバナ科",leek:"ヒガンバナ科",garlic:"ヒガンバナ科",jinenjo:"ヤマノイモ科",taro:"サトイモ科",
   sweetpotato:"ヒルガオ科",strawberry:"バラ科",spinach:"アカザ科",okra:"アオイ科",apple:"バラ科",
   pear:"バラ科",peach:"バラ科",cherry:"バラ科",plum:"バラ科",mikan:"ミカン科",
@@ -159,6 +165,9 @@ const ROTATION_DB={
   // ─── マメ科 ───
   edamame:     {years:3,ng:["マメ科"]},
   green_bean:  {years:2,ng:["マメ科"]},
+  pea:         {years:4,ng:["マメ科"]},
+  peanut:      {years:3,ng:["マメ科"]},
+  ginger:      {years:3,ng:["ショウガ科"]},
   azuki:       {years:3,ng:["マメ科"]},
   // ─── キク科 ───
   lettuce:     {years:2,ng:["キク科"]},
@@ -233,6 +242,7 @@ const FERT_INTERVAL = {
   radish:0, carrot:25, onion:30, garlic:30, potato:25, sweetpotato:0, taro:30, jinenjo:30,
   // マメ科（窒素固定するので追肥控えめ）
   edamame:0, green_bean:21, azuki:0,
+  pea:21, peanut:30, ginger:30,
   // 穀物
   rice:30, wheat:40, corn:21, soba:0,
   // 果樹（年単位なので追肥リマインダーは出さない）
@@ -1198,7 +1208,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.34</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.35</div>
       </div>
     </div>
   );
