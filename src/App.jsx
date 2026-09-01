@@ -32,8 +32,8 @@ const fieldToDb   = (o, uid) => ({ id:o.id, user_id:uid, name:o.name||"", area:o
 const fieldFromDb = r => ({ id:r.id, name:r.name||"", area:r.area||"", soil:r.soil||"", addr:r.addr||"", memo:r.memo||"", prefecture:r.prefecture||"" });
 const cropToDb    = (o, uid) => ({ id:o.id, user_id:uid, field_id:o.fieldId||null, type:o.type||null, variety:o.variety||null, germ_rate:o.germRate||null, stocks:o.stocks||null, ridge_w:o.ridgeW||null, ridge_h:o.ridgeH||null, rows:o.rows||null, row_space:o.rowSpace||null, plant_space:o.plantSpace||null, sow_date:o.sowDate||null, plant_date:o.plantDate||null, memo:o.memo||null, cultivation_type:o.cultivationType||null, seed_cost:o.seedCost||null, seed_note:o.seedNote||null, custom_name:o.customName||null, ended:o.ended||false, end_date:o.endDate||null, maturity:o.maturity||null, custom_days:o.customDays||null, custom_water:o.customWater||null, pot_size:o.potSize||null, pot_volume:o.potVolume||null, pot_count:o.potCount||null, grow_env:o.growEnv||null, agri_month_start:o.agriMonthStart||null, ridge_len:o.ridgeLen||null, cultivation_area:o.cultivationArea||null, temp_min:o.tempMin||null, temp_max:o.tempMax||null, fert_skip_date:o.fertSkipDate||null, fert_interval:o.fertInterval||null, reminder_mode:o.reminderMode||null, custom_events:o.customEvents?JSON.stringify(o.customEvents):null, harvest_days:o.harvestDays?parseInt(o.harvestDays):null });
 const cropFromDb  = (r, fields) => { const fi = fields.findIndex(f=>f.id===r.field_id); return { id:r.id, fieldId:r.field_id||"", fieldIdx:fi>=0?fi:0, type:r.type||"", variety:r.variety||"", germRate:r.germ_rate||"", stocks:r.stocks||"", ridgeW:r.ridge_w||"", ridgeH:r.ridge_h||"", rows:r.rows||"", rowSpace:r.row_space||"", plantSpace:r.plant_space||"", sowDate:r.sow_date||"", plantDate:r.plant_date||"", memo:r.memo||"", cultivationType:r.cultivation_type||"transplant", seedCost:r.seed_cost||"", seedNote:r.seed_note||"", customName:r.custom_name||"", ended:r.ended||false, endDate:r.end_date||"", maturity:r.maturity||"mid", customDays:r.custom_days||"", customWater:r.custom_water||"", potSize:r.pot_size||"", potVolume:r.pot_volume||"", potCount:r.pot_count||"", growEnv:r.grow_env||"field", agriMonthStart:r.agri_month_start||"", ridgeLen:r.ridge_len||"", cultivationArea:r.cultivation_area||"", tempMin:r.temp_min||"", tempMax:r.temp_max||"", fertSkipDate:r.fert_skip_date||"", fertInterval:r.fert_interval||"", reminderMode:r.reminder_mode||"auto", customEvents:r.custom_events?(typeof r.custom_events==="string"?JSON.parse(r.custom_events):r.custom_events):[], harvestDays:r.harvest_days||null, fertInterval:r.fert_interval||"" }; };
-const logToDb     = (o, uid, fields) => ({ id:o.id, user_id:uid, field_id:fields[o.fieldIdx]?.id||o.fieldId||null, crop_id:o.cropId||null, work:o.work||null, memo:o.memo||null, date:o.date||null, time:o.time||null, duration:o.duration||null, img_src:o.imgSrc||null, img2_src:o.imgSrc2||null, img3_src:o.imgSrc3||null, fert_name:o.fertName||null, fert_amt:o.fertAmt||null, fert_unit:o.fertUnit||null, fert_method:o.fertMethod||null, fert_cost:o.fertCost||null, pest_name:o.pestName||null, pest_spray_amt:o.pestSprayAmt||null, pest_dil:o.pestDil||null, pest_amt:o.pestAmt||null, pest_unit:o.pestUnit||null, pest_tgt:o.pestTarget||null, pest_cost:o.pestCost||null, hv_kg:o.hvKg||null, hv_cnt:o.hvCnt||null, hv_q:o.hvQ||null, hv_price:o.hvPrice||null, equip_ids:o.equipIds||null, equip_act:o.equipAct||null, equip_use_amt:o.equipUseAmt||null, equip_use_unit:o.equipUseUnit||null, sow_qty:o.sowQty||null, germination_cnt:o.germinationCnt||null, germ_date:o.germinationDate||null, transplant_qty:o.transplantQty||null, discard_cnt:o.discardCnt||null, add_cnt:o.addCnt||null, event_type:o.eventType||null, event_note:o.eventNote||null, hv_grade_str:o.hvGradeStr||null, other_note:o.otherNote||null, repot_size:o.repotSize||null, repot_vol:o.repotVol||null, group_id:o._groupId||null, weather:o.weather||null });
-const logFromDb   = (r, fields) => { const fi=fields.findIndex(f=>f.id===r.field_id); return { id:r.id, fieldId:r.field_id||"", fieldIdx:fi>=0?fi:0, cropId:r.crop_id||"", work:r.work||"", memo:r.memo||"", date:r.date||"", time:r.time||"", duration:r.duration||"", imgSrc:r.img_src||null, imgSrc2:r.img2_src||null, imgSrc3:r.img3_src||null, aiReply:"", fertName:r.fert_name||"", fertAmt:r.fert_amt||"", fertUnit:r.fert_unit||"", fertMethod:r.fert_method||"", fertCost:r.fert_cost||"", pestName:r.pest_name||"", pestSprayAmt:r.pest_spray_amt||"", pestDil:r.pest_dil||"", pestAmt:r.pest_amt||"", pestUnit:r.pest_unit||"", pestTarget:r.pest_target||"", pestCost:r.pest_cost||"", hvKg:r.hv_kg!=null?String(r.hv_kg):"", hvCnt:r.hv_cnt!=null?String(r.hv_cnt):"", hvQ:r.hv_q||"", hvPrice:r.hv_price||"", hvImgSrc:r.hv_img_src||null, equipIds:Array.isArray(r.equip_ids)?r.equip_ids:(r.equip_ids?JSON.parse(r.equip_ids):[]), equipAct:r.equip_act||"", hvGradeStr:r.hv_grade_str||"", otherNote:r.other_note||"", repotSize:r.repot_size||"", repotVol:r.repot_vol||"", _groupId:r.group_id||null, weather:r.weather||"", equipUseAmt:r.equip_use_amt||null, equipUseUnit:r.equip_use_unit||null, sowQty:r.sow_qty||"", germinationCnt:r.germination_cnt||"", germinationDate:r.germination_date||"", transplantQty:r.transplant_qty||"", discardCnt:r.discard_cnt||"", addCnt:r.add_cnt||"", eventType:r.event_type||"", eventNote:r.event_note||"" }; };
+const logToDb     = (o, uid, fields) => ({ id:o.id, user_id:uid, field_id:fields[o.fieldIdx]?.id||o.fieldId||null, crop_id:o.cropId||null, work:o.work||null, memo:o.memo||null, date:o.date||null, time:o.time||null, duration:o.duration||null, img_src:o.imgSrc||null, img2_src:o.imgSrc2||null, img3_src:o.imgSrc3||null, fert_name:o.fertName||null, fert_amt:o.fertAmt||null, fert_unit:o.fertUnit||null, fert_method:o.fertMethod||null, fert_cost:o.fertCost||null, pest_name:o.pestName||null, pest_spray_amt:o.pestSprayAmt||null, pest_dil:o.pestDil||null, pest_amt:o.pestAmt||null, pest_unit:o.pestUnit||null, pest_tgt:o.pestTarget||null, pest_cost:o.pestCost||null, hv_kg:o.hvKg||null, hv_cnt:o.hvCnt||null, hv_q:o.hvQ||null, hv_price:o.hvPrice||null, equip_ids:o.equipIds||null, equip_act:o.equipAct||null, sow_qty:o.sowQty||null, germination_cnt:o.germinationCnt||null, germ_date:o.germinationDate||null, transplant_qty:o.transplantQty||null, discard_cnt:o.discardCnt||null, add_cnt:o.addCnt||null, event_type:o.eventType||null, event_note:o.eventNote||null, hv_grade_str:o.hvGradeStr||null, other_note:o.otherNote||null, repot_size:o.repotSize||null, repot_vol:o.repotVol||null, group_id:o._groupId||null, weather:o.weather||null });
+const logFromDb   = (r, fields) => { const fi=fields.findIndex(f=>f.id===r.field_id); return { id:r.id, fieldId:r.field_id||"", fieldIdx:fi>=0?fi:0, cropId:r.crop_id||"", work:r.work||"", memo:r.memo||"", date:r.date||"", time:r.time||"", duration:r.duration||"", imgSrc:r.img_src||null, imgSrc2:r.img2_src||null, imgSrc3:r.img3_src||null, aiReply:"", fertName:r.fert_name||"", fertAmt:r.fert_amt||"", fertUnit:r.fert_unit||"", fertMethod:r.fert_method||"", fertCost:r.fert_cost||"", pestName:r.pest_name||"", pestSprayAmt:r.pest_spray_amt||"", pestDil:r.pest_dil||"", pestAmt:r.pest_amt||"", pestUnit:r.pest_unit||"", pestTarget:r.pest_target||"", pestCost:r.pest_cost||"", hvKg:r.hv_kg!=null?String(r.hv_kg):"", hvCnt:r.hv_cnt!=null?String(r.hv_cnt):"", hvQ:r.hv_q||"", hvPrice:r.hv_price||"", hvImgSrc:r.hv_img_src||null, equipIds:Array.isArray(r.equip_ids)?r.equip_ids:(r.equip_ids?JSON.parse(r.equip_ids):[]), equipAct:r.equip_act||"", hvGradeStr:r.hv_grade_str||"", otherNote:r.other_note||"", repotSize:r.repot_size||"", repotVol:r.repot_vol||"", _groupId:r.group_id||null, weather:r.weather||"", sowQty:r.sow_qty||"", germinationCnt:r.germination_cnt||"", germinationDate:r.germination_date||"", transplantQty:r.transplant_qty||"", discardCnt:r.discard_cnt||"", addCnt:r.add_cnt||"", eventType:r.event_type||"", eventNote:r.event_note||"" }; };
 const fertMToDb   = (o, uid) => ({ id:o.id||uid0(), user_id:uid, name:o.name||null, type:o.type||null, price:o.price||null, punit:o.punit||null, capacity:o.capacity||null, cunit:o.cunit||null, npk:o.npk||null, stock:o.stock||null, sunit:o.sunit||null, note:o.note||null });
 const fertMFromDb = r => ({ id:r.id, name:r.name||"", type:r.type||"", price:r.price||"", punit:r.punit||"", capacity:r.capacity||"", cunit:r.cunit||"", npk:r.npk||"", stock:r.stock||"", sunit:r.sunit||"", note:r.note||"" });
 const pestMToDb   = (o, uid) => ({ id:o.id||uid0(), user_id:uid, name:o.name||null, type:o.type||null, target:o.target||null, capacity:o.capacity||null, sunit:o.sunit||null, price:o.price||null, note:o.note||null });const pestMFromDb = r => ({ id:r.id, name:r.name||"", type:r.type||"", target:r.target||"", capacity:r.capacity||"", sunit:r.sunit||"", price:r.price||"", note:r.note||"" });
@@ -1208,7 +1208,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.36</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.35</div>
       </div>
     </div>
   );
@@ -2247,7 +2247,7 @@ function LogScreen({ fields, crops, setCrops, fertMs, pestMs, equips, costs, set
   // 施肥複数登録用
   const emptyFert = () => ({name:"",amt:"",unit:"kg",meth:"追肥",cost:""});
   const emptyPest = () => ({name:"",dil:"",sprayAmt:"",sprayUnit:"L",tgt:"",cost:""});
-  const emptyEquip = () => ({_id:null,idx:"",act:"設置",useAmt:"",useUnit:"L"});
+  const emptyEquip = () => ({_id:null,idx:"",act:"設置"});
   const [fertEntries, setFertEntries] = useState([]);
   const [pestIdx,  setPestIdx]  = useState("");
   const [pestEntries, setPestEntries] = useState([]); // 農薬複数登録
@@ -2295,7 +2295,7 @@ useEffect(()=>{
       setPestIdx("");setPestName("");setPestDil("");setPestAmt("");setPestUnit("L");setPestTgt("");setPestCost("");setPestEntries([]);setPestSprayAmt("");
       setEventType("");setEventNote("");setOtherNote("");
       setHvKg("");setHvCnt("");setHvQ("秀品");setHvPrice("");
-      setDiscardCnt("");setAddCnt("");setEquipSel([]);setEquipAct("設置");setEquipUseAmt("");setEquipUseUnit("L");setEquipEntries([]);setRepotSize("");setRepotVol("");  return;
+      setDiscardCnt("");setAddCnt("");setEquipSel([]);setEquipAct("設置");setEquipEntries([]);setRepotSize("");setRepotVol("");  return;
     }
     setEditId(editLog._isCopy ? null : editLog.id);
     setFieldIdx(editLog.fieldIdx||0);
@@ -2395,12 +2395,10 @@ useEffect(()=>{
 
     // 資材作業 ─ equipIdsからインデックスを復元
     // equipActから純粋な作業種別のみを復元（資材名が混入している場合を除去）
-    const _equipActs=["設置","撤去","使用","着用","脱去","点検","修理","その他"];
+    const _equipActs=["設置","撤去","着用","脱去","点検","修理","その他"];
     const _rawAct=equipLog.equipAct||"設置";
     const _pureAct=_equipActs.find(a=>_rawAct===a||_rawAct.endsWith(" "+a))||_rawAct;
     setEquipAct(_pureAct);
-    setEquipUseAmt(equipLog.equipUseAmt||"");
-    setEquipUseUnit(equipLog.equipUseUnit||"L");
     const _eIds = Array.isArray(equipLog.equipIds) ? equipLog.equipIds
                 : (equipLog.equipIds ? JSON.parse(equipLog.equipIds) : []);
     setEquipSel(_eIds.length>0 ? [_eIds[0]] : []);
@@ -2409,7 +2407,7 @@ useEffect(()=>{
     setEquipEntries(extraEquips.map(l=>{
       const ids=Array.isArray(l.equipIds)?l.equipIds:(l.equipIds?JSON.parse(l.equipIds):[]);
       const _pureAct2=_equipActs.find(a=>l.equipAct===a||l.equipAct.endsWith(" "+a))||"設置";
-      return {_id:l.id, idx:ids.length>0?ids[0]:"", act:_pureAct2, useAmt:l.equipUseAmt||"", useUnit:l.equipUseUnit||"L"};
+      return {_id:l.id, idx:ids.length>0?ids[0]:"", act:_pureAct2};
     }));
 
     // 既存写真をプレビューとして保持
@@ -2487,7 +2485,7 @@ useEffect(()=>{
         // equip_actに「資材名 作業種別」を結合して保存
         const _en=equipSel.map(i=>equips[i]?.name).filter(Boolean);
         const _fa=(_en.join('・')+(_en.length?' ':'')+equipAct).trim();
-        Object.assign(e,{equipIds:equipSel, equipAct:_fa||equipAct, equipUseAmt:equipUseAmt||null, equipUseUnit:equipUseUnit||null});
+        Object.assign(e,{equipIds:equipSel, equipAct:_fa||equipAct});
       }
       if(w==='discard') Object.assign(e,{discardCnt,addCnt});
       if(w==='sow') Object.assign(e,{sowQty,germinationCnt:germCnt,germinationDate:germDate});
@@ -2548,7 +2546,7 @@ useEffect(()=>{
             const ex=makeEntry('equip',false,editLogIds[workList.length+fertExtraCount2+pestExtraCount2+ei]||null,editGroupId);
             const _en2=ee.idx!==""?equips[ee.idx]?.name||'':'';
             const _fa2=(_en2+(_en2?' ':'')+ee.act).trim();
-            ex.equipIds=ee.idx!==""?[ee.idx]:[];ex.equipAct=_fa2||ee.act;ex.equipUseAmt=ee.useAmt||null;ex.equipUseUnit=ee.useUnit||null;
+            ex.equipIds=ee.idx!==""?[ee.idx]:[];ex.equipAct=_fa2||ee.act;
             editEntriesAll.push(ex);
           });
         }
@@ -2607,7 +2605,7 @@ useEffect(()=>{
             const ex=makeEntry('equip',false,null,newGroupId);
             const _en2=ee.idx!==""?equips[ee.idx]?.name||'':'';
             const _fa2=(_en2+(_en2?' ':'')+ee.act).trim();
-            ex.equipIds=ee.idx!==""?[ee.idx]:[];ex.equipAct=_fa2||ee.act;ex.equipUseAmt=ee.useAmt||null;ex.equipUseUnit=ee.useUnit||null;
+            ex.equipIds=ee.idx!==""?[ee.idx]:[];ex.equipAct=_fa2||ee.act;
             allEntriesNew.push(ex);
           });
         }
@@ -2725,7 +2723,7 @@ useEffect(()=>{
       <div style={S.sec}>
         <span>作業内容を選択してください</span>
         {(works.size>0||editId) && (
-          <button onClick={()=>{setEditId(null);setWork("");setMemo("");setLogImg(null);setLogImg2(null);setLogImg3(null);setHvGrades({秀品:{kg:"",cnt:"",price:""},優品:{kg:"",cnt:"",price:""},良品:{kg:"",cnt:"",price:""},規格外:{kg:"",cnt:"",price:""}});setDate(todayStr());setTime(nowTime());setDur("");setSowQty("");setGermCnt("");setGermDate(todayStr());setTranspQty("");setFertIdx("");setFertName("");setFertAmt("");setFertUnit("kg");setFertMeth("追肥");setFertCost("");setPestIdx("");setPestName("");setPestDil("");setPestAmt("");setPestUnit("L");setPestTgt("");setPestCost("");setDiscardCnt("");setAddCnt("");setEventType("");setEventNote("");setOtherNote("");setHvKg("");setHvCnt("");setHvQ("秀品");setHvPrice("");setRepotSize("");setRepotVol("");setEquipSel([]);setEquipAct("設置");setEquipUseAmt("");setEquipUseUnit("L");setEquipEntries([]);setWork("");setCropId("");}}
+          <button onClick={()=>{setEditId(null);setWork("");setMemo("");setLogImg(null);setLogImg2(null);setLogImg3(null);setHvGrades({秀品:{kg:"",cnt:"",price:""},優品:{kg:"",cnt:"",price:""},良品:{kg:"",cnt:"",price:""},規格外:{kg:"",cnt:"",price:""}});setDate(todayStr());setTime(nowTime());setDur("");setSowQty("");setGermCnt("");setGermDate(todayStr());setTranspQty("");setFertIdx("");setFertName("");setFertAmt("");setFertUnit("kg");setFertMeth("追肥");setFertCost("");setPestIdx("");setPestName("");setPestDil("");setPestAmt("");setPestUnit("L");setPestTgt("");setPestCost("");setDiscardCnt("");setAddCnt("");setEventType("");setEventNote("");setOtherNote("");setHvKg("");setHvCnt("");setHvQ("秀品");setHvPrice("");setRepotSize("");setRepotVol("");setEquipSel([]);setEquipAct("設置");setEquipEntries([]);setWork("");setCropId("");}}
             style={{...S.btn,...S.btnS,...S.btnSm}}>✕ リセット</button>
         )}
       </div>
@@ -2886,11 +2884,7 @@ useEffect(()=>{
               <Sel value={equipSel[0]!==undefined?String(equipSel[0]):""} onChange={v=>setEquipSel(v!==""?[parseInt(v)]:[])}
                 options={[{value:"",label:"（選択）"},...equips.map((e,i)=>({value:i,label:e.name+"（"+e.cat+"）"}))]}/>
             </FG>
-            <FG label="作業種別"><Sel value={equipAct} onChange={setEquipAct} options={["設置","撤去","使用","着用","脱去","点検","修理","その他"].map(v=>({value:v,label:v}))}/></FG>
-            {equipAct==="使用"&&<FG label="使用量（任意）"><div style={{display:"flex",gap:4}}>
-              <Inp type="number" value={equipUseAmt} onChange={setEquipUseAmt} placeholder="例：5" style={{flex:1}}/>
-              <Sel value={equipUseUnit} onChange={setEquipUseUnit} options={["L","ml","kg","g","個"].map(v=>({value:v,label:v}))} style={{width:60,flex:"none"}}/>
-            </div></FG>}
+            <FG label="作業種別"><Sel value={equipAct} onChange={setEquipAct} options={["設置","撤去","着用","脱去","点検","修理","その他"].map(v=>({value:v,label:v}))}/></FG>
           </div>
           {equipEntries.map((ee,ei)=>(
             <div key={ei} style={{background:"#f9f7ff",border:"1px solid #c4b5fd",borderRadius:8,padding:"8px 10px",marginTop:6}}>
@@ -2905,12 +2899,8 @@ useEffect(()=>{
               </FG>
               <FG label="作業種別">
                 <Sel value={ee.act} onChange={v=>setEquipEntries(p=>p.map((x,i)=>i===ei?{...x,act:v}:x))}
-                  options={["設置","撤去","使用","着用","脱去","点検","修理","その他"].map(v=>({value:v,label:v}))}/>
+                  options={["設置","撤去","着用","脱去","点検","修理","その他"].map(v=>({value:v,label:v}))}/>
               </FG>
-              {ee.act==="使用"&&<FG label="使用量（任意）"><div style={{display:"flex",gap:4}}>
-                <Inp type="number" value={ee.useAmt||""} onChange={v=>setEquipEntries(p=>p.map((x,i)=>i===ei?{...x,useAmt:v}:x))} placeholder="例：5" style={{flex:1}}/>
-                <Sel value={ee.useUnit||"L"} onChange={v=>setEquipEntries(p=>p.map((x,i)=>i===ei?{...x,useUnit:v}:x))} options={["L","ml","kg","g","個"].map(v=>({value:v,label:v}))} style={{width:60,flex:"none"}}/>
-              </div></FG>}
             </div>
           ))}
         </div>}
@@ -3158,7 +3148,7 @@ function TimelineScreen({ fields, crops, equips, logs, setLogs, setLogsR, showTo
                             {l.transplantQty&&<div style={{fontSize:'.75rem',color:'#5a5040'}}>🪴 定植 {l.transplantQty}株</div>}
                             {l.eventType&&<div style={{fontSize:'.75rem',color:'#5a5040'}}>📋 {l.eventType}{l.eventNote?' · '+l.eventNote:''}</div>}
                             {(l.discardCnt||l.addCnt)&&<div style={{fontSize:'.75rem',color:'#5a5040'}}>📊 株数調整{l.addCnt?` +${l.addCnt}株`:''}{ l.discardCnt?` -${l.discardCnt}株（廃棄）`:''}</div>}
-                            {l.equipAct&&<div style={{fontSize:'.75rem',color:'#5b21b6'}}>{l.equipAct}{l.equipUseAmt?` ${l.equipUseAmt}${l.equipUseUnit||''}`:''}</div>}
+                            {l.equipAct&&<div style={{fontSize:'.75rem',color:'#5b21b6'}}>{l.equipAct}</div>}
                             {l.otherNote&&<div style={{fontSize:'.75rem',color:'#5a5040'}}>✏️ {l.otherNote}</div>}
                             {l.work==='repot'&&(l.repotSize||l.repotVol)&&<div style={{fontSize:'.75rem',color:'#5a5040'}}>🪴 {l.repotSize?l.repotSize+'号鉢':''}{l.repotVol?' '+l.repotVol+'L':''}</div>}
                           </div>
@@ -4340,7 +4330,7 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs, equips=[], o
                       {l.transplantQty&&<div style={{fontSize:'.75rem',color:'#5a5040'}}>🪴 定植 {l.transplantQty}株</div>}
                       {l.eventType&&<div style={{fontSize:'.75rem',color:'#5a5040'}}>📋 {l.eventType}{l.eventNote?` · ${l.eventNote}`:''}</div>}
                       {(l.discardCnt||l.addCnt)&&<div style={{fontSize:'.75rem',color:'#5a5040'}}>📊 株数調整{l.addCnt?` +${l.addCnt}株`:''}{ l.discardCnt?` -${l.discardCnt}株（廃棄）`:''}</div>}
-                      {l.equipAct&&<div style={{fontSize:'.75rem',color:'#5b21b6'}}>{l.equipAct}{l.equipUseAmt?` ${l.equipUseAmt}${l.equipUseUnit||''}`:''}</div>}
+                      {l.equipAct&&<div style={{fontSize:'.75rem',color:'#5b21b6'}}>{l.equipAct}</div>}
                       {l.otherNote&&<div style={{fontSize:'.75rem',color:'#5a5040'}}>✏️ {l.otherNote}</div>}
                     </div>
                   ))}
