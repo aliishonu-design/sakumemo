@@ -8,12 +8,23 @@ const sb = createClient(
 
 // DB helpers
 const dbFetch = async (table, uid) => {
-  const { data, error } = await sb.from(table).select("*").eq("user_id", uid).order("created_at").limit(10000);
-  if (error) {
-    console.error("DB fetch error:", table, error.code, error.message);
-    return [];
+  // Supabaseデフォルト1000件制限を回避するためページネーションで全件取得
+  const PAGE = 1000;
+  let all = [];
+  let from = 0;
+  while(true) {
+    const { data, error } = await sb.from(table).select("*").eq("user_id", uid).order("created_at").range(from, from + PAGE - 1);
+    if (error) {
+      console.error("DB fetch error:", table, error.code, error.message);
+      break;
+    }
+    const rows = data || [];
+    all = [...all, ...rows];
+    if(rows.length < PAGE) break; // 最後のページ
+    from += PAGE;
   }
-  return data || [];
+  if(table === "logs") console.log("[dbFetch] logs取得件数:", all.length);
+  return all;
 };
 const dbUpsert = async (table, row) => {
   const { data, error } = await sb.from(table).upsert(row, { onConflict: "id" }).select();
@@ -1208,7 +1219,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.41</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.42</div>
       </div>
     </div>
   );
