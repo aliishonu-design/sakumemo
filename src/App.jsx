@@ -8,7 +8,7 @@ const sb = createClient(
 
 // DB helpers
 const dbFetch = async (table, uid) => {
-  const { data, error } = await sb.from(table).select("*").eq("user_id", uid).order("created_at").range(0, 9999);
+  const { data, error } = await sb.from(table).select("*").eq("user_id", uid).order("created_at").limit(10000);
   if (error) {
     console.error("DB fetch error:", table, error.code, error.message);
     return [];
@@ -1208,7 +1208,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.40</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.41</div>
       </div>
     </div>
   );
