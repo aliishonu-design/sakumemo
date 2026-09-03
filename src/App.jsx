@@ -1219,7 +1219,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.42</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.43</div>
       </div>
     </div>
   );
@@ -2314,9 +2314,10 @@ useEffect(()=>{
     setFieldIdx(editLog.fieldIdx||0);
     setCropId(editLog.cropId||"");
     // 複数作業を復元
+    const _validWorks = new Set(WORK_TYPES.map(w=>w.value));
     const _allWorks = (editLogs&&editLogs.length>1)
-      ? new Set(editLogs.map(l=>l.work).filter(Boolean))
-      : new Set(editLog.work?[editLog.work]:[]);
+      ? new Set(editLogs.map(l=>l.work).filter(w=>w&&_validWorks.has(w)))
+      : new Set(editLog.work&&_validWorks.has(editLog.work)?[editLog.work]:[]);
     setWorks(_allWorks);
     // memoはグループ内のどのlogにあっても復元する
     const _memoLog = (editLogs&&editLogs.length>0?editLogs:[editLog]).find(l=>l.memo);
@@ -2986,6 +2987,7 @@ function TimelineScreen({ fields, crops, equips, logs, setLogs, setLogsR, showTo
 
   // フィルタ済みログ
   const filtered = logs.filter(l=>{
+    if(l.work==='schedule') return false; // カスタム予定はタイムラインに表示しない
     if(selCropId && l.cropId !== selCropId) return false;
     if(fW && l.work !== fW) return false;
     if(q){
