@@ -1208,7 +1208,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.37</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.39</div>
       </div>
     </div>
   );
@@ -2277,6 +2277,8 @@ function LogScreen({ fields, crops, setCrops, fertMs, pestMs, equips, costs, set
   const [equipSel, setEquipSel] = useState([]);
   const [equipEntries, setEquipEntries] = useState([]); // 資材複数登録
   const [equipAct, setEquipAct] = useState("設置");
+  const [equipUseAmt,setEquipUseAmt]= useState("");
+  const [equipUseUnit,setEquipUseUnit]=useState("L");
   const [repotSize, setRepotSize] = useState("");
   const [repotVol,  setRepotVol]  = useState("");
   const [isRec,    setIsRec]    = useState(false);
@@ -2399,6 +2401,8 @@ useEffect(()=>{
     const _rawAct=equipLog.equipAct||"設置";
     const _pureAct=_equipActs.find(a=>_rawAct===a||_rawAct.endsWith(" "+a))||_rawAct;
     setEquipAct(_pureAct);
+    setEquipUseAmt(equipLog.equipUseAmt||"");
+    setEquipUseUnit(equipLog.equipUseUnit||"L");
     setEquipUseAmt(equipLog.equipUseAmt||"");
     setEquipUseUnit(equipLog.equipUseUnit||"L");
     const _eIds = Array.isArray(equipLog.equipIds) ? equipLog.equipIds
