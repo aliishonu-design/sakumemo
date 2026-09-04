@@ -1219,7 +1219,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.44</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.45</div>
       </div>
     </div>
   );
@@ -3380,7 +3380,7 @@ function CostScreen({ fields, crops, fertMs, pestMs, equips, costs, setCosts, lo
         </R2>
         <FG label="品目（任意）">
           <Sel value={mCost.cropId||""} onChange={v=>setMCost({...mCost,cropId:v})}
-            options={[{value:"",label:"共通（品目割当なし）"},...crops.filter(c=>!c.ended).map(c=>{const db=CDB[c.type]||{};return{value:c.id,label:(db.e||"🌱")+" "+(db.n||c.type)+(c.variety?"("+c.variety+")":"")};})]}/></FG>
+            options={[{value:"",label:"共通（品目割当なし）"},...crops.filter(c=>!c.ended).map(c=>{const db=CDB[c.type]||{};const nm=c.type==="custom"?(c.customName||"カスタム"):(db.n||c.type);return{value:c.id,label:(db.e||"🌱")+" "+nm+(c.variety?" ("+c.variety+")":"")};})]}/></FG>
         <FG label="メモ"><Inp value={mCost.note||""} onChange={v=>setMCost({...mCost,note:v})} placeholder="購入先など"/></FG>
         {mCost.id&&costs.find(x=>x.id===mCost.id)&&<button onClick={()=>{if(!window.confirm("削除しますか?"))return;const n=costs.filter(x=>x.id!==mCost.id);setCosts(n);setMCost(null);showToast("削除しました");}} style={{...S.btn,...S.btnR,marginTop:8}}>削除</button>}
       </ModalWithSave>}
