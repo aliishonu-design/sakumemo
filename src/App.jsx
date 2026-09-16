@@ -23,7 +23,6 @@ const dbFetch = async (table, uid) => {
     if(rows.length < PAGE) break; // 最後のページ
     from += PAGE;
   }
-  if(table === "logs") console.log("[dbFetch] logs取得件数:", all.length);
   return all;
 };
 const dbUpsert = async (table, row) => {
@@ -641,6 +640,19 @@ const COST_CATS = [
   { value:"labor", label:"👷 労務費" },
   { value:"other", label:"📦 その他" },
 ];
+// 品目表示名ヘルパー（カスタム品目対応）
+const getCropDisplayName = (c) => {
+  if(!c) return "";
+  const db = CDB[c.type]||{};
+  const name = c.type==="custom" ? (c.customName||"カスタム") : (db.n||c.type);
+  return (db.e||"🌱")+" "+name+(c.variety?" ("+c.variety+")":"");
+};
+const getCropName = (c) => {
+  if(!c) return "";
+  const db = CDB[c.type]||{};
+  return c.type==="custom" ? (c.customName||"カスタム") : (db.n||c.type);
+};
+
 const WX_MAP = [[0,"☀️","快晴"],[3,"⛅","晴れ時々くもり"],[48,"🌫️","霧"],[67,"🌧️","雨"],[77,"❄️","雪"],[82,"🌦️","にわか雨"],[99,"⛈️","雷雨"]];
 const wxIcon  = c => { for(const [t,i] of WX_MAP) if(c<=t) return i; return "⛈️"; };
 const wxLabel = c => { for(const [t,,l] of WX_MAP) if(c<=t) return l; return "雷雨"; };
@@ -1219,7 +1231,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.48</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.49</div>
       </div>
     </div>
   );
@@ -1263,7 +1275,7 @@ function HomeScreen({ fields, crops, setCrops, logs, setLogs, costs, onEditCrop,
     const fmtFuture=(d)=>{const dd=Math.round((d-today)/86400000);if(dd===0)return"今日";if(dd===1)return"明日";if(dd<0)return`${-dd}日前`;return`${dd}日後`;};
     crops.filter(c=>!c.ended&&(c.reminderMode||"auto")==="auto").forEach(c=>{
       const db=CDB[c.type]||{};
-      const cropLabel=(db.e||"🌱")+" "+(c.type==="custom"?c.customName||"カスタム":db.n||c.type)+(c.variety?"("+c.variety+")":"");
+      const cropLabel=getCropDisplayName(c);
 
       // ── 定植予定（育苗後定植で、播種済み・未定植の品目）──
       if(c.cultivationType==="nursery" && c.sowDate && !c.plantDate){
@@ -1325,7 +1337,7 @@ function HomeScreen({ fields, crops, setCrops, logs, setLogs, costs, onEditCrop,
     const today2=new Date(); today2.setHours(0,0,0,0);
     crops.filter(c=>!c.ended&&(c.reminderMode||"auto")==="custom").forEach(c=>{
       const db=CDB[c.type]||{};
-      const cropLabel=(db.e||"🌱")+" "+(c.type==="custom"?c.customName||"カスタム":db.n||c.type)+(c.variety?"("+c.variety+")":"");
+      const cropLabel=getCropDisplayName(c);
       (c.customEvents||[]).forEach(ev=>{
         if(!ev.date||ev.done) return;
         const evD=new Date(ev.date); evD.setHours(0,0,0,0);
@@ -1932,7 +1944,7 @@ function FieldsScreen({ fields, setFields, setFieldsR, crops, setCrops, setCrops
               <span style={{fontSize:"1.8rem",lineHeight:1,flexShrink:0}}>{db.e||"🌱"}</span>
               <div style={{flex:1,minWidth:0,overflow:"hidden"}}>
                 <div style={{fontWeight:700,fontSize:".92rem",lineHeight:1.3,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
-                  {c.type==="custom"?c.customName||"カスタム":db.n||c.type}
+                  {getCropName(c)}
                 </div>
                 {c.variety&&<div style={{fontSize:".73rem",color:TX3,marginTop:1,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{c.variety}</div>}
               </div>
@@ -2022,7 +2034,7 @@ function FieldsScreen({ fields, setFields, setFieldsR, crops, setCrops, setCrops
               <div style={{display:"flex",gap:9,alignItems:"center"}}>
                 <span style={{fontSize:"1.6rem"}}>{db.e||"🌱"}</span>
                 <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontWeight:700,fontSize:".88rem"}}>{c.type==="custom"?c.customName||"カスタム":db.n||c.type}{c.variety?" ("+c.variety+")":""}</div>
+                  <div style={{fontWeight:700,fontSize:".88rem"}}>{getCropName(c)}{c.variety?" ("+c.variety+")":""}</div>
                   <div style={{fontSize:".7rem",color:TX3}}>{f.name||"?"} · 終了:{c.endDate?fmtYMD(c.endDate):"—"}</div>
                 </div>
                 <div style={{display:"flex",flexDirection:"column",gap:4,flexShrink:0}}>
@@ -2292,7 +2304,6 @@ function LogScreen({ fields, crops, setCrops, fertMs, pestMs, equips, costs, set
   const [equipUseUnit,setEquipUseUnit]=useState("L");
   const [repotSize, setRepotSize] = useState("");
   const [repotVol,  setRepotVol]  = useState("");
-  const [isRec,    setIsRec]    = useState(false);
   const [editId,   setEditId]   = useState(null);
   const recogRef = useRef(null);
 
@@ -2750,7 +2761,7 @@ useEffect(()=>{
       <div style={S.card}>
         <R2>
           <FG label="圃場">{fields.length>0?<Sel value={fieldIdx} onChange={v=>{setFieldIdx(parseInt(v));setCropId("");}} options={fields.map((f,i)=>({value:i,label:f.name}))}/>:<div style={{color:TX3,fontSize:".82rem"}}>圃場を登録してください</div>}</FG>
-          <FG label="品目"><Sel value={cropId} onChange={setCropId} options={[{value:"",label:"（選択）"},...fieldCrops.filter(c=>!c.ended).map(c=>{const db=CDB[c.type]||{};return{value:c.id,label:(db.e||"🌱")+" "+(c.type==="custom"?c.customName||"カスタム":(db.n||c.type))+(c.variety?" ("+c.variety+")":"")};})]} /></FG>
+          <FG label="品目"><Sel value={cropId} onChange={setCropId} options={[{value:"",label:"（選択）"},...fieldCrops.filter(c=>!c.ended).map(c=>{const db=CDB[c.type]||{};return{value:c.id,label:getCropDisplayName(c)};})]} /></FG>
         </R2>
         <FG label="作業内容">
           <div style={{fontSize:".7rem",color:"#888",marginBottom:4}}>💡 複数選択できます</div>
@@ -3475,7 +3486,7 @@ function CostScreen({ fields, crops, fertMs, pestMs, equips, costs, setCosts, lo
         </R2>
         <FG label="品目（任意）">
           <Sel value={mCost.cropId||""} onChange={v=>setMCost({...mCost,cropId:v})}
-            options={[{value:"",label:"共通（品目割当なし）"},...crops.filter(c=>!c.ended).map(c=>{const db=CDB[c.type]||{};const nm=c.type==="custom"?(c.customName||"カスタム"):(db.n||c.type);return{value:c.id,label:(db.e||"🌱")+" "+nm+(c.variety?" ("+c.variety+")":"")};})]}/></FG>
+            options={[{value:"",label:"共通（品目割当なし）"},...crops.filter(c=>!c.ended).map(c=>{const db=CDB[c.type]||{};const nm=getCropName(c);return{value:c.id,label:(db.e||"🌱")+" "+nm+(c.variety?" ("+c.variety+")":"")};})]}/></FG>
         <FG label="メモ"><Inp value={mCost.note||""} onChange={v=>setMCost({...mCost,note:v})} placeholder="購入先など"/></FG>
         {mCost.id&&costs.find(x=>x.id===mCost.id)&&<button onClick={()=>{if(!window.confirm("削除しますか?"))return;const n=costs.filter(x=>x.id!==mCost.id);setCosts(n);setMCost(null);showToast("削除しました");}} style={{...S.btn,...S.btnR,marginTop:8}}>削除</button>}
       </ModalWithSave>}
@@ -3506,7 +3517,7 @@ function PlanScreen({ fields, crops, setCrops, plots, setPlots, setPlotsR, showT
   };
   const cropLabel = type => { const db=CDB[type]||{}; return (db.e||"🌱")+" "+(db.n||type); };
   // 品目オブジェクトから「絵文字 名前(品種)」を生成
-  const cropFull = c => { if(!c) return ""; const db=CDB[c.type]||{}; const nm=c.type==="custom"?(c.customName||"カスタム"):(db.n||c.type); return (db.e||"🌱")+" "+nm+(c.variety?"("+c.variety+")":""); };
+  const cropFull = c => { if(!c) return ""; const db=CDB[c.type]||{}; const nm=getCropName(c); return (db.e||"🌱")+" "+nm+(c.variety?"("+c.variety+")":""); };
 
   // 計画を初期化（区画3つ）
   const initPlan = () => {
@@ -3606,11 +3617,10 @@ function PlanScreen({ fields, crops, setCrops, plots, setPlots, setPlotsR, showT
   },[historyIdx, history, plots]);
 
   // ガントバーのドラッグ（伸縮・移動）
-  const yearStartMs = ()=> new Date(year,0,1).getTime();
-  const yearSpanMs  = ()=> new Date(year,11,31).getTime()-new Date(year,0,1).getTime();
   const pxToDays = (dx)=>{
-    const w = laneRef.current?.offsetWidth || 1;
-    const msPerPx = yearSpanMs()/w;
+    // COL_W=52px/月 → 1px = (30.44日/52) ≈ 0.585日
+    const COL_W=52;
+    const msPerPx = (365.25/12*86400000)/COL_W;
     return Math.round(dx*msPerPx/86400000);
   };
   const addDays = (dateStr, days)=>{ const d=new Date(dateStr); d.setDate(d.getDate()+days); return d.toISOString().slice(0,10); };
@@ -3794,7 +3804,6 @@ function PlanScreen({ fields, crops, setCrops, plots, setPlots, setPlotsR, showT
   const yearStart=new Date(year,0,1).getTime();
   const yearEnd=new Date(year,11,31).getTime();
   const yearSpan=yearEnd-yearStart;
-  const datePct=d=>{const t=new Date(d).getTime();return Math.max(0,Math.min(100,(t-yearStart)/yearSpan*100));};
   const warns=checkPlanRotation();
 
   return (
@@ -3998,7 +4007,7 @@ function PlanScreen({ fields, crops, setCrops, plots, setPlots, setPlotsR, showT
           <FG label="区画（変更で別区画へ移動）"><Sel value={mPlant.bedId} onChange={v=>setMPlant({...mPlant,bedId:v})} options={(plan.beds||[]).map(b=>({value:b.id,label:b.name}))}/></FG>
           <FG label="品目">
             <Sel value={mPlant.cropId} onChange={v=>{const hv=calcHarvest(v,mPlant.plantDate);setMPlant({...mPlant,cropId:v,harvestDate:hv});}}
-              options={[{value:"",label:"（選択）"},...crops.filter(c=>!c.ended).map(c=>{const db=CDB[c.type]||{};return{value:c.id,label:(db.e||"🌱")+" "+(c.type==="custom"?c.customName||"カスタム":db.n||c.type)+(c.variety?"("+c.variety+")":"")};})]}/>
+              options={[{value:"",label:"（選択）"},...crops.filter(c=>!c.ended).map(c=>{const db=CDB[c.type]||{};return{value:c.id,label:getCropDisplayName(c)};})]}/>
           </FG>
           <R2>
             <FG label="定植・播種日"><Inp type="date" value={mPlant.plantDate} onChange={v=>{const hv=calcHarvest(mPlant.cropId,v);setMPlant({...mPlant,plantDate:v,harvestDate:hv});}}/></FG>
@@ -4078,7 +4087,7 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs, equips=[], o
     const germLog=cl.find(l=>l.germinationCnt);
     const germRate=sowLog&&germLog?Math.round((parseInt(germLog.germinationCnt)/parseInt(sowLog.sowQty))*100):null;
     // 種・苗費用（この品目に直接紐づくもの、またはcropIdがない場合は品目名で照合）
-    const cropName0 = c.type==="custom"?(c.customName||"カスタム"):(CDB[c.type]?.n||c.type);
+    const cropName0 = getCropName(c);
     const seedCosts = costs.filter(co=>
       (period==="crop" || inPeriod(co.date)) &&
       co.cat==="seed" && (
@@ -4126,7 +4135,7 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs, equips=[], o
     const costTotal = seedTotal + fertTotal + pestTotal + assignedTotal;
     const h=Math.floor(minutes/60), m=minutes%60;
     const timeStr=minutes>0?(h>0?h+"時間"+m+"分":m+"分"):"—";
-    const name=(c.type==="custom"?c.customName||"カスタム":db.n||c.type)+(c.variety?" ("+c.variety+")":"");
+    const name=(getCropName(c))+(c.variety?" ("+c.variety+")":"");
     // 施肥・農薬の使用量集計
     const fertUse={}; // {name: {amt, unit}}
     const pestUse={}; // {name: {amt, unit}}
@@ -4623,7 +4632,7 @@ function PublicSettings({ uid, crops, showToast }) {
             <button onClick={save} disabled={saving} style={{background:saving?"#ccc":G,color:"#fff",border:"none",borderRadius:8,padding:"5px 14px",fontSize:".74rem",fontWeight:700,cursor:"pointer"}}>{saving?"保存中…":"保存 ✓"}</button>
           </div>
           {activeCrops.length===0&&<div style={{fontSize:".76rem",color:TX3}}>栽培中の品目がありません</div>}
-          {activeCrops.map(c=>{ const db=CDB[c.type]||{}; const n=c.type==="custom"?c.customName||"カスタム":db.n||c.type; return (
+          {activeCrops.map(c=>{ const db=CDB[c.type]||{}; const n=getCropName(c); return (
             <div key={c.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 10px",background:publicCrops[c.id]?"#f0f9f0":"#fafafa",borderRadius:9,marginBottom:5,border:"1px solid "+(publicCrops[c.id]?"#6ee7b7":BD)}}>
               <span style={{fontSize:".84rem"}}>{db.e||"🌱"} {n}{c.variety?" ("+c.variety+")":""}</span>
               <button onClick={()=>toggleCrop(c.id)}
@@ -4633,7 +4642,7 @@ function PublicSettings({ uid, crops, showToast }) {
               </button>
             </div>
           );})}
-          {endedCrops.map(c=>{ const db=CDB[c.type]||{}; const n=c.type==="custom"?c.customName||"カスタム":db.n||c.type; return (
+          {endedCrops.map(c=>{ const db=CDB[c.type]||{}; const n=getCropName(c); return (
             <div key={c.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 10px",background:publicCrops[c.id]?"#f0f9f0":"#fafafa",borderRadius:9,marginBottom:5,border:"1px solid "+(publicCrops[c.id]?"#6ee7b7":BD),opacity:.75}}>
               <span style={{fontSize:".84rem"}}>{db.e||"🌱"} {n}{c.variety?" ("+c.variety+")":""} <span style={{fontSize:".65rem",color:"#e67e22"}}>終了</span></span>
               <button onClick={()=>toggleCrop(c.id)}
@@ -4707,7 +4716,6 @@ function SettingsScreen({ showToast, user, uid, signOut, fields, crops, logs, fe
     downloadCsv(rows,"費用一覧");
   };
   const exportLogCsv=()=>{
-    const cropName=id=>{if(!id)return"";const c=crops.find(x=>x.id===id);if(!c)return"";const db=CDB[c.type]||{};return(db.n||c.type)+(c.variety?"("+c.variety+")":"");};
     const rows=[["日付","時刻","品目","作業","作業時間(分)","天気","メモ"]];
     [...logs].sort((a,b)=>(a.date||"").localeCompare(b.date||"")).forEach(l=>rows.push([l.date||"",l.time||"",cropName(l.cropId),WORK_LABELS[l.work]||l.work||"",l.duration||"",({sunny:"晴れ",cloudy:"曇り",rainy:"雨",snowy:"雪",windy:"強風"}[l.weather]||""),l.memo||""]));
     downloadCsv(rows,"作業記録");
