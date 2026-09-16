@@ -1219,7 +1219,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.46</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.47</div>
       </div>
     </div>
   );
@@ -3492,6 +3492,7 @@ function PlanScreen({ fields, crops, setCrops, plots, setPlots, setPlotsR, showT
   const [historyIdx, setHistoryIdx] = useState(-1);  // 現在の履歴位置
   const histRef = useRef({hist:[], idx:-1}); // 同期的なundo/redo管理
   const laneRef = useRef(null);                // ガント行の幅取得用
+  const ganttScrollRef = useRef(null);         // ガントスクロールコンテナ
 
   const selField = fields[selFieldIdx];
   // この圃場の計画データ（plotsを流用。type:"plan"で区別）
@@ -3560,6 +3561,32 @@ function PlanScreen({ fields, crops, setCrops, plots, setPlots, setPlotsR, showT
     setHistoryIdx(newIdx);
     showToast("やり直しました");
   };
+  // ガント表示時に今日の位置へスクロール
+  useEffect(()=>{
+    if(!ganttScrollRef.current||!plan) return;
+    const el = ganttScrollRef.current;
+    // 少し遅延してDOMが描画された後にスクロール
+    requestAnimationFrame(()=>{
+      const allPl=(plan.plantings||[]).filter(p=>p.plantDate);
+      const allDates=allPl.flatMap(p=>[p.plantDate]).filter(Boolean);
+      if(!allDates.length) return;
+      const minYear=new Date(allDates.reduce((a,b)=>a<b?a:b)).getFullYear();
+      const startYear=minYear;
+      const COL_W=52;
+      const LABEL_W=72;
+      const ganttStart=new Date(startYear,0,1).getTime();
+      const ganttEnd=new Date(startYear+10,11,31).getTime();
+      const ganttSpan=ganttEnd-ganttStart;
+      const today=new Date(); today.setHours(0,0,0,0);
+      const totalW=(new Date(startYear+10,0,1).getTime()-ganttStart)/ganttSpan*(COL_W*120);
+      // 今日のpx位置
+      const todayPx=(today.getTime()-ganttStart)/ganttSpan*el.scrollWidth;
+      // 今日が中央に来るようにスクロール（ラベル幅分オフセット）
+      const scrollTo=Math.max(0, todayPx - el.clientWidth/2 + LABEL_W);
+      el.scrollLeft=scrollTo;
+    });
+  },[plan?.id]);
+
   // Ctrl+Z / Ctrl+Y キーボードショートカット
   useEffect(()=>{
     const onKey = e => {
@@ -3847,7 +3874,7 @@ function PlanScreen({ fields, crops, setCrops, plots, setPlots, setPlotsR, showT
         return (
         <div style={{...S.card,padding:0,overflow:"hidden"}}>
           {/* スクロールコンテナ */}
-          <div style={{overflowX:"auto",overflowY:"visible",WebkitOverflowScrolling:"touch"}} className="no-select">
+          <div ref={ganttScrollRef} style={{overflowX:"auto",overflowY:"visible",WebkitOverflowScrolling:"touch"}} className="no-select">
             <div style={{display:"table",minWidth:LABEL_W+totalW,userSelect:"none",WebkitUserSelect:"none"}}>
               {/* 月ヘッダー行 */}
               <div style={{display:"flex",position:"sticky",top:0,zIndex:10,background:"#f8f5ef",borderBottom:"2px solid #e0d9ce"}}>
