@@ -1219,7 +1219,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.47</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.48</div>
       </div>
     </div>
   );
@@ -3565,26 +3565,34 @@ function PlanScreen({ fields, crops, setCrops, plots, setPlots, setPlotsR, showT
   useEffect(()=>{
     if(!ganttScrollRef.current||!plan) return;
     const el = ganttScrollRef.current;
-    // 少し遅延してDOMが描画された後にスクロール
-    requestAnimationFrame(()=>{
+    // ガント本体と同じ計算式で今日のpxを算出してスクロール
+    const scrollToToday = () => {
       const allPl=(plan.plantings||[]).filter(p=>p.plantDate);
-      const allDates=allPl.flatMap(p=>[p.plantDate]).filter(Boolean);
-      if(!allDates.length) return;
-      const minYear=new Date(allDates.reduce((a,b)=>a<b?a:b)).getFullYear();
+      const allDates=allPl.flatMap(p=>[p.plantDate,p.harvestDate]).filter(Boolean);
+      const minYear=allDates.length
+        ? new Date(allDates.reduce((a,b)=>a<b?a:b)).getFullYear()
+        : new Date().getFullYear();
+      const maxYear=allDates.length
+        ? new Date(allDates.reduce((a,b)=>a>b?a:b)).getFullYear()
+        : new Date().getFullYear();
       const startYear=minYear;
+      const endYear=maxYear+1;
+      const totalMonths=(endYear-startYear)*12+12;
       const COL_W=52;
       const LABEL_W=72;
+      const totalW=totalMonths*COL_W;
       const ganttStart=new Date(startYear,0,1).getTime();
-      const ganttEnd=new Date(startYear+10,11,31).getTime();
+      const ganttEnd=new Date(endYear,11,31,23,59,59).getTime();
       const ganttSpan=ganttEnd-ganttStart;
       const today=new Date(); today.setHours(0,0,0,0);
-      const totalW=(new Date(startYear+10,0,1).getTime()-ganttStart)/ganttSpan*(COL_W*120);
-      // 今日のpx位置
-      const todayPx=(today.getTime()-ganttStart)/ganttSpan*el.scrollWidth;
-      // 今日が中央に来るようにスクロール（ラベル幅分オフセット）
-      const scrollTo=Math.max(0, todayPx - el.clientWidth/2 + LABEL_W);
+      // ガント本体と同じ dateToPx 計算
+      const todayPx=Math.max(0,Math.min(totalW,(today.getTime()-ganttStart)/ganttSpan*totalW));
+      // 今日が画面左1/3の位置に来るようスクロール
+      const scrollTo=Math.max(0, LABEL_W+todayPx - el.clientWidth*0.33);
       el.scrollLeft=scrollTo;
-    });
+    };
+    // rAF2回重ねてDOMが確実に描画された後に実行
+    requestAnimationFrame(()=>requestAnimationFrame(scrollToToday));
   },[plan?.id]);
 
   // Ctrl+Z / Ctrl+Y キーボードショートカット
