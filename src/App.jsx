@@ -1231,7 +1231,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.51</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.52</div>
       </div>
     </div>
   );
@@ -4854,10 +4854,10 @@ function SettingsScreen({ showToast, user, uid, signOut, fields, crops, logs, fe
               </div>
               <div>
                 <div style={{fontSize:".65rem",color:"#6b7280",marginBottom:2}}>締め日</div>
-                <select value={card.closeDay||31} onChange={e=>setCards(cards.map((c,i)=>i===ci?{...c,closeDay:e.target.value}:c))}
-                  style={{width:"100%",border:"1px solid #e0d9ce",borderRadius:6,padding:"4px 6px",fontSize:".78rem",fontFamily:"inherit",background:"#fff"}}>
-                  {[5,10,15,20,25,31].map(d=><option key={d} value={d}>{d===31?"月末":d+"日"}</option>)}
-                </select>
+                <input type="number" min="1" max="31" value={card.closeDay||31}
+                  onChange={e=>{const v=Math.min(31,Math.max(1,parseInt(e.target.value)||1));setCards(cards.map((c,i)=>i===ci?{...c,closeDay:v}:c));}}
+                  style={{width:"100%",border:"1px solid #e0d9ce",borderRadius:6,padding:"4px 6px",fontSize:".78rem",fontFamily:"inherit",background:"#fff",textAlign:"center"}}/>
+                <div style={{fontSize:".6rem",color:"#9ca3af",textAlign:"center"}}>{card.closeDay>=31?"月末":card.closeDay+"日締め"}</div>
               </div>
               <div>
                 <div style={{fontSize:".65rem",color:"#6b7280",marginBottom:2}}>引き落とし日</div>
@@ -4867,10 +4867,9 @@ function SettingsScreen({ showToast, user, uid, signOut, fields, crops, logs, fe
                     <option value={1}>翌月</option>
                     <option value={2}>翌々月</option>
                   </select>
-                  <select value={card.payDay||27} onChange={e=>setCards(cards.map((c,i)=>i===ci?{...c,payDay:e.target.value}:c))}
-                    style={{flex:1,border:"1px solid #e0d9ce",borderRadius:6,padding:"4px 4px",fontSize:".72rem",fontFamily:"inherit",background:"#fff"}}>
-                    {[1,5,10,15,20,25,27,31].map(d=><option key={d} value={d}>{d===31?"月末":d+"日"}</option>)}
-                  </select>
+                  <input type="number" min="1" max="31" value={card.payDay||27}
+                    onChange={e=>{const v=Math.min(31,Math.max(1,parseInt(e.target.value)||1));setCards(cards.map((c,i)=>i===ci?{...c,payDay:v}:c));}}
+                    style={{flex:1,border:"1px solid #e0d9ce",borderRadius:6,padding:"4px 4px",fontSize:".72rem",fontFamily:"inherit",background:"#fff",textAlign:"center"}}/>
                 </div>
               </div>
             </div>
