@@ -1231,7 +1231,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.52</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.53</div>
       </div>
     </div>
   );
@@ -3289,169 +3289,190 @@ function CostScreen({ fields, crops, fertMs, pestMs, equips, costs, setCosts, lo
     setCosts(n,item); setMCost(null); showToast("保存しました");
   };
 
-  // 帳簿Excelエクスポート（国税庁農業所得者用様式準拠）
+  // 帳簿Excelエクスポート（複式簿記・65万円控除対応）
   const exportLedger = () => {
-    const KAIGYO_DATE = "2026-08-18"; // 開業日
+    const KAIGYO_DATE = "2026-08-18";
+    const CAT_TO_KAMOKU = {
+      seed:"種苗費", fert:"肥料費", pest:"農薬衛生費",
+      equip:"諸材料費", labor:"雇人費", other:"その他"
+    };
+    const KAMOKU_COLS = ["種苗費","素畜費","肥料費","農薬衛生費","諸材料費",
+      "機械装置費","農具費","修繕費","動力光熱費","作業用衣料費",
+      "農業共済掛金","荷造運賃","雇人費","土地改良費","賃借料","租税公課","その他"];
 
     const doExport = (XLSX) => {
       const wb = XLSX.utils.book_new();
-
-      // 農業勘定科目マッピング
-      const CAT_TO_KAMOKU = {
-        seed:"種苗費", fert:"肥料費", pest:"農薬衛生費",
-        equip:"諸材料費", labor:"雇人費", other:"その他"
-      };
-      // 経費帳の列順（国税庁様式）
-      const KAMOKU_COLS = ["種苗費","素畜費","肥料費","農薬衛生費","諸材料費",
-        "機械装置費","農具費","修繕費","動力光熱費","作業用衣料費",
-        "農業共済掛金","荷造運賃","雇人費","土地改良費","賃借料","租税公課","その他"];
-
       const sorted = [...costs].sort((a,b)=>(a.date||"").localeCompare(b.date||""));
       const preOpen  = sorted.filter(c=>c.date && c.date < KAIGYO_DATE);
       const postOpen = sorted.filter(c=>!c.date || c.date >= KAIGYO_DATE);
 
-      // ── シート1: 経費帳（国税庁農業所得者用様式） ──
-      const keihiHdr1 = ["月日","支払先","摘要（取引内容）",...KAMOKU_COLS,"合計"];
-      const keihiRows = [
-        ["経　費　帳（農業所得者用）　令和8年分"],
-        ["【注意】国税庁「帳簿の記帳のしかた（農業所得者用）」経費帳様式準拠　　開業日：令和8年8月18日以降の支出を記帳"],
-        keihiHdr1,
+      // ── シート1: 仕訳帳 ──
+      const jiHdr = ["日付","借方 勘定科目","借方 補助科目","借方 税区分","借方金額（円）",
+                     "貸方 勘定科目","貸方 補助科目","貸方 税区分","貸方金額（円）","摘要"];
+      const jiRows = [
+        ["仕　訳　帳（主要簿）　令和8年分　農業所得"],
+        ["カード払い：購入日→借方:経費/貸方:未払金(カード名)　引き落とし日→借方:未払金/貸方:普通預金"],
+        jiHdr,
       ];
-      // 月計用の集計
-      const monthTotals = {};
-      postOpen.forEach(c=>{
-        const d = c.date||"";
-        const month = d.slice(0,7); // YYYY-MM
+      // 開業時仕訳
+      jiRows.push(["2026/8/18","事業主借","","","","普通預金","","","","開業資金入金"]);
+      // 費用の仕訳
+      sorted.forEach(c=>{
         const kamoku = CAT_TO_KAMOKU[c.cat]||"その他";
         const amt = Number(c.amt)||0;
-        if(!monthTotals[month]) monthTotals[month] = {};
-        monthTotals[month][kamoku] = (monthTotals[month][kamoku]||0) + amt;
+        const pm = c.payMethod||"現金";
+        const cr = crops.find(x=>x.id===c.cropId);
+        const crName = cr?getCropName(cr):"";
+        const memo = c.name+(crName?" ("+crName+")":"")+(c.note?" "+c.note:"");
+        const isCard = pm.startsWith("カード") || (cards&&cards.some&&cards.some(cd=>cd.name===pm));
+        const isPreOpen = c.date && c.date < KAIGYO_DATE;
+        if(isPreOpen){
+          // 開業費として仕訳
+          jiRows.push([c.date||"","開業費（繰延資産）","","課仕10%",amt,"事業主借","","対象外",amt,"開業費："+memo]);
+        } else if(isCard){
+          // カード払い：購入日
+          jiRows.push([c.date||"",kamoku,"","課仕10%",amt,"未払金",pm,"対象外",amt,"カード購入："+memo]);
+          // カード払い：引き落とし日（payDateがあれば追加）
+          if(c.payDate){
+            jiRows.push([c.payDate,"未払金",pm,"対象外",amt,"普通預金","","対象外",amt,"カード引落："+memo]);
+          }
+        } else {
+          // 現金・振込
+          const credit = pm==="振込"?"普通預金":"現金";
+          jiRows.push([c.date||"",kamoku,"","課仕10%",amt,credit,"","対象外",amt,memo]);
+        }
       });
+      const ws1 = XLSX.utils.aoa_to_sheet(jiRows);
+      ws1["!cols"]=[{wch:10},{wch:16},{wch:12},{wch:10},{wch:11},{wch:16},{wch:12},{wch:10},{wch:11},{wch:28}];
+      XLSX.utils.book_append_sheet(wb, ws1, "仕訳帳");
 
-      // 月ごとに行を作成
-      const months = [...new Set(postOpen.map(c=>(c.date||"").slice(0,7)))].sort();
-      months.forEach(m=>{
-        const monthCosts = postOpen.filter(c=>(c.date||"").slice(0,7)===m);
-        monthCosts.forEach(c=>{
-          const cr=crops.find(x=>x.id===c.cropId);
-          const crName=cr?getCropName(cr):"";
+      // ── シート2: 経費帳 ──
+      const keihiHdr = ["月日","支払先","摘要",...KAMOKU_COLS,"合計"];
+      const keihiRows = [
+        ["経　費　帳（農業所得者用）　令和8年分"],
+        ["国税庁農業所得者用様式準拠"],
+        keihiHdr,
+      ];
+      const byMonth = {};
+      postOpen.forEach(c=>{
+        const m=(c.date||"").slice(0,7);
+        if(!byMonth[m]) byMonth[m]=[];
+        byMonth[m].push(c);
+      });
+      Object.keys(byMonth).sort().forEach(m=>{
+        byMonth[m].forEach(c=>{
           const kamoku=CAT_TO_KAMOKU[c.cat]||"その他";
-          const amt=Number(c.amt)||0;
-          const row=Array(keihiHdr1.length).fill("");
-          row[0]=c.date?c.date.slice(5).replace("-","/"):""; // M/D形式
+          const row=Array(keihiHdr.length).fill("");
+          row[0]=c.date?c.date.slice(5).replace("-","/"):"";
           row[1]=c.note||"";
-          row[2]=c.name+(crName?" ("+crName+")":"");
+          row[2]=c.name;
           const ki=KAMOKU_COLS.indexOf(kamoku);
-          if(ki>=0) row[3+ki]=amt;
-          row[row.length-1]=amt; // 合計
+          if(ki>=0) row[3+ki]=Number(c.amt)||0;
+          row[row.length-1]=Number(c.amt)||0;
           keihiRows.push(row);
         });
-        // 月計行
-        const totRow=Array(keihiHdr1.length).fill("");
-        const [yyyy,mm]=m.split("-");
-        totRow[0]=""; totRow[1]=""; totRow[2]=`【${parseInt(mm)}月計】`;
-        let rowTot=0;
+        // 月計
+        const tot=Array(keihiHdr.length).fill("");
+        tot[2]="【"+parseInt(m.slice(5))+"月計】";
         KAMOKU_COLS.forEach((k,i)=>{
-          const v=monthTotals[m]?.[k]||0;
-          totRow[3+i]=v; rowTot+=v;
+          tot[3+i]=byMonth[m].filter(c=>(CAT_TO_KAMOKU[c.cat]||"その他")===k).reduce((s,c)=>s+(Number(c.amt)||0),0);
         });
-        totRow[totRow.length-1]=rowTot;
-        keihiRows.push(totRow);
-        keihiRows.push(Array(keihiHdr1.length).fill("")); // 空行
+        tot[tot.length-1]=byMonth[m].reduce((s,c)=>s+(Number(c.amt)||0),0);
+        keihiRows.push(tot);
       });
-      // 年計
-      const yearRow=Array(keihiHdr1.length).fill("");
-      yearRow[2]="【年　計】";
-      let yearTotal=0;
-      KAMOKU_COLS.forEach((k,i)=>{
-        const v=postOpen.reduce((s,c)=>{
-          return (CAT_TO_KAMOKU[c.cat]||"その他")===k?s+(Number(c.amt)||0):s;
-        },0);
-        yearRow[3+i]=v; yearTotal+=v;
-      });
-      yearRow[yearRow.length-1]=yearTotal;
-      keihiRows.push(yearRow);
+      const ws2 = XLSX.utils.aoa_to_sheet(keihiRows);
+      ws2["!cols"]=[{wch:8},{wch:14},{wch:22},...KAMOKU_COLS.map(()=>({wch:7})),{wch:10}];
+      XLSX.utils.book_append_sheet(wb, ws2, "経費帳");
 
-      const ws1=XLSX.utils.aoa_to_sheet(keihiRows);
-      const colWidths=[{wch:8},{wch:16},{wch:26},...KAMOKU_COLS.map(()=>({wch:8})),{wch:10}];
-      ws1["!cols"]=colWidths;
-      XLSX.utils.book_append_sheet(wb, ws1, "経費帳");
-
-      // ── シート2: 現金出納帳（支出のみ・収入欄は手入力） ──
-      const sutaHdr=["月日","摘要（取引内容・支払先）","現金売上","その他収入","農業経費","家事費等","差引残高"];
-      const sutaRows=[
-        ["現　金　出　納　帳（農業所得者用）　令和8年分"],
-        ["【注意】農業用現金の出し入れを取引順に毎日記帳。現金売上・その他収入欄は手入力してください。"],
-        sutaHdr,
-        ["前月繰越","",0,0,0,0,0],
+      // ── シート3: 現金出納帳 ──
+      const cashRows=[
+        ["現　金　出　納　帳　令和8年分"],
+        ["月日","摘要","入金（円）","出金（円）","残高（円）"],
+        ["前日繰越","",0,0,0],
       ];
-      postOpen.filter(c=>c.date).forEach(c=>{
-        const kamoku=CAT_TO_KAMOKU[c.cat]||"その他";
-        sutaRows.push([
-          c.date?c.date.slice(5).replace("-","/"):"",
-          c.name+(c.note?" "+c.note:""),
-          "","",
-          Number(c.amt)||0,
-          "",
-          "" // 残高は手計算
-        ]);
+      postOpen.filter(c=>!c.payMethod||c.payMethod==="現金").forEach(c=>{
+        cashRows.push([c.date?c.date.slice(5).replace("-","/"):"",c.name+(c.note?" "+c.note:""),"",Number(c.amt)||0,""]);
       });
-      const ws2=XLSX.utils.aoa_to_sheet(sutaRows);
-      ws2["!cols"]=[{wch:8},{wch:30},{wch:12},{wch:12},{wch:12},{wch:12},{wch:12}];
-      XLSX.utils.book_append_sheet(wb, ws2, "現金出納帳");
+      const ws3=XLSX.utils.aoa_to_sheet(cashRows);
+      ws3["!cols"]=[{wch:8},{wch:30},{wch:12},{wch:12},{wch:12}];
+      XLSX.utils.book_append_sheet(wb, ws3, "現金出納帳");
 
-      // ── シート3: 開業費台帳 ──
-      const kaigyoTotal=preOpen.reduce((s,c)=>s+(Number(c.amt)||0),0);
-      const kaigyoRows=[
+      // ── シート4: 預金出納帳 ──
+      const bankRows=[
+        ["預　金　出　納　帳　令和8年分"],
+        ["月日","摘要","入金（円）","出金（円）","残高（円）"],
+        ["前日繰越","",0,0,0],
+      ];
+      postOpen.filter(c=>c.payMethod==="振込").forEach(c=>{
+        bankRows.push([c.date?c.date.slice(5).replace("-","/"):"",c.name+(c.note?" "+c.note:""),"",Number(c.amt)||0,""]);
+      });
+      // カード引き落とし行も追加
+      const cardItems=postOpen.filter(c=>c.payDate&&c.payMethod&&(c.payMethod.startsWith("カード")||(cards&&cards.some&&cards.some(cd=>cd.name===c.payMethod))));
+      const grouped={};
+      cardItems.forEach(c=>{
+        const k=c.payDate+"_"+c.payMethod;
+        if(!grouped[k]) grouped[k]={date:c.payDate,card:c.payMethod,total:0};
+        grouped[k].total+=Number(c.amt)||0;
+      });
+      Object.values(grouped).sort((a,b)=>a.date.localeCompare(b.date)).forEach(g=>{
+        bankRows.push([g.date.slice(5).replace("-","/"),(g.card||"カード")+"引き落とし","",g.total,""]);
+      });
+      const ws4=XLSX.utils.aoa_to_sheet(bankRows);
+      ws4["!cols"]=[{wch:8},{wch:30},{wch:12},{wch:12},{wch:12}];
+      XLSX.utils.book_append_sheet(wb, ws4, "預金出納帳");
+
+      // ── シート5: カード未払金管理 ──
+      const cardRows=[
+        ["クレジットカード 未払金管理　令和8年分"],
+        ["購入日","カード名","摘要（購入内容）","発生額（円）","消込額（円）","残高","引き落とし予定日","確認"],
+      ];
+      postOpen.filter(c=>c.payMethod&&(cards&&cards.some&&cards.some(cd=>cd.name===c.payMethod))).forEach(c=>{
+        cardRows.push([c.date||"",c.payMethod||"",c.name+(c.note?" "+c.note:""),Number(c.amt)||0,"","",c.payDate||"",""]);
+      });
+      const ws5=XLSX.utils.aoa_to_sheet(cardRows);
+      ws5["!cols"]=[{wch:10},{wch:14},{wch:25},{wch:12},{wch:12},{wch:10},{wch:12},{wch:8}];
+      XLSX.utils.book_append_sheet(wb, ws5, "カード未払金管理");
+
+      // ── シート6: 開業費台帳 ──
+      const kaiTotal=preOpen.reduce((s,c)=>s+(Number(c.amt)||0),0);
+      const kaiRows=[
         ["開　業　費　台　帳（令和8年8月18日以前の支出）"],
-        ["開業費は繰延資産。開業後5年以内に均等償却（年20%）または任意償却できます。"],
-        ["支出年月日","費用の内容（支出先・品名・目的）","金額（円）","勘定科目（参考）","備考"],
+        ["仕訳：開業時→借方:開業費/貸方:事業主借　当年償却→借方:開業費償却/貸方:開業費"],
+        ["支出年月日","費用の内容","金額（円）","勘定科目（参考）","備考"],
+        ...preOpen.map(c=>[c.date||"",c.name+(c.note?" "+c.note:""),Number(c.amt)||0,CAT_TO_KAMOKU[c.cat]||"その他",""]),
+        ["","開業費 合計",kaiTotal,"",""],
+        [],
+        ["【5年均等償却スケジュール】"],
+        ["年度","当年償却額","償却累計","未償却残高","備考"],
       ];
-      preOpen.forEach(c=>{
-        kaigyoRows.push([
-          c.date||"", c.name+(c.note?" "+c.note:""),
-          Number(c.amt)||0, CAT_TO_KAMOKU[c.cat]||"その他", ""
-        ]);
-      });
-      kaigyoRows.push(["","開業費　合　計",kaigyoTotal,"",""]);
-      kaigyoRows.push([]);
-      kaigyoRows.push(["【償却スケジュール（5年均等償却）】",,,,"（任意償却の場合は好きな年に全額計上可）"]);
-      kaigyoRows.push(["年度","当年償却額","償却累計","未償却残高","備考"]);
-      const months_open=4.5;
-      const yr1=Math.round(kaigyoTotal/5*months_open/12);
-      const yrN=Math.round(kaigyoTotal/5);
       let cum=0;
-      [["令和8年（開業年）",yr1,"月割り（約4.5ヶ月分）"],
-       ["令和9年",yrN,""],["令和10年",yrN,""],["令和11年",yrN,""],["令和12年",yrN,""]
-      ].forEach(([yr,amt,note])=>{
-        cum+=amt;
-        kaigyoRows.push([yr,amt,cum,Math.max(0,kaigyoTotal-cum),note]);
-      });
+      [["令和8年（開業年）",Math.round(kaiTotal/5*4.5/12),"月割り（4.5ヶ月）"],
+       ["令和9年",Math.round(kaiTotal/5),""],["令和10年",Math.round(kaiTotal/5),""],
+       ["令和11年",Math.round(kaiTotal/5),""],["令和12年",Math.round(kaiTotal/5),""]
+      ].forEach(([yr,amt,note])=>{ cum+=amt; kaiRows.push([yr,amt,cum,Math.max(0,kaiTotal-cum),note]); });
+      const ws6=XLSX.utils.aoa_to_sheet(kaiRows);
+      ws6["!cols"]=[{wch:12},{wch:35},{wch:12},{wch:16},{wch:20}];
+      XLSX.utils.book_append_sheet(wb, ws6, "開業費台帳");
 
-      const ws3=XLSX.utils.aoa_to_sheet(kaigyoRows);
-      ws3["!cols"]=[{wch:14},{wch:38},{wch:12},{wch:16},{wch:22}];
-      XLSX.utils.book_append_sheet(wb, ws3, "開業費台帳");
-
-      // ── シート4: 科目別集計 ──
-      const sumRows=[
-        ["科目別集計（令和8年分　開業後）"],
-        ["勘定科目","金額（円）","件数","備考"],
-      ];
+      // ── シート7: 科目別集計 ──
+      const sumRows=[["科目別集計（令和8年分）"],["勘定科目","金額（円）","件数","うちカード払い"]];
       KAMOKU_COLS.forEach(k=>{
         const items=postOpen.filter(c=>(CAT_TO_KAMOKU[c.cat]||"その他")===k);
-        const total=items.reduce((s,c)=>s+(Number(c.amt)||0),0);
-        if(total>0) sumRows.push([k,total,items.length,""]);
+        if(items.length>0){
+          const cardAmt=items.filter(c=>cards&&cards.some&&cards.some(cd=>cd.name===c.payMethod)).reduce((s,c)=>s+(Number(c.amt)||0),0);
+          sumRows.push([k,items.reduce((s,c)=>s+(Number(c.amt)||0),0),items.length,cardAmt]);
+        }
       });
       sumRows.push(["経費合計（開業後）",postOpen.reduce((s,c)=>s+(Number(c.amt)||0),0),postOpen.length,""]);
       sumRows.push([]);
-      sumRows.push(["開業費合計（開業前）",kaigyoTotal,preOpen.length,"開業費台帳シート参照"]);
-      const ws4=XLSX.utils.aoa_to_sheet(sumRows);
-      ws4["!cols"]=[{wch:20},{wch:14},{wch:8},{wch:20}];
-      XLSX.utils.book_append_sheet(wb, ws4, "科目別集計");
+      sumRows.push(["開業費合計（開業前）",kaiTotal,preOpen.length,""]);
+      const ws7=XLSX.utils.aoa_to_sheet(sumRows);
+      ws7["!cols"]=[{wch:20},{wch:14},{wch:8},{wch:16}];
+      XLSX.utils.book_append_sheet(wb, ws7, "科目別集計");
 
-      const fname="サクメモ_農業帳簿_"+new Date().getFullYear()+".xlsx";
+      const fname="サクメモ_青色申告帳簿_複式簿記_"+new Date().getFullYear()+".xlsx";
       XLSX.writeFile(wb, fname);
-      showToast("帳簿Excelを書き出しました（"+fname+"）");
+      showToast("複式簿記帳簿Excelを書き出しました（"+fname+"）");
     };
 
     if(window.XLSX){
@@ -3460,7 +3481,7 @@ function CostScreen({ fields, crops, fertMs, pestMs, equips, costs, setCosts, lo
       const s=document.createElement("script");
       s.src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js";
       s.onload=()=>doExport(window.XLSX);
-      s.onerror=()=>showToast("ライブラリの読み込みに失敗しました。ネットワーク接続を確認してください。");
+      s.onerror=()=>showToast("ライブラリの読み込みに失敗しました");
       document.head.appendChild(s);
     }
   };
