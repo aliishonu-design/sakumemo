@@ -640,6 +640,13 @@ const COST_CATS = [
   { value:"labor", label:"👷 労務費" },
   { value:"other", label:"📦 その他" },
 ];
+const INCOME_CATS = [
+  { value:"inc_crop",  label:"🌾 農産物売上" },
+  { value:"inc_misc",  label:"🌿 農業雑収入" },
+  { value:"inc_subsidy",label:"💴 補助金・交付金" },
+  { value:"inc_other", label:"📦 その他収入" },
+];
+const isIncome = (cat) => cat && cat.startsWith("inc_");
 // 品目表示名ヘルパー（カスタム品目対応）
 const getCropDisplayName = (c) => {
   if(!c) return "";
@@ -1231,7 +1238,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.53</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.55</div>
       </div>
     </div>
   );
@@ -3247,6 +3254,7 @@ function CostScreen({ fields, crops, fertMs, pestMs, equips, costs, setCosts, lo
   const [selYear, setSelYear] = useState(curYear);
   const [selMon,  setSelMon]  = useState(curMonth);
   const [mCost,   setMCost]   = useState(null);
+  const [costTab,   setCostTab]  = useState("expense");
   const [sortKey, setSortKey] = useState("date");
   const [sortAsc, setSortAsc] = useState(false);
 
@@ -3262,17 +3270,21 @@ function CostScreen({ fields, crops, fertMs, pestMs, equips, costs, setCosts, lo
     if(unit==="month") return d.slice(0,7)===selMon;
     return true;
   };
-  const filtered = costs.filter(c=>inPeriod(c.date));
+  const filteredAll = costs.filter(c=>inPeriod(c.date));
+  const filtered = filteredAll.filter(c=>!isIncome(c.cat));   // 費用のみ
+  const filteredIncome = filteredAll.filter(c=>isIncome(c.cat)); // 収入のみ
+  const shownList = costTab==="income" ? filteredIncome : filtered;
 
   // 集計
   const total   = filtered.reduce((s,c)=>s+(parseFloat(c.amt)||0),0);
+  const incomeTotal = filteredIncome.reduce((s,c)=>s+(parseFloat(c.amt)||0),0);
   const revenue = logs.filter(l=>inPeriod(l.date)).reduce((s,l)=>s+(parseFloat(l.hvKg)||0)*(parseFloat(l.hvPrice)||0),0);
   const byCat   = Object.fromEntries(COST_CATS.map(c=>[c.value,0]));
   filtered.forEach(c=>{if(byCat[c.cat]!==undefined)byCat[c.cat]+=(parseFloat(c.amt)||0);});
   const maxC    = Math.max(...Object.values(byCat),1);
 
   // ソート
-  const sorted = [...filtered].sort((a,b)=>{
+  const sorted = [...shownList].sort((a,b)=>{
     let va,vb;
     if(sortKey==="date") { va=a.date||""; vb=b.date||""; }
     else if(sortKey==="amt") { va=parseFloat(a.amt)||0; vb=parseFloat(b.amt)||0; }
@@ -3316,6 +3328,17 @@ function CostScreen({ fields, crops, fertMs, pestMs, equips, costs, setCosts, lo
       ];
       // 開業時仕訳
       jiRows.push(["2026/8/18","事業主借","","","","普通預金","","","","開業資金入金"]);
+      // 収入の仕訳
+      costs.filter(c=>isIncome(c.cat)).sort((a,b)=>(a.date||"").localeCompare(b.date||"")).forEach(c=>{
+        const incCatLabel = INCOME_CATS.find(x=>x.value===c.cat)?.label||"農業収入";
+        const pm = c.payMethod||"現金";
+        const debit = pm==="振込"?"普通預金":"現金";
+        const cr2 = crops.find(x=>x.id===c.cropId);
+        const crName2 = cr2?getCropName(cr2):"";
+        const memo2 = c.name+(crName2?" ("+crName2+")":"")+(c.note?" "+c.note:"");
+        const amt2 = Number(c.amt)||0;
+        jiRows.push([c.date||"",debit,"","対象外",amt2,incCatLabel,"","課売10%",amt2,memo2]);
+      });
       // 費用の仕訳
       sorted.forEach(c=>{
         const kamoku = CAT_TO_KAMOKU[c.cat]||"その他";
@@ -3470,6 +3493,104 @@ function CostScreen({ fields, crops, fertMs, pestMs, equips, costs, setCosts, lo
       ws7["!cols"]=[{wch:20},{wch:14},{wch:8},{wch:16}];
       XLSX.utils.book_append_sheet(wb, ws7, "科目別集計");
 
+      // ── シート8: 損益計算書 ──
+      const expTotal = postOpen.reduce((s,c)=>s+(Number(c.amt)||0),0);
+      const kaiShokyaku = Math.round(kaiTotal/5*4.5/12); // 開業年の開業費償却額
+      const totalExp = expTotal + kaiShokyaku;
+      // 科目別金額
+      const kamokuAmt = {};
+      KAMOKU_COLS.forEach(k=>{ kamokuAmt[k]=postOpen.filter(c=>(CAT_TO_KAMOKU[c.cat]||"その他")===k).reduce((s,c)=>s+(Number(c.amt)||0),0); });
+      // 収入データを集計
+      const incomeItems = costs.filter(c=>isIncome(c.cat));
+      const incCrop    = incomeItems.filter(c=>c.cat==="inc_crop").reduce((s,c)=>s+(Number(c.amt)||0),0);
+      const incMisc    = incomeItems.filter(c=>c.cat==="inc_misc").reduce((s,c)=>s+(Number(c.amt)||0),0);
+      const incSubsidy = incomeItems.filter(c=>c.cat==="inc_subsidy").reduce((s,c)=>s+(Number(c.amt)||0),0);
+      const incOther   = incomeItems.filter(c=>c.cat==="inc_other").reduce((s,c)=>s+(Number(c.amt)||0),0);
+      const incTotal   = incCrop+incMisc+incSubsidy+incOther;
+
+      const plRows = [
+        ["損　益　計　算　書　令和8年分　農業所得"],
+        ["農業所得 = 農業収入 - 農業経費（開業費償却を含む）"],
+        [],
+        ["【農業収入の部】","","（円）"],
+        ["　農産物売上高（サクメモ自動集計）","",incCrop],
+        ["　農業雑収入（サクメモ自動集計）","",incMisc],
+        ["　補助金・交付金（サクメモ自動集計）","",incSubsidy],
+        ["　その他収入（サクメモ自動集計）","",incOther],
+        ["　農業収入合計","",{f:"=C5+C6+C7+C8"}],
+        [],
+        ["【農業費用の部】","","（円）"],
+      ];
+      KAMOKU_COLS.forEach(k=>{ plRows.push(["　"+k,"",kamokuAmt[k]||0]); });
+      const expStartRow = 10;
+      const expEndRow = expStartRow + KAMOKU_COLS.length - 1;
+      plRows.push(["　開業費償却（当年分）","",kaiShokyaku]);
+      const plExpSumRow = plRows.length + 1;
+      plRows.push(["　農業費用合計","",{f:`=SUM(C${expStartRow}:C${plExpSumRow-1})`}]);
+      plRows.push([]);
+      const plIncomeRow = 9; // 農業収入合計の行
+      const plExpRow = plExpSumRow;
+      plRows.push(["農　業　所　得（税引前）","",{f:`=C${plIncomeRow}-C${plExpRow}`}]);
+      plRows.push(["青色申告特別控除","",650000]);
+      const plNiRow = plRows.length;
+      plRows.push(["控除後農業所得","",{f:`=MAX(0,C${plNiRow-1}-C${plNiRow})`}]);
+      plRows.push([]);
+      plRows.push(["【参考】サクメモ費用データ集計"]);
+      plRows.push(["開業後経費合計（サクメモ）","",expTotal]);
+      plRows.push(["開業費合計（サクメモ）","",kaiTotal]);
+      plRows.push(["開業年償却額（5年均等・月割り）","",kaiShokyaku]);
+
+      const ws8 = XLSX.utils.aoa_to_sheet(plRows);
+      ws8["!cols"]=[{wch:28},{wch:6},{wch:14}];
+      XLSX.utils.book_append_sheet(wb, ws8, "損益計算書");
+
+      // ── シート9: 貸借対照表 ──
+      // カード未払金残高を計算
+      const cardPayable = {};
+      postOpen.filter(c=>c.payMethod&&cards&&cards.some&&cards.some(cd=>cd.name===c.payMethod)).forEach(c=>{
+        cardPayable[c.payMethod] = (cardPayable[c.payMethod]||0) + (Number(c.amt)||0);
+      });
+      const totalCardPayable = Object.values(cardPayable).reduce((s,v)=>s+v,0);
+      const bsRows = [
+        ["貸　借　対　照　表　令和8年12月31日現在"],
+        ["（個人事業主・農業所得用）　左右が一致すれば正しく記帳できています"],
+        [],
+        ["【資産の部】","金額（円）","","【負債・資本の部】","金額（円）"],
+        ["〈流動資産〉","","","〈流動負債〉",""],
+        ["　現金","0","","　未払金（カード残高）",totalCardPayable],
+        ["　普通預金","0","","　買掛金","0"],
+        ["　売掛金","0","","　前受金","0"],
+        ["　棚卸資産（農産物等）","0","","〈固定負債〉",""],
+        ["〈固定資産〉","","","　長期借入金","0"],
+        ["　農機具・設備（帳簿価額）","0","","",""],
+        ["　開業費（未償却残高）",Math.max(0,kaiTotal-kaiShokyaku),"","〈資本の部〉",""],
+        ["","","","　元入金","0"],
+        ["","","","　事業主借","0"],
+        ["","","","　事業主貸（マイナス）","0"],
+        ["","","","　当期農業所得","0"],
+        [],
+        ["資産合計（★手入力で合計）","0","","負債・資本合計（★手入力で合計）","0"],
+        [],
+        ["【入力手順】"],
+        ["①現金・普通預金の残高を通帳・現金で確認して入力"],
+        ["②農機具等の帳簿価額（取得価額－減価償却累計額）を入力"],
+        ["③カード残高は自動入力済み（引き落とし前の未払い分）"],
+        ["④開業費未償却残高は自動計算済み"],
+        ["⑤元入金・事業主借等を仕訳帳から集計して入力"],
+        ["⑥資産合計と負債・資本合計が一致すれば完成"],
+      ];
+      // カード別の未払金明細を追加
+      if(Object.keys(cardPayable).length > 0){
+        bsRows.push([]);
+        bsRows.push(["【カード別未払金内訳（参考）】"]);
+        Object.entries(cardPayable).forEach(([card,amt])=>{
+          bsRows.push(["　"+card, amt]);
+        });
+      }
+      const ws9 = XLSX.utils.aoa_to_sheet(bsRows);
+      ws9["!cols"]=[{wch:24},{wch:14},{wch:3},{wch:24},{wch:14}];
+      XLSX.utils.book_append_sheet(wb, ws9, "貸借対照表");
+
       const fname="サクメモ_青色申告帳簿_複式簿記_"+new Date().getFullYear()+".xlsx";
       XLSX.writeFile(wb, fname);
       showToast("複式簿記帳簿Excelを書き出しました（"+fname+"）");
@@ -3491,9 +3612,19 @@ function CostScreen({ fields, crops, fertMs, pestMs, equips, costs, setCosts, lo
 
   return (
     <div style={S.scr} className="scr-inner">
-      <div style={S.sec}><span>💰 費用管理</span>
+      <div style={S.sec}>
+          <div style={{display:"flex",borderRadius:8,overflow:"hidden",border:"1px solid #e0d9ce"}}>
+            {[["expense","💰 費用"],["income","💵 収入"]].map(([v,l])=>(
+              <button key={v} onClick={()=>setCostTab(v)}
+                style={{padding:"5px 14px",border:"none",background:costTab===v?G:"#fff",
+                  color:costTab===v?"#fff":"#888",fontWeight:costTab===v?700:400,
+                  fontSize:".78rem",cursor:"pointer",fontFamily:"inherit"}}>{l}</button>
+            ))}
+          </div>
           <div style={{display:"flex",gap:6}}>
-            <button style={S.secBtn} onClick={()=>setMCost({...empty})}>＋ 費用追加</button>
+            {costTab==="expense"
+              ? <button style={S.secBtn} onClick={()=>setMCost({...empty})}>＋ 費用追加</button>
+              : <button style={S.secBtn} onClick={()=>setMCost({...empty,cat:"inc_crop",amt:"",date:todayStr()})}>＋ 収入追加</button>}
             <button style={{...S.secBtn,background:"#1565C0"}} onClick={exportLedger}>📥 帳簿Excel</button>
           </div></div>
 
@@ -3519,7 +3650,7 @@ function CostScreen({ fields, crops, fertMs, pestMs, equips, costs, setCosts, lo
             </select>
           </div>
         )}
-        <span style={{fontSize:".72rem",color:TX3}}>{filtered.length}件・合計 {Math.round(total).toLocaleString()}円</span>
+        <span style={{fontSize:".72rem",color:TX3}}>{shownList.length}件・{costTab==="income"?"合計収入":"合計費用"} {Math.round(costTab==="income"?incomeTotal:total).toLocaleString()}円</span>
       </div>
 
       {/* サマリー（3枚）*/}
@@ -3581,7 +3712,7 @@ function CostScreen({ fields, crops, fertMs, pestMs, equips, costs, setCosts, lo
 
       {/* 費用編集モーダル */}
       {mCost&&<ModalWithSave open={!!mCost} title={mCost.id?"費用を編集":"費用を追加"} onSave={sv} onClose={()=>setMCost(null)}>
-        <FG label="カテゴリ"><Sel value={mCost.cat} onChange={v=>setMCost({...mCost,cat:v})} options={COST_CATS.map(c=>({value:c.value,label:c.label}))}/></FG>
+        <FG label="カテゴリ"><Sel value={mCost.cat} onChange={v=>setMCost({...mCost,cat:v})} options={(isIncome(mCost.cat)?INCOME_CATS:COST_CATS).map(c=>({value:c.value,label:c.label}))}/></FG>
         <FG label="品名 *"><Inp value={mCost.name} onChange={v=>setMCost({...mCost,name:v})} placeholder="例：苦土石灰 20kg"/></FG>
         <R2>
           <FG label="金額（円）"><Inp type="number" value={mCost.amt} onChange={v=>setMCost({...mCost,amt:v})} placeholder="0"/></FG>
