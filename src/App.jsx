@@ -49,8 +49,8 @@ const fertMFromDb = r => ({ id:r.id, name:r.name||"", type:r.type||"", price:r.p
 const pestMToDb   = (o, uid) => ({ id:o.id||uid0(), user_id:uid, name:o.name||null, type:o.type||null, target:o.target||null, capacity:o.capacity||null, sunit:o.sunit||null, price:o.price||null, note:o.note||null });const pestMFromDb = r => ({ id:r.id, name:r.name||"", type:r.type||"", target:r.target||"", capacity:r.capacity||"", sunit:r.sunit||"", price:r.price||"", note:r.note||"" });
 const equipToDb   = (o, uid) => ({ id:o.id||uid0(), user_id:uid, name:o.name||null, cat:o.cat||null, status:o.status||null, price:o.price||null, date:o.date||null, note:o.note||null, dep_years:o.depYears||null });
 const equipFromDb = r => ({ id:r.id, name:r.name||"", cat:r.cat||"", status:r.status||"", price:r.price||"", date:r.date||"", note:r.note||"", depYears:r.dep_years||"" });
-const costToDb    = (o, uid, fields) => ({ id:o.id, user_id:uid, field_id:(fields&&o.fieldIdx!==undefined&&o.fieldIdx!=="")?fields[o.fieldIdx]?.id||o.fieldId||null:o.fieldId||null, crop_id:o.cropId||null, cat:o.cat||null, name:o.name||null, amt:o.amt||null, date:o.date||null, qty:o.qty||null, qunit:o.qunit||null, note:o.note||null, master_id:o.masterId||null, work:o.work||null });
-const costFromDb  = (r, fields) => { const fi=fields.findIndex(f=>f.id===r.field_id); return { id:r.id, fieldId:r.field_id||"", fieldIdx:fi>=0?fi:0, cropId:r.crop_id||"", masterId:r.master_id||"", cat:r.cat||"", name:r.name||"", amt:r.amt||"", date:r.date||"", qty:r.qty||"", qunit:r.qunit||"", note:r.note||"", work:r.work||"", depYears:r.dep_years||"" }; };
+const costToDb    = (o, uid, fields) => ({ id:o.id, user_id:uid, field_id:(fields&&o.fieldIdx!==undefined&&o.fieldIdx!=="")?fields[o.fieldIdx]?.id||o.fieldId||null:o.fieldId||null, crop_id:o.cropId||null, cat:o.cat||null, name:o.name||null, amt:o.amt||null, date:o.date||null, qty:o.qty||null, qunit:o.qunit||null, note:o.note||null, master_id:o.masterId||null, work:o.work||null, pay_method:o.payMethod||null, pay_date:o.payDate||null });
+const costFromDb  = (r, fields) => { const fi=fields.findIndex(f=>f.id===r.field_id); return { id:r.id, fieldId:r.field_id||"", fieldIdx:fi>=0?fi:0, cropId:r.crop_id||"", cat:r.cat||"", name:r.name||"", amt:r.amt||"", date:r.date||"", qty:r.qty||"1", qunit:r.qunit||"個", note:r.note||"", masterId:r.master_id||null, logId:r.work_log_id||null, depYears:r.dep_years||"", payMethod:r.pay_method||"現金", payDate:r.pay_date||"" }; };
 const plotToDb    = (o, uid) => ({ id:o.id, user_id:uid, field_id:o.fieldId||null, name:o.name||null, cols:o.cols||20, rows:o.rows||20, cells:o.cells||[], season:o.season||null, cell_size:o.cellSize||30, bg_plot_id:o.bgPlotId||null, plant_date:o.plantDate||null, end_date:o.endDate||null, kind:o.kind||null, beds:o.beds||null, plantings:o.plantings||null });
 const plotFromDb  = r => ({ id:r.id, fieldId:r.field_id||"", name:r.name||"", cols:r.cols||20, rows:r.rows||20, cells:Array.isArray(r.cells)?r.cells:(r.cells?JSON.parse(r.cells):[]), season:r.season||"", cellSize:r.cell_size||30, bgPlotId:r.bg_plot_id||"", plantDate:r.plant_date||"", endDate:r.end_date||"", kind:r.kind||"", beds:Array.isArray(r.beds)?r.beds:(r.beds?JSON.parse(r.beds):[]), plantings:Array.isArray(r.plantings)?r.plantings:(r.plantings?JSON.parse(r.plantings):[]) });
 
@@ -1231,7 +1231,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.49</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.51</div>
       </div>
     </div>
   );
@@ -3238,7 +3238,7 @@ function TimelineScreen({ fields, crops, equips, logs, setLogs, setLogsR, showTo
   );
 }
 
-function CostScreen({ fields, crops, fertMs, pestMs, equips, costs, setCosts, logs, showToast }) {
+function CostScreen({ fields, crops, fertMs, pestMs, equips, costs, setCosts, logs, showToast, cards=[], calcPayDate }) {
   const today = new Date();
   const curYear  = String(today.getFullYear());
   const curMonth = today.toISOString().slice(0,7);
@@ -3281,7 +3281,7 @@ function CostScreen({ fields, crops, fertMs, pestMs, equips, costs, setCosts, lo
     return sortAsc?(va>vb?1:-1):(va<vb?1:-1);
   });
 
-  const empty = {id:"",cat:"equip",name:"",amt:"",date:todayStr(),qty:"1",qunit:"個",cropId:"",note:""};
+  const empty = {id:"",cat:"equip",name:"",amt:"",date:todayStr(),qty:"1",qunit:"個",cropId:"",note:"",payMethod:"現金",payDate:""};
   const sv = () => {
     if(!mCost.name){showToast("品名を入力してください");return;}
     const item={...mCost,id:mCost.id||uid0()};
@@ -3289,84 +3289,169 @@ function CostScreen({ fields, crops, fertMs, pestMs, equips, costs, setCosts, lo
     setCosts(n,item); setMCost(null); showToast("保存しました");
   };
 
-  // 帳簿Excelエクスポート
+  // 帳簿Excelエクスポート（国税庁農業所得者用様式準拠）
   const exportLedger = () => {
-    // SheetJSがなければCDNから読み込む
+    const KAIGYO_DATE = "2026-08-18"; // 開業日
+
     const doExport = (XLSX) => {
-      const KAIGYO_DATE = "2026-08-18";
       const wb = XLSX.utils.book_new();
 
-      // 科目マップ
-      const catToKamoku = {
+      // 農業勘定科目マッピング
+      const CAT_TO_KAMOKU = {
         seed:"種苗費", fert:"肥料費", pest:"農薬衛生費",
-        equip:"諸材料費・機械装置費", labor:"雇人費", other:"その他経費"
+        equip:"諸材料費", labor:"雇人費", other:"その他"
       };
+      // 経費帳の列順（国税庁様式）
+      const KAMOKU_COLS = ["種苗費","素畜費","肥料費","農薬衛生費","諸材料費",
+        "機械装置費","農具費","修繕費","動力光熱費","作業用衣料費",
+        "農業共済掛金","荷造運賃","雇人費","土地改良費","賃借料","租税公課","その他"];
 
-      // 費用を開業前/開業後に分ける
       const sorted = [...costs].sort((a,b)=>(a.date||"").localeCompare(b.date||""));
       const preOpen  = sorted.filter(c=>c.date && c.date < KAIGYO_DATE);
       const postOpen = sorted.filter(c=>!c.date || c.date >= KAIGYO_DATE);
 
-      // ── シート1: 経費帳（開業後） ──
+      // ── シート1: 経費帳（国税庁農業所得者用様式） ──
+      const keihiHdr1 = ["月日","支払先","摘要（取引内容）",...KAMOKU_COLS,"合計"];
       const keihiRows = [
-        ["日付","勘定科目","摘要（品名・内容）","品目","金額（円）","サクメモカテゴリ","備考"],
+        ["経　費　帳（農業所得者用）　令和8年分"],
+        ["【注意】国税庁「帳簿の記帳のしかた（農業所得者用）」経費帳様式準拠　　開業日：令和8年8月18日以降の支出を記帳"],
+        keihiHdr1,
       ];
+      // 月計用の集計
+      const monthTotals = {};
       postOpen.forEach(c=>{
-        const cr = crops.find(x=>x.id===c.cropId);
-        const crName = cr ? ((CDB[cr.type]||{}).n||cr.type)+(cr.variety?"("+cr.variety+")":"") : "共通";
-        keihiRows.push([
-          c.date||"", catToKamoku[c.cat]||c.cat||"", c.name||"",
-          crName, Number(c.amt)||0, COST_CATS.find(x=>x.value===c.cat)?.label||c.cat||"", c.note||""
+        const d = c.date||"";
+        const month = d.slice(0,7); // YYYY-MM
+        const kamoku = CAT_TO_KAMOKU[c.cat]||"その他";
+        const amt = Number(c.amt)||0;
+        if(!monthTotals[month]) monthTotals[month] = {};
+        monthTotals[month][kamoku] = (monthTotals[month][kamoku]||0) + amt;
+      });
+
+      // 月ごとに行を作成
+      const months = [...new Set(postOpen.map(c=>(c.date||"").slice(0,7)))].sort();
+      months.forEach(m=>{
+        const monthCosts = postOpen.filter(c=>(c.date||"").slice(0,7)===m);
+        monthCosts.forEach(c=>{
+          const cr=crops.find(x=>x.id===c.cropId);
+          const crName=cr?getCropName(cr):"";
+          const kamoku=CAT_TO_KAMOKU[c.cat]||"その他";
+          const amt=Number(c.amt)||0;
+          const row=Array(keihiHdr1.length).fill("");
+          row[0]=c.date?c.date.slice(5).replace("-","/"):""; // M/D形式
+          row[1]=c.note||"";
+          row[2]=c.name+(crName?" ("+crName+")":"");
+          const ki=KAMOKU_COLS.indexOf(kamoku);
+          if(ki>=0) row[3+ki]=amt;
+          row[row.length-1]=amt; // 合計
+          keihiRows.push(row);
+        });
+        // 月計行
+        const totRow=Array(keihiHdr1.length).fill("");
+        const [yyyy,mm]=m.split("-");
+        totRow[0]=""; totRow[1]=""; totRow[2]=`【${parseInt(mm)}月計】`;
+        let rowTot=0;
+        KAMOKU_COLS.forEach((k,i)=>{
+          const v=monthTotals[m]?.[k]||0;
+          totRow[3+i]=v; rowTot+=v;
+        });
+        totRow[totRow.length-1]=rowTot;
+        keihiRows.push(totRow);
+        keihiRows.push(Array(keihiHdr1.length).fill("")); // 空行
+      });
+      // 年計
+      const yearRow=Array(keihiHdr1.length).fill("");
+      yearRow[2]="【年　計】";
+      let yearTotal=0;
+      KAMOKU_COLS.forEach((k,i)=>{
+        const v=postOpen.reduce((s,c)=>{
+          return (CAT_TO_KAMOKU[c.cat]||"その他")===k?s+(Number(c.amt)||0):s;
+        },0);
+        yearRow[3+i]=v; yearTotal+=v;
+      });
+      yearRow[yearRow.length-1]=yearTotal;
+      keihiRows.push(yearRow);
+
+      const ws1=XLSX.utils.aoa_to_sheet(keihiRows);
+      const colWidths=[{wch:8},{wch:16},{wch:26},...KAMOKU_COLS.map(()=>({wch:8})),{wch:10}];
+      ws1["!cols"]=colWidths;
+      XLSX.utils.book_append_sheet(wb, ws1, "経費帳");
+
+      // ── シート2: 現金出納帳（支出のみ・収入欄は手入力） ──
+      const sutaHdr=["月日","摘要（取引内容・支払先）","現金売上","その他収入","農業経費","家事費等","差引残高"];
+      const sutaRows=[
+        ["現　金　出　納　帳（農業所得者用）　令和8年分"],
+        ["【注意】農業用現金の出し入れを取引順に毎日記帳。現金売上・その他収入欄は手入力してください。"],
+        sutaHdr,
+        ["前月繰越","",0,0,0,0,0],
+      ];
+      postOpen.filter(c=>c.date).forEach(c=>{
+        const kamoku=CAT_TO_KAMOKU[c.cat]||"その他";
+        sutaRows.push([
+          c.date?c.date.slice(5).replace("-","/"):"",
+          c.name+(c.note?" "+c.note:""),
+          "","",
+          Number(c.amt)||0,
+          "",
+          "" // 残高は手計算
         ]);
       });
-      // 合計行
-      keihiRows.push(["","","","合計",postOpen.reduce((s,c)=>s+(Number(c.amt)||0),0),"",""]);
+      const ws2=XLSX.utils.aoa_to_sheet(sutaRows);
+      ws2["!cols"]=[{wch:8},{wch:30},{wch:12},{wch:12},{wch:12},{wch:12},{wch:12}];
+      XLSX.utils.book_append_sheet(wb, ws2, "現金出納帳");
 
-      const ws1 = XLSX.utils.aoa_to_sheet(keihiRows);
-      ws1["!cols"]=[{wch:12},{wch:16},{wch:28},{wch:16},{wch:10},{wch:14},{wch:18}];
-      XLSX.utils.book_append_sheet(wb, ws1, "経費帳（開業後）");
-
-      // ── シート2: 開業費台帳（開業前） ──
-      const kaigyoRows = [
-        ["支出日","内容（品名・購入先）","金額（円）","サクメモカテゴリ","備考"],
+      // ── シート3: 開業費台帳 ──
+      const kaigyoTotal=preOpen.reduce((s,c)=>s+(Number(c.amt)||0),0);
+      const kaigyoRows=[
+        ["開　業　費　台　帳（令和8年8月18日以前の支出）"],
+        ["開業費は繰延資産。開業後5年以内に均等償却（年20%）または任意償却できます。"],
+        ["支出年月日","費用の内容（支出先・品名・目的）","金額（円）","勘定科目（参考）","備考"],
       ];
       preOpen.forEach(c=>{
         kaigyoRows.push([
-          c.date||"", c.name||"", Number(c.amt)||0,
-          COST_CATS.find(x=>x.value===c.cat)?.label||c.cat||"", c.note||""
+          c.date||"", c.name+(c.note?" "+c.note:""),
+          Number(c.amt)||0, CAT_TO_KAMOKU[c.cat]||"その他", ""
         ]);
       });
-      const kaigyoTotal = preOpen.reduce((s,c)=>s+(Number(c.amt)||0),0);
-      kaigyoRows.push(["","開業費合計",kaigyoTotal,"",""]);
+      kaigyoRows.push(["","開業費　合　計",kaigyoTotal,"",""]);
       kaigyoRows.push([]);
-      kaigyoRows.push(["","【開業費の5年均等償却（参考）】",,,]);
-      kaigyoRows.push(["年度","償却額（円）","備考",,]);
-      const yakuMonths=4.5;
-      kaigyoRows.push(["2026年（開業年）",Math.round(kaigyoTotal/5*yakuMonths/12),"月割り（約4.5ヶ月）",,]);
-      for(let y=2027;y<=2030;y++){
-        kaigyoRows.push([y+"年",Math.round(kaigyoTotal/5),"",,]);
-      }
-
-      const ws2 = XLSX.utils.aoa_to_sheet(kaigyoRows);
-      ws2["!cols"]=[{wch:12},{wch:30},{wch:12},{wch:14},{wch:20}];
-      XLSX.utils.book_append_sheet(wb, ws2, "開業費台帳（開業前）");
-
-      // ── シート3: カテゴリ別集計 ──
-      const summary = {};
-      postOpen.forEach(c=>{
-        const k = catToKamoku[c.cat]||c.cat||"その他";
-        summary[k] = (summary[k]||0) + (Number(c.amt)||0);
+      kaigyoRows.push(["【償却スケジュール（5年均等償却）】",,,,"（任意償却の場合は好きな年に全額計上可）"]);
+      kaigyoRows.push(["年度","当年償却額","償却累計","未償却残高","備考"]);
+      const months_open=4.5;
+      const yr1=Math.round(kaigyoTotal/5*months_open/12);
+      const yrN=Math.round(kaigyoTotal/5);
+      let cum=0;
+      [["令和8年（開業年）",yr1,"月割り（約4.5ヶ月分）"],
+       ["令和9年",yrN,""],["令和10年",yrN,""],["令和11年",yrN,""],["令和12年",yrN,""]
+      ].forEach(([yr,amt,note])=>{
+        cum+=amt;
+        kaigyoRows.push([yr,amt,cum,Math.max(0,kaigyoTotal-cum),note]);
       });
-      const sumRows=[["勘定科目","金額（円）"],...Object.entries(summary),
-        ["経費合計（開業後）",postOpen.reduce((s,c)=>s+(Number(c.amt)||0),0)],
-        ["開業費合計",kaigyoTotal]
-      ];
-      const ws3 = XLSX.utils.aoa_to_sheet(sumRows);
-      ws3["!cols"]=[{wch:20},{wch:14}];
-      XLSX.utils.book_append_sheet(wb, ws3, "カテゴリ別集計");
 
-      XLSX.writeFile(wb, "サクメモ_農業帳簿_"+new Date().getFullYear()+".xlsx");
-      showToast("Excelを書き出しました");
+      const ws3=XLSX.utils.aoa_to_sheet(kaigyoRows);
+      ws3["!cols"]=[{wch:14},{wch:38},{wch:12},{wch:16},{wch:22}];
+      XLSX.utils.book_append_sheet(wb, ws3, "開業費台帳");
+
+      // ── シート4: 科目別集計 ──
+      const sumRows=[
+        ["科目別集計（令和8年分　開業後）"],
+        ["勘定科目","金額（円）","件数","備考"],
+      ];
+      KAMOKU_COLS.forEach(k=>{
+        const items=postOpen.filter(c=>(CAT_TO_KAMOKU[c.cat]||"その他")===k);
+        const total=items.reduce((s,c)=>s+(Number(c.amt)||0),0);
+        if(total>0) sumRows.push([k,total,items.length,""]);
+      });
+      sumRows.push(["経費合計（開業後）",postOpen.reduce((s,c)=>s+(Number(c.amt)||0),0),postOpen.length,""]);
+      sumRows.push([]);
+      sumRows.push(["開業費合計（開業前）",kaigyoTotal,preOpen.length,"開業費台帳シート参照"]);
+      const ws4=XLSX.utils.aoa_to_sheet(sumRows);
+      ws4["!cols"]=[{wch:20},{wch:14},{wch:8},{wch:20}];
+      XLSX.utils.book_append_sheet(wb, ws4, "科目別集計");
+
+      const fname="サクメモ_農業帳簿_"+new Date().getFullYear()+".xlsx";
+      XLSX.writeFile(wb, fname);
+      showToast("帳簿Excelを書き出しました（"+fname+"）");
     };
 
     if(window.XLSX){
@@ -3375,6 +3460,7 @@ function CostScreen({ fields, crops, fertMs, pestMs, equips, costs, setCosts, lo
       const s=document.createElement("script");
       s.src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js";
       s.onload=()=>doExport(window.XLSX);
+      s.onerror=()=>showToast("ライブラリの読み込みに失敗しました。ネットワーク接続を確認してください。");
       document.head.appendChild(s);
     }
   };
@@ -3487,7 +3573,23 @@ function CostScreen({ fields, crops, fertMs, pestMs, equips, costs, setCosts, lo
         <FG label="品目（任意）">
           <Sel value={mCost.cropId||""} onChange={v=>setMCost({...mCost,cropId:v})}
             options={[{value:"",label:"共通（品目割当なし）"},...crops.filter(c=>!c.ended).map(c=>{const db=CDB[c.type]||{};const nm=getCropName(c);return{value:c.id,label:(db.e||"🌱")+" "+nm+(c.variety?" ("+c.variety+")":"")};})]}/></FG>
-        <FG label="メモ"><Inp value={mCost.note||""} onChange={v=>setMCost({...mCost,note:v})} placeholder="購入先など"/></FG>
+        <FG label="メモ"><Inp value={mCost.note||""} onChange={v=>setMCost({...mCost,note:v})} placeholder="購入先など"/>
+        </FG>
+        <FG label="支払方法">
+          <Sel value={mCost.payMethod||"現金"} onChange={v=>{
+            const cd=cards.find(c=>c.name===v);
+            const pd=v.startsWith("カード")&&cd&&calcPayDate?calcPayDate(mCost.date,cd):"";
+            setMCost({...mCost,payMethod:v,payDate:pd});
+          }} options={[{value:"現金",label:"💴 現金"},{value:"振込",label:"🏦 銀行振込"},...cards.map(c=>({value:c.name,label:"💳 "+c.name}))]}/>
+        </FG>
+        {(mCost.payMethod||"現金").startsWith("カード")&&<>
+          <FG label="引き落とし予定日">
+            <Inp type="date" value={mCost.payDate||""} onChange={v=>setMCost({...mCost,payDate:v})}/>
+          </FG>
+          {mCost.payDate&&<div style={{fontSize:".72rem",color:"#1565C0",background:"#E3F2FD",borderRadius:8,padding:"6px 10px",marginBottom:6}}>
+            💳 {mCost.payMethod}　引き落とし予定：{mCost.payDate}
+          </div>}
+        </>}
         {mCost.id&&costs.find(x=>x.id===mCost.id)&&<button onClick={()=>{if(!window.confirm("削除しますか?"))return;const n=costs.filter(x=>x.id!==mCost.id);setCosts(n);setMCost(null);showToast("削除しました");}} style={{...S.btn,...S.btnR,marginTop:8}}>削除</button>}
       </ModalWithSave>}
     </div>
@@ -4704,7 +4806,7 @@ function PwChangeSection() {
   );
 }
 
-function SettingsScreen({ showToast, user, uid, signOut, fields, crops, logs, fertMs, pestMs, equips, costs, setScr }) {
+function SettingsScreen({ showToast, user, uid, signOut, fields, crops, logs, fertMs, pestMs, equips, costs, setScr, cards=[], setCards }) {
   const doExport=()=>{ const d=JSON.stringify({fields,crops,logs,fertMs,pestMs,equips,costs},null,2);const a=document.createElement("a");a.href="data:application/json;charset=utf-8,"+encodeURIComponent(d);a.download="farm-ai-export-"+todayStr()+".json";a.click(); };
   const csvEsc=v=>{const s=String(v==null?"":v);return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;};
   const downloadCsv=(rows,name)=>{const bom="\uFEFF";const csv=bom+rows.map(r=>r.map(csvEsc).join(",")).join("\r\n");const a=document.createElement("a");a.href="data:text/csv;charset=utf-8,"+encodeURIComponent(csv);a.download=name+"-"+todayStr()+".csv";a.click();};
@@ -4731,8 +4833,56 @@ function SettingsScreen({ showToast, user, uid, signOut, fields, crops, logs, fe
       </div>
 
       {/* アカウント */}
+      {/* クレジットカード設定 */}
+      <div style={S.card}>
+        <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".82rem",color:"#5c3d1e",marginBottom:10}}>💳 クレジットカード設定</div>
+        <div style={{fontSize:".72rem",color:"#6b7280",marginBottom:8}}>費用入力時の支払方法に表示されます。締め日・引き落とし日を設定すると引き落とし予定日が自動計算されます。</div>
+        {cards.map((card,ci)=>(
+          <div key={card.id} style={{background:"#f6f3ec",borderRadius:10,padding:"10px 12px",marginBottom:8}}>
+            <div style={{display:"flex",gap:6,alignItems:"center",marginBottom:6}}>
+              <span style={{fontSize:".8rem",fontWeight:700,flex:1}}>💳 {card.name}</span>
+              <button onClick={()=>{
+                if(!window.confirm(card.name+"を削除しますか？"))return;
+                setCards(cards.filter((_,i)=>i!==ci));
+              }} style={{...S.btn,...S.btnR,...S.btnSm,fontSize:".65rem"}}>削除</button>
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:6}}>
+              <div>
+                <div style={{fontSize:".65rem",color:"#6b7280",marginBottom:2}}>カード名</div>
+                <input value={card.name} onChange={e=>setCards(cards.map((c,i)=>i===ci?{...c,name:e.target.value}:c))}
+                  style={{width:"100%",border:"1px solid #e0d9ce",borderRadius:6,padding:"4px 6px",fontSize:".78rem",fontFamily:"inherit",background:"#fff"}}/>
+              </div>
+              <div>
+                <div style={{fontSize:".65rem",color:"#6b7280",marginBottom:2}}>締め日</div>
+                <select value={card.closeDay||31} onChange={e=>setCards(cards.map((c,i)=>i===ci?{...c,closeDay:e.target.value}:c))}
+                  style={{width:"100%",border:"1px solid #e0d9ce",borderRadius:6,padding:"4px 6px",fontSize:".78rem",fontFamily:"inherit",background:"#fff"}}>
+                  {[5,10,15,20,25,31].map(d=><option key={d} value={d}>{d===31?"月末":d+"日"}</option>)}
+                </select>
+              </div>
+              <div>
+                <div style={{fontSize:".65rem",color:"#6b7280",marginBottom:2}}>引き落とし日</div>
+                <div style={{display:"flex",gap:3,alignItems:"center"}}>
+                  <select value={card.payNext||1} onChange={e=>setCards(cards.map((c,i)=>i===ci?{...c,payNext:parseInt(e.target.value)}:c))}
+                    style={{border:"1px solid #e0d9ce",borderRadius:6,padding:"4px 4px",fontSize:".72rem",fontFamily:"inherit",background:"#fff"}}>
+                    <option value={1}>翌月</option>
+                    <option value={2}>翌々月</option>
+                  </select>
+                  <select value={card.payDay||27} onChange={e=>setCards(cards.map((c,i)=>i===ci?{...c,payDay:e.target.value}:c))}
+                    style={{flex:1,border:"1px solid #e0d9ce",borderRadius:6,padding:"4px 4px",fontSize:".72rem",fontFamily:"inherit",background:"#fff"}}>
+                    {[1,5,10,15,20,25,27,31].map(d=><option key={d} value={d}>{d===31?"月末":d+"日"}</option>)}
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+        <button onClick={()=>setCards([...cards,{id:Date.now()+"",name:"カード"+(cards.length+1),closeDay:31,payDay:27,payNext:1}])}
+          style={{...S.btn,...S.btnS,width:"100%",marginTop:4}}>＋ カードを追加</button>
+      </div>
+      
       {user && (
-        <div style={S.card}>
+
+      <div style={S.card}>
           <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
             {user.user_metadata?.avatar_url && <img src={user.user_metadata.avatar_url} alt="" style={{width:44,height:44,borderRadius:"50%"}}/>}
             <div>
@@ -4847,6 +4997,30 @@ export default function App() {
   const [plots,    setPlotsR]  = useState([]);
   const [apiKey,   setApiKeyR] = useState(()=>localStorage.getItem("sakumemo_key")||"");
   const [toast,    setToast]   = useState("");
+  // クレジットカード設定（localStorage永続化）
+  const [cards, setCardsState] = useState(()=>{
+    try{ return JSON.parse(localStorage.getItem('sakumemo_cards')||'[]'); }catch{ return []; }
+  });
+  const setCards = (arr) => {
+    setCardsState(arr);
+    try{ localStorage.setItem('sakumemo_cards', JSON.stringify(arr)); }catch{}
+  };
+  // カードの引き落とし予定日を計算
+  const calcPayDate = (purchaseDate, card) => {
+    if(!purchaseDate||!card) return "";
+    const d = new Date(purchaseDate);
+    const closeDay = parseInt(card.closeDay)||31;
+    const payDay   = parseInt(card.payDay)||27;
+    const payNext  = parseInt(card.payNext)||1; // 翌月=1, 翌々月=2
+    // 締め日を超えているか判定
+    const dayOfMonth = d.getDate();
+    const closeActual = Math.min(closeDay, new Date(d.getFullYear(), d.getMonth()+1, 0).getDate());
+    let payMonth = new Date(d.getFullYear(), d.getMonth() + payNext, 1);
+    if(dayOfMonth > closeActual) payMonth = new Date(d.getFullYear(), d.getMonth() + payNext + 1, 1);
+    const payActual = Math.min(payDay, new Date(payMonth.getFullYear(), payMonth.getMonth()+1, 0).getDate());
+    const result = new Date(payMonth.getFullYear(), payMonth.getMonth(), payActual);
+    return result.toISOString().slice(0,10);
+  };
   const [lb, setLb] = useState(null); // ライトボックス {photos:[], idx:0}
   const openLb = (photos, idx) => {
     document.body.classList.add('lb-open');
@@ -5018,10 +5192,10 @@ export default function App() {
       /></>}
         
         {scr==="plot"    &&<PlanScreen    fields={fields} crops={crops} setCrops={setCrops} plots={plots} setPlots={setPlots} setPlotsR={setPlotsR} showToast={showToast} setScr={setScr}/>}
-        {scr==="cost"    &&<CostScreen    fields={fields} crops={crops} fertMs={fertMs} pestMs={pestMs} equips={equips} costs={costs} setCosts={setCosts} logs={logs} showToast={showToast}/>}
+        {scr==="cost"    &&<CostScreen    fields={fields} crops={crops} fertMs={fertMs} pestMs={pestMs} equips={equips} costs={costs} setCosts={setCosts} logs={logs} showToast={showToast} cards={cards} calcPayDate={calcPayDate}/>}
 
         {scr==="report"  &&<ReportScreen  fields={fields} crops={crops} logs={logs} costs={costs} fertMs={fertMs} pestMs={pestMs} equips={equips} openLb={openLb}/>}
-        {scr==="settings"&&<SettingsScreen showToast={showToast} user={user} uid={uid} signOut={signOut} fields={fields} crops={crops} logs={logs} fertMs={fertMs} pestMs={pestMs} equips={equips} costs={costs} setScr={setScr}/>}
+        {scr==="settings"&&<SettingsScreen showToast={showToast} user={user} uid={uid} signOut={signOut} fields={fields} crops={crops} logs={logs} fertMs={fertMs} cards={cards} setCards={setCards} pestMs={pestMs} equips={equips} costs={costs} setScr={setScr}/>}
       </div>
       {/* ライトボックス */}
       {lb&&<div onClick={closeLb} style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,.92)',zIndex:9999,display:'flex',alignItems:'center',justifyContent:'center',touchAction:'pinch-zoom',overflow:'hidden'}}>
