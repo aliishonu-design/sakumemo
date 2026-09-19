@@ -49,8 +49,8 @@ const fertMFromDb = r => ({ id:r.id, name:r.name||"", type:r.type||"", price:r.p
 const pestMToDb   = (o, uid) => ({ id:o.id||uid0(), user_id:uid, name:o.name||null, type:o.type||null, target:o.target||null, capacity:o.capacity||null, sunit:o.sunit||null, price:o.price||null, note:o.note||null });const pestMFromDb = r => ({ id:r.id, name:r.name||"", type:r.type||"", target:r.target||"", capacity:r.capacity||"", sunit:r.sunit||"", price:r.price||"", note:r.note||"" });
 const equipToDb   = (o, uid) => ({ id:o.id||uid0(), user_id:uid, name:o.name||null, cat:o.cat||null, status:o.status||null, price:o.price||null, date:o.date||null, note:o.note||null, dep_years:o.depYears||null });
 const equipFromDb = r => ({ id:r.id, name:r.name||"", cat:r.cat||"", status:r.status||"", price:r.price||"", date:r.date||"", note:r.note||"", depYears:r.dep_years||"" });
-const costToDb    = (o, uid, fields) => ({ id:o.id, user_id:uid, field_id:(fields&&o.fieldIdx!==undefined&&o.fieldIdx!=="")?fields[o.fieldIdx]?.id||o.fieldId||null:o.fieldId||null, crop_id:o.cropId||null, cat:o.cat||null, name:o.name||null, amt:o.amt||null, date:o.date||null, qty:o.qty||null, qunit:o.qunit||null, note:o.note||null, master_id:o.masterId||null, work:o.work||null, pay_method:o.payMethod||null, pay_date:o.payDate||null });
-const costFromDb  = (r, fields) => { const fi=fields.findIndex(f=>f.id===r.field_id); return { id:r.id, fieldId:r.field_id||"", fieldIdx:fi>=0?fi:0, cropId:r.crop_id||"", cat:r.cat||"", name:r.name||"", amt:r.amt||"", date:r.date||"", qty:r.qty||"1", qunit:r.qunit||"個", note:r.note||"", masterId:r.master_id||null, logId:r.work_log_id||null, depYears:r.dep_years||"", payMethod:r.pay_method||"現金", payDate:r.pay_date||"" }; };
+const costToDb    = (o, uid, fields) => ({ id:o.id, user_id:uid, field_id:(fields&&o.fieldIdx!==undefined&&o.fieldIdx!=="")?fields[o.fieldIdx]?.id||o.fieldId||null:o.fieldId||null, crop_id:o.cropId||null, cat:o.cat||null, name:o.name||null, amt:o.amt||null, date:o.date||null, qty:o.qty||null, qunit:o.qunit||null, note:o.note||null, master_id:o.masterId||null, work:o.work||null, pay_method:o.payMethod||null, pay_date:o.payDate||null, cancelled:o.cancelled||null });
+const costFromDb  = (r, fields) => { const fi=fields.findIndex(f=>f.id===r.field_id); return { id:r.id, fieldId:r.field_id||"", fieldIdx:fi>=0?fi:0, cropId:r.crop_id||"", cat:r.cat||"", name:r.name||"", amt:r.amt||"", date:r.date||"", qty:r.qty||"1", qunit:r.qunit||"個", note:r.note||"", masterId:r.master_id||null, logId:r.work_log_id||null, depYears:r.dep_years||"", payMethod:r.pay_method||"現金", payDate:r.pay_date||"", cancelled:r.cancelled||false }; };
 const plotToDb    = (o, uid) => ({ id:o.id, user_id:uid, field_id:o.fieldId||null, name:o.name||null, cols:o.cols||20, rows:o.rows||20, cells:o.cells||[], season:o.season||null, cell_size:o.cellSize||30, bg_plot_id:o.bgPlotId||null, plant_date:o.plantDate||null, end_date:o.endDate||null, kind:o.kind||null, beds:o.beds||null, plantings:o.plantings||null });
 const plotFromDb  = r => ({ id:r.id, fieldId:r.field_id||"", name:r.name||"", cols:r.cols||20, rows:r.rows||20, cells:Array.isArray(r.cells)?r.cells:(r.cells?JSON.parse(r.cells):[]), season:r.season||"", cellSize:r.cell_size||30, bgPlotId:r.bg_plot_id||"", plantDate:r.plant_date||"", endDate:r.end_date||"", kind:r.kind||"", beds:Array.isArray(r.beds)?r.beds:(r.beds?JSON.parse(r.beds):[]), plantings:Array.isArray(r.plantings)?r.plantings:(r.plantings?JSON.parse(r.plantings):[]) });
 
@@ -1238,7 +1238,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.55</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.56</div>
       </div>
     </div>
   );
@@ -3271,8 +3271,8 @@ function CostScreen({ fields, crops, fertMs, pestMs, equips, costs, setCosts, lo
     return true;
   };
   const filteredAll = costs.filter(c=>inPeriod(c.date));
-  const filtered = filteredAll.filter(c=>!isIncome(c.cat));   // 費用のみ
-  const filteredIncome = filteredAll.filter(c=>isIncome(c.cat)); // 収入のみ
+  const filtered = filteredAll.filter(c=>!isIncome(c.cat)&&!c.cancelled);   // 費用のみ（取消除外）
+  const filteredIncome = filteredAll.filter(c=>isIncome(c.cat)&&!c.cancelled); // 収入のみ（取消除外）
   const shownList = costTab==="income" ? filteredIncome : filtered;
 
   // 集計
@@ -3284,7 +3284,16 @@ function CostScreen({ fields, crops, fertMs, pestMs, equips, costs, setCosts, lo
   const maxC    = Math.max(...Object.values(byCat),1);
 
   // ソート
-  const sorted = [...shownList].sort((a,b)=>{
+  // フィルタータブに対応したviewList
+  const baseList = (() => {
+    const all = filteredAll;
+    if(costTab==="income") return all.filter(c=>isIncome(c.cat));
+    if(costTab==="expense") return all.filter(c=>!isIncome(c.cat));
+    if(costTab==="card") return all.filter(c=>c.payMethod&&cards&&cards.some&&cards.some(cd=>cd.name===c.payMethod));
+    return all; // "all"
+  })();
+  const viewList_unsorted = baseList;
+  const sorted = [...viewList_unsorted].sort((a,b)=>{
     let va,vb;
     if(sortKey==="date") { va=a.date||""; vb=b.date||""; }
     else if(sortKey==="amt") { va=parseFloat(a.amt)||0; vb=parseFloat(b.amt)||0; }
@@ -3292,6 +3301,7 @@ function CostScreen({ fields, crops, fertMs, pestMs, equips, costs, setCosts, lo
     else { va=a.name||""; vb=b.name||""; }
     return sortAsc?(va>vb?1:-1):(va<vb?1:-1);
   });
+  const viewList = sorted;
 
   const empty = {id:"",cat:"equip",name:"",amt:"",date:todayStr(),qty:"1",qunit:"個",cropId:"",note:"",payMethod:"現金",payDate:""};
   const sv = () => {
@@ -3612,141 +3622,241 @@ function CostScreen({ fields, crops, fertMs, pestMs, equips, costs, setCosts, lo
 
   return (
     <div style={S.scr} className="scr-inner">
-      <div style={S.sec}>
-          <div style={{display:"flex",borderRadius:8,overflow:"hidden",border:"1px solid #e0d9ce"}}>
-            {[["expense","💰 費用"],["income","💵 収入"]].map(([v,l])=>(
-              <button key={v} onClick={()=>setCostTab(v)}
-                style={{padding:"5px 14px",border:"none",background:costTab===v?G:"#fff",
-                  color:costTab===v?"#fff":"#888",fontWeight:costTab===v?700:400,
-                  fontSize:".78rem",cursor:"pointer",fontFamily:"inherit"}}>{l}</button>
-            ))}
-          </div>
-          <div style={{display:"flex",gap:6}}>
-            {costTab==="expense"
-              ? <button style={S.secBtn} onClick={()=>setMCost({...empty})}>＋ 費用追加</button>
-              : <button style={S.secBtn} onClick={()=>setMCost({...empty,cat:"inc_crop",amt:"",date:todayStr()})}>＋ 収入追加</button>}
-            <button style={{...S.secBtn,background:"#1565C0"}} onClick={exportLedger}>📥 帳簿Excel</button>
-          </div></div>
 
-      {/* 年/月切り替え */}
+      {/* ヘッダー */}
+      <div style={{...S.sec,flexWrap:"wrap",gap:6}}>
+        <span style={{fontFamily:"'Shippori Mincho B1',serif"}}>💰 収支管理</span>
+        <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
+          <button style={S.secBtn} onClick={()=>setMCost({...empty})}>＋ 費用</button>
+          <button style={{...S.secBtn,background:"#388E3C"}} onClick={()=>setMCost({...empty,cat:"inc_crop"})}>＋ 収入</button>
+          <button style={{...S.secBtn,background:"#1565C0"}} onClick={exportLedger}>📥 帳簿Excel</button>
+        </div>
+      </div>
+
+      {/* 期間切り替え */}
       <div style={{display:"flex",gap:6,marginBottom:8,alignItems:"center",flexWrap:"wrap"}}>
         <div style={{display:"flex",borderRadius:8,overflow:"hidden",border:"1px solid #e0d9ce",flexShrink:0}}>
           {[["year","年単位"],["month","月単位"]].map(([v,l])=>(
-            <button key={v} onClick={()=>setUnit(v)} style={{padding:"6px 14px",border:"none",background:unit===v?G:"#fff",color:unit===v?"#fff":"#888",fontWeight:unit===v?700:400,fontSize:".78rem",cursor:"pointer",fontFamily:"inherit"}}>{l}</button>
+            <button key={v} onClick={()=>setUnit(v)} style={{padding:"5px 12px",border:"none",background:unit===v?G:"#fff",color:unit===v?"#fff":"#888",fontWeight:unit===v?700:400,fontSize:".76rem",cursor:"pointer",fontFamily:"inherit"}}>{l}</button>
           ))}
         </div>
         {unit==="year"&&(
-          <select value={selYear} onChange={e=>setSelYear(e.target.value)} style={{...S.inp,width:"auto",padding:"5px 8px"}}>
+          <select value={selYear} onChange={e=>setSelYear(e.target.value)} style={{...S.inp,width:"auto",padding:"4px 8px"}}>
             {years.map(y=><option key={y} value={y}>{y}年</option>)}
           </select>
         )}
         {unit==="month"&&(
           <div style={{display:"flex",gap:4}}>
-            <select value={selMon.slice(0,4)} onChange={e=>setSelMon(e.target.value+"-"+selMon.slice(5,7))} style={{...S.inp,width:"auto",padding:"5px 8px"}}>
+            <select value={selMon.slice(0,4)} onChange={e=>setSelMon(e.target.value+"-"+selMon.slice(5,7))} style={{...S.inp,width:"auto",padding:"4px 8px"}}>
               {years.map(y=><option key={y} value={y}>{y}年</option>)}
             </select>
-            <select value={selMon} onChange={e=>setSelMon(e.target.value)} style={{...S.inp,width:"auto",padding:"5px 8px"}}>
+            <select value={selMon} onChange={e=>setSelMon(e.target.value)} style={{...S.inp,width:"auto",padding:"4px 8px"}}>
               {months.map(m=><option key={m} value={m}>{parseInt(m.slice(5))}月</option>)}
             </select>
           </div>
         )}
-        <span style={{fontSize:".72rem",color:TX3}}>{shownList.length}件・{costTab==="income"?"合計収入":"合計費用"} {Math.round(costTab==="income"?incomeTotal:total).toLocaleString()}円</span>
       </div>
 
-      {/* サマリー（3枚）*/}
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:7,marginBottom:9}}>
-        {[
-          {n:Math.round(total).toLocaleString()+"円",l:"総支出",c:ALERT},
-          {n:Math.round(revenue).toLocaleString()+"円",l:"推定収益",c:INFO},
-          {n:Math.round(revenue-total).toLocaleString()+"円",l:"損益",c:revenue-total>=0?G:ALERT},
-        ].map((s,i)=>(
-          <div key={i} style={{...S.card,textAlign:"center"}}>
-            <div style={{fontSize:"1.35rem",fontWeight:700,color:s.c,lineHeight:1}}>{s.n}</div>
-            <div style={{fontSize:".66rem",color:TX3,marginTop:3}}>{s.l}</div>
+      {/* 損益サマリー（会計ソフト形式） */}
+      <div style={{...S.card,padding:"12px 14px",marginBottom:8}}>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:10}}>
+          <div style={{textAlign:"center",background:"#E8F5E9",borderRadius:10,padding:"10px 4px"}}>
+            <div style={{fontSize:".64rem",color:"#388E3C",fontWeight:700,marginBottom:2}}>💵 収入合計</div>
+            <div style={{fontSize:"1.1rem",fontWeight:700,color:"#1B5E20"}}>{Math.round(incomeTotal).toLocaleString()}<span style={{fontSize:".65rem"}}>円</span></div>
           </div>
-        ))}
-      </div>
-
-      {/* カテゴリ別支出 */}
-      <div style={S.card}>
-        <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".86rem",color:"#5c3d1e",marginBottom:8}}>カテゴリ別支出</div>
-        {COST_CATS.map(cat=>(
-          <div key={cat.value} style={{display:"flex",alignItems:"center",gap:7,marginBottom:5}}>
-            <div style={{fontSize:".7rem",minWidth:96,textAlign:"right"}}>{cat.label}</div>
-            <div style={{flex:1,background:"#eee",borderRadius:999,height:8,overflow:"hidden"}}>
-              <div style={{height:"100%",borderRadius:999,background:"linear-gradient(90deg,"+G+","+G2+")",width:Math.round(byCat[cat.value]/maxC*100)+"%",transition:"width .7s ease"}}/>
-            </div>
-            <div style={{fontSize:".68rem",color:TX3,minWidth:60}}>{Math.round(byCat[cat.value]).toLocaleString()}円</div>
+          <div style={{textAlign:"center",background:"#FFF3E0",borderRadius:10,padding:"10px 4px"}}>
+            <div style={{fontSize:".64rem",color:"#E65100",fontWeight:700,marginBottom:2}}>💰 費用合計</div>
+            <div style={{fontSize:"1.1rem",fontWeight:700,color:"#BF360C"}}>{Math.round(total).toLocaleString()}<span style={{fontSize:".65rem"}}>円</span></div>
           </div>
-        ))}
-      </div>
-
-      {/* 費用一覧 */}
-      <div style={S.card}>
-        <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".86rem",color:"#5c3d1e",marginBottom:8}}>費用一覧</div>
-        {/* ソートヘッダー */}
-        <div style={{display:"flex",gap:2,paddingBottom:4,borderBottom:"1px solid #f0ebe3",marginBottom:4}}>
-          {[["date","日付"],["cat","種別"],["name","品名"],["amt","金額"]].map(([k,l])=>(
-            <span key={k} style={thStyle(k)} onClick={()=>{if(sortKey===k)setSortAsc(!sortAsc);else{setSortKey(k);setSortAsc(k==="date"?false:false);}}}>
-              {l}{sortKey===k?(sortAsc?"▲":"▼"):""}
-            </span>
-          ))}
+          <div style={{textAlign:"center",background:incomeTotal-total>=0?"#E3F2FD":"#FFEBEE",borderRadius:10,padding:"10px 4px"}}>
+            <div style={{fontSize:".64rem",color:incomeTotal-total>=0?"#1565C0":"#C62828",fontWeight:700,marginBottom:2}}>{incomeTotal-total>=0?"📈 農業所得":"📉 農業所得"}</div>
+            <div style={{fontSize:"1.1rem",fontWeight:700,color:incomeTotal-total>=0?"#0D47A1":"#B71C1C"}}>{Math.round(incomeTotal-total).toLocaleString()}<span style={{fontSize:".65rem"}}>円</span></div>
+          </div>
         </div>
-        {!sorted.length&&<div style={{color:TX3,fontSize:".8rem",textAlign:"center",padding:12}}>この期間の費用はありません</div>}
-        {sorted.map((c,i)=>{
-          const cat=COST_CATS.find(x=>x.value===c.cat);
+
+        {/* 費用内訳バー */}
+        {total>0&&<div>
+          <div style={{fontSize:".68rem",color:"#888",marginBottom:4}}>費用内訳</div>
+          <div style={{display:"flex",height:8,borderRadius:4,overflow:"hidden",marginBottom:4}}>
+            {COST_CATS.map((cat,i)=>{
+              const v=byCat[cat.value]||0;
+              const pct=total>0?v/total*100:0;
+              const cols=["#4CAF50","#2196F3","#FF9800","#9C27B0","#F44336","#607D8B"];
+              return pct>0?<div key={cat.value} style={{width:pct+"%",background:cols[i],transition:"width .5s"}}/>:null;
+            })}
+          </div>
+          <div style={{display:"flex",flexWrap:"wrap",gap:"4px 10px"}}>
+            {COST_CATS.filter(cat=>(byCat[cat.value]||0)>0).map((cat,i)=>{
+              const cols=["#4CAF50","#2196F3","#FF9800","#9C27B0","#F44336","#607D8B"];
+              const ci=COST_CATS.indexOf(cat);
+              return <div key={cat.value} style={{fontSize:".62rem",display:"flex",alignItems:"center",gap:3}}>
+                <span style={{width:8,height:8,borderRadius:2,background:cols[ci],display:"inline-block"}}/>
+                {cat.label.replace(/^[^\s]+\s/,"")}: {Math.round(byCat[cat.value]).toLocaleString()}円
+              </div>;
+            })}
+          </div>
+        </div>}
+      </div>
+
+      {/* フィルタータブ */}
+      <div style={{display:"flex",gap:0,marginBottom:8,borderRadius:8,overflow:"hidden",border:"1px solid #e0d9ce"}}>
+        {[["all","すべて"],["income","収入のみ"],["expense","費用のみ"],["card","カード払い"]].map(([v,l])=>(
+          <button key={v} onClick={()=>setCostTab(v)}
+            style={{flex:1,padding:"5px 0",border:"none",background:costTab===v?G:"#fff",
+              color:costTab===v?"#fff":"#888",fontWeight:costTab===v?700:400,
+              fontSize:".68rem",cursor:"pointer",fontFamily:"inherit"}}>{l}</button>
+        ))}
+      </div>
+
+      {/* ソート */}
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+        <span style={{fontSize:".7rem",color:TX3}}>{viewList.length}件</span>
+        <div style={{display:"flex",gap:4,alignItems:"center"}}>
+          <span style={{fontSize:".68rem",color:TX3}}>並び替え</span>
+          <select value={sortKey} onChange={e=>setSortKey(e.target.value)} style={{...S.inp,width:"auto",padding:"2px 6px",fontSize:".72rem"}}>
+            {[["date","日付"],["amt","金額"],["cat","カテゴリ"]].map(([v,l])=><option key={v} value={v}>{l}</option>)}
+          </select>
+        </div>
+      </div>
+
+      {/* 取引一覧（会計ソフト形式） */}
+      <div style={{...S.card,padding:0,overflow:"hidden"}}>
+        {/* 列ヘッダー */}
+        <div style={{display:"grid",gridTemplateColumns:"72px 1fr 80px 72px",borderBottom:"2px solid #e0d9ce",background:"#f0ebe3",padding:"5px 8px"}}>
+          <div style={{fontSize:".64rem",color:"#5c3d1e",fontWeight:700}}>日付</div>
+          <div style={{fontSize:".64rem",color:"#5c3d1e",fontWeight:700}}>内容・品目</div>
+          <div style={{fontSize:".64rem",color:"#5c3d1e",fontWeight:700,textAlign:"right"}}>金額（円）</div>
+          <div style={{fontSize:".64rem",color:"#5c3d1e",fontWeight:700,textAlign:"center"}}>操作</div>
+        </div>
+        {viewList.length===0&&<div style={{color:"#aaa",fontSize:".78rem",textAlign:"center",padding:"20px 0"}}>取引がありません</div>}
+        {viewList.map((c,i)=>{
+          const inc = isIncome(c.cat);
+          const cat = inc
+            ? INCOME_CATS.find(x=>x.value===c.cat)||{label:"収入",value:"inc"}
+            : COST_CATS.find(x=>x.value===c.cat)||{label:"費用",value:"other"};
+          const cr=crops.find(x=>x.id===c.cropId);
+          const crName=cr?getCropName(cr):"";
+          const isCancelled = c.cancelled;
+          const isCard = c.payMethod&&cards&&cards.some&&cards.some(cd=>cd.name===c.payMethod);
+          const bg = isCancelled?"#F5F5F5":i%2===0?"#FFFFFF":"#FAFAFA";
           return (
-            <div key={c.id||i} style={{display:"flex",alignItems:"center",gap:6,padding:"7px 0",borderBottom:"1px solid #f6f3ec",cursor:"pointer"}}
-              onClick={()=>{const _i=costs.findIndex(x=>x.id===c.id);setMCost({...c,_idx:_i});}}>
-              <div style={{minWidth:52,fontSize:".66rem",color:TX3}}>{c.date?fmtMD(c.date):""}</div>
-              <Tag type={cat?.tag||"gray"}>{cat?.label||c.cat}</Tag>
-              <div style={{flex:1,fontSize:".78rem",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
-                {c.name}
-                {c.cropId&&<span style={{fontSize:".64rem",color:TX3,marginLeft:4}}>{cropName(c.cropId)}</span>}
+            <div key={c.id} onClick={()=>setMCost({...c})}
+              style={{display:"grid",gridTemplateColumns:"72px 1fr 80px 72px",
+                padding:"7px 8px",borderBottom:"1px solid #f0ebe3",
+                background:bg,cursor:"pointer",
+                opacity:isCancelled?0.5:1}}>
+              {/* 日付 */}
+              <div>
+                <div style={{fontSize:".68rem",color:"#5c3d1e"}}>{c.date?c.date.slice(5).replace("-","/"):"-"}</div>
+                {isCard&&<div style={{fontSize:".58rem",color:"#1565C0"}}>💳</div>}
               </div>
-              <div style={{fontWeight:700,fontSize:".82rem",color:ALERT,flexShrink:0}}>{(parseFloat(c.amt)||0).toLocaleString()}円</div>
+              {/* 内容 */}
+              <div>
+                <div style={{display:"flex",gap:4,alignItems:"center",marginBottom:2}}>
+                  <span style={{fontSize:".6rem",background:inc?"#E8F5E9":"#FFF3E0",
+                    color:inc?"#2E7D32":"#E65100",borderRadius:3,padding:"0 4px",fontWeight:700,flexShrink:0}}>
+                    {cat.label.split(" ")[0]}
+                  </span>
+                  {isCancelled&&<span style={{fontSize:".6rem",background:"#EEE",color:"#999",borderRadius:3,padding:"0 4px"}}>取消</span>}
+                </div>
+                <div style={{fontSize:".74rem",fontWeight:700,color:isCancelled?"#999":"#1c1a14",
+                  overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.name||"（内容なし）"}</div>
+                {crName&&<div style={{fontSize:".62rem",color:TX3}}>{crName}</div>}
+                {c.payDate&&<div style={{fontSize:".58rem",color:"#1565C0"}}>引落：{c.payDate.slice(5).replace("-","/")}</div>}
+              </div>
+              {/* 金額 */}
+              <div style={{textAlign:"right"}}>
+                <div style={{fontSize:".82rem",fontWeight:700,
+                  color:isCancelled?"#999":inc?"#1B5E20":"#B71C1C",
+                  textDecoration:isCancelled?"line-through":"none"}}>
+                  {inc?"+":"-"}{Math.round(parseFloat(c.amt)||0).toLocaleString()}
+                </div>
+              </div>
+              {/* 操作 */}
+              <div style={{display:"flex",flexDirection:"column",gap:2,alignItems:"center"}}>
+                <button onClick={e=>{e.stopPropagation();setMCost({...c});}}
+                  style={{fontSize:".58rem",border:"none",background:"#E3F2FD",color:"#1565C0",
+                    borderRadius:4,padding:"2px 6px",cursor:"pointer"}}>編集</button>
+                {!isCancelled
+                  ? <button onClick={e=>{e.stopPropagation();
+                      if(window.confirm("この取引を取り消しますか？（記録は残ります）")){
+                        const updated={...c,cancelled:true};
+                        setCosts(costs.map(x=>x.id===c.id?updated:x),updated);
+                        showToast("取り消しました");
+                      }}}
+                    style={{fontSize:".58rem",border:"none",background:"#FFF3E0",color:"#E65100",
+                      borderRadius:4,padding:"2px 6px",cursor:"pointer"}}>取消</button>
+                  : <button onClick={e=>{e.stopPropagation();
+                      if(window.confirm("取り消しを復活させますか？")){
+                        const updated={...c,cancelled:false};
+                        setCosts(costs.map(x=>x.id===c.id?updated:x),updated);
+                        showToast("復活しました");
+                      }}}
+                    style={{fontSize:".58rem",border:"none",background:"#E8F5E9",color:"#2E7D32",
+                      borderRadius:4,padding:"2px 6px",cursor:"pointer"}}>復活</button>}
+              </div>
             </div>
           );
         })}
       </div>
 
-      {/* 費用編集モーダル */}
-      {mCost&&<ModalWithSave open={!!mCost} title={mCost.id?"費用を編集":"費用を追加"} onSave={sv} onClose={()=>setMCost(null)}>
-        <FG label="カテゴリ"><Sel value={mCost.cat} onChange={v=>setMCost({...mCost,cat:v})} options={(isIncome(mCost.cat)?INCOME_CATS:COST_CATS).map(c=>({value:c.value,label:c.label}))}/></FG>
-        <FG label="品名 *"><Inp value={mCost.name} onChange={v=>setMCost({...mCost,name:v})} placeholder="例：苦土石灰 20kg"/></FG>
-        <R2>
-          <FG label="金額（円）"><Inp type="number" value={mCost.amt} onChange={v=>setMCost({...mCost,amt:v})} placeholder="0"/></FG>
-          <FG label="日付"><Inp type="date" value={mCost.date} onChange={v=>setMCost({...mCost,date:v})}/></FG>
-        </R2>
-        <R2>
-          <FG label="数量"><Inp type="number" value={mCost.qty} onChange={v=>setMCost({...mCost,qty:v})} placeholder="1"/></FG>
-          <FG label="単位"><Inp value={mCost.qunit} onChange={v=>setMCost({...mCost,qunit:v})} placeholder="個"/></FG>
-        </R2>
-        <FG label="品目（任意）">
-          <Sel value={mCost.cropId||""} onChange={v=>setMCost({...mCost,cropId:v})}
-            options={[{value:"",label:"共通（品目割当なし）"},...crops.filter(c=>!c.ended).map(c=>{const db=CDB[c.type]||{};const nm=getCropName(c);return{value:c.id,label:(db.e||"🌱")+" "+nm+(c.variety?" ("+c.variety+")":"")};})]}/></FG>
-        <FG label="メモ"><Inp value={mCost.note||""} onChange={v=>setMCost({...mCost,note:v})} placeholder="購入先など"/>
-        </FG>
-        <FG label="支払方法">
-          <Sel value={mCost.payMethod||"現金"} onChange={v=>{
-            const cd=cards.find(c=>c.name===v);
-            const pd=v.startsWith("カード")&&cd&&calcPayDate?calcPayDate(mCost.date,cd):"";
-            setMCost({...mCost,payMethod:v,payDate:pd});
-          }} options={[{value:"現金",label:"💴 現金"},{value:"振込",label:"🏦 銀行振込"},...cards.map(c=>({value:c.name,label:"💳 "+c.name}))]}/>
-        </FG>
-        {(mCost.payMethod||"現金").startsWith("カード")&&<>
-          <FG label="引き落とし予定日">
-            <Inp type="date" value={mCost.payDate||""} onChange={v=>setMCost({...mCost,payDate:v})}/>
-          </FG>
-          {mCost.payDate&&<div style={{fontSize:".72rem",color:"#1565C0",background:"#E3F2FD",borderRadius:8,padding:"6px 10px",marginBottom:6}}>
-            💳 {mCost.payMethod}　引き落とし予定：{mCost.payDate}
-          </div>}
+      {/* 入力/編集モーダル */}
+      <ModalWithSave open={!!mCost} title={mCost?.id?(isIncome(mCost.cat)?"収入を編集":"費用を編集"):(isIncome(mCost?.cat)?"収入を追加":"費用を追加")}
+        onSave={sv} onClose={()=>setMCost(null)}>
+        {mCost&&<>
+          <div style={{display:"flex",gap:6,marginBottom:8}}>
+            {[["expense","💰 費用"],["income","💵 収入"]].map(([v,l])=>(
+              <button key={v} onClick={()=>setMCost({...mCost,cat:v==="income"?"inc_crop":"equip"})}
+                style={{flex:1,padding:"6px 0",border:"2px solid",
+                  borderColor:(isIncome(mCost.cat)===(v==="income"))?"#2D6A3F":"#e0d9ce",
+                  background:isIncome(mCost.cat)===(v==="income")?"#E8F5E9":"#fff",
+                  color:isIncome(mCost.cat)===(v==="income")?"#1B5E20":"#888",
+                  borderRadius:8,fontWeight:isIncome(mCost.cat)===(v==="income")?700:400,
+                  cursor:"pointer",fontFamily:"inherit",fontSize:".8rem"}}>{l}</button>
+            ))}
+          </div>
+          <R2>
+            <FG label="カテゴリ">
+              <Sel value={mCost.cat} onChange={v=>setMCost({...mCost,cat:v})}
+                options={(isIncome(mCost.cat)?INCOME_CATS:COST_CATS).map(c=>({value:c.value,label:c.label}))}/>
+            </FG>
+            <FG label="金額（円）">
+              <Inp type="number" value={mCost.amt} onChange={v=>setMCost({...mCost,amt:v})} placeholder="例：5000"/>
+            </FG>
+          </R2>
+          <FG label="内容・品名"><Inp value={mCost.name||""} onChange={v=>setMCost({...mCost,name:v})} placeholder="例：トマト苗/肥料/農産物売上"/></FG>
+          <R2>
+            <FG label="日付"><Inp type="date" value={mCost.date||todayStr()} onChange={v=>setMCost({...mCost,date:v})}/></FG>
+            <FG label="品目（任意）">
+              <Sel value={mCost.cropId||""} onChange={v=>setMCost({...mCost,cropId:v})}
+                options={[{value:"",label:"共通（品目割当なし）"},...crops.filter(c=>!c.ended).map(c=>{return{value:c.id,label:getCropDisplayName(c)};})]}/>
+            </FG>
+          </R2>
+          {!isIncome(mCost.cat)&&<>
+            <FG label="支払方法">
+              <Sel value={mCost.payMethod||"現金"} onChange={v=>{
+                const cd=cards.find(c=>c.name===v);
+                const pd=v.startsWith("カード")||cards.some(c=>c.name===v)&&cd?calcPayDate&&calcPayDate(mCost.date,cd):"";
+                setMCost({...mCost,payMethod:v,payDate:pd||mCost.payDate||""});
+              }} options={[{value:"現金",label:"💴 現金"},{value:"振込",label:"🏦 銀行振込"},...(cards||[]).map(c=>({value:c.name,label:"💳 "+c.name}))]}/>
+            </FG>
+            {(mCost.payMethod&&(cards||[]).some(c=>c.name===mCost.payMethod))&&<>
+              <FG label="引き落とし予定日">
+                <Inp type="date" value={mCost.payDate||""} onChange={v=>setMCost({...mCost,payDate:v})}/>
+              </FG>
+              {mCost.payDate&&<div style={{fontSize:".72rem",color:"#1565C0",background:"#E3F2FD",borderRadius:8,padding:"6px 10px",marginBottom:6}}>
+                💳 {mCost.payMethod}　引き落とし予定：{mCost.payDate}
+              </div>}
+            </>}
+          </>}
+          <FG label="メモ"><Inp value={mCost.note||""} onChange={v=>setMCost({...mCost,note:v})} placeholder="購入先・領収書番号など"/></FG>
+          {mCost.id&&<button onClick={()=>{if(window.confirm("削除しますか？")){const n=costs.filter(x=>x.id!==mCost.id);setCosts(n);setMCost(null);showToast("削除しました");}}} style={{...S.btn,...S.btnR,marginTop:8}}>削除</button>}
         </>}
-        {mCost.id&&costs.find(x=>x.id===mCost.id)&&<button onClick={()=>{if(!window.confirm("削除しますか?"))return;const n=costs.filter(x=>x.id!==mCost.id);setCosts(n);setMCost(null);showToast("削除しました");}} style={{...S.btn,...S.btnR,marginTop:8}}>削除</button>}
-      </ModalWithSave>}
+      </ModalWithSave>
     </div>
   );
 }
+
 
 function PlanScreen({ fields, crops, setCrops, plots, setPlots, setPlotsR, showToast, setScr }) {
   const [selFieldIdx, setSelFieldIdx] = useState(0);
