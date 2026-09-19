@@ -1238,7 +1238,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.56</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.57</div>
       </div>
     </div>
   );
@@ -3861,7 +3861,8 @@ function CostScreen({ fields, crops, fertMs, pestMs, equips, costs, setCosts, lo
 function PlanScreen({ fields, crops, setCrops, plots, setPlots, setPlotsR, showToast, setScr }) {
   const [selFieldIdx, setSelFieldIdx] = useState(0);
   const [year, setYear] = useState(new Date().getFullYear());
-  const [mPlant, setMPlant] = useState(null);  // 作付け編集モーダル
+  const [mPlant, setMPlant] = useState(null);
+  const [mBed,   setMBed]   = useState(null); // 区画編集（前作登録）  // 作付け編集モーダル
   const [drag, setDrag] = useState(null);     // ドラッグ中 {id, mode:"move"|"start"|"end", startX, origPlant, origHarvest}
   const [history,    setHistory]    = useState([]);   // undo/redo 履歴
   const [historyIdx, setHistoryIdx] = useState(-1);  // 現在の履歴位置
@@ -4115,34 +4116,55 @@ function PlanScreen({ fields, crops, setCrops, plots, setPlots, setPlotsR, showT
     const warns=[];
     if(!plan) return warns;
     (plan.beds||[]).forEach(bed=>{
-      const items=(plan.plantings||[]).filter(p=>p.bedId===bed.id&&p.plantDate)
+      const plantings=(plan.plantings||[]).filter(p=>p.bedId===bed.id&&p.plantDate)
         .map(p=>{const c=crops.find(x=>x.id===p.cropId);return{...p,crop:c,fam:c?FAMILY_DB[c.type]:null,rot:c?ROTATION_DB[c.type]:null};})
         .sort((a,b)=>a.plantDate.localeCompare(b.plantDate));
-      for(let i=0;i<items.length;i++){
+
+      // ── A: 登録済み前作 vs 現在の作付け ──
+      (bed.prevCrops||[]).forEach(prev=>{
+        const prevFam = FAMILY_DB[prev.type]||null;
+        const prevRot = ROTATION_DB[prev.type]||null;
+        if(!prevFam||!prevRot||prevRot.years<=0) return;
+        const prevEnd = prev.harvestDate || prev.plantDate || "";
+        plantings.forEach(cur=>{
+          if(!cur.fam) return;
+          const sameFam = cur.fam===prevFam;
+          const prevNgCur = prevRot?.ng?.includes(cur.fam);
+          if(!sameFam && !prevNgCur) return;
+          if(!cur.plantDate||!prevEnd) return;
+          const gapYears=(new Date(cur.plantDate)-new Date(prevEnd))/(86400000*365);
+          if(gapYears<0) return; // 前作の方が後なら無視
+          const needYears=prevRot.years;
+          if(gapYears<needYears){
+            const shortYears=Math.round((needYears-gapYears)*10)/10;
+            const prevLabel=(CDB[prev.type]?.n||prev.type)+(prev.variety?" ("+prev.variety+")":"");
+            warns.push({bed:bed.name, cur:cropFull(cur.crop), past:prevLabel,
+              fam:prevFam, years:needYears, gap:Math.floor(gapYears*10)/10, short:shortYears,
+              isPrevCrop:true});
+          }
+        });
+      });
+
+      // ── B: 現在の作付け同士（混植は除外）──
+      for(let i=0;i<plantings.length;i++){
         for(let j=0;j<i;j++){
-          const cur=items[i], past=items[j];
-          if(!cur.fam||!past.fam)continue;
-          // 混植チェック：期間が重なっている場合は混植なので警告しない
+          const cur=plantings[i], past=plantings[j];
+          if(!cur.fam||!past.fam) continue;
           const curEnd=cur.harvestDate||cur.plantDate;
           const pastEnd=past.harvestDate||past.plantDate;
           const overlap=cur.plantDate<=pastEnd && past.plantDate<=curEnd;
           if(overlap) continue;
-          // 前作(past)が後作(cur)に影響するか：同じ科かどうか確認
-          // 必要な空き年数は「前作の連作回避年数（past.rot.years）」が正しい
-          const pastRot=past.rot;
-          const curRot=cur.rot;
-          // どちらかのrotがあり、同じ科 or NGリストに含まれる場合
-          const sameFam = cur.fam===past.fam;
-          const pastNgCur = pastRot?.ng?.includes(cur.fam);
-          const curNgPast = curRot?.ng?.includes(past.fam);
-          if(!sameFam && !pastNgCur && !curNgPast) continue;
-          // 必要年数：前作の連作回避年数を優先、なければ後作の年数
-          const needYears = pastRot?.years>0 ? pastRot.years : (curRot?.years||0);
+          const sameFam=cur.fam===past.fam;
+          const pastNgCur=past.rot?.ng?.includes(cur.fam);
+          const curNgPast=cur.rot?.ng?.includes(past.fam);
+          if(!sameFam&&!pastNgCur&&!curNgPast) continue;
+          const needYears=past.rot?.years>0?past.rot.years:(cur.rot?.years||0);
           if(needYears<=0) continue;
           const gapYears=(new Date(cur.plantDate)-new Date(past.plantDate))/(86400000*365);
           if(gapYears<needYears){
             const shortYears=Math.round((needYears-gapYears)*10)/10;
-            warns.push({bed:bed.name, cur:cropFull(cur.crop), past:cropFull(past.crop), fam:past.fam, years:needYears, gap:Math.floor(gapYears*10)/10, short:shortYears, curCrop:cur.crop});
+            warns.push({bed:bed.name, cur:cropFull(cur.crop), past:cropFull(past.crop),
+              fam:past.fam, years:needYears, gap:Math.floor(gapYears*10)/10, short:shortYears});
           }
         }
       }
@@ -4290,7 +4312,10 @@ function PlanScreen({ fields, crops, setCrops, plots, setPlots, setPlotsR, showT
                   <div key={bed.id} style={{display:"flex",borderBottom:"1px solid #f0ebe3",minHeight:rowH}}>
                     {/* 区画ラベル（固定） */}
                     <div style={{width:LABEL_W,flexShrink:0,fontSize:".7rem",display:"flex",flexDirection:"column",justifyContent:"center",padding:"4px 4px",borderRight:"2px solid #e0d9ce",background:"#f8f5ef",position:"sticky",left:0,zIndex:5}}>
-                      <span onClick={()=>renameBed(bed.id)} style={{fontWeight:700,cursor:"pointer",color:"#5c3d1e",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{bed.name}</span>
+                      <div style={{display:"flex",alignItems:"center",gap:4,flexWrap:"wrap"}}>
+                      <span onClick={()=>setMBed({...bed, prevCrops:bed.prevCrops||[]})} style={{fontWeight:700,cursor:"pointer",color:"#5c3d1e",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{bed.name}</span>
+                      {(bed.prevCrops||[]).length>0&&<span style={{fontSize:".55rem",background:"#E8F5E9",color:"#2E7D32",borderRadius:3,padding:"1px 4px",flexShrink:0}}>前作{(bed.prevCrops||[]).length}件</span>}
+                    </div>
                       <div style={{display:"flex",gap:2,marginTop:2}}>
                         <button onClick={()=>setMPlant({bedId:bed.id,cropId:"",plantDate:"",harvestDate:"",year})} style={{fontSize:".58rem",border:"none",background:G3,color:G,borderRadius:4,padding:"1px 4px",cursor:"pointer"}}>＋</button>
                         <button onClick={()=>deleteBed(bed.id)} style={{fontSize:".58rem",border:"none",background:"#fee2e2",color:"#b91c1c",borderRadius:4,padding:"1px 4px",cursor:"pointer"}}>×</button>
@@ -4364,6 +4389,53 @@ function PlanScreen({ fields, crops, setCrops, plots, setPlots, setPlotsR, showT
           });
         })()}
       </div>
+
+      {/* 区画編集モーダル（前作登録） */}
+      <ModalWithSave open={!!mBed} title={"区画："+( mBed?.name||"")} onClose={()=>setMBed(null)}
+        onSave={()=>{
+          const beds=(plan.beds||[]).map(b=>b.id===mBed.id?{...mBed}:b);
+          savePlan({...plan,beds});
+          setMBed(null);
+          showToast("区画情報を保存しました");
+        }}>
+        {mBed&&<>
+          <FG label="区画名">
+            <Inp value={mBed.name||""} onChange={v=>setMBed({...mBed,name:v})}/>
+          </FG>
+          <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".82rem",color:"#5c3d1e",margin:"10px 0 6px"}}>
+            🌱 前作の登録（連作チェックに使用）
+          </div>
+          <div style={{fontSize:".72rem",color:"#6b7280",marginBottom:8}}>
+            この区画で以前に栽培した作物を登録すると、連作注意を確認できます
+          </div>
+          {(mBed.prevCrops||[]).map((pc,pi)=>(
+            <div key={pi} style={{background:"#f6f3ec",borderRadius:8,padding:"8px 10px",marginBottom:6}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+                <span style={{fontSize:".74rem",fontWeight:700}}>前作 {pi+1}</span>
+                <button onClick={()=>setMBed({...mBed,prevCrops:mBed.prevCrops.filter((_,i)=>i!==pi)})}
+                  style={{...S.btn,...S.btnR,...S.btnSm,fontSize:".65rem"}}>削除</button>
+              </div>
+              <R2>
+                <FG label="品目">
+                  <Sel value={pc.type||""} onChange={v=>setMBed({...mBed,prevCrops:mBed.prevCrops.map((x,i)=>i===pi?{...x,type:v}:x)})}
+                    options={[{value:"",label:"（選択）"},...Object.entries(CDB).map(([k,v2])=>({value:k,label:(v2.e||"🌱")+" "+(v2.n||k)}))]}/>
+                </FG>
+                <FG label="品種（任意）">
+                  <Inp value={pc.variety||""} onChange={v=>setMBed({...mBed,prevCrops:mBed.prevCrops.map((x,i)=>i===pi?{...x,variety:v}:x)})}
+                    placeholder="例：桃太郎"/>
+                </FG>
+              </R2>
+              <FG label="収穫（終了）年月日">
+                <Inp type="date" value={pc.harvestDate||""} onChange={v=>setMBed({...mBed,prevCrops:mBed.prevCrops.map((x,i)=>i===pi?{...x,harvestDate:v}:x)})}/>
+              </FG>
+            </div>
+          ))}
+          <button style={{...S.btn,...S.btnS,width:"100%"}}
+            onClick={()=>setMBed({...mBed,prevCrops:[...(mBed.prevCrops||[]),{type:"",variety:"",harvestDate:""}]})}>
+            ＋ 前作を追加
+          </button>
+        </>}
+      </ModalWithSave>
 
       {/* 作付け編集モーダル */}
       <ModalWithSave open={!!mPlant} onClose={()=>setMPlant(null)} title={mPlant?.id?"作付けを編集":"作付けを追加"} onSave={savePlanting}>
