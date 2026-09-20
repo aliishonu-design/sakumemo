@@ -633,18 +633,31 @@ const WORK = {
     other:{label:'その他',tag:'gray',icon:'📝'},
   };
 const COST_CATS = [
-  { value:"seed",  label:"🌱 種・苗" },
-  { value:"fert",  label:"🌿 肥料・土壌改良材" },
-  { value:"pest",  label:"🐛 農薬" },
-  { value:"equip", label:"🏗️ 資材・設備" },
-  { value:"labor", label:"👷 労務費" },
-  { value:"other", label:"📦 その他" },
+  // 農業経営の主要費目（青色申告帳簿に対応）
+  { value:"seed",      label:"🌱 種苗費",           group:"農業費用" },
+  { value:"fert",      label:"🌿 肥料費",            group:"農業費用" },
+  { value:"pest",      label:"🐛 農薬衛生費",        group:"農業費用" },
+  { value:"equip",     label:"🏗️ 農具・資材費",      group:"農業費用" },
+  { value:"machine",   label:"🚜 農機具費（修繕含む）",group:"農業費用" },
+  { value:"land",      label:"🌾 作付地賃借料",      group:"農業費用" },
+  { value:"labor",     label:"👷 雇用労務費",        group:"農業費用" },
+  { value:"fuel",      label:"⛽ 燃料費",            group:"農業費用" },
+  { value:"water",     label:"💧 水道光熱費",        group:"農業費用" },
+  { value:"transport", label:"🚚 荷造運賃",          group:"農業費用" },
+  { value:"sales",     label:"🏪 販売費・手数料",    group:"農業費用" },
+  { value:"research",  label:"📚 研修・図書費",      group:"農業費用" },
+  { value:"comms",     label:"📞 通信費",            group:"農業費用" },
+  { value:"insurance", label:"🛡️ 農業保険料",        group:"農業費用" },
+  { value:"deprec",    label:"📉 減価償却費",        group:"農業費用" },
+  { value:"other",     label:"📦 その他農業費用",    group:"農業費用" },
 ];
 const INCOME_CATS = [
-  { value:"inc_crop",  label:"🌾 農産物売上" },
-  { value:"inc_misc",  label:"🌿 農業雑収入" },
-  { value:"inc_subsidy",label:"💴 補助金・交付金" },
-  { value:"inc_other", label:"📦 その他収入" },
+  { value:"inc_crop",    label:"🌾 農産物売上",      group:"農業収入" },
+  { value:"inc_direct",  label:"🤝 直売・直販",      group:"農業収入" },
+  { value:"inc_process", label:"🍱 加工品売上",      group:"農業収入" },
+  { value:"inc_misc",    label:"🌿 農業雑収入",      group:"農業収入" },
+  { value:"inc_subsidy", label:"💴 補助金・交付金",  group:"農業収入" },
+  { value:"inc_other",   label:"📦 その他収入",      group:"農業収入" },
 ];
 const isIncome = (cat) => cat && cat.startsWith("inc_");
 // 品目表示名ヘルパー（カスタム品目対応）
@@ -4037,9 +4050,10 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
       <ModalWithSave open={!!mCost} title={mCost?.id?(isIncome(mCost.cat)?"収入を編集":"費用を編集"):(isIncome(mCost?.cat)?"収入を追加":"費用を追加")}
         onSave={sv} onClose={()=>setMCost(null)}>
         {mCost&&<>
-          <div style={{display:"flex",gap:6,marginBottom:8}}>
+          {/* 費用／収入 切り替え */}
+          <div style={{display:"flex",gap:6,marginBottom:10}}>
             {[["expense","💰 費用"],["income","💵 収入"]].map(([v,l])=>(
-              <button key={v} onClick={()=>setMCost({...mCost,cat:v==="income"?"inc_crop":"equip"})}
+              <button key={v} onClick={()=>setMCost({...mCost,cat:v==="income"?"inc_crop":"seed"})}
                 style={{flex:1,padding:"6px 0",border:"2px solid",
                   borderColor:(isIncome(mCost.cat)===(v==="income"))?"#2D6A3F":"#e0d9ce",
                   background:isIncome(mCost.cat)===(v==="income")?"#E8F5E9":"#fff",
@@ -4048,18 +4062,30 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
                   cursor:"pointer",fontFamily:"inherit",fontSize:".8rem"}}>{l}</button>
             ))}
           </div>
-          <R2>
-            <FG label="カテゴリ">
-              <Sel value={mCost.cat} onChange={v=>setMCost({...mCost,cat:v})}
-                options={(isIncome(mCost.cat)?INCOME_CATS:COST_CATS).map(c=>({value:c.value,label:c.label}))}/>
-            </FG>
-            <FG label="金額（円）">
-              <Inp type="number" value={mCost.amt} onChange={v=>setMCost({...mCost,amt:v})} placeholder="例：5000"/>
-            </FG>
-          </R2>
+          {/* 費目ボタングリッド */}
+          <FG label="費目">
+            <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
+              {(isIncome(mCost.cat)?INCOME_CATS:COST_CATS).map(cat=>(
+                <button key={cat.value} onClick={()=>setMCost({...mCost,cat:cat.value})}
+                  style={{padding:"5px 9px",border:"1.5px solid",borderRadius:20,fontSize:".72rem",cursor:"pointer",fontFamily:"inherit",fontWeight:mCost.cat===cat.value?700:400,
+                    borderColor:mCost.cat===cat.value?(isIncome(cat.value)?"#2D6A3F":"#5c3d1e"):"#ddd",
+                    background:mCost.cat===cat.value?(isIncome(cat.value)?"#E8F5E9":"#f5f0e8"):"#fff",
+                    color:mCost.cat===cat.value?(isIncome(cat.value)?"#1B5E20":"#5c3d1e"):"#666"}}>
+                  {cat.label}
+                </button>
+              ))}
+            </div>
+          </FG>
+          <FG label="金額（円）">
+            <Inp type="number" value={mCost.amt} onChange={v=>setMCost({...mCost,amt:v})} placeholder="例：5000"/>
+          </FG>
           <FG label="内容・品名"><Inp value={mCost.name||""} onChange={v=>setMCost({...mCost,name:v})} placeholder="例：トマト苗/肥料/農産物売上"/></FG>
           <R2>
-            <FG label="日付"><Inp type="date" value={mCost.date||todayStr()} onChange={v=>setMCost({...mCost,date:v})}/></FG>
+            <FG label="日付"><Inp type="date" value={mCost.date||todayStr()} onChange={v=>{
+              const cd=cards.find(c=>c.name===mCost.payMethod);
+              const pd=cd&&calcPayDate?calcPayDate(v,cd):"";
+              setMCost({...mCost,date:v,payDate:pd||mCost.payDate||""});
+            }}/></FG>
             <FG label="品目（任意）">
               <Sel value={mCost.cropId||""} onChange={v=>setMCost({...mCost,cropId:v})}
                 options={makeCropOptions(crops.filter(c=>!c.ended),"共通（品目割当なし）")}/>
@@ -4069,8 +4095,8 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
             <FG label="支払方法">
               <Sel value={mCost.payMethod||"現金"} onChange={v=>{
                 const cd=cards.find(c=>c.name===v);
-                const pd=v.startsWith("カード")||cards.some(c=>c.name===v)&&cd?calcPayDate&&calcPayDate(mCost.date,cd):"";
-                setMCost({...mCost,payMethod:v,payDate:pd||mCost.payDate||""});
+                const pd=cd?calcPayDate&&calcPayDate(mCost.date,cd):"";
+                setMCost({...mCost,payMethod:v,payDate:pd||""});
               }} options={[{value:"現金",label:"💴 現金"},{value:"振込",label:"🏦 銀行振込"},...(cards||[]).map(c=>({value:c.name,label:"💳 "+c.name}))]}/>
             </FG>
             {(mCost.payMethod&&(cards||[]).some(c=>c.name===mCost.payMethod))&&<>
@@ -5425,44 +5451,108 @@ function SettingsScreen({ showToast, user, uid, signOut, fields, crops, logs, fe
       <div style={S.card}>
         <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".82rem",color:"#5c3d1e",marginBottom:10}}>💳 クレジットカード設定</div>
         <div style={{fontSize:".72rem",color:"#6b7280",marginBottom:8}}>費用入力時の支払方法に表示されます。締め日・引き落とし日を設定すると引き落とし予定日が自動計算されます。</div>
-        {cards.map((card,ci)=>(
-          <div key={card.id} style={{background:"#f6f3ec",borderRadius:10,padding:"10px 12px",marginBottom:8}}>
-            <div style={{display:"flex",gap:6,alignItems:"center",marginBottom:6}}>
-              <span style={{fontSize:".8rem",fontWeight:700,flex:1}}>💳 {card.name}</span>
+        {cards.map((card,ci)=>{
+          const closeDayV = parseInt(card.closeDay)||31;
+          const payDayV   = parseInt(card.payDay)||27;
+          const closeDayLabel = closeDayV>=28?"月末":closeDayV+"日";
+          const payDayLabel   = payDayV>=28?"月末":payDayV+"日";
+          const avoidWknd = card.avoidWeekend !== false;
+          return (
+          <div key={card.id} style={{background:"#f6f3ec",borderRadius:12,padding:"12px 14px",marginBottom:10,boxShadow:"0 1px 4px rgba(0,0,0,.06)"}}>
+            <div style={{display:"flex",gap:6,alignItems:"center",marginBottom:10}}>
+              <span style={{fontSize:".85rem",fontWeight:700,flex:1}}>💳 {card.name}</span>
               <button onClick={()=>{
                 if(!window.confirm(card.name+"を削除しますか？"))return;
                 setCards(cards.filter((_,i)=>i!==ci));
-              }} style={{...S.btn,...S.btnR,...S.btnSm,fontSize:".65rem"}}>削除</button>
+              }} style={{...S.btn,...S.btnR,...S.btnSm,fontSize:".65rem",padding:"4px 10px"}}>削除</button>
             </div>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:6}}>
-              <div>
-                <div style={{fontSize:".65rem",color:"#6b7280",marginBottom:2}}>カード名</div>
-                <input value={card.name} onChange={e=>setCards(cards.map((c,i)=>i===ci?{...c,name:e.target.value}:c))}
-                  style={{width:"100%",border:"1px solid #e0d9ce",borderRadius:6,padding:"4px 6px",fontSize:".78rem",fontFamily:"inherit",background:"#fff"}}/>
+            {/* カード名 */}
+            <div style={{marginBottom:10}}>
+              <div style={{fontSize:".68rem",color:"#6b7280",marginBottom:3}}>カード名</div>
+              <input value={card.name} onChange={e=>setCards(cards.map((c,i)=>i===ci?{...c,name:e.target.value}:c))}
+                style={{width:"100%",border:"1px solid #e0d9ce",borderRadius:8,padding:"8px 10px",fontSize:".88rem",fontFamily:"inherit",background:"#fff",boxSizing:"border-box"}}/>
+            </div>
+            {/* 締め日スライダー */}
+            <div style={{marginBottom:10}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3}}>
+                <div style={{fontSize:".68rem",color:"#6b7280"}}>締め日</div>
+                <div style={{fontSize:".82rem",fontWeight:700,color:"#5c3d1e"}}>{closeDayLabel}締め</div>
               </div>
-              <div>
-                <div style={{fontSize:".65rem",color:"#6b7280",marginBottom:2}}>締め日</div>
-                <input type="number" min="1" max="31" value={card.closeDay||31}
-                  onChange={e=>{const v=Math.min(31,Math.max(1,parseInt(e.target.value)||1));setCards(cards.map((c,i)=>i===ci?{...c,closeDay:v}:c));}}
-                  style={{width:"100%",border:"1px solid #e0d9ce",borderRadius:6,padding:"4px 6px",fontSize:".78rem",fontFamily:"inherit",background:"#fff",textAlign:"center"}}/>
-                <div style={{fontSize:".6rem",color:"#9ca3af",textAlign:"center"}}>{card.closeDay>=31?"月末":card.closeDay+"日締め"}</div>
+              <input type="range" min="1" max="31" value={closeDayV}
+                onChange={e=>setCards(cards.map((c,i)=>i===ci?{...c,closeDay:parseInt(e.target.value)}:c))}
+                style={{width:"100%",accentColor:"#8B6914"}}/>
+              <div style={{display:"flex",justifyContent:"space-between",fontSize:".6rem",color:"#9ca3af"}}>
+                <span>1日</span><span>10日</span><span>15日</span><span>20日</span><span>月末</span>
               </div>
-              <div>
-                <div style={{fontSize:".65rem",color:"#6b7280",marginBottom:2}}>引き落とし日</div>
-                <div style={{display:"flex",gap:3,alignItems:"center"}}>
-                  <select value={card.payNext||1} onChange={e=>setCards(cards.map((c,i)=>i===ci?{...c,payNext:parseInt(e.target.value)}:c))}
-                    style={{border:"1px solid #e0d9ce",borderRadius:6,padding:"4px 4px",fontSize:".72rem",fontFamily:"inherit",background:"#fff"}}>
-                    <option value={1}>翌月</option>
-                    <option value={2}>翌々月</option>
-                  </select>
-                  <input type="number" min="1" max="31" value={card.payDay||27}
-                    onChange={e=>{const v=Math.min(31,Math.max(1,parseInt(e.target.value)||1));setCards(cards.map((c,i)=>i===ci?{...c,payDay:v}:c));}}
-                    style={{flex:1,border:"1px solid #e0d9ce",borderRadius:6,padding:"4px 4px",fontSize:".72rem",fontFamily:"inherit",background:"#fff",textAlign:"center"}}/>
-                </div>
+              {/* タップで直接入力できる数字ボタン群 */}
+              <div style={{display:"flex",flexWrap:"wrap",gap:4,marginTop:6}}>
+                {[5,10,15,20,25,28,31].map(d=>(
+                  <button key={d} onClick={()=>setCards(cards.map((c,i)=>i===ci?{...c,closeDay:d}:c))}
+                    style={{padding:"4px 8px",borderRadius:6,border:"1px solid",fontSize:".72rem",cursor:"pointer",
+                      borderColor:closeDayV===d?"#8B6914":"#ddd",
+                      background:closeDayV===d?"#f5f0e8":"#fff",
+                      fontWeight:closeDayV===d?700:400,color:closeDayV===d?"#5c3d1e":"#666"}}>
+                    {d>=28?"月末":d+"日"}
+                  </button>
+                ))}
               </div>
+            </div>
+            {/* 支払タイミング */}
+            <div style={{marginBottom:10}}>
+              <div style={{fontSize:".68rem",color:"#6b7280",marginBottom:4}}>引き落としタイミング</div>
+              <div style={{display:"flex",gap:6,marginBottom:8}}>
+                {[{v:1,l:"翌月"},{v:2,l:"翌々月"}].map(({v,l})=>(
+                  <button key={v} onClick={()=>setCards(cards.map((c,i)=>i===ci?{...c,payNext:v}:c))}
+                    style={{flex:1,padding:"8px 4px",borderRadius:8,border:"1.5px solid",fontSize:".8rem",cursor:"pointer",
+                      borderColor:(card.payNext||1)===v?"#8B6914":"#ddd",
+                      background:(card.payNext||1)===v?"#f5f0e8":"#fff",
+                      fontWeight:(card.payNext||1)===v?700:400,color:(card.payNext||1)===v?"#5c3d1e":"#666"}}>
+                    {l}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {/* 引き落とし日スライダー */}
+            <div style={{marginBottom:10}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3}}>
+                <div style={{fontSize:".68rem",color:"#6b7280"}}>引き落とし日</div>
+                <div style={{fontSize:".82rem",fontWeight:700,color:"#5c3d1e"}}>{payDayLabel}</div>
+              </div>
+              <input type="range" min="1" max="31" value={payDayV}
+                onChange={e=>setCards(cards.map((c,i)=>i===ci?{...c,payDay:parseInt(e.target.value)}:c))}
+                style={{width:"100%",accentColor:"#8B6914"}}/>
+              <div style={{display:"flex",flexWrap:"wrap",gap:4,marginTop:6}}>
+                {[5,10,15,20,25,27,31].map(d=>(
+                  <button key={d} onClick={()=>setCards(cards.map((c,i)=>i===ci?{...c,payDay:d}:c))}
+                    style={{padding:"4px 8px",borderRadius:6,border:"1px solid",fontSize:".72rem",cursor:"pointer",
+                      borderColor:payDayV===d?"#8B6914":"#ddd",
+                      background:payDayV===d?"#f5f0e8":"#fff",
+                      fontWeight:payDayV===d?700:400,color:payDayV===d?"#5c3d1e":"#666"}}>
+                    {d>=28?"月末":d+"日"}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {/* 土日祝日→翌営業日 */}
+            <div style={{display:"flex",alignItems:"center",gap:8,background:avoidWknd?"#E8F5E9":"#f9f9f9",borderRadius:8,padding:"8px 10px"}}>
+              <div style={{flex:1}}>
+                <div style={{fontSize:".78rem",fontWeight:600,color:"#2E7D32"}}>📅 土日祝は翌営業日に</div>
+                <div style={{fontSize:".65rem",color:"#6b7280",marginTop:2}}>引き落とし日が土日・祝日の場合、次の平日に変更します</div>
+              </div>
+              <button onClick={()=>setCards(cards.map((c,i)=>i===ci?{...c,avoidWeekend:!avoidWknd}:c))}
+                style={{width:44,height:26,borderRadius:13,border:"none",cursor:"pointer",position:"relative",
+                  background:avoidWknd?"#4CAF50":"#ccc",transition:"background .2s"}}>
+                <div style={{position:"absolute",top:3,left:avoidWknd?21:3,width:20,height:20,borderRadius:"50%",background:"#fff",
+                  boxShadow:"0 1px 3px rgba(0,0,0,.3)",transition:"left .2s"}}/>
+              </button>
+            </div>
+            {/* 設定プレビュー */}
+            <div style={{marginTop:8,fontSize:".68rem",color:"#9ca3af",background:"#fff",borderRadius:6,padding:"6px 8px"}}>
+              例: {closeDayLabel}締め → {card.payNext===2?"翌々月":"翌月"}{payDayLabel}払い{avoidWknd?"（土日祝は翌営業日）":""}
             </div>
           </div>
-        ))}
+          );
+        })}
         <button onClick={()=>setCards([...cards,{id:Date.now()+"",name:"カード"+(cards.length+1),closeDay:31,payDay:27,payNext:1}])}
           style={{...S.btn,...S.btnS,width:"100%",marginTop:4}}>＋ カードを追加</button>
       </div>
@@ -5591,20 +5681,41 @@ export default function App() {
     setCardsState(arr);
     try{ localStorage.setItem('sakumemo_cards', JSON.stringify(arr)); }catch{}
   };
+  // 日本の祝日リスト（2024-2027年）
+  const JP_HOLIDAYS = new Set([
+    "2024-01-01","2024-01-08","2024-02-11","2024-02-12","2024-02-23","2024-03-20","2024-04-29","2024-05-03","2024-05-04","2024-05-05","2024-05-06","2024-07-15","2024-08-11","2024-08-12","2024-09-16","2024-09-22","2024-09-23","2024-10-14","2024-11-03","2024-11-04","2024-11-23",
+    "2025-01-01","2025-01-13","2025-02-11","2025-02-23","2025-02-24","2025-03-20","2025-04-29","2025-05-03","2025-05-04","2025-05-05","2025-05-06","2025-07-21","2025-08-11","2025-09-15","2025-09-23","2025-10-13","2025-11-03","2025-11-23","2025-11-24",
+    "2026-01-01","2026-01-12","2026-02-11","2026-02-23","2026-03-20","2026-04-29","2026-05-03","2026-05-04","2026-05-05","2026-05-06","2026-07-20","2026-08-11","2026-09-21","2026-09-22","2026-09-23","2026-10-12","2026-11-03","2026-11-23",
+    "2027-01-01","2027-01-11","2027-02-11","2027-02-23","2027-03-21","2027-03-22","2027-04-29","2027-05-03","2027-05-04","2027-05-05","2027-07-19","2027-08-11","2027-09-20","2027-09-23","2027-10-11","2027-11-03","2027-11-23",
+  ]);
+  const nextBusinessDay = (d) => {
+    let r = new Date(d);
+    while(r.getDay()===0 || r.getDay()===6 || JP_HOLIDAYS.has(r.toISOString().slice(0,10))) {
+      r = new Date(r.getTime() + 86400000);
+    }
+    return r;
+  };
   // カードの引き落とし予定日を計算
   const calcPayDate = (purchaseDate, card) => {
     if(!purchaseDate||!card) return "";
-    const d = new Date(purchaseDate);
+    const d = new Date(purchaseDate+"T00:00:00"); // タイムゾーン対策でローカル時刻として解釈
     const closeDay = parseInt(card.closeDay)||31;
     const payDay   = parseInt(card.payDay)||27;
     const payNext  = parseInt(card.payNext)||1; // 翌月=1, 翌々月=2
-    // 締め日を超えているか判定
+    const avoidWeekend = card.avoidWeekend !== false; // デフォルトtrue
+    // 購入月の締め日（月末締めは closeDay>=28 なら月末日）
+    const lastDayOfBuyMonth = new Date(d.getFullYear(), d.getMonth()+1, 0).getDate();
+    const closeActual = closeDay >= 28 ? lastDayOfBuyMonth : Math.min(closeDay, lastDayOfBuyMonth);
     const dayOfMonth = d.getDate();
-    const closeActual = Math.min(closeDay, new Date(d.getFullYear(), d.getMonth()+1, 0).getDate());
-    let payMonth = new Date(d.getFullYear(), d.getMonth() + payNext, 1);
-    if(dayOfMonth > closeActual) payMonth = new Date(d.getFullYear(), d.getMonth() + payNext + 1, 1);
-    const payActual = Math.min(payDay, new Date(payMonth.getFullYear(), payMonth.getMonth()+1, 0).getDate());
-    const result = new Date(payMonth.getFullYear(), payMonth.getMonth(), payActual);
+    // 締め日を超えていれば1サイクル後ろにずれる
+    let payMonthOffset = payNext;
+    if(dayOfMonth > closeActual) payMonthOffset = payNext + 1;
+    // 支払月の月末日を求める
+    const payMonthIdx = d.getMonth() + payMonthOffset; // 0起算（年をまたぐ場合もDateコンストラクタが補正）
+    const lastDayOfPayMonth = new Date(d.getFullYear(), payMonthIdx+1, 0).getDate();
+    const payActual = payDay >= 28 ? lastDayOfPayMonth : Math.min(payDay, lastDayOfPayMonth);
+    let result = new Date(d.getFullYear(), payMonthIdx, payActual);
+    if(avoidWeekend) result = nextBusinessDay(result);
     return result.toISOString().slice(0,10);
   };
   const [lb, setLb] = useState(null); // ライトボックス {photos:[], idx:0}
