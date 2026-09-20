@@ -660,6 +660,36 @@ const getCropName = (c) => {
   return c.type==="custom" ? (c.customName||"カスタム") : (db.n||c.type);
 };
 
+// 科の表示順（この順に並べる）
+const CAT_ORDER = ["イネ科","タデ科","ナス科","ウリ科","アブラナ科","マメ科","キク科","セリ科","ヒガンバナ科","ショウガ科","サトイモ科","バラ科","アカザ科","シソ科","ヤマノイモ科","その他"];
+// 品目リストを科でグループ化してソートするヘルパー
+const sortCropsByFamily = (cropList) => {
+  return [...cropList].sort((a, b) => {
+    const catA = (CDB[a.type]||{}).cat||"その他";
+    const catB = (CDB[b.type]||{}).cat||"その他";
+    const idxA = CAT_ORDER.indexOf(catA) >= 0 ? CAT_ORDER.indexOf(catA) : 999;
+    const idxB = CAT_ORDER.indexOf(catB) >= 0 ? CAT_ORDER.indexOf(catB) : 999;
+    if(idxA !== idxB) return idxA - idxB;
+    // 同じ科内はCDB定義順（＝登録順）を維持
+    return 0;
+  });
+};
+// 品目optionsを科グループ付きで生成するヘルパー
+const makeCropOptions = (cropList, emptyLabel="（選択）") => {
+  const sorted = sortCropsByFamily(cropList);
+  const opts = [{value:"",label:emptyLabel}];
+  let prevCat = null;
+  sorted.forEach(c => {
+    const cat = (CDB[c.type]||{}).cat||"その他";
+    if(cat !== prevCat) {
+      opts.push({value:"__header__"+cat, label:"── "+cat+" ──", disabled:true});
+      prevCat = cat;
+    }
+    opts.push({value:c.id, label:getCropDisplayName(c)});
+  });
+  return opts;
+};
+
 const WX_MAP = [[0,"☀️","快晴"],[3,"⛅","晴れ時々くもり"],[48,"🌫️","霧"],[67,"🌧️","雨"],[77,"❄️","雪"],[82,"🌦️","にわか雨"],[99,"⛈️","雷雨"]];
 const wxIcon  = c => { for(const [t,i] of WX_MAP) if(c<=t) return i; return "⛈️"; };
 const wxLabel = c => { for(const [t,,l] of WX_MAP) if(c<=t) return l; return "雷雨"; };
@@ -1487,7 +1517,7 @@ function HomeScreen({ fields, crops, setCrops, logs, setLogs, costs, onEditCrop,
         <FG label="タイトル *"><Inp value={mSched.title} onChange={v=>setMSched({...mSched,title:v})} placeholder="例：追肥・収穫など"/></FG>
         <FG label="予定日"><Inp type="date" value={mSched.date} onChange={v=>setMSched({...mSched,date:v})}/></FG>
         <FG label="品目（任意）"><Sel value={mSched.cropId||""} onChange={v=>setMSched({...mSched,cropId:v})}
-          options={[{value:"",label:"品目なし"},...crops.filter(c=>!c.ended).map(c=>{const db=CDB[c.type]||{};return{value:c.id,label:(db.e||"🌱")+" "+(db.n||c.type)+(c.variety?"("+c.variety+")":"")};})]}/>
+          options={makeCropOptions(crops.filter(c=>!c.ended),"品目なし")}/>
         </FG>
       </ModalWithSave>}
       {/* みんなのサクメモ */}
@@ -2768,7 +2798,7 @@ useEffect(()=>{
       <div style={S.card}>
         <R2>
           <FG label="圃場">{fields.length>0?<Sel value={fieldIdx} onChange={v=>{setFieldIdx(parseInt(v));setCropId("");}} options={fields.map((f,i)=>({value:i,label:f.name}))}/>:<div style={{color:TX3,fontSize:".82rem"}}>圃場を登録してください</div>}</FG>
-          <FG label="品目"><Sel value={cropId} onChange={setCropId} options={[{value:"",label:"（選択）"},...fieldCrops.filter(c=>!c.ended).map(c=>{const db=CDB[c.type]||{};return{value:c.id,label:getCropDisplayName(c)};})]} /></FG>
+          <FG label="品目"><Sel value={cropId} onChange={setCropId} options={makeCropOptions(fieldCrops.filter(c=>!c.ended))} /></FG>
         </R2>
         <FG label="作業内容">
           <div style={{fontSize:".7rem",color:"#888",marginBottom:4}}>💡 複数選択できます</div>
@@ -3811,7 +3841,7 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
       {/* 取引一覧（会計ソフト形式） */}
       <div style={{...S.card,padding:0,overflow:"hidden"}}>
         {/* 列ヘッダー */}
-        <div style={{display:"grid",gridTemplateColumns:"72px 1fr 80px 72px",borderBottom:"2px solid #e0d9ce",background:"#f0ebe3",padding:"5px 8px"}}>
+        <div style={{display:"grid",gridTemplateColumns:"72px 1fr 80px 80px",borderBottom:"2px solid #e0d9ce",background:"#f0ebe3",padding:"5px 8px"}}>
           <div style={{fontSize:".64rem",color:"#5c3d1e",fontWeight:700}}>日付</div>
           <div style={{fontSize:".64rem",color:"#5c3d1e",fontWeight:700}}>内容・品目</div>
           <div style={{fontSize:".64rem",color:"#5c3d1e",fontWeight:700,textAlign:"right"}}>金額（円）</div>
@@ -3830,7 +3860,7 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
           const bg = isCancelled?"#F5F5F5":i%2===0?"#FFFFFF":"#FAFAFA";
           return (
             <div key={c.id} onClick={()=>setMCost({...c})}
-              style={{display:"grid",gridTemplateColumns:"72px 1fr 80px 72px",
+              style={{display:"grid",gridTemplateColumns:"72px 1fr 80px 80px",
                 padding:"7px 8px",borderBottom:"1px solid #f0ebe3",
                 background:bg,cursor:"pointer",
                 opacity:isCancelled?0.5:1}}>
@@ -3866,6 +3896,9 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
                 <button onClick={e=>{e.stopPropagation();setMCost({...c});}}
                   style={{fontSize:".58rem",border:"none",background:"#E3F2FD",color:"#1565C0",
                     borderRadius:4,padding:"2px 6px",cursor:"pointer"}}>編集</button>
+                <button onClick={e=>{e.stopPropagation();setMCost({...c,id:undefined,date:todayStr(),cancelled:false,payDate:""});showToast("内容をコピーしました。日付を確認して保存してください");}}
+                  style={{fontSize:".58rem",border:"none",background:"#F3E5F5",color:"#6A1B9A",
+                    borderRadius:4,padding:"2px 6px",cursor:"pointer"}}>複製</button>
                 {!isCancelled
                   ? <button onClick={e=>{e.stopPropagation();
                       if(window.confirm("この取引を取り消しますか？（記録は残ります）")){
@@ -4049,7 +4082,7 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
             <FG label="日付"><Inp type="date" value={mCost.date||todayStr()} onChange={v=>setMCost({...mCost,date:v})}/></FG>
             <FG label="品目（任意）">
               <Sel value={mCost.cropId||""} onChange={v=>setMCost({...mCost,cropId:v})}
-                options={[{value:"",label:"共通（品目割当なし）"},...crops.filter(c=>!c.ended).map(c=>{return{value:c.id,label:getCropDisplayName(c)};})]}/>
+                options={makeCropOptions(crops.filter(c=>!c.ended),"共通（品目割当なし）")}/>
             </FG>
           </R2>
           {!isIncome(mCost.cat)&&<>
@@ -4647,7 +4680,7 @@ function PlanScreen({ fields, crops, setCrops, plots, setPlots, setPlotsR, showT
           <FG label="区画（変更で別区画へ移動）"><Sel value={mPlant.bedId} onChange={v=>setMPlant({...mPlant,bedId:v})} options={(plan.beds||[]).map(b=>({value:b.id,label:b.name}))}/></FG>
           <FG label="品目">
             <Sel value={mPlant.cropId} onChange={v=>{const hv=calcHarvest(v,mPlant.plantDate);setMPlant({...mPlant,cropId:v,harvestDate:hv});}}
-              options={[{value:"",label:"（選択）"},...crops.filter(c=>!c.ended).map(c=>{const db=CDB[c.type]||{};return{value:c.id,label:getCropDisplayName(c)};})]}/>
+              options={makeCropOptions(crops.filter(c=>!c.ended))}/>
           </FG>
           <R2>
             <FG label="定植・播種日"><Inp type="date" value={mPlant.plantDate} onChange={v=>{const hv=calcHarvest(mPlant.cropId,v);setMPlant({...mPlant,plantDate:v,harvestDate:hv});}}/></FG>
