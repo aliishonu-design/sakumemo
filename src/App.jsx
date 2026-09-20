@@ -5696,35 +5696,44 @@ export default function App() {
     "2026-01-01","2026-01-12","2026-02-11","2026-02-23","2026-03-20","2026-04-29","2026-05-03","2026-05-04","2026-05-05","2026-05-06","2026-07-20","2026-08-11","2026-09-21","2026-09-22","2026-09-23","2026-10-12","2026-11-03","2026-11-23",
     "2027-01-01","2027-01-11","2027-02-11","2027-02-23","2027-03-21","2027-03-22","2027-04-29","2027-05-03","2027-05-04","2027-05-05","2027-07-19","2027-08-11","2027-09-20","2027-09-23","2027-10-11","2027-11-03","2027-11-23",
   ]);
+  // Dateオブジェクト → "YYYY-MM-DD"（ローカル日付、toISOStringのUTCずれなし）
+  const dateToStr = (d) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth()+1).padStart(2,"0");
+    const day = String(d.getDate()).padStart(2,"0");
+    return `${y}-${m}-${day}`;
+  };
   const nextBusinessDay = (d) => {
     let r = new Date(d);
-    while(r.getDay()===0 || r.getDay()===6 || JP_HOLIDAYS.has(r.toISOString().slice(0,10))) {
-      r = new Date(r.getTime() + 86400000);
+    while(r.getDay()===0 || r.getDay()===6 || JP_HOLIDAYS.has(dateToStr(r))) {
+      r.setDate(r.getDate()+1);
     }
     return r;
   };
   // カードの引き落とし予定日を計算
   const calcPayDate = (purchaseDate, card) => {
     if(!purchaseDate||!card) return "";
-    const d = new Date(purchaseDate+"T00:00:00"); // タイムゾーン対策でローカル時刻として解釈
+    // "YYYY-MM-DD" を年月日に分解（Dateコンストラクタのタイムゾーン変換を回避）
+    const [py, pm, pd2] = purchaseDate.split("-").map(Number);
     const closeDay = parseInt(card.closeDay)||31;
     const payDay   = parseInt(card.payDay)||27;
     const payNext  = parseInt(card.payNext)||1; // 翌月=1, 翌々月=2
-    const avoidWeekend = card.avoidWeekend !== false; // デフォルトtrue
+    const avoidWeekend = card.avoidWeekend !== false;
     // 購入月の締め日（月末締めは closeDay>=28 なら月末日）
-    const lastDayOfBuyMonth = new Date(d.getFullYear(), d.getMonth()+1, 0).getDate();
+    const lastDayOfBuyMonth = new Date(py, pm, 0).getDate(); // pm=1起算なのでpm月の末日
     const closeActual = closeDay >= 28 ? lastDayOfBuyMonth : Math.min(closeDay, lastDayOfBuyMonth);
-    const dayOfMonth = d.getDate();
     // 締め日を超えていれば1サイクル後ろにずれる
     let payMonthOffset = payNext;
-    if(dayOfMonth > closeActual) payMonthOffset = payNext + 1;
-    // 支払月の月末日を求める
-    const payMonthIdx = d.getMonth() + payMonthOffset; // 0起算（年をまたぐ場合もDateコンストラクタが補正）
-    const lastDayOfPayMonth = new Date(d.getFullYear(), payMonthIdx+1, 0).getDate();
+    if(pd2 > closeActual) payMonthOffset = payNext + 1;
+    // 支払月（new Dateが年またぎを自動補正）
+    const payMonthDate = new Date(py, pm - 1 + payMonthOffset, 1);
+    const payY = payMonthDate.getFullYear();
+    const payM = payMonthDate.getMonth(); // 0起算
+    const lastDayOfPayMonth = new Date(payY, payM+1, 0).getDate();
     const payActual = payDay >= 28 ? lastDayOfPayMonth : Math.min(payDay, lastDayOfPayMonth);
-    let result = new Date(d.getFullYear(), payMonthIdx, payActual);
+    let result = new Date(payY, payM, payActual);
     if(avoidWeekend) result = nextBusinessDay(result);
-    return result.toISOString().slice(0,10);
+    return dateToStr(result);
   };
   const [lb, setLb] = useState(null); // ライトボックス {photos:[], idx:0}
   const openLb = (photos, idx) => {
