@@ -4060,14 +4060,21 @@ function PlanScreen({ fields, crops, setCrops, plots, setPlots, setPlotsR, showT
     savePlan({...plan, beds:plan.beds.filter(b=>b.id!==bedId), plantings:(plan.plantings||[]).filter(pl=>pl.bedId!==bedId)});
   };
 
-  // 作付けの保存
+  // 作付けの保存（前作データも区画に保存）
   const savePlanting = () => {
     if(!mPlant.cropId){ showToast("品目を選択してください"); return; }
     if(!mPlant.plantDate){ showToast("定植日を入力してください"); return; }
     const pl={...mPlant, id:mPlant.id||uid0()};
-    const exists=(plan.plantings||[]).some(x=>x.id===pl.id);
-    const plantings=exists?plan.plantings.map(x=>x.id===pl.id?pl:x):[...(plan.plantings||[]),pl];
-    savePlan({...plan, plantings});
+    // plから前作データを除いてplantingsへ保存（prevCropsは区画側に持つ）
+    const {_prevCrops, ...plSave}=pl;
+    const exists=(plan.plantings||[]).some(x=>x.id===plSave.id);
+    const plantings=exists?plan.plantings.map(x=>x.id===plSave.id?plSave:x):[...(plan.plantings||[]),plSave];
+    // 前作データを区画(bed.prevCrops)に反映
+    const beds=(plan.beds||[]).map(b=>{
+      if(b.id!==plSave.bedId) return b;
+      return {...b, prevCrops: pl._prevCrops||b.prevCrops||[]};
+    });
+    savePlan({...plan, plantings, beds});
     setMPlant(null);
     showToast("保存しました");
   };
@@ -4145,29 +4152,6 @@ function PlanScreen({ fields, crops, setCrops, plots, setPlots, setPlotsR, showT
         });
       });
 
-      // ── B: 現在の作付け同士（混植は除外）──
-      for(let i=0;i<plantings.length;i++){
-        for(let j=0;j<i;j++){
-          const cur=plantings[i], past=plantings[j];
-          if(!cur.fam||!past.fam) continue;
-          const curEnd=cur.harvestDate||cur.plantDate;
-          const pastEnd=past.harvestDate||past.plantDate;
-          const overlap=cur.plantDate<=pastEnd && past.plantDate<=curEnd;
-          if(overlap) continue;
-          const sameFam=cur.fam===past.fam;
-          const pastNgCur=past.rot?.ng?.includes(cur.fam);
-          const curNgPast=cur.rot?.ng?.includes(past.fam);
-          if(!sameFam&&!pastNgCur&&!curNgPast) continue;
-          const needYears=past.rot?.years>0?past.rot.years:(cur.rot?.years||0);
-          if(needYears<=0) continue;
-          const gapYears=(new Date(cur.plantDate)-new Date(past.plantDate))/(86400000*365);
-          if(gapYears<needYears){
-            const shortYears=Math.round((needYears-gapYears)*10)/10;
-            warns.push({bed:bed.name, cur:cropFull(cur.crop), past:cropFull(past.crop),
-              fam:past.fam, years:needYears, gap:Math.floor(gapYears*10)/10, short:shortYears});
-          }
-        }
-      }
     });
     return warns;
   };
@@ -4317,7 +4301,7 @@ function PlanScreen({ fields, crops, setCrops, plots, setPlots, setPlotsR, showT
                       {(bed.prevCrops||[]).length>0&&<span style={{fontSize:".55rem",background:"#E8F5E9",color:"#2E7D32",borderRadius:3,padding:"1px 4px",flexShrink:0}}>前作{(bed.prevCrops||[]).length}件</span>}
                     </div>
                       <div style={{display:"flex",gap:2,marginTop:2}}>
-                        <button onClick={()=>setMPlant({bedId:bed.id,cropId:"",plantDate:"",harvestDate:"",year})} style={{fontSize:".58rem",border:"none",background:G3,color:G,borderRadius:4,padding:"1px 4px",cursor:"pointer"}}>＋</button>
+                        <button onClick={()=>setMPlant({bedId:bed.id,cropId:"",plantDate:"",harvestDate:"",year,_prevCrops:bed.prevCrops||[]})} style={{fontSize:".58rem",border:"none",background:G3,color:G,borderRadius:4,padding:"1px 4px",cursor:"pointer"}}>＋</button>
                         <button onClick={()=>deleteBed(bed.id)} style={{fontSize:".58rem",border:"none",background:"#fee2e2",color:"#b91c1c",borderRadius:4,padding:"1px 4px",cursor:"pointer"}}>×</button>
                       </div>
                     </div>
@@ -4347,7 +4331,7 @@ function PlanScreen({ fields, crops, setCrops, plots, setPlots, setPlotsR, showT
                             <div onMouseDown={e=>onDragStart(e,pl,"start")} onTouchStart={e=>onDragStart(e,pl,"start")}
                               style={{width:8,height:"100%",cursor:"ew-resize",flexShrink:0,background:"rgba(255,255,255,.25)"}}/>
                             <div onMouseDown={e=>onDragStart(e,pl,"move")} onTouchStart={e=>onDragStart(e,pl,"move")}
-                              onClick={()=>{if(!drag||!drag.moved)setMPlant({...pl,year});}}
+                              onClick={()=>{if(!drag||!drag.moved){const _bed=plan.beds.find(b=>b.id===pl.bedId);setMPlant({...pl,year,_prevCrops:(_bed?.prevCrops||[])});};}}
                               style={{flex:1,height:"100%",display:"flex",alignItems:"center",paddingLeft:3,cursor:"grab",overflow:"hidden"}}>
                               {cropFull(c)}
                             </div>
@@ -4379,7 +4363,7 @@ function PlanScreen({ fields, crops, setCrops, plots, setPlots, setPlotsR, showT
             const hv=pl.harvestDate||calcHarvest(pl.cropId,pl.plantDate);
             const rot=ROTATION_DB[c.type];
             return (
-              <div key={pl.id} onClick={()=>setMPlant({...pl,year})} style={{display:"flex",alignItems:"center",gap:8,fontSize:".74rem",padding:"6px 0",borderBottom:"1px solid #f0ebe3",cursor:"pointer"}}>
+              <div key={pl.id} onClick={()=>{const _bed=plan.beds.find(b=>b.id===pl.bedId);setMPlant({...pl,year,_prevCrops:(_bed?.prevCrops||[])});}} style={{display:"flex",alignItems:"center",gap:8,fontSize:".74rem",padding:"6px 0",borderBottom:"1px solid #f0ebe3",cursor:"pointer"}}>
                 <span style={{display:"inline-block",width:12,height:12,borderRadius:3,background:cropColorByType(c.type),flexShrink:0}}/>
                 <span style={{flex:1}}>{cropLabel(c.type)}{c.variety?"("+c.variety+")":""}</span>
                 <span style={{color:TX3,fontSize:".68rem"}}>{bed?.name}·{fmtMD(pl.plantDate)}〜{fmtMD(hv)}</span>
@@ -4450,6 +4434,38 @@ function PlanScreen({ fields, crops, setCrops, plots, setPlots, setPlotsR, showT
             <FG label="収穫予定日"><Inp type="date" value={mPlant.harvestDate} onChange={v=>setMPlant({...mPlant,harvestDate:v})}/></FG>
           </R2>
           <div style={{fontSize:".68rem",color:TX3,marginBottom:8,lineHeight:1.5}}>💡 品目と定植日を選ぶと収穫予定日を自動計算します（手動で調整可）<br/>同じ区画に同時期の作付けを複数追加すると、混植として縦に並べて表示されます</div>
+
+          {/* 前作登録セクション */}
+          <div style={{borderTop:"1px solid #e0d9ce",marginTop:12,paddingTop:12}}>
+            <div style={{fontSize:".78rem",fontWeight:700,color:"#5c3d1e",marginBottom:8}}>
+              🌱 前作の登録（連作チェックに使用）
+            </div>
+            {(mPlant._prevCrops||[]).map((pc,pi)=>(
+              <div key={pi} style={{background:"#f8f5ef",borderRadius:8,padding:"8px 10px",marginBottom:8,position:"relative"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+                  <span style={{fontSize:".74rem",fontWeight:700}}>前作 {pi+1}</span>
+                  <button onClick={()=>setMPlant({...mPlant,_prevCrops:(mPlant._prevCrops||[]).filter((_,i)=>i!==pi)})}
+                    style={{border:"none",background:"none",color:"#ef4444",fontSize:".8rem",cursor:"pointer",padding:"2px 4px"}}>✕</button>
+                </div>
+                <FG label="品目">
+                  <Sel value={pc.type||""} onChange={v=>setMPlant({...mPlant,_prevCrops:(mPlant._prevCrops||[]).map((x,i)=>i===pi?{...x,type:v}:x)})}
+                    options={[{value:"",label:"（選択）"},...Object.entries(CDB).map(([k,v])=>({value:k,label:v.n}))]}/>
+                </FG>
+                <FG label="品種（任意）">
+                  <Inp value={pc.variety||""} onChange={v=>setMPlant({...mPlant,_prevCrops:(mPlant._prevCrops||[]).map((x,i)=>i===pi?{...x,variety:v}:x)})}
+                    placeholder="例：大玉、中玉"/>
+                </FG>
+                <FG label="収穫日（任意）">
+                  <Inp type="date" value={pc.harvestDate||""} onChange={v=>setMPlant({...mPlant,_prevCrops:(mPlant._prevCrops||[]).map((x,i)=>i===pi?{...x,harvestDate:v}:x)})}/>
+                </FG>
+              </div>
+            ))}
+            <button style={{...S.btn,...S.btnS,fontSize:".74rem",padding:"4px 10px"}}
+              onClick={()=>setMPlant({...mPlant,_prevCrops:[...(mPlant._prevCrops||[]),{type:"",variety:"",harvestDate:""}]})}>
+              ＋ 前作を追加
+            </button>
+          </div>
+
           {mPlant.id&&!mPlant.registered&&<button onClick={()=>plantToCrop(mPlant)} style={{...S.btn,...S.btnG,marginTop:8}}>🌱 この作付けを実際に植える（品目登録）</button>}
           {mPlant.registered&&<div style={{fontSize:".72rem",color:G,background:G3,borderRadius:8,padding:"8px 10px",marginTop:8,textAlign:"center"}}>✓ 栽培中の品目に登録済み</div>}
           {mPlant.id&&<button onClick={()=>deletePlanting(mPlant.id)} style={{...S.btn,...S.btnR,marginTop:8}}>この作付けを削除</button>}
