@@ -5472,30 +5472,32 @@ function SettingsScreen({ showToast, user, uid, signOut, fields, crops, logs, fe
               <input value={card.name} onChange={e=>setCards(cards.map((c,i)=>i===ci?{...c,name:e.target.value}:c))}
                 style={{width:"100%",border:"1px solid #e0d9ce",borderRadius:8,padding:"8px 10px",fontSize:".88rem",fontFamily:"inherit",background:"#fff",boxSizing:"border-box"}}/>
             </div>
-            {/* 締め日スライダー */}
+            {/* 締め日 */}
             <div style={{marginBottom:10}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3}}>
-                <div style={{fontSize:".68rem",color:"#6b7280"}}>締め日</div>
-                <div style={{fontSize:".82rem",fontWeight:700,color:"#5c3d1e"}}>{closeDayLabel}締め</div>
+              <div style={{fontSize:".68rem",color:"#6b7280",marginBottom:6}}>締め日</div>
+              <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                <input type="tel" inputMode="numeric" pattern="[0-9]*"
+                  value={closeDayV>=28?"":closeDayV}
+                  placeholder="日"
+                  onChange={e=>{
+                    const raw=e.target.value.replace(/\D/g,"");
+                    if(raw==="")return;
+                    const v=Math.min(28,Math.max(1,parseInt(raw)));
+                    setCards(cards.map((c,i)=>i===ci?{...c,closeDay:v}:c));
+                  }}
+                  style={{width:72,border:"1.5px solid "+(closeDayV<28?"#8B6914":"#e0d9ce"),borderRadius:8,
+                    padding:"9px 0",fontSize:"1.1rem",fontFamily:"inherit",background:"#fff",
+                    textAlign:"center",boxSizing:"border-box",color:"#5c3d1e",fontWeight:700}}/>
+                <span style={{fontSize:".78rem",color:"#6b7280"}}>日締め</span>
+                <button onClick={()=>setCards(cards.map((c,i)=>i===ci?{...c,closeDay:31}:c))}
+                  style={{padding:"9px 14px",borderRadius:8,border:"1.5px solid",fontSize:".8rem",cursor:"pointer",marginLeft:"auto",
+                    borderColor:closeDayV>=28?"#8B6914":"#ddd",
+                    background:closeDayV>=28?"#f5f0e8":"#fff",
+                    fontWeight:closeDayV>=28?700:400,color:closeDayV>=28?"#5c3d1e":"#666"}}>
+                  月末
+                </button>
               </div>
-              <input type="range" min="1" max="31" value={closeDayV}
-                onChange={e=>setCards(cards.map((c,i)=>i===ci?{...c,closeDay:parseInt(e.target.value)}:c))}
-                style={{width:"100%",accentColor:"#8B6914"}}/>
-              <div style={{display:"flex",justifyContent:"space-between",fontSize:".6rem",color:"#9ca3af"}}>
-                <span>1日</span><span>10日</span><span>15日</span><span>20日</span><span>月末</span>
-              </div>
-              {/* タップで直接入力できる数字ボタン群 */}
-              <div style={{display:"flex",flexWrap:"wrap",gap:4,marginTop:6}}>
-                {[5,10,15,20,25,28,31].map(d=>(
-                  <button key={d} onClick={()=>setCards(cards.map((c,i)=>i===ci?{...c,closeDay:d}:c))}
-                    style={{padding:"4px 8px",borderRadius:6,border:"1px solid",fontSize:".72rem",cursor:"pointer",
-                      borderColor:closeDayV===d?"#8B6914":"#ddd",
-                      background:closeDayV===d?"#f5f0e8":"#fff",
-                      fontWeight:closeDayV===d?700:400,color:closeDayV===d?"#5c3d1e":"#666"}}>
-                    {d>=28?"月末":d+"日"}
-                  </button>
-                ))}
-              </div>
+              {closeDayV>=28&&<div style={{fontSize:".68rem",color:"#8B6914",marginTop:4}}>✓ 月末締めに設定中</div>}
             </div>
             {/* 支払タイミング */}
             <div style={{marginBottom:10}}>
@@ -5512,26 +5514,32 @@ function SettingsScreen({ showToast, user, uid, signOut, fields, crops, logs, fe
                 ))}
               </div>
             </div>
-            {/* 引き落とし日スライダー */}
+            {/* 引き落とし日 */}
             <div style={{marginBottom:10}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3}}>
-                <div style={{fontSize:".68rem",color:"#6b7280"}}>引き落とし日</div>
-                <div style={{fontSize:".82rem",fontWeight:700,color:"#5c3d1e"}}>{payDayLabel}</div>
+              <div style={{fontSize:".68rem",color:"#6b7280",marginBottom:6}}>引き落とし日</div>
+              <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                <input type="tel" inputMode="numeric" pattern="[0-9]*"
+                  value={payDayV>=28?"":payDayV}
+                  placeholder="日"
+                  onChange={e=>{
+                    const raw=e.target.value.replace(/\D/g,"");
+                    if(raw==="")return;
+                    const v=Math.min(28,Math.max(1,parseInt(raw)));
+                    setCards(cards.map((c,i)=>i===ci?{...c,payDay:v}:c));
+                  }}
+                  style={{width:72,border:"1.5px solid "+(payDayV<28?"#8B6914":"#e0d9ce"),borderRadius:8,
+                    padding:"9px 0",fontSize:"1.1rem",fontFamily:"inherit",background:"#fff",
+                    textAlign:"center",boxSizing:"border-box",color:"#5c3d1e",fontWeight:700}}/>
+                <span style={{fontSize:".78rem",color:"#6b7280"}}>日払い</span>
+                <button onClick={()=>setCards(cards.map((c,i)=>i===ci?{...c,payDay:31}:c))}
+                  style={{padding:"9px 14px",borderRadius:8,border:"1.5px solid",fontSize:".8rem",cursor:"pointer",marginLeft:"auto",
+                    borderColor:payDayV>=28?"#8B6914":"#ddd",
+                    background:payDayV>=28?"#f5f0e8":"#fff",
+                    fontWeight:payDayV>=28?700:400,color:payDayV>=28?"#5c3d1e":"#666"}}>
+                  月末
+                </button>
               </div>
-              <input type="range" min="1" max="31" value={payDayV}
-                onChange={e=>setCards(cards.map((c,i)=>i===ci?{...c,payDay:parseInt(e.target.value)}:c))}
-                style={{width:"100%",accentColor:"#8B6914"}}/>
-              <div style={{display:"flex",flexWrap:"wrap",gap:4,marginTop:6}}>
-                {[5,10,15,20,25,27,31].map(d=>(
-                  <button key={d} onClick={()=>setCards(cards.map((c,i)=>i===ci?{...c,payDay:d}:c))}
-                    style={{padding:"4px 8px",borderRadius:6,border:"1px solid",fontSize:".72rem",cursor:"pointer",
-                      borderColor:payDayV===d?"#8B6914":"#ddd",
-                      background:payDayV===d?"#f5f0e8":"#fff",
-                      fontWeight:payDayV===d?700:400,color:payDayV===d?"#5c3d1e":"#666"}}>
-                    {d>=28?"月末":d+"日"}
-                  </button>
-                ))}
-              </div>
+              {payDayV>=28&&<div style={{fontSize:".68rem",color:"#8B6914",marginTop:4}}>✓ 月末払いに設定中</div>}
             </div>
             {/* 土日祝日→翌営業日 */}
             <div style={{display:"flex",alignItems:"center",gap:8,background:avoidWknd?"#E8F5E9":"#f9f9f9",borderRadius:8,padding:"8px 10px"}}>
