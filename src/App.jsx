@@ -3758,9 +3758,9 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
       <div style={{...S.sec,flexWrap:"wrap",gap:6}}>
         <span style={{fontFamily:"'Shippori Mincho B1',serif"}}>💰 収支管理</span>
         <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
-          <button style={S.secBtn} onClick={()=>setMCost({...empty})}>＋ 費用</button>
-          <button style={{...S.secBtn,background:"#388E3C"}} onClick={()=>setMCost({...empty,cat:"inc_crop"})}>＋ 収入</button>
-          <button style={{...S.secBtn,background:"#1565C0"}} onClick={exportLedger}>📥 帳簿Excel</button>
+          <button style={{...S.secBtn,background:"#8B6914",color:"#fff"}} onClick={()=>setMCost({...empty})}>＋ 費用</button>
+          <button style={{...S.secBtn,background:"#2E7D32",color:"#fff"}} onClick={()=>setMCost({...empty,cat:"inc_crop"})}>＋ 収入</button>
+          <button style={{...S.secBtn,background:"#1565C0",color:"#fff"}} onClick={exportLedger}>📥 帳簿Excel</button>
         </div>
       </div>
 
