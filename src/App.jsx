@@ -2896,7 +2896,6 @@ useEffect(()=>{
               <R2>
                 <FG label="kg"><Inp type="number" value={hvGrades[q].kg} onChange={v=>setHvGrades(g=>({...g,[q]:{...g[q],kg:v}}))} placeholder="0"/></FG>
                 <FG label="個数"><Inp type="number" value={hvGrades[q].cnt} onChange={v=>setHvGrades(g=>({...g,[q]:{...g[q],cnt:v}}))} placeholder="0"/></FG>
-                <FG label="単価(円/kg)"><Inp type="number" value={hvGrades[q].price} onChange={v=>setHvGrades(g=>({...g,[q]:{...g[q],price:v}}))} placeholder="0"/></FG>
               </R2>
             </div>
           ))}
@@ -3245,7 +3244,7 @@ function TimelineScreen({ fields, crops, equips, logs, setLogs, setLogsR, showTo
   );
 }
 
-function CostScreen({ fields, crops, fertMs, pestMs, equips, costs, setCosts, logs, showToast, cards=[], calcPayDate }) {
+function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equips, setEquips, costs, setCosts, logs, showToast, cards=[], calcPayDate }) {
   const today = new Date();
   const curYear  = String(today.getFullYear());
   const curMonth = today.toISOString().slice(0,7);
@@ -3257,6 +3256,85 @@ function CostScreen({ fields, crops, fertMs, pestMs, equips, costs, setCosts, lo
   const [costTab,   setCostTab]  = useState("expense");
   const [sortKey, setSortKey] = useState("date");
   const [sortAsc, setSortAsc] = useState(false);
+  const [mainTab, setMainTab] = useState("cost"); // "cost" | "master"
+  const [srchM, setSrchM] = useState("");
+  const [mItem,  setMItem]  = useState(null);
+  const [mBuy,   setMBuy]   = useState(null);
+
+  // ─── マスター（資材）ロジック ───
+  const allItems = [
+    ...fertMs.map((f,i)=>({...f, _type:"fert",  _idx:i, _label:"肥料",   _color:"#d1fae5", _tc:"#065f46", _icon:"🌿"})),
+    ...pestMs.map((p,i)=>({...p, _type:"pest",  _idx:i, _label:"農薬",   _color:"#fef3c7", _tc:"#92400e", _icon:"🐛"})),
+    ...equips.map((e,i)=>({...e, _type:"equip", _idx:i, _label:"資材・設備", _color:"#ede9fe", _tc:"#5b21b6", _icon:"🏗️"})),
+  ];
+  const toHiraM=s=>(s||'').replace(/[ァ-ヶ]/g,c=>String.fromCharCode(c.charCodeAt(0)-0x60));
+  const toKataM=s=>(s||'').replace(/[ぁ-ゖ]/g,c=>String.fromCharCode(c.charCodeAt(0)+0x60));
+  const matchM=(t,w)=>{const a=(t||'').toLowerCase(),b=w.toLowerCase();return toHiraM(a).includes(toHiraM(b))||toKataM(a).includes(toKataM(b))||a.includes(b);};
+  const shownMaster = srchM ? allItems.filter(x=>matchM(x.name,srchM)||matchM(x._label,srchM)||matchM(x.note,srchM)) : allItems;
+  const newFert  = {_type:"fert",  name:"",type:"化成肥料",npk:"",price:"",punit:"円/袋",capacity:"",cunit:"kg",stock:"0",sunit:"kg",note:""};
+  const newPest  = {_type:"pest",  name:"",type:"殺虫剤",dil:"",target:"",price:"",punit:"円/本",capacity:"",cunit:"ml",stock:"0",sunit:"ml",note:""};
+  const newEquip = {_type:"equip", name:"",cat:"マルチ",status:"使用中",price:"",date:todayStr(),note:"",_label:"資材",_color:"#ede9fe",_tc:"#5b21b6",_icon:"🏗️"};
+
+  const saveItem = () => {
+    if(!mItem) return;
+    const isEdit = mItem._idx !== undefined;
+    const item = {...mItem, id:mItem.id||uid0()};
+    if(item._type==="fert"){
+      const n=isEdit?fertMs.map(x=>x.id===item.id?{...item}:x):[...fertMs,item];
+      setFertMs(n,item);
+    } else if(item._type==="pest"){
+      const n=isEdit?pestMs.map(x=>x.id===item.id?{...item}:x):[...pestMs,item];
+      setPestMs(n,item);
+    } else {
+      const n=isEdit?equips.map(x=>x.id===item.id?{...item}:x):[...equips,item];
+      setEquips(n,item);
+    }
+    if(item.price && parseFloat(item.price) > 0) {
+      const costCat = item._type==="equip"?"equip":item._type;
+      const costName = item.name + (item.capacity?" ("+item.capacity+(item.cunit||item.sunit||"")+"入り)":"");
+      if(isEdit) {
+        const existCostIdx = costs.findIndex(c=>c.masterId===item.id);
+        if(existCostIdx >= 0) {
+          const updated = costs.map((c,i)=>i===existCostIdx?{...c,amt:String(item.price),name:costName}:c);
+          const updCost = updated[existCostIdx];
+          setCosts(updated, updCost);
+        }
+      } else {
+        const newCost = {id:uid0(),masterId:item.id,cat:costCat,name:costName,amt:String(item.price),date:item.buyDate||item.date||todayStr(),qty:String(item.capacity||"1"),qunit:item.cunit||item.sunit||"個",fieldIdx:"",depYears:item.depYears||"",note:item.depYears?("減価償却"+item.depYears+"年"):"マスター登録時に自動追加"};
+        setCosts([...costs, newCost], newCost);
+      }
+    }
+    setMItem(null); showToast("保存しました");
+  };
+
+  const deleteItem = (item) => {
+    if(!window.confirm("削除しますか？"))return;
+    if(item._type==="fert"){ dbDelete("fert_masters",item.id); setFertMs(fertMs.filter((_,i)=>i!==item._idx)); }
+    else if(item._type==="pest"){ dbDelete("pest_masters",item.id); setPestMs(pestMs.filter((_,i)=>i!==item._idx)); }
+    else { dbDelete("equipments",item.id); setEquips(equips.filter((_,i)=>i!==item._idx)); }
+    if(item.id){
+      const relatedCosts = costs.filter(c=>c.masterId===item.id);
+      relatedCosts.forEach(c=>{ dbDelete("costs",c.id); });
+      if(relatedCosts.length>0){ setCosts(costs.filter(c=>c.masterId!==item.id)); }
+    }
+    showToast("削除しました");
+  };
+
+  const saveBuy = () => {
+    if(!mBuy.cnt){showToast("個数を入力してください");return;}
+    const cnt = parseFloat(mBuy.cnt)||0;
+    const cap = parseFloat(mBuy.capacity)||0;
+    const addStock = cap>0 ? cnt*cap : cnt;
+    const updItem = {...mBuy._item, stock:String((parseFloat(mBuy._item.stock)||0)+addStock)};
+    if(mBuy._type==="fert") setFertMs(fertMs.map((x,i)=>i===mBuy._idx?updItem:x),updItem);
+    else if(mBuy._type==="pest") setPestMs(pestMs.map((x,i)=>i===mBuy._idx?updItem:x),updItem);
+    const cap2 = parseFloat(mBuy.capacity)||0;
+    const label = mBuy.name+(cap2>0?" "+cnt+"個("+addStock+(mBuy.sunit||mBuy.cunit||"")+")":" "+cnt+"個");
+    setCosts([...costs,{id:uid0(),cat:mBuy._type==="equip"?"equip":mBuy._type,name:label,amt:String(mBuy.amt),date:mBuy.date||todayStr(),qty:String(cnt),qunit:"個",fieldIdx:"",note:mBuy.note||""}],
+      {id:uid0(),cat:mBuy._type==="equip"?"equip":mBuy._type,name:label,amt:String(mBuy.amt),date:mBuy.date||todayStr(),qty:String(cnt),qunit:"個",fieldIdx:"",note:mBuy.note||""});
+    showToast("購入記録しました");
+    setMBuy(null);
+  };
 
   // 年リスト（費用の年 + 今年）
   const years = [...new Set([curYear, ...costs.map(c=>(c.date||"").slice(0,4)).filter(Boolean)])].sort((a,b)=>b.localeCompare(a));
@@ -3623,6 +3701,16 @@ function CostScreen({ fields, crops, fertMs, pestMs, equips, costs, setCosts, lo
   return (
     <div style={S.scr} className="scr-inner">
 
+      {/* メインタブ */}
+      <div style={{display:"flex",gap:0,marginBottom:10,borderRadius:8,overflow:"hidden",border:"1px solid #e0d9ce"}}>
+        {[["cost","💰 費用・収入"],["master","📦 資材登録"]].map(([v,l])=>(
+          <button key={v} onClick={()=>setMainTab(v)}
+            style={{flex:1,padding:"8px 0",border:"none",background:mainTab===v?G:"#fff",
+              color:mainTab===v?"#fff":"#888",fontWeight:mainTab===v?700:400,
+              fontSize:".8rem",cursor:"pointer",fontFamily:"inherit"}}>{l}</button>
+        ))}
+      </div>
+
       {/* ヘッダー */}
       <div style={{...S.sec,flexWrap:"wrap",gap:6}}>
         <span style={{fontFamily:"'Shippori Mincho B1',serif"}}>💰 収支管理</span>
@@ -3698,6 +3786,7 @@ function CostScreen({ fields, crops, fertMs, pestMs, equips, costs, setCosts, lo
         </div>}
       </div>
 
+      {mainTab==="cost"&&<>
       {/* フィルタータブ */}
       <div style={{display:"flex",gap:0,marginBottom:8,borderRadius:8,overflow:"hidden",border:"1px solid #e0d9ce"}}>
         {[["all","すべて"],["income","収入のみ"],["expense","費用のみ"],["card","カード払い"]].map(([v,l])=>(
@@ -3799,6 +3888,137 @@ function CostScreen({ fields, crops, fertMs, pestMs, equips, costs, setCosts, lo
           );
         })}
       </div>
+      </>}
+
+      {mainTab==="master"&&<>
+        <div style={{display:"flex",gap:6,marginBottom:12,overflowX:"auto",WebkitOverflowScrolling:"touch"}}>
+          <div style={{flex:1}}/>
+          <button style={{...S.btn,background:G3,color:G,border:"1px solid "+G,borderRadius:999,padding:"6px 14px",fontSize:".78rem",fontWeight:700,width:"auto",flexShrink:0}}
+            onClick={()=>setMItem({...newFert,_idx:undefined})}>＋ 肥料</button>
+          <button style={{...S.btn,background:"#fffde7",color:"#92400e",border:"1px solid #f9e4a0",borderRadius:999,padding:"6px 14px",fontSize:".78rem",fontWeight:700,width:"auto",flexShrink:0}}
+            onClick={()=>setMItem({...newPest,_idx:undefined})}>＋ 農薬</button>
+          <button style={{...S.btn,background:"#ede9fe",color:"#5b21b6",border:"1px solid #c4b5fd",borderRadius:999,padding:"6px 14px",fontSize:".78rem",fontWeight:700,width:"auto",flexShrink:0}}
+            onClick={()=>setMItem({...newEquip,_idx:undefined})}>＋ 資材・設備</button>
+        </div>
+        <div style={{fontSize:".7rem",color:TX3,background:"#f6f3ec",borderRadius:8,padding:"8px 10px",marginBottom:10,lineHeight:1.5}}>
+          💡 ここで登録した肥料・農薬は<b>使った分だけ</b>費用に計上されます（作業記録の使用量×単価）。設備・農機具は購入額が費用ページに記録され、減価償却の設定も可能です。
+        </div>
+        {!shownMaster.length&&<div style={{color:TX3,fontSize:".82rem",padding:16,textAlign:"center"}}>資材がまだ登録されていません</div>}
+        {shownMaster.map((item,i)=>(
+          <div key={item.id||i} style={{...S.card,borderLeft:"4px solid "+(item._type==="fert"?"#6ee7b7":item._type==="pest"?"#fcd34d":"#a78bfa")}}>
+            <div style={{display:"flex",alignItems:"flex-start",gap:10}}>
+              <span style={{fontSize:"1.6rem",lineHeight:1.2}}>{item._icon}</span>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
+                  <span style={{fontWeight:700,fontSize:".92rem"}}>{item.name}</span>
+                  <span style={{fontSize:".65rem",fontWeight:700,padding:"2px 7px",borderRadius:999,background:item._color,color:item._tc}}>{item._label}</span>
+                  {item.type&&<span style={{fontSize:".65rem",color:TX3}}>{item.type}</span>}
+                </div>
+                <div style={{marginTop:5,display:"flex",gap:10,flexWrap:"wrap",fontSize:".75rem"}}>
+                  {item.capacity&&<div style={{background:"#f5f5f0",borderRadius:8,padding:"4px 10px"}}>
+                    <span style={{color:TX3}}>内容量 </span><span style={{fontWeight:700}}>{item.capacity}{item.cunit||""}</span>
+                  </div>}
+                  {item.price&&<div style={{background:"#f5f5f0",borderRadius:8,padding:"4px 10px"}}>
+                    <span style={{color:TX3}}>単価 </span><span style={{fontWeight:700}}>{item.price}円</span>
+                  </div>}
+                  {item._type==="equip"&&item.status&&<div style={{background:"#f5f5f0",borderRadius:8,padding:"4px 10px"}}>
+                    <span style={{fontWeight:700}}>{item.status}</span>
+                  </div>}
+                </div>
+                {item.note&&<div style={{fontSize:".7rem",color:TX3,marginTop:4}}>{item.note}</div>}
+              </div>
+            </div>
+            <div style={{display:"flex",gap:6,marginTop:10,flexWrap:"wrap"}}>
+              {item._type!=="equip"&&<button
+                style={{...S.btn,background:G,color:"#fff",padding:"6px 12px",fontSize:".75rem",borderRadius:8,width:"auto",fontWeight:700}}
+                onClick={()=>setMBuy({...item,_item:item,cnt:"",amt:"",date:todayStr(),note:""})}>
+                🛒 購入を記録
+              </button>}
+              {item._type==="equip"&&<button
+                style={{...S.btn,background:G,color:"#fff",padding:"6px 12px",fontSize:".75rem",borderRadius:8,width:"auto",fontWeight:700}}
+                onClick={()=>setMBuy({...item,_item:item,cnt:"1",amt:item.price||"",date:todayStr(),note:""})}>
+                🛒 費用を記録
+              </button>}
+              <button style={{...S.btn,...S.btnS,...S.btnSm}} onClick={()=>setMItem({...item})}>編集</button>
+              <button style={{...S.btn,...S.btnR,...S.btnSm}} onClick={()=>deleteItem(item)}>削除</button>
+            </div>
+          </div>
+        ))}
+        {/* 資材登録モーダル */}
+        <ModalWithSave open={!!mItem} onClose={()=>setMItem(null)} title={mItem?._idx!==undefined?"資材を編集":"資材を登録"} onSave={saveItem}>
+          {mItem&&<>
+            <FG label="資材名"><Inp value={mItem.name||""} onChange={v=>setMItem({...mItem,name:v})} placeholder="例：スミチオン乳剤"/></FG>
+            {mItem._type==="fert"&&<>
+              <R2>
+                <FG label="肥料の種類"><Sel value={mItem.type||"化成肥料"} onChange={v=>setMItem({...mItem,type:v})}
+                  options={["化成肥料","有機肥料","液肥","緩効性肥料","石灰・土壌改良材","培養土・堆肥","その他"].map(v=>({value:v,label:v}))}/></FG>
+                <FG label="N-P-K"><Inp value={mItem.npk||""} onChange={v=>setMItem({...mItem,npk:v})} placeholder="8-8-8"/></FG>
+              </R2>
+            </>}
+            {mItem._type==="pest"&&<>
+              <R2>
+                <FG label="農薬の種類"><Sel value={mItem.type||"殺虫剤"} onChange={v=>setMItem({...mItem,type:v})}
+                  options={["殺虫剤","殺菌剤","除草剤","殺虫殺菌剤","その他"].map(v=>({value:v,label:v}))}/></FG>
+                <FG label="希釈倍数"><Inp type="number" value={mItem.dil||""} onChange={v=>setMItem({...mItem,dil:v})} placeholder="1000"/></FG>
+              </R2>
+              <FG label="対象作物・病害虫"><Inp value={mItem.target||""} onChange={v=>setMItem({...mItem,target:v})} placeholder="例：アブラムシ"/></FG>
+            </>}
+            {mItem._type==="equip"&&<>
+              <R2>
+                <FG label="カテゴリ"><Sel value={mItem.cat||"マルチ"} onChange={v=>setMItem({...mItem,cat:v})}
+                  options={["マルチ","トンネル資材","防虫ネット","支柱・杭","ハウス設備","かん水設備","動力機械","プランター・育苗ポット","農機具","その他"].map(v=>({value:v,label:v}))}/></FG>
+                <FG label="状態"><Sel value={mItem.status||"使用中"} onChange={v=>setMItem({...mItem,status:v})}
+                  options={["使用中","保管中","メンテナンス中","廃棄"].map(v=>({value:v,label:v}))}/></FG>
+              </R2>
+              <R2>
+                <FG label="購入価格（円）"><Inp type="number" value={mItem.price||""} onChange={v=>setMItem({...mItem,price:v})}/></FG>
+                <FG label="購入日"><Inp type="date" value={mItem.date||todayStr()} onChange={v=>setMItem({...mItem,date:v})}/></FG>
+              </R2>
+              <FG label="減価償却年数">
+                <Sel value={mItem.depYears||""} onChange={v=>setMItem({...mItem,depYears:v})}
+                  options={[{value:"",label:"償却しない（購入時に全額計上）"},...[2,3,4,5,6,7,8,10,15,17,22].map(n=>({value:String(n),label:n+"年で償却"}))]}/>
+              </FG>
+            </>}
+            {mItem._type!=="equip"&&<>
+              <R2>
+                <FG label="内容量（1個あたり）">
+                  <div style={{display:"flex",gap:4}}>
+                    <Inp type="number" value={mItem.capacity||""} onChange={v=>setMItem({...mItem,capacity:v})} placeholder="例：500" style={{flex:1}}/>
+                    <Sel value={mItem.cunit||"ml"} onChange={v=>setMItem({...mItem,cunit:v,sunit:v})}
+                      options={["ml","L","g","kg"].map(v=>({value:v,label:v}))} style={{width:60,flex:"none"}}/>
+                  </div>
+                </FG>
+                <FG label="単価（円/個）"><Inp type="number" value={mItem.price||""} onChange={v=>setMItem({...mItem,price:v})} placeholder="例：2000"/></FG>
+              </R2>
+            </>}
+            <FG label="メモ"><Inp value={mItem.note||""} onChange={v=>setMItem({...mItem,note:v})} placeholder="購入先・注意事項など"/></FG>
+          </>}
+        </ModalWithSave>
+        {/* 購入記録モーダル */}
+        <ModalWithSave open={!!mBuy} onClose={()=>setMBuy(null)} title={"🛒 "+(mBuy?.name||"")+" の購入"} onSave={saveBuy}>
+          {mBuy&&<>
+            <div style={{background:G3,borderRadius:9,padding:"8px 12px",marginBottom:10,fontSize:".8rem",color:G}}>
+              {mBuy.capacity&&<span>内容量: <b>{mBuy.capacity}{mBuy.cunit}/個</b> · </span>}
+              {mBuy.price&&<span>単価: <b>{mBuy.price}円/個</b></span>}
+            </div>
+            <R2>
+              <FG label="購入個数">
+                <Inp type="number" value={mBuy.cnt||""} onChange={v=>{
+                  const cnt=parseFloat(v)||0;
+                  const cap=parseFloat(mBuy.capacity)||0;
+                  const autoAmt=mBuy.price&&cnt?String(Math.round(parseFloat(mBuy.price)*cnt)):"";
+                  setMBuy({...mBuy,cnt:v,amt:autoAmt,_addStock:cap>0?cnt*cap:cnt});
+                }} placeholder="例：3"/>
+              </FG>
+              <FG label="購入金額（円・任意）">
+                <Inp type="number" value={mBuy.amt||""} onChange={v=>setMBuy({...mBuy,amt:v})} placeholder="自動計算"/>
+              </FG>
+            </R2>
+            <FG label="購入日"><Inp type="date" value={mBuy.date||todayStr()} onChange={v=>setMBuy({...mBuy,date:v})}/></FG>
+            <FG label="メモ（購入先など）"><Inp value={mBuy.note||""} onChange={v=>setMBuy({...mBuy,note:v})} placeholder="例：農協"/></FG>
+          </>}
+        </ModalWithSave>
+      </>}
 
       {/* 入力/編集モーダル */}
       <ModalWithSave open={!!mCost} title={mCost?.id?(isIncome(mCost.cat)?"収入を編集":"費用を編集"):(isIncome(mCost?.cat)?"収入を追加":"費用を追加")}
@@ -5309,8 +5529,7 @@ const SCREENS = [
   { key:"home",    label:"ホーム",     icon:"🏡" },
   { key:"fields",  label:"圃場・品目", icon:"🌾" },
   { key:"plot",    label:"栽培計画",   icon:"📅" },
-  { key:"master",  label:"資材・設備", icon:"📦" },
-  { key:"cost",    label:"費用",       icon:"💰" },
+  { key:"cost",    label:"費用・資材", icon:"💰" },
   { key:"report",  label:"レポート",   icon:"📊" },
 ];
 
@@ -5473,7 +5692,7 @@ export default function App() {
 
   const signOut=async()=>{ await sb.auth.signOut(); setUser(null);setFieldsR([]);setCropsR([]);setLogsR([]);setFertMsR([]);setPestMsR([]);setEquipsR([]);setCostsR([]);setPlotsR([]); };
 
-  const TITLES={home:"作物の記録アプリ",master:"マスター登録",fields:"圃場・品目管理",plot:"栽培計画",log:"作業記録",cost:"費用管理",report:"分析レポート",settings:"設定"};
+  const TITLES={home:"作物の記録アプリ",fields:"圃場・品目管理",plot:"栽培計画",log:"作業記録",cost:"費用・資材管理",report:"分析レポート",settings:"設定"};
 
   const loading_screen = bg => <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100svh",background:"linear-gradient(135deg,"+GD+","+G+")"}}><style>{globalCss}</style><div style={{color:"#fff",textAlign:"center"}}><div style={{fontSize:"2rem",marginBottom:10}}>🌾</div><div>{bg}</div></div></div>;
 
@@ -5522,7 +5741,6 @@ export default function App() {
         </div>
       </div>
       <div id="main-scroll" style={S.main}>
-        {scr==="master"  &&<MasterScreen  fertMs={fertMs} setFertMs={setFertMs} pestMs={pestMs} setPestMs={setPestMs} equips={equips} setEquips={setEquips} costs={costs} setCosts={setCosts} showToast={showToast}/>}
         {scr==="fields"  &&<FieldsScreen  fields={fields} setFields={setFields} setFieldsR={setFieldsR} crops={crops} setCrops={setCrops} setCropsR={setCropsR} costs={costs} setCosts={setCosts} logs={logs} setLogs={setLogs} setLogsR={setLogsR} plots={plots} setPlots={setPlots} setPlotsR={setPlotsR} showToast={showToast} editCrop={pendingEditCrop}/>}
         {(scr==="log"||scr==="home") && <><HomeScreen fields={fields} crops={crops} setCrops={setCrops} logs={logs} costs={costs} showToast={showToast} setScr={setScr} dbLoad={dbLoad} onEditCrop={c=>{setPendingEditCrop(c);setScr("fields");}} onNew={()=>{setInitLog(null);setLogModal(true);}} setLogs={setLogs} dbSaveLog={dbSaveLog} dbDelete={dbDelete}/><TimelineScreen fields={fields} crops={crops} equips={equips} logs={logs} setLogs={setLogs} setLogsR={setLogsR} showToast={showToast} openLb={openLb}
         onEdit={ls=>{const _ls=Array.isArray(ls)?ls:[ls];const _sorted=[..._ls].sort((a,b)=>(a.imgSrc?-1:0)-(b.imgSrc?-1:0));setInitLogs(_ls);setInitLog(_sorted[0]);setLogModal(true);}}
@@ -5541,7 +5759,7 @@ export default function App() {
       /></>}
         
         {scr==="plot"    &&<PlanScreen    fields={fields} crops={crops} setCrops={setCrops} plots={plots} setPlots={setPlots} setPlotsR={setPlotsR} showToast={showToast} setScr={setScr}/>}
-        {scr==="cost"    &&<CostScreen    fields={fields} crops={crops} fertMs={fertMs} pestMs={pestMs} equips={equips} costs={costs} setCosts={setCosts} logs={logs} showToast={showToast} cards={cards} calcPayDate={calcPayDate}/>}
+        {scr==="cost"    &&<CostScreen    fields={fields} crops={crops} fertMs={fertMs} setFertMs={setFertMs} pestMs={pestMs} setPestMs={setPestMs} equips={equips} setEquips={setEquips} costs={costs} setCosts={setCosts} logs={logs} showToast={showToast} cards={cards} calcPayDate={calcPayDate}/>}
 
         {scr==="report"  &&<ReportScreen  fields={fields} crops={crops} logs={logs} costs={costs} fertMs={fertMs} pestMs={pestMs} equips={equips} openLb={openLb}/>}
         {scr==="settings"&&<SettingsScreen showToast={showToast} user={user} uid={uid} signOut={signOut} fields={fields} crops={crops} logs={logs} fertMs={fertMs} cards={cards} setCards={setCards} pestMs={pestMs} equips={equips} costs={costs} setScr={setScr}/>}
