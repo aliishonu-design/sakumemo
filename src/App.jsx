@@ -3838,14 +3838,14 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
         </div>
       </div>
 
-      {/* 取引一覧（会計ソフト形式） */}
+      {/* 取引一覧 */}
       <div style={{...S.card,padding:0,overflow:"hidden"}}>
         {/* 列ヘッダー */}
-        <div style={{display:"grid",gridTemplateColumns:"72px 1fr 80px 80px",borderBottom:"2px solid #e0d9ce",background:"#f0ebe3",padding:"5px 8px"}}>
+        <div style={{display:"grid",gridTemplateColumns:"52px 1fr auto 32px",gap:"0 6px",borderBottom:"2px solid #e0d9ce",background:"#f0ebe3",padding:"5px 8px"}}>
           <div style={{fontSize:".64rem",color:"#5c3d1e",fontWeight:700}}>日付</div>
-          <div style={{fontSize:".64rem",color:"#5c3d1e",fontWeight:700}}>内容・品目</div>
+          <div style={{fontSize:".64rem",color:"#5c3d1e",fontWeight:700}}>内容</div>
           <div style={{fontSize:".64rem",color:"#5c3d1e",fontWeight:700,textAlign:"right"}}>金額（円）</div>
-          <div style={{fontSize:".64rem",color:"#5c3d1e",fontWeight:700,textAlign:"center"}}>操作</div>
+          <div/>
         </div>
         {viewList.length===0&&<div style={{color:"#aaa",fontSize:".78rem",textAlign:"center",padding:"20px 0"}}>取引がありません</div>}
         {viewList.map((c,i)=>{
@@ -3860,62 +3860,42 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
           const bg = isCancelled?"#F5F5F5":i%2===0?"#FFFFFF":"#FAFAFA";
           return (
             <div key={c.id} onClick={()=>setMCost({...c})}
-              style={{display:"grid",gridTemplateColumns:"72px 1fr 80px 80px",
+              style={{display:"grid",gridTemplateColumns:"52px 1fr auto 32px",gap:"0 6px",
                 padding:"7px 8px",borderBottom:"1px solid #f0ebe3",
-                background:bg,cursor:"pointer",
+                background:bg,cursor:"pointer",alignItems:"center",
                 opacity:isCancelled?0.5:1}}>
               {/* 日付 */}
               <div>
-                <div style={{fontSize:".68rem",color:"#5c3d1e"}}>{c.date?c.date.slice(5).replace("-","/"):"-"}</div>
-                {isCard&&<div style={{fontSize:".58rem",color:"#1565C0"}}>💳</div>}
+                <div style={{fontSize:".68rem",color:"#5c3d1e",whiteSpace:"nowrap"}}>{c.date?c.date.slice(5).replace("-","/"):"-"}</div>
+                {isCard&&<div style={{fontSize:".55rem",color:"#1565C0"}}>💳</div>}
               </div>
               {/* 内容 */}
-              <div>
-                <div style={{display:"flex",gap:4,alignItems:"center",marginBottom:2}}>
-                  <span style={{fontSize:".6rem",background:inc?"#E8F5E9":"#FFF3E0",
+              <div style={{minWidth:0}}>
+                <div style={{display:"flex",gap:3,alignItems:"center",marginBottom:1,flexWrap:"wrap"}}>
+                  <span style={{fontSize:".58rem",background:inc?"#E8F5E9":"#FFF3E0",
                     color:inc?"#2E7D32":"#E65100",borderRadius:3,padding:"0 4px",fontWeight:700,flexShrink:0}}>
                     {cat.label.split(" ")[0]}
                   </span>
-                  {isCancelled&&<span style={{fontSize:".6rem",background:"#EEE",color:"#999",borderRadius:3,padding:"0 4px"}}>取消</span>}
+                  {isCancelled&&<span style={{fontSize:".58rem",background:"#EEE",color:"#999",borderRadius:3,padding:"0 4px"}}>取消</span>}
                 </div>
                 <div style={{fontSize:".74rem",fontWeight:700,color:isCancelled?"#999":"#1c1a14",
                   overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.name||"（内容なし）"}</div>
-                {crName&&<div style={{fontSize:".62rem",color:TX3}}>{crName}</div>}
-                {c.payDate&&<div style={{fontSize:".58rem",color:"#1565C0"}}>引落：{c.payDate.slice(5).replace("-","/")}</div>}
+                {crName&&<div style={{fontSize:".6rem",color:TX3,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{crName}</div>}
+                {c.payDate&&<div style={{fontSize:".55rem",color:"#1565C0"}}>引落：{c.payDate.slice(5).replace("-","/")}</div>}
               </div>
               {/* 金額 */}
-              <div style={{textAlign:"right"}}>
+              <div style={{textAlign:"right",whiteSpace:"nowrap"}}>
                 <div style={{fontSize:".82rem",fontWeight:700,
                   color:isCancelled?"#999":inc?"#1B5E20":"#B71C1C",
                   textDecoration:isCancelled?"line-through":"none"}}>
                   {inc?"+":"-"}{Math.round(parseFloat(c.amt)||0).toLocaleString()}
                 </div>
               </div>
-              {/* 操作 */}
-              <div style={{display:"flex",flexDirection:"column",gap:2,alignItems:"center"}}>
-                <button onClick={e=>{e.stopPropagation();setMCost({...c});}}
-                  style={{fontSize:".58rem",border:"none",background:"#E3F2FD",color:"#1565C0",
-                    borderRadius:4,padding:"2px 6px",cursor:"pointer"}}>編集</button>
-                <button onClick={e=>{e.stopPropagation();setMCost({...c,id:undefined,date:todayStr(),cancelled:false,payDate:""});showToast("内容をコピーしました。日付を確認して保存してください");}}
-                  style={{fontSize:".58rem",border:"none",background:"#F3E5F5",color:"#6A1B9A",
-                    borderRadius:4,padding:"2px 6px",cursor:"pointer"}}>複製</button>
-                {!isCancelled
-                  ? <button onClick={e=>{e.stopPropagation();
-                      if(window.confirm("この取引を取り消しますか？（記録は残ります）")){
-                        const updated={...c,cancelled:true};
-                        setCosts(costs.map(x=>x.id===c.id?updated:x),updated);
-                        showToast("取り消しました");
-                      }}}
-                    style={{fontSize:".58rem",border:"none",background:"#FFF3E0",color:"#E65100",
-                      borderRadius:4,padding:"2px 6px",cursor:"pointer"}}>取消</button>
-                  : <button onClick={e=>{e.stopPropagation();
-                      if(window.confirm("取り消しを復活させますか？")){
-                        const updated={...c,cancelled:false};
-                        setCosts(costs.map(x=>x.id===c.id?updated:x),updated);
-                        showToast("復活しました");
-                      }}}
-                    style={{fontSize:".58rem",border:"none",background:"#E8F5E9",color:"#2E7D32",
-                      borderRadius:4,padding:"2px 6px",cursor:"pointer"}}>復活</button>}
+              {/* 複製ボタンのみ */}
+              <div style={{display:"flex",justifyContent:"center"}}>
+                <button onClick={e=>{e.stopPropagation();setMCost({...c,id:undefined,date:todayStr(),cancelled:false,payDate:""});showToast("複製しました。内容を確認して保存してください");}}
+                  title="複製"
+                  style={{fontSize:"1rem",lineHeight:1,border:"none",background:"none",cursor:"pointer",padding:"4px",color:"#9b59b6"}}>📋</button>
               </div>
             </div>
           );
@@ -4103,7 +4083,12 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
             </>}
           </>}
           <FG label="メモ"><Inp value={mCost.note||""} onChange={v=>setMCost({...mCost,note:v})} placeholder="購入先・領収書番号など"/></FG>
-          {mCost.id&&<button onClick={()=>{if(window.confirm("削除しますか？")){const n=costs.filter(x=>x.id!==mCost.id);setCosts(n);setMCost(null);showToast("削除しました");}}} style={{...S.btn,...S.btnR,marginTop:8}}>削除</button>}
+          {mCost.id&&<div style={{display:"flex",gap:6,marginTop:8}}>
+            {!mCost.cancelled
+              ? <button onClick={()=>{if(window.confirm("この取引を取り消しますか？（記録は残ります）")){const updated={...mCost,cancelled:true};setCosts(costs.map(x=>x.id===mCost.id?updated:x),updated);setMCost(null);showToast("取り消しました");}}} style={{...S.btn,background:"#FFF3E0",color:"#E65100",border:"1px solid #FFCC80",flex:1}}>取消</button>
+              : <button onClick={()=>{if(window.confirm("取り消しを復活させますか？")){const updated={...mCost,cancelled:false};setCosts(costs.map(x=>x.id===mCost.id?updated:x),updated);setMCost(null);showToast("復活しました");}}} style={{...S.btn,background:"#E8F5E9",color:"#2E7D32",border:"1px solid #A5D6A7",flex:1}}>復活</button>}
+            <button onClick={()=>{if(window.confirm("削除しますか？")){const n=costs.filter(x=>x.id!==mCost.id);setCosts(n);setMCost(null);showToast("削除しました");}}} style={{...S.btn,...S.btnR,flex:1}}>削除</button>
+          </div>}
         </>}
       </ModalWithSave>
     </div>
