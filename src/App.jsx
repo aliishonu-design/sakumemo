@@ -1124,7 +1124,7 @@ function CalcInp({ value, onChange, placeholder="0", style={} }) {
     setOpen(false);
   };
 
-  // マネーフォワード標準レイアウト
+  // マネーフォワード標準レイアウト（÷はACの横）
   const keys = [
     ["7","8","9","×"],
     ["4","5","6","−"],
@@ -1154,12 +1154,19 @@ function CalcInp({ value, onChange, placeholder="0", style={} }) {
             完了
           </button>
         </div>
-        {/* AC（全消去）ボタン */}
-        <button onClick={()=>pressKey("AC")}
-          style={{width:"100%",marginBottom:8,padding:"13px 0",borderRadius:12,border:"none",fontSize:"1rem",fontWeight:700,cursor:"pointer",
-            background:"#fde8e8",color:"#c0392b",boxShadow:"0 2px 6px rgba(0,0,0,.08)"}}>
-          AC（全消去）
-        </button>
+        {/* AC（全消去）＋ ÷ ボタン */}
+        <div style={{display:"grid",gridTemplateColumns:"3fr 1fr",gap:8,marginBottom:8}}>
+          <button onClick={()=>pressKey("AC")}
+            style={{padding:"13px 0",borderRadius:12,border:"none",fontSize:"1rem",fontWeight:700,cursor:"pointer",
+              background:"#fde8e8",color:"#c0392b",boxShadow:"0 2px 6px rgba(0,0,0,.08)"}}>
+            AC（全消去）
+          </button>
+          <button onClick={()=>pressKey("÷")}
+            style={{padding:"13px 0",borderRadius:12,border:"none",fontSize:"1.2rem",fontWeight:700,cursor:"pointer",
+              background:"#f5efe0",color:"#8B6914",boxShadow:"0 2px 6px rgba(0,0,0,.08)"}}>
+            ÷
+          </button>
+        </div>
         {/* キーパッド 4×4 */}
         <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8}}>
           {keys.flat().map(k=>{
@@ -6083,3 +6090,4 @@ export default function App() {
     </div>
   );
 }
+
