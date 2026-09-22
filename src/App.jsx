@@ -1094,10 +1094,10 @@ function CalcInp({ value, onChange, placeholder="0", style={} }) {
       const ne = expr.slice(0,-1);
       setExpr(ne); setDisplay(ne); return;
     }
-    if(k === "=") {
+    if(k === "=" || k === "＝") {
       try {
         // 演算子を安全に評価（× → * 、÷ → /）
-        const safe = expr.replace(/×/g,"*").replace(/÷/g,"/").replace(/[^0-9+\-*/.()]/g,"");
+        const safe = expr.replace(/×/g,"*").replace(/÷/g,"/").replace(/−/g,"-").replace(/＋/g,"+").replace(/[^0-9+\-*/.()]/g,"");
         if(!safe) return;
         // eslint-disable-next-line no-new-func
         const result = Function('"use strict";return ('+safe+')')();
@@ -1113,7 +1113,7 @@ function CalcInp({ value, onChange, placeholder="0", style={} }) {
   };
   const confirm = () => {
     // =を押さずに閉じた場合、数値として有効なら確定
-    const safe = expr.replace(/×/g,"*").replace(/÷/g,"/").replace(/[^0-9+\-*/.()]/g,"");
+    const safe = expr.replace(/×/g,"*").replace(/÷/g,"/").replace(/−/g,"-").replace(/＋/g,"+").replace(/[^0-9+\-*/.()]/g,"");
     if(!safe){ setOpen(false); return; }
     try {
       // eslint-disable-next-line no-new-func
@@ -1124,11 +1124,12 @@ function CalcInp({ value, onChange, placeholder="0", style={} }) {
     setOpen(false);
   };
 
+  // マネーフォワード標準レイアウト
   const keys = [
-    ["7","8","9","÷"],
-    ["4","5","6","×"],
-    ["1","2","3","−"],
-    ["AC","0","⌫","＋"],
+    ["7","8","9","×"],
+    ["4","5","6","−"],
+    ["1","2","3","＋"],
+    [".","0","⌫","＝"],
   ];
 
   return <>
@@ -1138,10 +1139,11 @@ function CalcInp({ value, onChange, placeholder="0", style={} }) {
       onClick={openCalc}
       style={{...S.inp,...style,cursor:"pointer",background:"#fffdf8"}}
     />
-    {open && <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,zIndex:2000,display:"flex",flexDirection:"column",justifyContent:"flex-end"}}
+    {open && <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,zIndex:10000,display:"flex",flexDirection:"column",justifyContent:"flex-end"}}
       onClick={e=>{if(e.target===e.currentTarget)confirm();}}>
-      <div style={{background:"#f8f5ef",borderRadius:"16px 16px 0 0",padding:"12px 16px 24px",boxShadow:"0 -4px 24px rgba(0,0,0,.18)"}}>
-        {/* 計算式ディスプレイ */}
+      <div style={{background:"#f8f5ef",borderRadius:"16px 16px 0 0",padding:"12px 16px 0",boxShadow:"0 -4px 24px rgba(0,0,0,.18)",
+        paddingBottom:"calc(env(safe-area-inset-bottom, 0px) + 68px)"}}>
+        {/* 計算式ディスプレイ + 完了ボタン */}
         <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
           <div style={{flex:1,background:"#fff",borderRadius:10,padding:"8px 12px",fontSize:"1.2rem",fontWeight:700,color:"#5c3d1e",
             minHeight:44,textAlign:"right",border:"1.5px solid #e0d9ce",overflowX:"auto",whiteSpace:"nowrap"}}>
@@ -1152,26 +1154,26 @@ function CalcInp({ value, onChange, placeholder="0", style={} }) {
             完了
           </button>
         </div>
-        {/* キーパッド */}
+        {/* AC（全消去）ボタン */}
+        <button onClick={()=>pressKey("AC")}
+          style={{width:"100%",marginBottom:8,padding:"13px 0",borderRadius:12,border:"none",fontSize:"1rem",fontWeight:700,cursor:"pointer",
+            background:"#fde8e8",color:"#c0392b",boxShadow:"0 2px 6px rgba(0,0,0,.08)"}}>
+          AC（全消去）
+        </button>
+        {/* キーパッド 4×4 */}
         <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8}}>
           {keys.flat().map(k=>{
-            const isOp = ["÷","×","−","＋"].includes(k);
-            const isEq = k==="=";
-            const isDel = k==="AC"||k==="⌫";
+            const isOp = ["×","−","＋"].includes(k);
+            const isEq = k==="＝";
+            const isDel = k==="⌫";
             return <button key={k} onClick={()=>pressKey(k)}
-              style={{padding:"15px 0",borderRadius:12,border:"none",fontSize:"1.15rem",fontWeight:700,cursor:"pointer",
-                background: isOp?"#f5f0e8": isDel?"#fde8e8":"#fff",
-                color: isOp?"#8B6914": isDel?"#c0392b":"#3c3228",
+              style={{padding:"16px 0",borderRadius:12,border:"none",fontSize:"1.2rem",fontWeight:700,cursor:"pointer",
+                background: isEq?"#2d6a3f": isOp?"#f5efe0": isDel?"#fde8e8":"#fff",
+                color: isEq?"#fff": isOp?"#8B6914": isDel?"#c0392b":"#3c3228",
                 boxShadow:"0 2px 6px rgba(0,0,0,.08)"}}>
               {k}
             </button>;
           })}
-          {/* = ボタン（幅広） */}
-          <button onClick={()=>pressKey("=")}
-            style={{gridColumn:"span 4",padding:"15px 0",borderRadius:12,border:"none",fontSize:"1.2rem",fontWeight:700,cursor:"pointer",
-              background:"#2d6a3f",color:"#fff",boxShadow:"0 2px 6px rgba(0,0,0,.12)"}}>
-            ＝ 計算する
-          </button>
         </div>
       </div>
     </div>}
@@ -1214,7 +1216,7 @@ function ModalWithSave({ open, onClose, title, onSave, saveLabel="保存", child
         <button onClick={onClose} style={{background:"rgba(255,255,255,.18)",border:"1px solid rgba(255,255,255,.25)",color:"#fff",borderRadius:8,padding:"6px 12px",fontSize:".8rem",cursor:"pointer",flexShrink:0,minWidth:40,minHeight:40}}>✕</button>
         <button onClick={onSave} style={{background:"#fff",border:"none",color:G,borderRadius:8,padding:"6px 14px",fontSize:".8rem",fontWeight:700,cursor:"pointer",flexShrink:0,minWidth:60,minHeight:40}}>{saveLabel} ✓</button>
       </div>
-      <div style={{flex:1,overflowY:"auto",WebkitOverflowScrolling:"touch",padding:"14px 14px 40px"}}>
+      <div style={{flex:1,overflowY:"auto",WebkitOverflowScrolling:"touch",padding:"14px 14px 0",paddingBottom:"calc(58px + env(safe-area-inset-bottom, 0px) + 24px)"}}>
         {children}
       </div>
     </div>
