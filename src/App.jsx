@@ -1607,12 +1607,11 @@ function HomeScreen({ fields, crops, setCrops, logs, setLogs, costs, onEditCrop,
               background:item.urgent?"#fff3cd":"#f6f3ec",border:"1px solid "+(item.urgent?"#ffc107":"#e8e0d5")}}>
               <span style={{fontSize:"1.1rem",flexShrink:0}}>{item.icon}</span>
               <div style={{flex:1,minWidth:0}}>
-                <div style={{display:"flex",alignItems:"center",gap:4,marginBottom:1}}>
-                  <span style={{fontSize:".75rem",fontWeight:700,color:"#1c1a14",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.label&&<span style={{color:"#888",fontWeight:400}}>{item.label} </span>}{item.msg}</span>
-                </div>
-                <div style={{fontSize:".68rem",color:item.urgent?"#856404":"#888"}}>
-                  {item.dateStr} （{item.dayStr}）
-                  {item.urgent&&<span style={{marginLeft:6,background:"#ffc107",color:"#856404",borderRadius:3,padding:"0 4px",fontSize:".62rem",fontWeight:700}}>要対応</span>}
+                {item.label&&<div style={{fontSize:".68rem",color:"#888",marginBottom:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.label}</div>}
+                <div style={{fontSize:".8rem",fontWeight:700,color:"#1c1a14",lineHeight:1.3,wordBreak:"break-all"}}>{item.msg}</div>
+                <div style={{display:"flex",alignItems:"center",gap:6,marginTop:2}}>
+                  <span style={{fontSize:".68rem",fontWeight:item.urgent?700:400,color:item.urgent?"#856404":"#888"}}>{item.dayStr}</span>
+                  {item.urgent&&<span style={{background:"#ffc107",color:"#856404",borderRadius:3,padding:"0 4px",fontSize:".62rem",fontWeight:700}}>要対応</span>}
                 </div>
               </div>
               <button onClick={()=>{
