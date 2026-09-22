@@ -1855,7 +1855,7 @@ function MasterScreen({ fertMs, setFertMs, pestMs, setPestMs, equips, setEquips,
             <R2>
               <FG label="農薬の種類"><Sel value={mItem.type||"殺虫剤"} onChange={v=>setMItem({...mItem,type:v})}
                 options={["殺虫剤","殺菌剤","除草剤","殺虫殺菌剤","その他"].map(v=>({value:v,label:v}))}/></FG>
-              <FG label="希釈倍数"><Inp type="number" value={mItem.dil||""} onChange={v=>setMItem({...mItem,dil:v})} placeholder="1000"/></FG>
+              <FG label="希釈倍数"><CalcInp value={mItem.dil||""} onChange={v=>setMItem({...mItem,dil:v})} placeholder="1000"/></FG>
             </R2>
             <FG label="対象作物・病害虫"><Inp value={mItem.target||""} onChange={v=>setMItem({...mItem,target:v})} placeholder="例：アブラムシ"/></FG>
           </>}
@@ -1871,7 +1871,7 @@ function MasterScreen({ fertMs, setFertMs, pestMs, setPestMs, equips, setEquips,
               <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".82rem",color:"#5c3d1e",marginBottom:8}}>💰 購入情報</div>
               <R2>
                 <FG label="単価（円）"><CalcInp value={mItem.price||""} onChange={v=>setMItem({...mItem,price:v})} placeholder="例：1500"/></FG>
-                <FG label="数量"><div style={{display:"flex",gap:4}}><Inp type="number" value={mItem.capacity||""} onChange={v=>setMItem({...mItem,capacity:v})} placeholder="1" style={{flex:1}}/><Inp value={mItem.cunit||"個"} onChange={v=>setMItem({...mItem,cunit:v})} placeholder="個" style={{width:48,flex:"none"}}/></div></FG>
+                <FG label="数量"><div style={{display:"flex",gap:4}}><CalcInp value={mItem.capacity||""} onChange={v=>setMItem({...mItem,capacity:v})} placeholder="1" style={{flex:1}}/><Inp value={mItem.cunit||"個"} onChange={v=>setMItem({...mItem,cunit:v})} placeholder="個" style={{width:48,flex:"none"}}/></div></FG>
               </R2>
               <FG label="購入日"><Inp type="date" value={mItem.buyDate||""} onChange={v=>setMItem({...mItem,buyDate:v})}/></FG>
               <div style={{fontSize:".68rem",color:TX3,marginTop:4}}>💡 単価・数量を入力すると費用ページに自動で記録されます</div>
@@ -1884,7 +1884,7 @@ function MasterScreen({ fertMs, setFertMs, pestMs, setPestMs, equips, setEquips,
               <R2>
                 <FG label="内容量（1個あたり）">
                   <div style={{display:"flex",gap:4}}>
-                    <Inp type="number" value={mItem.capacity||""} onChange={v=>setMItem({...mItem,capacity:v})} placeholder="例：500" style={{flex:1}}/>
+                    <CalcInp value={mItem.capacity||""} onChange={v=>setMItem({...mItem,capacity:v})} placeholder="例：500" style={{flex:1}}/>
                     <Sel value={mItem.cunit||"ml"} onChange={v=>setMItem({...mItem,cunit:v,sunit:v})}
                       options={["ml","L","g","kg"].map(v=>({value:v,label:v}))} style={{width:60,flex:"none"}}/>
                   </div>
@@ -1919,7 +1919,7 @@ function MasterScreen({ fertMs, setFertMs, pestMs, setPestMs, equips, setEquips,
           </div>
           <R2>
             <FG label="購入個数">
-              <Inp type="number" value={mBuy.cnt||""} onChange={v=>{
+              <CalcInp value={mBuy.cnt||""} onChange={v=>{
                 const cnt=parseFloat(v)||0;
                 const cap=parseFloat(mBuy.capacity)||0;
                 const autoAmt=mBuy.price&&cnt?String(Math.round(parseFloat(mBuy.price)*cnt)):"";
@@ -2938,12 +2938,12 @@ useEffect(()=>{
         </FG>
         {works.has("sow")&&<div style={panelStyle("#f0fdf4","#86efac")}>
           <div style={ctitleStyle}>🌰 播種詳細</div>
-          <FG label="播種量（粒数・個数）"><Inp type="number" value={sowQty} onChange={setSowQty} placeholder="例：300"/></FG>
+          <FG label="播種量（粒数・個数）"><CalcInp value={sowQty} onChange={setSowQty} placeholder="例：300"/></FG>
         </div>}
-        {works.has("germinated")&&<div style={panelStyle("#f0fdf4","#86efac")}><div style={ctitleStyle}>🌱 発芽確認</div><R2><FG label="発芽確認数"><Inp type="number" value={germCnt} onChange={setGermCnt} placeholder="例：250"/></FG><FG label="確認日"><Inp type="date" value={germDate} onChange={setGermDate}/></FG></R2>{sowQty&&germCnt&&<div style={{fontSize:".8rem",color:G,marginTop:4}}>発芽率: {Math.round((parseInt(germCnt)/parseInt(sowQty))*100)}%</div>}</div>}
+        {works.has("germinated")&&<div style={panelStyle("#f0fdf4","#86efac")}><div style={ctitleStyle}>🌱 発芽確認</div><R2><FG label="発芽確認数"><CalcInp value={germCnt} onChange={setGermCnt} placeholder="例：250"/></FG><FG label="確認日"><Inp type="date" value={germDate} onChange={setGermDate}/></FG></R2>{sowQty&&germCnt&&<div style={{fontSize:".8rem",color:G,marginTop:4}}>発芽率: {Math.round((parseInt(germCnt)/parseInt(sowQty))*100)}%</div>}</div>}
         {works.has("transplant")&&<div style={panelStyle("#f5f3ff","#c4b5fd")}>
           <div style={ctitleStyle}>🪴 定植詳細</div>
-          <FG label="定植株数"><Inp type="number" value={transpQty} onChange={setTranspQty} placeholder="例：120"/></FG>
+          <FG label="定植株数"><CalcInp value={transpQty} onChange={setTranspQty} placeholder="例：120"/></FG>
         </div>}
         {works.has("repot")&&<div style={panelStyle("#f5f3ff","#c4b5fd")}>
           <div style={ctitleStyle}>🪴 植え替え詳細</div>
@@ -2954,7 +2954,7 @@ useEffect(()=>{
             </FG>
             <FG label="容量（L）">
               <div style={{display:"flex",alignItems:"center",gap:4}}>
-                <Inp type="number" value={repotVol} onChange={setRepotVol} placeholder="自動入力"/>
+                <CalcInp value={repotVol} onChange={setRepotVol} placeholder="自動入力"/>
                 <span style={{fontSize:".8rem",color:TX3,whiteSpace:"nowrap"}}>L</span>
               </div>
             </FG>
@@ -2976,7 +2976,7 @@ useEffect(()=>{
               }} options={[{value:"",label:"（選択）"},...fertMs.map(f=>({value:f.name,label:f.name}))]}/>
             </FG>
             <R2>
-              <FG label="施用量"><div style={{display:"flex",gap:4}}><Inp type="number" value={fertAmt} onChange={setFertAmt} style={{flex:1}}/><Sel value={fertUnit} onChange={setFertUnit} options={["kg","g","L","ml","袋"].map(v=>({value:v,label:v}))} style={{width:60,flex:"none"}}/></div></FG>
+              <FG label="施用量"><div style={{display:"flex",gap:4}}><CalcInp value={fertAmt} onChange={setFertAmt} style={{flex:1}}/><Sel value={fertUnit} onChange={setFertUnit} options={["kg","g","L","ml","袋"].map(v=>({value:v,label:v}))} style={{width:60,flex:"none"}}/></div></FG>
               <FG label="施用方法"><Sel value={fertMeth} onChange={setFertMeth} options={["元肥","追肥","葉面散布","かん注"].map(v=>({value:v,label:v}))}/></FG>
             </R2>
           </div>          {fertEntries.map((fe,fi)=>(
@@ -2994,7 +2994,7 @@ useEffect(()=>{
                 }} options={[{value:"",label:"（選択）"},...fertMs.map(f=>({value:f.name,label:f.name}))]}/>
               </FG>
               <R2>
-                <FG label="施用量"><div style={{display:"flex",gap:4}}><Inp type="number" value={fe.amt} onChange={v=>setFertEntries(p=>p.map((x,i)=>i===fi?{...x,amt:v}:x))} style={{flex:1}}/><Sel value={fe.unit} onChange={v=>setFertEntries(p=>p.map((x,i)=>i===fi?{...x,unit:v}:x))} options={["kg","g","L","ml","袋"].map(v=>({value:v,label:v}))} style={{width:60,flex:"none"}}/></div></FG>
+                <FG label="施用量"><div style={{display:"flex",gap:4}}><CalcInp value={fe.amt} onChange={v=>setFertEntries(p=>p.map((x,i)=>i===fi?{...x,amt:v}:x))} style={{flex:1}}/><Sel value={fe.unit} onChange={v=>setFertEntries(p=>p.map((x,i)=>i===fi?{...x,unit:v}:x))} options={["kg","g","L","ml","袋"].map(v=>({value:v,label:v}))} style={{width:60,flex:"none"}}/></div></FG>
                 <FG label="施用方法"><Sel value={fe.meth} onChange={v=>setFertEntries(p=>p.map((x,i)=>i===fi?{...x,meth:v}:x))} options={["元肥","追肥","葉面散布","かん注"].map(v=>({value:v,label:v}))}/></FG>
               </R2>
             </div>
@@ -3016,8 +3016,8 @@ useEffect(()=>{
                 options={[{value:"",label:"（選択）"},...pestMs.map((p,i)=>({value:i,label:p.name}))]}/>
             </FG>
             <R2>
-              <FG label="希釈倍数"><Inp type="number" value={pestDil} onChange={setPestDil} placeholder="1000"/></FG>
-              <FG label="散布量（希釈後）"><div style={{display:"flex",gap:4}}><Inp type="number" value={pestAmt} onChange={setPestAmt} style={{flex:1}}/><Sel value={pestUnit} onChange={setPestUnit} options={["L","ml"].map(v=>({value:v,label:v}))} style={{width:60,flex:"none"}}/></div></FG>
+              <FG label="希釈倍数"><CalcInp value={pestDil} onChange={setPestDil} placeholder="1000"/></FG>
+              <FG label="散布量（希釈後）"><div style={{display:"flex",gap:4}}><CalcInp value={pestAmt} onChange={setPestAmt} style={{flex:1}}/><Sel value={pestUnit} onChange={setPestUnit} options={["L","ml"].map(v=>({value:v,label:v}))} style={{width:60,flex:"none"}}/></div></FG>
             </R2>
             <FG label="対象病害虫"><Inp value={pestTgt} onChange={setPestTgt} placeholder="アブラムシ等"/></FG>
           </div>
@@ -3035,8 +3035,8 @@ useEffect(()=>{
                 }} options={[{value:"",label:"（選択）"},...pestMs.map((p,i)=>({value:i,label:p.name}))]}/>
               </FG>
               <R2>
-                <FG label="希釈倍数"><Inp type="number" value={pe.dil} onChange={v=>setPestEntries(p=>p.map((x,i)=>i===pi?{...x,dil:v}:x))} placeholder="1000"/></FG>
-                <FG label="散布量（希釈後）"><div style={{display:"flex",gap:4}}><Inp type="number" value={pe.sprayAmt} onChange={v=>setPestEntries(p=>p.map((x,i)=>i===pi?{...x,sprayAmt:v}:x))} style={{flex:1}}/><Sel value={pe.sprayUnit} onChange={v=>setPestEntries(p=>p.map((x,i)=>i===pi?{...x,sprayUnit:v}:x))} options={["L","ml"].map(v=>({value:v,label:v}))} style={{width:60,flex:"none"}}/></div></FG>
+                <FG label="希釈倍数"><CalcInp value={pe.dil} onChange={v=>setPestEntries(p=>p.map((x,i)=>i===pi?{...x,dil:v}:x))} placeholder="1000"/></FG>
+                <FG label="散布量（希釈後）"><div style={{display:"flex",gap:4}}><CalcInp value={pe.sprayAmt} onChange={v=>setPestEntries(p=>p.map((x,i)=>i===pi?{...x,sprayAmt:v}:x))} style={{flex:1}}/><Sel value={pe.sprayUnit} onChange={v=>setPestEntries(p=>p.map((x,i)=>i===pi?{...x,sprayUnit:v}:x))} options={["L","ml"].map(v=>({value:v,label:v}))} style={{width:60,flex:"none"}}/></div></FG>
               </R2>
               <FG label="対象病害虫"><Inp value={pe.tgt} onChange={v=>setPestEntries(p=>p.map((x,i)=>i===pi?{...x,tgt:v}:x))} placeholder="アブラムシ等"/></FG>
             </div>
@@ -3049,8 +3049,8 @@ useEffect(()=>{
             <div key={q} style={{background:"#fffdf5",border:"1px solid #f0e0b0",borderRadius:8,padding:"8px 10px",marginBottom:6}}>
               <div style={{fontSize:".72rem",fontWeight:700,color:"#5c3d1e",marginBottom:5}}>{q}</div>
               <R2>
-                <FG label="kg"><Inp type="number" value={hvGrades[q].kg} onChange={v=>setHvGrades(g=>({...g,[q]:{...g[q],kg:v}}))} placeholder="0"/></FG>
-                <FG label="個数"><Inp type="number" value={hvGrades[q].cnt} onChange={v=>setHvGrades(g=>({...g,[q]:{...g[q],cnt:v}}))} placeholder="0"/></FG>
+                <FG label="kg"><CalcInp value={hvGrades[q].kg} onChange={v=>setHvGrades(g=>({...g,[q]:{...g[q],kg:v}}))} placeholder="0"/></FG>
+                <FG label="個数"><CalcInp value={hvGrades[q].cnt} onChange={v=>setHvGrades(g=>({...g,[q]:{...g[q],cnt:v}}))} placeholder="0"/></FG>
               </R2>
             </div>
           ))}
@@ -3062,7 +3062,7 @@ useEffect(()=>{
             })()}
           </div>
         </div>}
-        {works.has("discard")&&<div style={panelStyle("#fef2f2","#fca5a5")}><div style={ctitleStyle}>♻️ 廃棄・株数調整</div><R2><FG label="廃棄株数"><Inp type="number" value={discardCnt} onChange={setDiscardCnt} placeholder="0"/></FG><FG label="追加株数"><Inp type="number" value={addCnt} onChange={setAddCnt} placeholder="0"/></FG></R2></div>}
+        {works.has("discard")&&<div style={panelStyle("#fef2f2","#fca5a5")}><div style={ctitleStyle}>♻️ 廃棄・株数調整</div><R2><FG label="廃棄株数"><CalcInp value={discardCnt} onChange={setDiscardCnt} placeholder="0"/></FG><FG label="追加株数"><CalcInp value={addCnt} onChange={setAddCnt} placeholder="0"/></FG></R2></div>}
         
         {works.has("equip")&&<div style={panelStyle("#f5f0ff","#c4b5fd")}>
           <div style={{...ctitleStyle,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
@@ -3078,7 +3078,7 @@ useEffect(()=>{
             </FG>
             <FG label="作業種別"><Sel value={equipAct} onChange={setEquipAct} options={["設置","撤去","使用","着用","脱去","点検","修理","その他"].map(v=>({value:v,label:v}))}/></FG>
             {equipAct==="使用"&&<FG label="使用量（任意）"><div style={{display:"flex",gap:4}}>
-              <Inp type="number" value={equipUseAmt} onChange={setEquipUseAmt} placeholder="例：5" style={{flex:1}}/>
+              <CalcInp value={equipUseAmt} onChange={setEquipUseAmt} placeholder="例：5" style={{flex:1}}/>
               <Sel value={equipUseUnit} onChange={setEquipUseUnit} options={["L","ml","kg","g","個"].map(v=>({value:v,label:v}))} style={{width:60,flex:"none"}}/>
             </div></FG>}
           </div>
@@ -3098,7 +3098,7 @@ useEffect(()=>{
                   options={["設置","撤去","使用","着用","脱去","点検","修理","その他"].map(v=>({value:v,label:v}))}/>
               </FG>
               {ee.act==="使用"&&<FG label="使用量（任意）"><div style={{display:"flex",gap:4}}>
-                <Inp type="number" value={ee.useAmt||""} onChange={v=>setEquipEntries(p=>p.map((x,i)=>i===ei?{...x,useAmt:v}:x))} placeholder="例：5" style={{flex:1}}/>
+                <CalcInp value={ee.useAmt||""} onChange={v=>setEquipEntries(p=>p.map((x,i)=>i===ei?{...x,useAmt:v}:x))} placeholder="例：5" style={{flex:1}}/>
                 <Sel value={ee.useUnit||"L"} onChange={v=>setEquipEntries(p=>p.map((x,i)=>i===ei?{...x,useUnit:v}:x))} options={["L","ml","kg","g","個"].map(v=>({value:v,label:v}))} style={{width:60,flex:"none"}}/>
               </div></FG>}
             </div>
@@ -3127,7 +3127,7 @@ useEffect(()=>{
         </FG>
         <R2><FG label="作業日"><Inp type="date" value={date} onChange={setDate}/></FG><FG label="作業時刻"><Inp type="time" value={time} onChange={setTime}/></FG></R2>
 
-        <FG label="作業時間（分）"><Inp type="number" value={dur} onChange={setDur} placeholder="30"/></FG>
+        <FG label="作業時間（分）"><CalcInp value={dur} onChange={setDur} placeholder="30"/></FG>
         <FG label="メモ・気づき"><TA value={memo} onChange={setMemo} placeholder="天候・生育状態・気づいたことなど…"/></FG>
 
       </div>
@@ -4104,7 +4104,7 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
               <R2>
                 <FG label="農薬の種類"><Sel value={mItem.type||"殺虫剤"} onChange={v=>setMItem({...mItem,type:v})}
                   options={["殺虫剤","殺菌剤","除草剤","殺虫殺菌剤","その他"].map(v=>({value:v,label:v}))}/></FG>
-                <FG label="希釈倍数"><Inp type="number" value={mItem.dil||""} onChange={v=>setMItem({...mItem,dil:v})} placeholder="1000"/></FG>
+                <FG label="希釈倍数"><CalcInp value={mItem.dil||""} onChange={v=>setMItem({...mItem,dil:v})} placeholder="1000"/></FG>
               </R2>
               <FG label="対象作物・病害虫"><Inp value={mItem.target||""} onChange={v=>setMItem({...mItem,target:v})} placeholder="例：アブラムシ"/></FG>
             </>}
@@ -4128,7 +4128,7 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
               <R2>
                 <FG label="内容量（1個あたり）">
                   <div style={{display:"flex",gap:4}}>
-                    <Inp type="number" value={mItem.capacity||""} onChange={v=>setMItem({...mItem,capacity:v})} placeholder="例：500" style={{flex:1}}/>
+                    <CalcInp value={mItem.capacity||""} onChange={v=>setMItem({...mItem,capacity:v})} placeholder="例：500" style={{flex:1}}/>
                     <Sel value={mItem.cunit||"ml"} onChange={v=>setMItem({...mItem,cunit:v,sunit:v})}
                       options={["ml","L","g","kg"].map(v=>({value:v,label:v}))} style={{width:60,flex:"none"}}/>
                   </div>
@@ -4148,7 +4148,7 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
             </div>
             <R2>
               <FG label="購入個数">
-                <Inp type="number" value={mBuy.cnt||""} onChange={v=>{
+                <CalcInp value={mBuy.cnt||""} onChange={v=>{
                   const cnt=parseFloat(v)||0;
                   const cap=parseFloat(mBuy.capacity)||0;
                   const autoAmt=mBuy.price&&cnt?String(Math.round(parseFloat(mBuy.price)*cnt)):"";
@@ -6090,4 +6090,3 @@ export default function App() {
     </div>
   );
 }
-
