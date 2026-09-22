@@ -1074,6 +1074,109 @@ function Inp({ value, onChange, type="text", placeholder="", style={}, ...props 
     {...(type!=="number"?{lang:"ja"}:{})}
     {...props} />;
 }
+
+// 計算機キーボード付き数値入力
+function CalcInp({ value, onChange, placeholder="0", style={} }) {
+  const [open, setOpen] = useState(false);
+  const [expr, setExpr] = useState(""); // 計算式バッファ
+  const [display, setDisplay] = useState(""); // 表示文字列
+
+  const openCalc = () => {
+    setExpr(value ? String(value) : "");
+    setDisplay(value ? String(value) : "");
+    setOpen(true);
+  };
+  const pressKey = (k) => {
+    if(k === "AC") {
+      setExpr(""); setDisplay(""); return;
+    }
+    if(k === "⌫") {
+      const ne = expr.slice(0,-1);
+      setExpr(ne); setDisplay(ne); return;
+    }
+    if(k === "=") {
+      try {
+        // 演算子を安全に評価（× → * 、÷ → /）
+        const safe = expr.replace(/×/g,"*").replace(/÷/g,"/").replace(/[^0-9+\-*/.()]/g,"");
+        if(!safe) return;
+        // eslint-disable-next-line no-new-func
+        const result = Function('"use strict";return ('+safe+')')();
+        const rounded = Math.round(result * 100) / 100;
+        const str = String(rounded);
+        setExpr(str); setDisplay(str);
+        onChange(str);
+      } catch(e) { setDisplay("エラー"); setExpr(""); }
+      return;
+    }
+    const ne = expr + k;
+    setExpr(ne); setDisplay(ne);
+  };
+  const confirm = () => {
+    // =を押さずに閉じた場合、数値として有効なら確定
+    const safe = expr.replace(/×/g,"*").replace(/÷/g,"/").replace(/[^0-9+\-*/.()]/g,"");
+    if(!safe){ setOpen(false); return; }
+    try {
+      // eslint-disable-next-line no-new-func
+      const result = Function('"use strict";return ('+safe+')')();
+      const rounded = Math.round(result * 100) / 100;
+      onChange(String(rounded));
+    } catch(e) {}
+    setOpen(false);
+  };
+
+  const keys = [
+    ["7","8","9","÷"],
+    ["4","5","6","×"],
+    ["1","2","3","−"],
+    ["AC","0","⌫","＋"],
+  ];
+
+  return <>
+    <input
+      type="text" inputMode="none" readOnly
+      value={value||""} placeholder={placeholder}
+      onClick={openCalc}
+      style={{...S.inp,...style,cursor:"pointer",background:"#fffdf8"}}
+    />
+    {open && <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,zIndex:2000,display:"flex",flexDirection:"column",justifyContent:"flex-end"}}
+      onClick={e=>{if(e.target===e.currentTarget)confirm();}}>
+      <div style={{background:"#f8f5ef",borderRadius:"16px 16px 0 0",padding:"12px 16px 24px",boxShadow:"0 -4px 24px rgba(0,0,0,.18)"}}>
+        {/* 計算式ディスプレイ */}
+        <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
+          <div style={{flex:1,background:"#fff",borderRadius:10,padding:"8px 12px",fontSize:"1.2rem",fontWeight:700,color:"#5c3d1e",
+            minHeight:44,textAlign:"right",border:"1.5px solid #e0d9ce",overflowX:"auto",whiteSpace:"nowrap"}}>
+            {display||<span style={{color:"#bbb",fontWeight:400,fontSize:".9rem"}}>{placeholder}</span>}
+          </div>
+          <button onClick={confirm}
+            style={{padding:"8px 18px",borderRadius:10,border:"none",background:"#2d6a3f",color:"#fff",fontSize:".9rem",fontWeight:700,cursor:"pointer"}}>
+            完了
+          </button>
+        </div>
+        {/* キーパッド */}
+        <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8}}>
+          {keys.flat().map(k=>{
+            const isOp = ["÷","×","−","＋"].includes(k);
+            const isEq = k==="=";
+            const isDel = k==="AC"||k==="⌫";
+            return <button key={k} onClick={()=>pressKey(k)}
+              style={{padding:"15px 0",borderRadius:12,border:"none",fontSize:"1.15rem",fontWeight:700,cursor:"pointer",
+                background: isOp?"#f5f0e8": isDel?"#fde8e8":"#fff",
+                color: isOp?"#8B6914": isDel?"#c0392b":"#3c3228",
+                boxShadow:"0 2px 6px rgba(0,0,0,.08)"}}>
+              {k}
+            </button>;
+          })}
+          {/* = ボタン（幅広） */}
+          <button onClick={()=>pressKey("=")}
+            style={{gridColumn:"span 4",padding:"15px 0",borderRadius:12,border:"none",fontSize:"1.2rem",fontWeight:700,cursor:"pointer",
+              background:"#2d6a3f",color:"#fff",boxShadow:"0 2px 6px rgba(0,0,0,.12)"}}>
+            ＝ 計算する
+          </button>
+        </div>
+      </div>
+    </div>}
+  </>;
+}
 function Sel({ value, onChange, options, style={} }) { return <select value={value||""} onChange={e=>{ if(!options.find(o=>o.value===e.target.value)?.disabled) onChange(e.target.value); }} style={{...S.inp,...style}}>{options.map(o=><option key={o.value} value={o.value} disabled={o.disabled} style={o.disabled?{color:"#aaa",fontWeight:700,background:"#f5f5f0"}:{}}>{o.label}</option>)}</select>; }
 function TA({ value, onChange, placeholder="" }) { return <textarea value={value||""} onChange={e=>onChange(e.target.value)} placeholder={placeholder} style={{...S.inp,minHeight:65,resize:"vertical",lineHeight:1.5}} />; }
 function R2({ children }) { return <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>{children}</div>; }
@@ -1758,7 +1861,7 @@ function MasterScreen({ fertMs, setFertMs, pestMs, setPestMs, equips, setEquips,
             <div style={{background:"#f0f9f0",borderRadius:10,padding:"10px 12px",marginBottom:9}}>
               <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".82rem",color:"#5c3d1e",marginBottom:8}}>💰 購入情報</div>
               <R2>
-                <FG label="単価（円）"><Inp type="number" value={mItem.price||""} onChange={v=>setMItem({...mItem,price:v})} placeholder="例：1500"/></FG>
+                <FG label="単価（円）"><CalcInp value={mItem.price||""} onChange={v=>setMItem({...mItem,price:v})} placeholder="例：1500"/></FG>
                 <FG label="数量"><div style={{display:"flex",gap:4}}><Inp type="number" value={mItem.capacity||""} onChange={v=>setMItem({...mItem,capacity:v})} placeholder="1" style={{flex:1}}/><Inp value={mItem.cunit||"個"} onChange={v=>setMItem({...mItem,cunit:v})} placeholder="個" style={{width:48,flex:"none"}}/></div></FG>
               </R2>
               <FG label="購入日"><Inp type="date" value={mItem.buyDate||""} onChange={v=>setMItem({...mItem,buyDate:v})}/></FG>
@@ -1777,14 +1880,14 @@ function MasterScreen({ fertMs, setFertMs, pestMs, setPestMs, equips, setEquips,
                       options={["ml","L","g","kg"].map(v=>({value:v,label:v}))} style={{width:60,flex:"none"}}/>
                   </div>
                 </FG>
-                <FG label="単価（円/個）"><Inp type="number" value={mItem.price||""} onChange={v=>setMItem({...mItem,price:v})} placeholder="例：2000"/></FG>
+                <FG label="単価（円/個）"><CalcInp value={mItem.price||""} onChange={v=>setMItem({...mItem,price:v})} placeholder="例：2000"/></FG>
               </R2>
             </div>
           </>}
 
           {mItem._type==="equip"&&<>
             <R2>
-              <FG label="購入価格（円）"><Inp type="number" value={mItem.price||""} onChange={v=>setMItem({...mItem,price:v})}/></FG>
+              <FG label="購入価格（円）"><CalcInp value={mItem.price||""} onChange={v=>setMItem({...mItem,price:v})} placeholder="例：50000"/></FG>
               <FG label="購入日"><Inp type="date" value={mItem.date||todayStr()} onChange={v=>setMItem({...mItem,date:v})}/></FG>
             </R2>
             <FG label="減価償却年数（高額・長期使用の農機具等）">
@@ -1815,7 +1918,7 @@ function MasterScreen({ fertMs, setFertMs, pestMs, setPestMs, equips, setEquips,
               }} placeholder="例：3"/>
             </FG>
             <FG label="購入金額（円・任意）">
-              <Inp type="number" value={mBuy.amt||""} onChange={v=>setMBuy({...mBuy,amt:v})} placeholder="自動計算"/>
+              <CalcInp value={mBuy.amt||""} onChange={v=>setMBuy({...mBuy,amt:v})} placeholder="自動計算"/>
             </FG>
           </R2>
           {mBuy.cnt&&parseFloat(mBuy.capacity)>0&&(
@@ -3427,7 +3530,14 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
   const empty = {id:"",cat:"equip",name:"",amt:"",date:todayStr(),qty:"1",qunit:"個",cropId:"",note:"",payMethod:"現金",payDate:""};
   const sv = () => {
     if(!mCost.name){showToast("品名を入力してください");return;}
-    const item={...mCost,id:mCost.id||uid0()};
+    // 割引・ポイント分を差し引いた実質金額をamtとして保存
+    const discount = parseFloat(mCost.discount)||0;
+    const baseAmt = parseFloat(mCost.amt)||0;
+    const realAmt = discount > 0 ? Math.max(0, baseAmt - discount) : baseAmt;
+    const noteWithDiscount = discount > 0
+      ? (mCost.note ? mCost.note + "　割引/ポイント-"+discount+"円" : "割引/ポイント-"+discount+"円")
+      : mCost.note;
+    const item={...mCost, id:mCost.id||uid0(), amt:String(realAmt), note:noteWithDiscount, discount:undefined};
     const n=mCost.id&&costs.find(x=>x.id===mCost.id)?costs.map(x=>x.id===mCost.id?item:x):[...costs,item];
     setCosts(n,item); setMCost(null); showToast("保存しました");
   };
@@ -3997,7 +4107,7 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
                   options={["使用中","保管中","メンテナンス中","廃棄"].map(v=>({value:v,label:v}))}/></FG>
               </R2>
               <R2>
-                <FG label="購入価格（円）"><Inp type="number" value={mItem.price||""} onChange={v=>setMItem({...mItem,price:v})}/></FG>
+                <FG label="購入価格（円）"><CalcInp value={mItem.price||""} onChange={v=>setMItem({...mItem,price:v})} placeholder="例：50000"/></FG>
                 <FG label="購入日"><Inp type="date" value={mItem.date||todayStr()} onChange={v=>setMItem({...mItem,date:v})}/></FG>
               </R2>
               <FG label="減価償却年数">
@@ -4014,7 +4124,7 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
                       options={["ml","L","g","kg"].map(v=>({value:v,label:v}))} style={{width:60,flex:"none"}}/>
                   </div>
                 </FG>
-                <FG label="単価（円/個）"><Inp type="number" value={mItem.price||""} onChange={v=>setMItem({...mItem,price:v})} placeholder="例：2000"/></FG>
+                <FG label="単価（円/個）"><CalcInp value={mItem.price||""} onChange={v=>setMItem({...mItem,price:v})} placeholder="例：2000"/></FG>
               </R2>
             </>}
             <FG label="メモ"><Inp value={mItem.note||""} onChange={v=>setMItem({...mItem,note:v})} placeholder="購入先・注意事項など"/></FG>
@@ -4037,7 +4147,7 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
                 }} placeholder="例：3"/>
               </FG>
               <FG label="購入金額（円・任意）">
-                <Inp type="number" value={mBuy.amt||""} onChange={v=>setMBuy({...mBuy,amt:v})} placeholder="自動計算"/>
+                <CalcInp value={mBuy.amt||""} onChange={v=>setMBuy({...mBuy,amt:v})} placeholder="自動計算"/>
               </FG>
             </R2>
             <FG label="購入日"><Inp type="date" value={mBuy.date||todayStr()} onChange={v=>setMBuy({...mBuy,date:v})}/></FG>
@@ -4077,8 +4187,18 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
             </div>
           </FG>
           <FG label="金額（円）">
-            <Inp type="number" value={mCost.amt} onChange={v=>setMCost({...mCost,amt:v})} placeholder="例：5000"/>
+            <CalcInp value={mCost.amt} onChange={v=>setMCost({...mCost,amt:v})} placeholder="例：5000"/>
           </FG>
+          {/* 割引・ポイント */}
+          {!isIncome(mCost.cat)&&<>
+            <FG label="割引・ポイント利用（円）">
+              <CalcInp value={mCost.discount||""} onChange={v=>setMCost({...mCost,discount:v})} placeholder="例：500（なければ空欄）"/>
+            </FG>
+            {(parseFloat(mCost.discount)>0)&&<div style={{fontSize:".78rem",background:"#FFF8E1",border:"1px solid #FFE082",borderRadius:8,padding:"6px 10px",marginBottom:6,color:"#5c3d1e"}}>
+              💡 実質支払：{(Math.max(0,(parseFloat(mCost.amt)||0)-(parseFloat(mCost.discount)||0))).toLocaleString()}円
+              　（{parseFloat(mCost.discount).toLocaleString()}円 割引）
+            </div>}
+          </>}
           <FG label="内容・品名"><Inp value={mCost.name||""} onChange={v=>setMCost({...mCost,name:v})} placeholder="例：トマト苗/肥料/農産物売上"/></FG>
           <R2>
             <FG label="日付"><Inp type="date" value={mCost.date||todayStr()} onChange={v=>{
