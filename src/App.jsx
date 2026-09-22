@@ -1609,10 +1609,12 @@ function HomeScreen({ fields, crops, setCrops, logs, setLogs, costs, onEditCrop,
               <div style={{flex:1,minWidth:0}}>
                 {item.label&&<div style={{fontSize:".68rem",color:"#888",marginBottom:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.label}</div>}
                 <div style={{fontSize:".8rem",fontWeight:700,color:"#1c1a14",lineHeight:1.3,wordBreak:"break-all"}}>
-                  {item.msg}
-                  {/* カスタム予定はmsgに日時が含まれないので別途表示 */}
-                  {item.isCustom&&<span style={{marginLeft:4,fontSize:".68rem",fontWeight:400,color:item.urgent?"#856404":"#888"}}>{item.dayStr}</span>}
+                  {/* msgの末尾にある「今日」「明日」「〇日後」「〇日前」を除去して作業名だけ表示 */}
+                  {(item.msg||"").replace(/\s*(今日|明日|\d+日後|\d+日前)$/, "")}
                   {item.urgent&&<span style={{marginLeft:6,background:"#ffc107",color:"#856404",borderRadius:3,padding:"0 4px",fontSize:".62rem",fontWeight:700}}>要対応</span>}
+                </div>
+                <div style={{fontSize:".68rem",color:item.urgent?"#856404":"#888",marginTop:1}}>
+                  {item.dateStr}　{item.dayStr}
                 </div>
               </div>
               <button onClick={()=>{
