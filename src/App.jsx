@@ -687,17 +687,10 @@ const sortCropsByFamily = (cropList) => {
     return 0;
   });
 };
-// 品目optionsを科グループ付きで生成するヘルパー
+// 品目optionsを生成するヘルパー（科ヘッダーなし・シンプルリスト）
 const makeCropOptions = (cropList, emptyLabel="（選択）") => {
-  const sorted = sortCropsByFamily(cropList);
   const opts = [{value:"",label:emptyLabel}];
-  let prevCat = null;
-  sorted.forEach(c => {
-    const cat = (CDB[c.type]||{}).cat||"その他";
-    if(cat !== prevCat) {
-      opts.push({value:"__header__"+cat, label:"── "+cat+" ──", disabled:true});
-      prevCat = cat;
-    }
+  cropList.forEach(c => {
     opts.push({value:c.id, label:getCropDisplayName(c)});
   });
   return opts;
