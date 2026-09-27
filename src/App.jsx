@@ -687,11 +687,23 @@ const sortCropsByFamily = (cropList) => {
     return 0;
   });
 };
-// 品目optionsを生成するヘルパー（科ヘッダーなし・シンプルリスト）
+// 品目optionsを生成するヘルパー（ホームのcropGroupsと同じ品目タイプ順グループ化）
 const makeCropOptions = (cropList, emptyLabel="（選択）") => {
   const opts = [{value:"",label:emptyLabel}];
+  const groups = {};
+  const order = [];
   cropList.forEach(c => {
-    opts.push({value:c.id, label:getCropDisplayName(c)});
+    const db = CDB[c.type]||{};
+    const key = c.type==='custom'?(c.customName||'その他'):(db.n||c.type);
+    if(!groups[key]){ groups[key]={emoji:db.e||'🌱', crops:[]}; order.push(key); }
+    groups[key].crops.push(c);
+  });
+  order.forEach(key => {
+    const g = groups[key];
+    g.crops.forEach(c => {
+      const label = g.emoji+" "+key+(c.variety?" ("+c.variety+")":"")+(g.crops.length>1&&!c.variety?" #"+(g.crops.indexOf(c)+1):"");
+      opts.push({value:c.id, label});
+    });
   });
   return opts;
 };
@@ -1081,7 +1093,8 @@ function CalcInp({ value, onChange, placeholder="0", style={} }) {
   };
   const pressKey = (k) => {
     if(k === "AC") {
-      setExpr(""); setDisplay(""); return;
+      // AC: 空欄に戻す（未入力状態）
+      setExpr(""); setDisplay(""); onChange(""); setOpen(false); return;
     }
     if(k === "⌫") {
       const ne = expr.slice(0,-1);
@@ -1105,9 +1118,9 @@ function CalcInp({ value, onChange, placeholder="0", style={} }) {
     setExpr(ne); setDisplay(ne);
   };
   const confirm = () => {
-    // =を押さずに閉じた場合、数値として有効なら確定
+    // =を押さずに閉じた場合、空欄なら空欄のまま確定
     const safe = expr.replace(/×/g,"*").replace(/÷/g,"/").replace(/−/g,"-").replace(/＋/g,"+").replace(/[^0-9+\-*/.()]/g,"");
-    if(!safe){ setOpen(false); return; }
+    if(!safe){ onChange(""); setOpen(false); return; }
     try {
       // eslint-disable-next-line no-new-func
       const result = Function('"use strict";return ('+safe+')')();
@@ -1147,12 +1160,12 @@ function CalcInp({ value, onChange, placeholder="0", style={} }) {
             完了
           </button>
         </div>
-        {/* AC（全消去）＋ ÷ ボタン */}
+        {/* AC（未入力に戻す）＋ ÷ ボタン */}
         <div style={{display:"grid",gridTemplateColumns:"3fr 1fr",gap:8,marginBottom:8}}>
           <button onClick={()=>pressKey("AC")}
             style={{padding:"13px 0",borderRadius:12,border:"none",fontSize:"1rem",fontWeight:700,cursor:"pointer",
               background:"#fde8e8",color:"#c0392b",boxShadow:"0 2px 6px rgba(0,0,0,.08)"}}>
-            AC（全消去）
+            クリア（未入力に戻す）
           </button>
           <button onClick={()=>pressKey("÷")}
             style={{padding:"13px 0",borderRadius:12,border:"none",fontSize:"1.2rem",fontWeight:700,cursor:"pointer",
