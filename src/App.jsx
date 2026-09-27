@@ -830,8 +830,8 @@ async function uploadPhoto(blob, userId, filename) {
   }
 }
 
-// 過去気象データ取得（Open-Meteo Archive API）
-async function fetchClimateData(addr, startDate, endDate) {
+// 住所→緯度経度変換（共通）
+async function geocode(addr) {
   let lat=34.9756, lon=138.3827;
   if(addr) {
     try {
@@ -839,24 +839,92 @@ async function fetchClimateData(addr, startDate, endDate) {
       const d=await r.json(); if(d[0]){lat=parseFloat(d[0].lat);lon=parseFloat(d[0].lon);}
     } catch {}
   }
+  return {lat,lon};
+}
+
+// 過去気象データ取得（Open-Meteo Archive API）- 日別気温・日照・降水を返す
+async function fetchClimateData(addr, startDate, endDate) {
+  const {lat,lon} = await geocode(addr);
   try {
-    const url="https://archive-api.open-meteo.com/v1/archive"
-      +"?latitude="+lat+"&longitude="+lon
-      +"&start_date="+startDate+"&end_date="+endDate
-      +"&daily=sunshine_duration,precipitation_sum&timezone=Asia%2FTokyo";
-    const r=await fetch(url); const d=await r.json();
-    if(!d.daily) return null;
+    // アーカイブAPIは過去データのみ（今日より前）
+    const today = new Date().toISOString().slice(0,10);
+    const archiveEnd = endDate < today ? endDate : new Date(Date.now()-86400000).toISOString().slice(0,10);
+    let daily=[], archiveDaily=null;
+
+    if(startDate <= archiveEnd) {
+      const url="https://archive-api.open-meteo.com/v1/archive"
+        +"?latitude="+lat+"&longitude="+lon
+        +"&start_date="+startDate+"&end_date="+archiveEnd
+        +"&daily=temperature_2m_max,temperature_2m_min,sunshine_duration,precipitation_sum&timezone=Asia%2FTokyo";
+      const r=await fetch(url); const d=await r.json();
+      archiveDaily=d.daily;
+    }
+
+    // 未来分は予報APIから
+    let forecastDaily=null;
+    if(endDate >= today) {
+      const url2="https://api.open-meteo.com/v1/forecast"
+        +"?latitude="+lat+"&longitude="+lon
+        +"&daily=temperature_2m_max,temperature_2m_min,sunshine_duration,precipitation_sum"
+        +"&timezone=Asia%2FTokyo&forecast_days=16";
+      const r2=await fetch(url2); const d2=await r2.json();
+      forecastDaily=d2.daily;
+    }
+
+    // アーカイブと予報を結合
+    const mergeDaily=(src)=>{
+      if(!src) return;
+      src.time.forEach((t,i)=>{
+        if(t>=startDate && t<=endDate) {
+          daily.push({
+            date:t,
+            tmax:src.temperature_2m_max?.[i]??null,
+            tmin:src.temperature_2m_min?.[i]??null,
+            sunshine:(src.sunshine_duration?.[i]||0)/3600,
+            precip:src.precipitation_sum?.[i]||0,
+            forecast: t>=today,
+          });
+        }
+      });
+    };
+    mergeDaily(archiveDaily);
+    mergeDaily(forecastDaily);
+    // 重複除去・日付昇順
+    const seen=new Set();
+    daily=daily.filter(d=>{if(seen.has(d.date))return false;seen.add(d.date);return true;});
+    daily.sort((a,b)=>a.date.localeCompare(b.date));
+
+    // 月別集計
     const monthly={};
-    d.daily.time.forEach((t,i)=>{
-      const ym=t.slice(0,7);
+    daily.forEach(d=>{
+      const ym=d.date.slice(0,7);
       if(!monthly[ym]) monthly[ym]={sunshine:0,precip:0};
-      monthly[ym].sunshine+=(d.daily.sunshine_duration[i]||0)/3600;
-      monthly[ym].precip+=(d.daily.precipitation_sum[i]||0);
+      monthly[ym].sunshine+=d.sunshine;
+      monthly[ym].precip+=d.precip;
     });
-    return Object.entries(monthly).sort((a,b)=>a[0].localeCompare(b[0])).map(([ym,v])=>({
+    const monthlyArr=Object.entries(monthly).sort((a,b)=>a[0].localeCompare(b[0])).map(([ym,v])=>({
       month:ym, sunshine:Math.round(v.sunshine*10)/10, precip:Math.round(v.precip*10)/10,
     }));
-  } catch { return null; }
+
+    return { daily, monthly: monthlyArr, lat, lon };
+  } catch(e) { console.error("fetchClimateData",e); return null; }
+}
+
+// 積算温度（GDD）を日別データから計算
+// baseTemp: 基準温度（デフォルト10℃）
+// startDate: 計算開始日
+// daily: [{date,tmax,tmin,...}]
+function calcGDD(daily, startDate, baseTemp=10) {
+  let gdd=0;
+  const result=[];
+  daily.filter(d=>d.date>=startDate).forEach(d=>{
+    if(d.tmax==null||d.tmin==null){result.push({date:d.date,gdd,daily:0,forecast:d.forecast});return;}
+    const avg=(d.tmax+d.tmin)/2;
+    const daily=Math.max(0, avg-baseTemp);
+    gdd=Math.round((gdd+daily)*10)/10;
+    result.push({date:d.date,gdd,daily:Math.round(daily*10)/10,forecast:d.forecast});
+  });
+  return result;
 }
 
 async function fetchWeather(addr) {
@@ -4879,11 +4947,24 @@ function PlanScreen({ fields, crops, setCrops, plots, setPlots, setPlotsR, showT
 
 function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs, equips=[], openLb }) {
   const [selCropId, setSelCropId] = useState("all");
-  const [climateData, setClimateData] = useState(null); // 月別気象データ
+  const [climateData, setClimateData] = useState(null); // 気象データ（daily+monthly）
   const [climateLoading, setClimateLoading] = useState(false);
   const [period,    setPeriod]    = useState("year");  // "year" or "month"
   const [selYear,   setSelYear]   = useState(new Date().getFullYear());
   const [selMonth,  setSelMonth]  = useState(new Date().getMonth()+1);
+  // 積算温度設定（品目ごと・localStorageで保存）
+  const [gddSettings, setGddSettings] = useState(()=>{
+    try { return JSON.parse(localStorage.getItem("gddSettings")||"{}"); } catch { return {}; }
+  });
+  const [showGddConfig, setShowGddConfig] = useState(false);
+
+  const saveGddSetting = (cropId, patch) => {
+    setGddSettings(prev=>{
+      const next={...prev,[cropId]:{...(prev[cropId]||{}),...patch}};
+      try { localStorage.setItem("gddSettings",JSON.stringify(next)); } catch {}
+      return next;
+    });
+  };
 
   // 利用可能な年・月リスト
   const allDates = [...logs, ...costs].map(x=>x.date||'').filter(Boolean);
@@ -5023,24 +5104,24 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs, equips=[], o
   const totalTimeStr=totalMin>0?(th>0?th+"時間"+tm+"分":tm+"分"):"0分";
 
 
-  // 品目選択時に栽培期間の気候データを取得
+  // 品目選択時に栽培期間の気候データを取得（積算温度設定の開始日も考慮）
   useEffect(()=>{
     if(!sel) { setClimateData(null); return; }
     const crop=crops.find(c=>c.id===sel.id);
     if(!crop) return;
-    const start=crop.plantDate||crop.sowDate;
-    const end=crop.ended&&crop.endDate?crop.endDate:new Date().toISOString().slice(0,10);
+    const gs=gddSettings[sel.id]||{};
+    const start=gs.startDate||crop.plantDate||crop.sowDate;
+    const end=new Date(Math.min(
+      crop.ended&&crop.endDate?new Date(crop.endDate):Infinity,
+      new Date(new Date().setDate(new Date().getDate()+30)) // 未来30日まで取得
+    )).toISOString().slice(0,10);
     if(!start) { setClimateData(null); return; }
-    // 開始から1年以内のデータのみ（API制限考慮）
-    const startD=new Date(start), endD=new Date(end);
-    const diffDays=Math.floor((endD-startD)/86400000);
-    if(diffDays<1){ setClimateData(null); return; }
     const fieldAddr=fields[crop.fieldIdx]?.addr||fields[0]?.addr||"";
     setClimateLoading(true);
     fetchClimateData(fieldAddr, start, end).then(data=>{
       setClimateData(data); setClimateLoading(false);
     }).catch(()=>{ setClimateLoading(false); });
-  },[sel?.id]);
+  },[sel?.id, gddSettings[selCropId]?.startDate]);
 
   return (
     <div style={S.scr} className="scr-inner">
@@ -5169,47 +5250,211 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs, equips=[], o
               <div style={{fontSize:".66rem",color:TX3,textAlign:"right",marginTop:2}}>単位: kg</div>
             </div>
           )}
-          {/* 月別気象データ（日照時間・降水量） */}
-          {climateLoading&&<div style={{...S.card,textAlign:"center",fontSize:".8rem",color:TX3,padding:16}}>🌤 気象データ読み込み中…</div>}
-          {climateData&&climateData.length>0&&(
-            <div style={S.card}>
-              <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".86rem",color:"#5c3d1e",marginBottom:10}}>☀️🌧 栽培期間の気象データ（月別）</div>
-              {(()=>{
-                const months=climateData.map(d=>d.month);
-                const maxSun=Math.max(...climateData.map(d=>d.sunshine),1);
-                const maxPre=Math.max(...climateData.map(d=>d.precip),1);
-                return <>
-                  {/* 日照時間グラフ */}
-                  <div style={{fontSize:".72rem",color:"#b45309",fontWeight:700,marginBottom:4}}>☀️ 日照時間（時間/月）</div>
-                  <div style={{display:"flex",alignItems:"flex-end",gap:4,height:80,marginBottom:12}}>
-                    {climateData.map((d,i)=>{
-                      const h=Math.round((d.sunshine/maxSun)*70);
-                      const [,mm]=d.month.split("-");
-                      return <div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",height:"100%",justifyContent:"flex-end",minWidth:0}}>
-                        <div style={{fontSize:".5rem",color:"#b45309",marginBottom:1,whiteSpace:"nowrap"}}>{Math.round(d.sunshine)}</div>
-                        <div style={{width:"80%",height:h+"px",background:"linear-gradient(180deg,#fbbf24,#f59e0b)",borderRadius:"3px 3px 0 0",minHeight:2}}/>
-                        <div style={{fontSize:".52rem",color:TX3,marginTop:1,whiteSpace:"nowrap"}}>{parseInt(mm)}月</div>
-                      </div>;
-                    })}
+          {/* ── 積算温度・気象分析ブロック ── */}
+          {(()=>{
+            const crop=crops.find(c=>c.id===sel.id);
+            const db=CDB[crop?.type]||{};
+            const gs=gddSettings[sel.id]||{};
+            const baseTemp=parseFloat(gs.baseTemp)||10;
+            const gddStart=gs.startDate||crop?.plantDate||crop?.sowDate||"";
+            // 収穫目安積算温度（品目DB or ユーザー設定）
+            const targetGdd=parseFloat(gs.targetGdd)||(db.gdd||null);
+            // 収穫目安日数（品目DB or ユーザー設定）
+            const targetDays=parseFloat(gs.targetDays)||(()=>{
+              const mat=crop?.maturity||"mid";
+              return db.maturity?db.maturity[mat]:db.d||null;
+            })();
+
+            return <>
+              {/* 積算温度設定パネル */}
+              <div style={S.card}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:showGddConfig?10:0}}>
+                  <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".86rem",color:"#5c3d1e"}}>🌡 積算温度・収穫予測</div>
+                  <button onClick={()=>setShowGddConfig(v=>!v)}
+                    style={{padding:"3px 10px",borderRadius:8,border:"1px solid #ccc",background:"#fff",fontSize:".72rem",cursor:"pointer",color:"#5c3d1e"}}>
+                    {showGddConfig?"▲ 閉じる":"⚙️ 設定"}
+                  </button>
+                </div>
+                {showGddConfig&&(
+                  <div style={{background:"#f5efe0",borderRadius:10,padding:"10px 12px",marginBottom:10,display:"grid",gap:8}}>
+                    <div>
+                      <div style={{fontSize:".72rem",color:TX3,marginBottom:3}}>計算開始日（定植日・受粉日など）</div>
+                      <input type="date" value={gddStart}
+                        onChange={e=>saveGddSetting(sel.id,{startDate:e.target.value})}
+                        style={{...S.inp,fontSize:".82rem"}}/>
+                    </div>
+                    <div>
+                      <div style={{fontSize:".72rem",color:TX3,marginBottom:3}}>基準温度（℃）※デフォルト 10℃</div>
+                      <input type="number" value={baseTemp} min={0} max={20}
+                        onChange={e=>saveGddSetting(sel.id,{baseTemp:e.target.value})}
+                        style={{...S.inp,fontSize:".82rem"}}/>
+                    </div>
+                    <div>
+                      <div style={{fontSize:".72rem",color:TX3,marginBottom:3}}>収穫目標積算温度（℃・日）※空白で日数ベース</div>
+                      <input type="number" value={gs.targetGdd||""} placeholder={db.gdd?"品目DB: "+db.gdd:"例: 600"}
+                        onChange={e=>saveGddSetting(sel.id,{targetGdd:e.target.value})}
+                        style={{...S.inp,fontSize:".82rem"}}/>
+                    </div>
+                    <div>
+                      <div style={{fontSize:".72rem",color:TX3,marginBottom:3}}>収穫目標日数（日）※積算温度が設定済みの場合は補助</div>
+                      <input type="number" value={gs.targetDays||""} placeholder={targetDays?"品目DB: "+targetDays+"日":"例: 60"}
+                        onChange={e=>saveGddSetting(sel.id,{targetDays:e.target.value})}
+                        style={{...S.inp,fontSize:".82rem"}}/>
+                    </div>
                   </div>
-                  {/* 降水量グラフ */}
-                  <div style={{fontSize:".72rem",color:"#1d4ed8",fontWeight:700,marginBottom:4}}>🌧 降水量（mm/月）</div>
-                  <div style={{display:"flex",alignItems:"flex-end",gap:4,height:80,marginBottom:4}}>
-                    {climateData.map((d,i)=>{
-                      const h=Math.round((d.precip/maxPre)*70);
-                      const [,mm]=d.month.split("-");
-                      return <div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",height:"100%",justifyContent:"flex-end",minWidth:0}}>
-                        <div style={{fontSize:".5rem",color:"#1d4ed8",marginBottom:1,whiteSpace:"nowrap"}}>{Math.round(d.precip)}</div>
-                        <div style={{width:"80%",height:h+"px",background:"linear-gradient(180deg,#60a5fa,#3b82f6)",borderRadius:"3px 3px 0 0",minHeight:2}}/>
-                        <div style={{fontSize:".52rem",color:TX3,marginTop:1,whiteSpace:"nowrap"}}>{parseInt(mm)}月</div>
-                      </div>;
-                    })}
+                )}
+
+                {climateLoading&&<div style={{textAlign:"center",fontSize:".78rem",color:TX3,padding:"12px 0"}}>🌤 気象データ取得中…</div>}
+
+                {climateData&&gddStart&&(()=>{
+                  const gddArr=calcGDD(climateData.daily, gddStart, baseTemp);
+                  const today=new Date().toISOString().slice(0,10);
+                  const currentGdd=gddArr.filter(d=>d.date<=today).slice(-1)[0]?.gdd||0;
+                  const totalDays=gddArr.filter(d=>d.date<=today).length;
+
+                  // 収穫予測日（積算温度ベース）
+                  let harvestByGdd=null;
+                  if(targetGdd) {
+                    const hit=gddArr.find(d=>d.gdd>=targetGdd);
+                    harvestByGdd=hit?.date||null;
+                  }
+                  // 収穫予測日（日数ベース）
+                  let harvestByDays=null;
+                  if(targetDays&&gddStart) {
+                    const d=new Date(gddStart);
+                    d.setDate(d.getDate()+parseInt(targetDays));
+                    harvestByDays=d.toISOString().slice(0,10);
+                  }
+                  // 予測日を決定（積算温度優先）
+                  const harvestPred=harvestByGdd||harvestByDays;
+                  const daysToHarvest=harvestPred?Math.round((new Date(harvestPred)-new Date(today))/86400000):null;
+                  // GDDグラフ（最大30日分表示）
+                  const gddForChart=gddArr.slice(-Math.min(gddArr.length,60));
+                  const maxGdd=Math.max(...gddForChart.map(d=>d.gdd),targetGdd||1,1);
+
+                  return <>
+                    {/* サマリーカード */}
+                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:6,marginBottom:10}}>
+                      {[
+                        {v:Math.round(currentGdd)+"℃・日",l:"現在の積算温度",c:"#b45309"},
+                        {v:totalDays+"日目",l:gddStart?"開始から":gddStart||"定植からの日数",c:G},
+                        {v:harvestPred?(daysToHarvest>0?daysToHarvest+"日後":daysToHarvest===0?"今日!":-daysToHarvest+"日前"):"—",l:"収穫予測",c:harvestPred&&daysToHarvest<=7?"#c0392b":G},
+                      ].map((s,i)=>(
+                        <div key={i} style={{background:"#f5efe0",borderRadius:10,padding:"7px 6px",textAlign:"center"}}>
+                          <div style={{fontSize:"1rem",fontWeight:700,color:s.c,lineHeight:1.2}}>{s.v}</div>
+                          <div style={{fontSize:".58rem",color:TX3,marginTop:2}}>{s.l}</div>
+                        </div>
+                      ))}
+                    </div>
+                    {harvestPred&&<div style={{background: daysToHarvest<=0?"#fde8e8":daysToHarvest<=14?"#fff8e1":"#e8f5e9",borderRadius:10,padding:"8px 12px",marginBottom:10,fontSize:".78rem"}}>
+                      📅 収穫予測日: <b>{harvestPred}</b>
+                      {harvestByGdd&&<span style={{color:TX3}}> （積算温度 {targetGdd}℃・日達成）</span>}
+                      {!harvestByGdd&&harvestByDays&&<span style={{color:TX3}}> （定植から {targetDays} 日）</span>}
+                      {daysToHarvest!==null&&daysToHarvest<=0&&<b style={{color:"#c0392b"}}> ← 収穫適期！</b>}
+                    </div>}
+                    {/* GDD推移グラフ */}
+                    <div style={{fontSize:".7rem",color:"#b45309",fontWeight:700,marginBottom:4}}>🌡 積算温度（℃・日）の推移</div>
+                    <div style={{position:"relative",height:90,marginBottom:4}}>
+                      <svg width="100%" height="90" viewBox={"0 0 "+gddForChart.length+" 90"} preserveAspectRatio="none">
+                        {/* 目標ライン */}
+                        {targetGdd&&<line x1="0" y1={Math.round((1-targetGdd/maxGdd)*80)} x2={gddForChart.length} y2={Math.round((1-targetGdd/maxGdd)*80)} stroke="#c0392b" strokeWidth="0.5" strokeDasharray="2,2"/>}
+                        {/* GDD折れ線 */}
+                        <polyline
+                          points={gddForChart.map((d,i)=>`${i+0.5},${Math.round((1-d.gdd/maxGdd)*80)}`).join(" ")}
+                          fill="none" stroke="#f59e0b" strokeWidth="1.5"/>
+                        {/* 予測部分（破線） */}
+                        {gddForChart.some(d=>d.forecast)&&(()=>{
+                          const fi=gddForChart.findIndex(d=>d.forecast);
+                          return <polyline
+                            points={gddForChart.slice(fi).map((d,i)=>`${fi+i+0.5},${Math.round((1-d.gdd/maxGdd)*80)}`).join(" ")}
+                            fill="none" stroke="#f59e0b" strokeWidth="1.5" strokeDasharray="3,2" opacity="0.6"/>;
+                        })()}
+                      </svg>
+                      {/* 目標ラベル */}
+                      {targetGdd&&<div style={{position:"absolute",right:0,top:Math.round((1-targetGdd/maxGdd)*80)-16,fontSize:".58rem",color:"#c0392b",background:"rgba(255,255,255,.8)",padding:"1px 4px",borderRadius:4}}>{targetGdd}℃・日</div>}
+                    </div>
+                    <div style={{display:"flex",justifyContent:"space-between",fontSize:".58rem",color:TX3,marginBottom:4}}>
+                      <span>{gddForChart[0]?.date.slice(5)}</span>
+                      <span>（過去実績 ─── 予測 ----）</span>
+                      <span>{gddForChart.slice(-1)[0]?.date.slice(5)}</span>
+                    </div>
+                    {gddStart&&<div style={{fontSize:".62rem",color:TX3,textAlign:"right"}}>基準温度 {baseTemp}℃ / 開始: {gddStart}</div>}
+                  </>;
+                })()}
+
+                {!climateData&&!climateLoading&&!gddStart&&(
+                  <div style={{color:TX3,fontSize:".78rem",textAlign:"center",padding:"12px 0"}}>
+                    ⚙️ 設定から計算開始日を設定してください
                   </div>
-                  <div style={{fontSize:".62rem",color:TX3,textAlign:"right"}}>出典: Open-Meteo Archive（{fields[crops.find(c=>c.id===sel.id)?.fieldIdx]?.addr||"デフォルト地点"}）</div>
-                </>;
-              })()}
-            </div>
-          )}
+                )}
+                {!climateData&&!climateLoading&&gddStart&&(
+                  <div style={{color:TX3,fontSize:".78rem",textAlign:"center",padding:"12px 0"}}>
+                    圃場の住所が設定されていないと気象データを取得できません
+                  </div>
+                )}
+              </div>
+
+              {/* 降雨・日照の過不足 */}
+              {climateData&&climateData.monthly&&climateData.monthly.length>0&&(
+                <div style={S.card}>
+                  <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".86rem",color:"#5c3d1e",marginBottom:10}}>☀️🌧 栽培期間の気象データ（月別）</div>
+                  {(()=>{
+                    const mData=climateData.monthly;
+                    // 品目の必要水分量（CDB.wは週の水やり頻度→月目安降水量換算: w×4×5mm）
+                    const needPrecip=db.w?(db.w*4*5):null; // 月目安mm
+                    const maxSun=Math.max(...mData.map(d=>d.sunshine),1);
+                    const maxPre=Math.max(...mData.map(d=>d.precip),needPrecip||1,1);
+                    return <>
+                      {/* 日照時間グラフ */}
+                      <div style={{fontSize:".72rem",color:"#b45309",fontWeight:700,marginBottom:4}}>☀️ 日照時間（時間/月）</div>
+                      <div style={{display:"flex",alignItems:"flex-end",gap:4,height:80,marginBottom:12}}>
+                        {mData.map((d,i)=>{
+                          const h=Math.max(2,Math.round((d.sunshine/maxSun)*70));
+                          const [,mm]=d.month.split("-");
+                          return <div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",height:"100%",justifyContent:"flex-end",minWidth:0}}>
+                            <div style={{fontSize:".5rem",color:"#b45309",marginBottom:1,whiteSpace:"nowrap"}}>{Math.round(d.sunshine)}</div>
+                            <div style={{width:"80%",height:h+"px",background:"linear-gradient(180deg,#fbbf24,#f59e0b)",borderRadius:"3px 3px 0 0"}}/>
+                            <div style={{fontSize:".52rem",color:TX3,marginTop:1,whiteSpace:"nowrap"}}>{parseInt(mm)}月</div>
+                          </div>;
+                        })}
+                      </div>
+                      {/* 降水量グラフ */}
+                      <div style={{fontSize:".72rem",color:"#1d4ed8",fontWeight:700,marginBottom:4}}>
+                        🌧 降水量（mm/月）{needPrecip&&<span style={{fontWeight:400,color:TX3}}> 目安: {needPrecip}mm</span>}
+                      </div>
+                      <div style={{display:"flex",alignItems:"flex-end",gap:4,height:80,position:"relative",marginBottom:4}}>
+                        {/* 目安ライン */}
+                        {needPrecip&&<div style={{position:"absolute",bottom:Math.round((needPrecip/maxPre)*70),left:0,right:0,borderTop:"1.5px dashed #c0392b",zIndex:1}}/>}
+                        {mData.map((d,i)=>{
+                          const h=Math.max(2,Math.round((d.precip/maxPre)*70));
+                          const [,mm]=d.month.split("-");
+                          const over=needPrecip&&d.precip>needPrecip*1.5;
+                          const under=needPrecip&&d.precip<needPrecip*0.5;
+                          return <div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",height:"100%",justifyContent:"flex-end",minWidth:0,position:"relative",zIndex:2}}>
+                            <div style={{fontSize:".5rem",color:over?"#1d4ed8":under?"#c0392b":"#1d4ed8",marginBottom:1,whiteSpace:"nowrap",fontWeight:over||under?700:400}}>{Math.round(d.precip)}</div>
+                            <div style={{width:"80%",height:h+"px",background:over?"linear-gradient(180deg,#2563eb,#1d4ed8)":under?"linear-gradient(180deg,#fca5a5,#ef4444)":"linear-gradient(180deg,#60a5fa,#3b82f6)",borderRadius:"3px 3px 0 0"}}/>
+                            <div style={{fontSize:".52rem",color:TX3,marginTop:1,whiteSpace:"nowrap"}}>{parseInt(mm)}月</div>
+                          </div>;
+                        })}
+                      </div>
+                      {/* 過不足コメント */}
+                      {needPrecip&&(()=>{
+                        const latest=mData.filter(d=>d.month<=new Date().toISOString().slice(0,7)).slice(-1)[0];
+                        if(!latest)return null;
+                        const ratio=latest.precip/needPrecip;
+                        let msg="",color=TX3;
+                        if(ratio>1.5){msg=`⚠️ ${latest.month.slice(5)}月は降雨が多め（${Math.round(latest.precip)}mm）。排水・病害リスクに注意。`;color="#1d4ed8";}
+                        else if(ratio<0.5){msg=`⚠️ ${latest.month.slice(5)}月は降雨が少なめ（${Math.round(latest.precip)}mm）。追加灌水を検討。`;color="#c0392b";}
+                        else{msg=`✅ ${latest.month.slice(5)}月の降水量は適量です（${Math.round(latest.precip)}mm）。`;color=G;}
+                        return <div style={{background:"#f5efe0",borderRadius:8,padding:"7px 10px",fontSize:".76rem",color,marginTop:6}}>{msg}</div>;
+                      })()}
+                      <div style={{fontSize:".62rem",color:TX3,textAlign:"right",marginTop:4}}>出典: Open-Meteo / {fields[crop?.fieldIdx]?.addr||"デフォルト地点"}</div>
+                    </>;
+                  })()}
+                </div>
+              )}
+            </>;
+          })()}
 
           {/* 費用内訳 */}
           {sel.costTotal>0&&(
