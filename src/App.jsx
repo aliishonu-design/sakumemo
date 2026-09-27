@@ -59,77 +59,77 @@ const plotFromDb  = r => ({ id:r.id, fieldId:r.field_id||"", name:r.name||"", co
 // ============================================================
 const CDB = {
   // ─── イネ科 ───
-  rice:         { n:"水稲",       e:"🌾", d:150, w:2, cat:"イネ科",   hs:"穂が黄金色になり、籾が硬くなったら",          events:["穂ばらみ","出穂","収穫"], maturity:{early:130,mid:150,late:170} },
-  wheat:        { n:"麦",         e:"🌾", d:240, w:5, cat:"イネ科",   hs:"穂が黄色くなり茎が枯れてきたら",              events:["出穂","収穫"], maturity:{early:210,mid:240,late:270} },
-  corn:         { n:"トウモロコシ",e:"🌽", d:80, hd:14,  w:2, cat:"イネ科",   hs:"絹糸が茶色になり、押すと乳液が出る状態",      events:["雄穂開花","絹糸出現","収穫"], maturity:{early:70,mid:80,late:95} },
-  soba:         { n:"そば",       e:"🌿", d:75,  w:3, cat:"タデ科",   hs:"実の7〜8割が黒褐色になったら",                events:["開花","収穫"], maturity:{early:65,mid:75,late:85} },
+  // baseTemp: 基準温度(℃)、gdd: 収穫目標積算温度(℃・日)
+  rice:         { n:"水稲",       e:"🌾", d:150, w:2, cat:"イネ科",    baseTemp:10, gdd:1500, hs:"穂が黄金色になり、籾が硬くなったら",          events:["穂ばらみ","出穂","収穫"], maturity:{early:130,mid:150,late:170} },
+  wheat:        { n:"麦",         e:"🌾", d:240, w:5, cat:"イネ科",    baseTemp:5,  gdd:2000, hs:"穂が黄色くなり茎が枯れてきたら",              events:["出穂","収穫"], maturity:{early:210,mid:240,late:270} },
+  corn:         { n:"トウモロコシ",e:"🌽", d:80, hd:14, w:2, cat:"イネ科",    baseTemp:10, gdd:700,  hs:"絹糸が茶色になり、押すと乳液が出る状態",      events:["雄穂開花","絹糸出現","収穫"], maturity:{early:70,mid:80,late:95} },
+  soba:         { n:"そば",       e:"🌿", d:75,  w:3, cat:"タデ科",    baseTemp:5,  gdd:600,  hs:"実の7〜8割が黒褐色になったら",                events:["開花","収穫"], maturity:{early:65,mid:75,late:85} },
   // ─── ナス科 ───
-  tomato:       { n:"トマト",     e:"🍅", d:90, hd:60,  w:2, cat:"ナス科",   hs:"果皮が均一に赤くなりヘタが反り返ったら",      events:["第1花房開花","着果","摘芯","第1果肥大","色づき開始","収穫開始","収穫終了","わき芽処理","摘花","異常発生"], maturity:{early:75,mid:90,late:110} },
-  cherry_tomato:{ n:"ミニトマト", e:"🍅", d:75,  w:2, cat:"ナス科",   hs:"鮮やかな赤になりわずかに柔らかくなったら",    events:["第1花房開花","着果","摘芯","色づき開始","収穫開始","収穫終了","異常発生"], maturity:{early:60,mid:75,late:90} },
-  eggplant:     { n:"ナス",       e:"🍆", d:75, hd:90,  w:1, cat:"ナス科",   hs:"果皮に光沢・ガクのとげが鋭い状態",            events:["一番花開花","着果","摘芯","更新剪定","収穫開始","収穫終了","異常発生"], maturity:{early:65,mid:75,late:90} },
-  pepper:       { n:"ピーマン",   e:"🫑", d:70, hd:90,  w:2, cat:"ナス科",   hs:"長さ6〜7cm・果肉が厚くなったら",              events:["一番花開花","着果","摘芯","収穫開始","収穫終了","異常発生"], maturity:{early:60,mid:70,late:85} },
-  potato:       { n:"ジャガイモ", e:"🥔", d:90,  w:3, cat:"ナス科",   hs:"地上部の葉が黄化・枯死したら掘る",            events:["萌芽","開花","地上部枯死"], maturity:{early:75,mid:90,late:110} },
+  tomato:       { n:"トマト",     e:"🍅", d:90, hd:60, w:2, cat:"ナス科",    baseTemp:10, gdd:700,  hs:"果皮が均一に赤くなりヘタが反り返ったら",      events:["第1花房開花","着果","摘芯","第1果肥大","色づき開始","収穫開始","収穫終了","わき芽処理","摘花","異常発生"], maturity:{early:75,mid:90,late:110} },
+  cherry_tomato:{ n:"ミニトマト", e:"🍅", d:75,  w:2, cat:"ナス科",    baseTemp:10, gdd:600,  hs:"鮮やかな赤になりわずかに柔らかくなったら",    events:["第1花房開花","着果","摘芯","色づき開始","収穫開始","収穫終了","異常発生"], maturity:{early:60,mid:75,late:90} },
+  eggplant:     { n:"ナス",       e:"🍆", d:75, hd:90, w:1, cat:"ナス科",    baseTemp:10, gdd:650,  hs:"果皮に光沢・ガクのとげが鋭い状態",            events:["一番花開花","着果","摘芯","更新剪定","収穫開始","収穫終了","異常発生"], maturity:{early:65,mid:75,late:90} },
+  pepper:       { n:"ピーマン",   e:"🫑", d:70, hd:90, w:2, cat:"ナス科",    baseTemp:10, gdd:600,  hs:"長さ6〜7cm・果肉が厚くなったら",              events:["一番花開花","着果","摘芯","収穫開始","収穫終了","異常発生"], maturity:{early:60,mid:70,late:85} },
+  potato:       { n:"ジャガイモ", e:"🥔", d:90,  w:3, cat:"ナス科",    baseTemp:7,  gdd:900,  hs:"地上部の葉が黄化・枯死したら掘る",            events:["萌芽","開花","地上部枯死"], maturity:{early:75,mid:90,late:110} },
   // ─── ウリ科 ───
-  cucumber:     { n:"キュウリ",   e:"🥒", d:55, hd:60,  w:1, cat:"ウリ科",   hs:"長さ18〜22cm・イボが鮮明で張りがあるうちに",  events:["雄花開花","雌花開花","着果","摘芯","収穫開始","収穫終了","摘葉","異常発生"], maturity:{early:45,mid:55,late:65} },
-  zucchini:     { n:"ズッキーニ", e:"🥒", d:55, hd:60,  w:1, cat:"ウリ科",   hs:"長さ20cm前後・果皮にツヤがあるうちに",        events:["雄花開花","雌花開花","着果","摘芯","収穫","異常発生"], maturity:{early:45,mid:55,late:65} },
-  pumpkin:      { n:"カボチャ",   e:"🎃", d:100, w:3, cat:"ウリ科",   hs:"ヘタがコルク化し葉が枯れ始めたら",            events:["雄花開花","雌花開花","受粉","着果","摘芯","収穫","異常発生"], maturity:{early:85,mid:100,late:120} },
-  watermelon:   { n:"スイカ",     e:"🍉", d:85,  w:3, cat:"ウリ科",   hs:"ヘタの巻きひげが枯れ叩くと濁音がする状態",    events:["雄花開花","雌花開花","受粉","着果","摘芯","玉返し","収穫","異常発生"], maturity:{early:75,mid:85,late:100} },
-  melon:        { n:"メロン",     e:"🍈", d:90,  w:3, cat:"ウリ科",   hs:"ヘタの周りが黄色くなり香りが出たら",          events:["雄花開花","雌花開花","受粉","着果","摘芯","摘果","収穫","異常発生"], maturity:{early:75,mid:90,late:110} },
-  bitter_gourd: { n:"ゴーヤ",     e:"🌿", d:60,  w:1, cat:"ウリ科",   hs:"長さ20cm前後・黄緑色均一の状態",              events:["開花","着果","摘芯","収穫開始","収穫終了","異常発生"], maturity:{early:50,mid:60,late:75} },
+  cucumber:     { n:"キュウリ",   e:"🥒", d:55, hd:60, w:1, cat:"ウリ科",    baseTemp:12, gdd:500,  hs:"長さ18〜22cm・イボが鮮明で張りがあるうちに",  events:["雄花開花","雌花開花","着果","摘芯","収穫開始","収穫終了","摘葉","異常発生"], maturity:{early:45,mid:55,late:65} },
+  zucchini:     { n:"ズッキーニ", e:"🥒", d:55, hd:60, w:1, cat:"ウリ科",    baseTemp:12, gdd:500,  hs:"長さ20cm前後・果皮にツヤがあるうちに",        events:["雄花開花","雌花開花","着果","摘芯","収穫","異常発生"], maturity:{early:45,mid:55,late:65} },
+  pumpkin:      { n:"カボチャ",   e:"🎃", d:100, w:3, cat:"ウリ科",    baseTemp:10, gdd:900,  hs:"ヘタがコルク化し葉が枯れ始めたら",            events:["雄花開花","雌花開花","受粉","着果","摘芯","収穫","異常発生"], maturity:{early:85,mid:100,late:120} },
+  watermelon:   { n:"スイカ",     e:"🍉", d:85,  w:3, cat:"ウリ科",    baseTemp:12, gdd:900,  hs:"ヘタの巻きひげが枯れ叩くと濁音がする状態",    events:["雄花開花","雌花開花","受粉","着果","摘芯","玉返し","収穫","異常発生"], maturity:{early:75,mid:85,late:100} },
+  melon:        { n:"メロン",     e:"🍈", d:90,  w:3, cat:"ウリ科",    baseTemp:12, gdd:1000, hs:"ヘタの周りが黄色くなり香りが出たら",          events:["雄花開花","雌花開花","受粉","着果","摘芯","摘果","収穫","異常発生"], maturity:{early:75,mid:90,late:110} },
+  bitter_gourd: { n:"ゴーヤ",     e:"🌿", d:60,  w:1, cat:"ウリ科",    baseTemp:12, gdd:550,  hs:"長さ20cm前後・黄緑色均一の状態",              events:["開花","着果","摘芯","収穫開始","収穫終了","異常発生"], maturity:{early:50,mid:60,late:75} },
   // ─── アブラナ科 ───
-  cabbage:      { n:"キャベツ",   e:"🥬", d:90,  w:2, cat:"アブラナ科",hs:"結球が固く締まり外葉に張りがある状態",        events:["結球開始","収穫"], maturity:{early:70,mid:90,late:120} },
-  hakusai:      { n:"白菜",       e:"🥬", d:90,  w:2, cat:"アブラナ科",hs:"頭部を押して固く締まっていたら",              events:["結球開始","収穫"], maturity:{early:70,mid:90,late:110} },
-  broccoli:     { n:"ブロッコリー",e:"🥦", d:90,  w:2, cat:"アブラナ科",hs:"花蕾が緊密で15〜18cm・黄色くなる前に",       events:["頂花蕾形成","収穫"], maturity:{early:75,mid:90,late:110} },
-  radish:       { n:"ダイコン",   e:"🫜", d:60, hd:30,  w:2, cat:"アブラナ科",hs:"根が地表に出て肩の直径6〜8cm",               events:["間引き完了","収穫"], maturity:{early:50,mid:60,late:75} },
-  turnip:       { n:"カブ",       e:"🫜", d:50, hd:20,  w:2, cat:"アブラナ科",hs:"根径5〜6cmで葉が黄化し始めたら収穫" },
-  komatsuna:    { n:"小松菜",     e:"🥬", d:35, hd:14,  w:1, cat:"アブラナ科",hs:"草丈20〜25cmで収穫",                         events:["収穫"], maturity:{early:30,mid:35,late:45} },
+  cabbage:      { n:"キャベツ",   e:"🥬", d:90,  w:2, cat:"アブラナ科", baseTemp:5,  gdd:650,  hs:"結球が固く締まり外葉に張りがある状態",        events:["結球開始","収穫"], maturity:{early:70,mid:90,late:120} },
+  hakusai:      { n:"白菜",       e:"🥬", d:90,  w:2, cat:"アブラナ科", baseTemp:5,  gdd:650,  hs:"頭部を押して固く締まっていたら",              events:["結球開始","収穫"], maturity:{early:70,mid:90,late:110} },
+  broccoli:     { n:"ブロッコリー",e:"🥦", d:90,  w:2, cat:"アブラナ科", baseTemp:5,  gdd:700,  hs:"花蕾が緊密で15〜18cm・黄色くなる前に",       events:["頂花蕾形成","収穫"], maturity:{early:75,mid:90,late:110} },
+  radish:       { n:"ダイコン",   e:"🫜", d:60, hd:30, w:2, cat:"アブラナ科", baseTemp:5,  gdd:400,  hs:"根が地表に出て肩の直径6〜8cm",               events:["間引き完了","収穫"], maturity:{early:50,mid:60,late:75} },
+  turnip:       { n:"カブ",       e:"🫜", d:50, hd:20, w:2, cat:"アブラナ科", baseTemp:5,  gdd:350,  hs:"根径5〜6cmで葉が黄化し始めたら収穫" },
+  komatsuna:    { n:"小松菜",     e:"🥬", d:35, hd:14, w:1, cat:"アブラナ科", baseTemp:5,  gdd:200,  hs:"草丈20〜25cmで収穫",                         events:["収穫"], maturity:{early:30,mid:35,late:45} },
   // ─── マメ科 ───
-  edamame:      { n:"枝豆",       e:"🫛", d:70,  w:2, cat:"マメ科",   hs:"さやが膨らんで豆の形がはっきりわかる状態",    events:["開花","さや形成","収穫"], maturity:{early:60,mid:70,late:85} },
-  green_bean:   { n:"インゲン",   e:"🫛", d:55, hd:30,  w:2, cat:"マメ科",   hs:"さやが膨らむ前・すじが出る前に収穫",          events:["開花","さや形成","収穫"], maturity:{early:45,mid:55,late:65} },
-  pea:          { n:"エンドウ",   e:"🫛", d:60, hd:20,  w:1, cat:"マメ科",   hs:"さやが膨らみ豆が見えてきたら（実エンドウ）" },
-  peanut:       { n:"落花生",     e:"🥜", d:120,hd:40,  w:2, cat:"マメ科",   hs:"葉が黄化してきたら試し掘り。完全乾燥前に収穫" },
-  ginger:       { n:"ショウガ",   e:"🫚", d:150,hd:60,  w:1, cat:"ショウガ科",hs:"葉が枯れ始めたら収穫。新生姜は8〜9月" },
-  azuki:        { n:"小豆",       e:"🫘", d:100, w:3, cat:"マメ科",   hs:"さやが黄褐色になり乾燥してきたら",            events:["開花","さや形成","収穫"], maturity:{early:90,mid:100,late:115} },
+  edamame:      { n:"枝豆",       e:"🫛", d:70,  w:2, cat:"マメ科",    baseTemp:10, gdd:600,  hs:"さやが膨らんで豆の形がはっきりわかる状態",    events:["開花","さや形成","収穫"], maturity:{early:60,mid:70,late:85} },
+  green_bean:   { n:"インゲン",   e:"🫛", d:55, hd:30, w:2, cat:"マメ科",    baseTemp:10, gdd:450,  hs:"さやが膨らむ前・すじが出る前に収穫",          events:["開花","さや形成","収穫"], maturity:{early:45,mid:55,late:65} },
+  pea:          { n:"エンドウ",   e:"🫛", d:60, hd:20, w:1, cat:"マメ科",    baseTemp:5,  gdd:500,  hs:"さやが膨らみ豆が見えてきたら（実エンドウ）" },
+  peanut:       { n:"落花生",     e:"🥜", d:120,hd:40, w:2, cat:"マメ科",    baseTemp:12, gdd:1200, hs:"葉が黄化してきたら試し掘り。完全乾燥前に収穫" },
+  ginger:       { n:"ショウガ",   e:"🫚", d:150,hd:60, w:1, cat:"ショウガ科",baseTemp:15, gdd:1800, hs:"葉が枯れ始めたら収穫。新生姜は8〜9月" },
+  azuki:        { n:"小豆",       e:"🫘", d:100, w:3, cat:"マメ科",    baseTemp:10, gdd:900,  hs:"さやが黄褐色になり乾燥してきたら",            events:["開花","さや形成","収穫"], maturity:{early:90,mid:100,late:115} },
   // ─── キク科 ───
-  lettuce:      { n:"レタス",     e:"🥬", d:55,  w:1, cat:"キク科",   hs:"結球部を押して固くなったら",                  events:["結球開始","収穫"], maturity:{early:45,mid:55,late:70} },
+  lettuce:      { n:"レタス",     e:"🥬", d:55,  w:1, cat:"キク科",    baseTemp:5,  gdd:350,  hs:"結球部を押して固くなったら",                  events:["結球開始","収穫"], maturity:{early:45,mid:55,late:70} },
   // ─── セリ科 ───
-  carrot:       { n:"ニンジン",   e:"🥕", d:100, hd:30, w:2, cat:"セリ科",   hs:"根頭部の直径2.5〜3cm・根長12〜15cm",          events:["間引き完了","収穫"], maturity:{early:85,mid:100,late:120} },
+  carrot:       { n:"ニンジン",   e:"🥕", d:100,hd:30, w:2, cat:"セリ科",    baseTemp:5,  gdd:700,  hs:"根頭部の直径2.5〜3cm・根長12〜15cm",          events:["間引き完了","収穫"], maturity:{early:85,mid:100,late:120} },
   // ─── ヒガンバナ科 ───
-  onion:        { n:"タマネギ",   e:"🧅", d:210, w:4, cat:"ヒガンバナ科",hs:"葉の80%が倒伏し始めてから1週間後",         events:["葉鞘肥大","倒伏開始","収穫"], maturity:{early:180,mid:210,late:240} },
-  leek:         { n:"ネギ",       e:"🌿", d:100, w:3, cat:"ヒガンバナ科",hs:"白根部が20〜25cmになったら",               events:["土寄せ","収穫"], maturity:{early:85,mid:100,late:120} },
-  garlic:       { n:"ニンニク",   e:"🧄", d:240, w:4, cat:"ヒガンバナ科",hs:"葉が半分枯れたら",                         events:["萌芽","スケープ発生","収穫"], maturity:{early:210,mid:240,late:270} },
+  onion:        { n:"タマネギ",   e:"🧅", d:210, w:4, cat:"ヒガンバナ科",baseTemp:5, gdd:1500, hs:"葉の80%が倒伏し始めてから1週間後",         events:["葉鞘肥大","倒伏開始","収穫"], maturity:{early:180,mid:210,late:240} },
+  leek:         { n:"ネギ",       e:"🌿", d:100, w:3, cat:"ヒガンバナ科",baseTemp:5, gdd:800,  hs:"白根部が20〜25cmになったら",               events:["土寄せ","収穫"], maturity:{early:85,mid:100,late:120} },
+  garlic:       { n:"ニンニク",   e:"🧄", d:240, w:4, cat:"ヒガンバナ科",baseTemp:5, gdd:1800, hs:"葉が半分枯れたら",                         events:["萌芽","スケープ発生","収穫"], maturity:{early:210,mid:240,late:270} },
   // ─── ヤマノイモ科 ───
-  jinenjo:      { n:"自然薯",     e:"🌿", d:210, w:4, cat:"ヤマノイモ科",hs:"葉が黄色くなり枯れ始めたら",              events:["萌芽","収穫"], maturity:{early:180,mid:210,late:240} },
+  jinenjo:      { n:"自然薯",     e:"🌿", d:210, w:4, cat:"ヤマノイモ科",baseTemp:10,gdd:2000, hs:"葉が黄色くなり枯れ始めたら",              events:["萌芽","収穫"], maturity:{early:180,mid:210,late:240} },
   // ─── サトイモ科 ───
-  taro:         { n:"里芋",       e:"🥔", d:150, w:3, cat:"サトイモ科",hs:"葉が黄化し始めたら・霜が降りる前に収穫",     events:["萌芽","増殖","収穫"], maturity:{early:130,mid:150,late:180} },
+  taro:         { n:"里芋",       e:"🥔", d:150, w:3, cat:"サトイモ科", baseTemp:13, gdd:1500, hs:"葉が黄化し始めたら・霜が降りる前に収穫",     events:["萌芽","増殖","収穫"], maturity:{early:130,mid:150,late:180} },
   // ─── ヒルガオ科 ───
-  sweetpotato:  { n:"サツマイモ", e:"🍠", d:120, w:4, cat:"ヒルガオ科",hs:"定植後120〜130日・試し掘りで確認",           events:["活着","収穫"], maturity:{early:110,mid:120,late:140} },
+  sweetpotato:  { n:"サツマイモ", e:"🍠", d:120, w:4, cat:"ヒルガオ科", baseTemp:15, gdd:1200, hs:"定植後120〜130日・試し掘りで確認",           events:["活着","収穫"], maturity:{early:110,mid:120,late:140} },
   // ─── バラ科 ───
-  strawberry:   { n:"イチゴ",     e:"🍓", d:180, hd:60, w:1, cat:"バラ科",   hs:"果実全体が赤く着色しヘタが反り返ったら",      events:["開花","着果","収穫"], maturity:{early:160,mid:180,late:210} },
+  strawberry:   { n:"イチゴ",     e:"🍓", d:180,hd:60, w:1, cat:"バラ科",    baseTemp:5,  gdd:600,  hs:"果実全体が赤く着色しヘタが反り返ったら",      events:["開花","着果","収穫"], maturity:{early:160,mid:180,late:210} },
   // ─── アカザ科 ───
-  spinach:      { n:"ほうれん草", e:"🌿", d:40,  w:1, cat:"アカザ科",  hs:"草丈20〜25cm・本葉がしっかり展開したら",      events:["本葉展開","収穫"], maturity:{early:35,mid:40,late:50} },
-  // ─── タデ科 ───
+  spinach:      { n:"ほうれん草", e:"🌿", d:40,  w:1, cat:"アカザ科",   baseTemp:5,  gdd:250,  hs:"草丈20〜25cm・本葉がしっかり展開したら",      events:["本葉展開","収穫"], maturity:{early:35,mid:40,late:50} },
   // ─── オクラ（アオイ科）───
-  okra:         { n:"オクラ",     e:"🌿", d:60, hd:60,  w:1, cat:"アオイ科",  hs:"長さ7〜8cm・開花後4〜5日で収穫",              events:["開花","摘芯","収穫開始","収穫終了","異常発生"], maturity:{early:55,mid:60,late:70} },
+  okra:         { n:"オクラ",     e:"🌿", d:60, hd:60, w:1, cat:"アオイ科",  baseTemp:13, gdd:600,  hs:"長さ7〜8cm・開花後4〜5日で収穫",              events:["開花","摘芯","収穫開始","収穫終了","異常発生"], maturity:{early:55,mid:60,late:70} },
   // ─── 果樹（バラ科）───
-  apple:        { n:"リンゴ",     e:"🍎", d:150, w:5, cat:"果樹/バラ科",hs:"品種固有の色に着色し、甘みが出たら",        events:["開花","摘果","着色","収穫"], maturity:{early:120,mid:150,late:180}, fruit:true },
-  pear:         { n:"ナシ",       e:"🍐", d:140, w:5, cat:"果樹/バラ科",hs:"果皮が品種特有の色になり香りが出たら",       events:["開花","摘果","収穫"], maturity:{early:120,mid:140,late:160}, fruit:true },
-  peach:        { n:"モモ",       e:"🍑", d:100, w:4, cat:"果樹/バラ科",hs:"果皮が品種特有の色になり果肉が軟化したら",   events:["開花","摘果","収穫"], maturity:{early:80,mid:100,late:120}, fruit:true },
-  cherry:       { n:"サクランボ", e:"🍒", d:50,  w:3, cat:"果樹/バラ科",hs:"果皮が濃い赤色になり甘みが出たら",          events:["開花","収穫"], maturity:{early:40,mid:50,late:60}, fruit:true },
-  plum:         { n:"ウメ",       e:"🌸", d:90,  w:4, cat:"果樹/バラ科",hs:"梅酒用は青いうち・梅干し用は黄色くなったら",events:["開花","収穫"], maturity:{early:80,mid:90,late:100}, fruit:true },
+  apple:        { n:"リンゴ",     e:"🍎", d:150, w:5, cat:"果樹/バラ科", baseTemp:5,  gdd:1400, hs:"品種固有の色に着色し、甘みが出たら",        events:["開花","摘果","着色","収穫"], maturity:{early:120,mid:150,late:180}, fruit:true },
+  pear:         { n:"ナシ",       e:"🍐", d:140, w:5, cat:"果樹/バラ科", baseTemp:5,  gdd:1200, hs:"果皮が品種特有の色になり香りが出たら",       events:["開花","摘果","収穫"], maturity:{early:120,mid:140,late:160}, fruit:true },
+  peach:        { n:"モモ",       e:"🍑", d:100, w:4, cat:"果樹/バラ科", baseTemp:7,  gdd:900,  hs:"果皮が品種特有の色になり果肉が軟化したら",   events:["開花","摘果","収穫"], maturity:{early:80,mid:100,late:120}, fruit:true },
+  cherry:       { n:"サクランボ", e:"🍒", d:50,  w:3, cat:"果樹/バラ科", baseTemp:5,  gdd:400,  hs:"果皮が濃い赤色になり甘みが出たら",          events:["開花","収穫"], maturity:{early:40,mid:50,late:60}, fruit:true },
+  plum:         { n:"ウメ",       e:"🌸", d:90,  w:4, cat:"果樹/バラ科", baseTemp:5,  gdd:700,  hs:"梅酒用は青いうち・梅干し用は黄色くなったら",events:["開花","収穫"], maturity:{early:80,mid:90,late:100}, fruit:true },
   // ─── 果樹（ミカン科）───
-  mikan:        { n:"ミカン",     e:"🍊", d:180, w:5, cat:"果樹/ミカン科",hs:"果皮がオレンジ色になり酸味が落ち着いたら",events:["開花","着果","収穫"], maturity:{early:160,mid:180,late:210}, fruit:true },
-  lemon:        { n:"レモン",     e:"🍋", d:180, w:5, cat:"果樹/ミカン科",hs:"果皮が黄色くなったら",                     events:["開花","着果","収穫"], maturity:{early:160,mid:180,late:200}, fruit:true },
-  yuzu:         { n:"ユズ",       e:"🍋", d:180, w:5, cat:"果樹/ミカン科",hs:"果皮が黄色くなったら",                     events:["開花","着果","収穫"], maturity:{early:160,mid:180,late:200}, fruit:true },
+  mikan:        { n:"ミカン",     e:"🍊", d:180, w:5, cat:"果樹/ミカン科",baseTemp:13,gdd:1800, hs:"果皮がオレンジ色になり酸味が落ち着いたら",events:["開花","着果","収穫"], maturity:{early:160,mid:180,late:210}, fruit:true },
+  lemon:        { n:"レモン",     e:"🍋", d:180, w:5, cat:"果樹/ミカン科",baseTemp:13,gdd:1600, hs:"果皮が黄色くなったら",                     events:["開花","着果","収穫"], maturity:{early:160,mid:180,late:200}, fruit:true },
+  yuzu:         { n:"ユズ",       e:"🍋", d:180, w:5, cat:"果樹/ミカン科",baseTemp:10,gdd:1600, hs:"果皮が黄色くなったら",                     events:["開花","着果","収穫"], maturity:{early:160,mid:180,late:200}, fruit:true },
   // ─── 果樹（ブドウ科）───
-  grape:        { n:"ブドウ",     e:"🍇", d:120, w:4, cat:"果樹/ブドウ科",hs:"果皮が品種の色になり糖度が上がったら",     events:["開花","摘粒","着色","収穫"], maturity:{early:100,mid:120,late:140}, fruit:true },
+  grape:        { n:"ブドウ",     e:"🍇", d:120, w:4, cat:"果樹/ブドウ科",baseTemp:10,gdd:1200, hs:"果皮が品種の色になり糖度が上がったら",     events:["開花","摘粒","着色","収穫"], maturity:{early:100,mid:120,late:140}, fruit:true },
   // ─── 果樹（カキノキ科）───
-  persimmon:    { n:"カキ",       e:"🧡", d:180, w:5, cat:"果樹/カキノキ科",hs:"果皮がオレンジ色になり渋が抜けたら",    events:["開花","着果","収穫"], maturity:{early:160,mid:180,late:200}, fruit:true },
+  persimmon:    { n:"カキ",       e:"🧡", d:180, w:5, cat:"果樹/カキノキ科",baseTemp:10,gdd:1800,hs:"果皮がオレンジ色になり渋が抜けたら",    events:["開花","着果","収穫"], maturity:{early:160,mid:180,late:200}, fruit:true },
   // ─── 果樹（その他）───
-  blueberry:    { n:"ブルーベリー",e:"🫐", d:60,  w:3, cat:"果樹/ツツジ科",hs:"果皮が濃い青紫色になり甘みが出たら",     events:["開花","着果","収穫"], maturity:{early:50,mid:60,late:75}, fruit:true },
-  fig:          { n:"イチジク",   e:"🍈", d:90,  w:3, cat:"果樹/クワ科",hs:"果皮が品種の色になり果頂部が裂け始めたら",  events:["着果","収穫"], maturity:{early:80,mid:90,late:100}, fruit:true },
-  kiwi:         { n:"キウイ",     e:"🥝", d:180, w:4, cat:"果樹/マタタビ科",hs:"果実が硬いまま収穫し追熟させる",        events:["開花","着果","収穫"], maturity:{early:160,mid:180,late:200}, fruit:true },
-  biwa:         { n:"ビワ",       e:"🍊", d:150, w:4, cat:"果樹/バラ科",hs:"果皮がオレンジ色になり甘みが出たら",        events:["開花","着果","収穫"], maturity:{early:130,mid:150,late:170}, fruit:true },
+  blueberry:    { n:"ブルーベリー",e:"🫐", d:60,  w:3, cat:"果樹/ツツジ科",baseTemp:7, gdd:500,  hs:"果皮が濃い青紫色になり甘みが出たら",     events:["開花","着果","収穫"], maturity:{early:50,mid:60,late:75}, fruit:true },
+  fig:          { n:"イチジク",   e:"🍈", d:90,  w:3, cat:"果樹/クワ科", baseTemp:10, gdd:800,  hs:"果皮が品種の色になり果頂部が裂け始めたら",  events:["着果","収穫"], maturity:{early:80,mid:90,late:100}, fruit:true },
+  kiwi:         { n:"キウイ",     e:"🥝", d:180, w:4, cat:"果樹/マタタビ科",baseTemp:10,gdd:1600,hs:"果実が硬いまま収穫し追熟させる",        events:["開花","着果","収穫"], maturity:{early:160,mid:180,late:200}, fruit:true },
+  biwa:         { n:"ビワ",       e:"🍊", d:150, w:4, cat:"果樹/バラ科", baseTemp:10, gdd:1200, hs:"果皮がオレンジ色になり甘みが出たら",        events:["開花","着果","収穫"], maturity:{early:130,mid:150,late:170}, fruit:true },
 };
 
 // ─── 栽培ガイド: 今日やること推奨 ───────────────────────────
@@ -1407,7 +1407,7 @@ function LoginScreen() {
       <div style={{background:"#fff",borderRadius:20,padding:"28px 24px",maxWidth:360,width:"100%",textAlign:"center",boxShadow:"0 8px 40px rgba(0,0,0,.3)"}}>
         <div style={{fontSize:"2.2rem",marginBottom:6}}>🌾</div>
         <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:"1.3rem",color:G,marginBottom:4}}>サクメモ</div>
-        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ</div>
+        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v1.6.3</span></div>
         {linkErr&&<div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:8,padding:"10px 12px",marginBottom:16,fontSize:".78rem",color:"#856404",textAlign:"left"}}>{linkErr}</div>}
 
 
