@@ -1424,7 +1424,7 @@ function LoginScreen() {
       <div style={{background:"#fff",borderRadius:20,padding:"28px 24px",maxWidth:360,width:"100%",textAlign:"center",boxShadow:"0 8px 40px rgba(0,0,0,.3)"}}>
         <div style={{fontSize:"2.2rem",marginBottom:6}}>🌾</div>
         <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:"1.3rem",color:G,marginBottom:4}}>サクメモ</div>
-        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v1.8.70</span></div>
+        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v1.8.71</span></div>
         {linkErr&&<div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:8,padding:"10px 12px",marginBottom:16,fontSize:".78rem",color:"#856404",textAlign:"left"}}>{linkErr}</div>}
 
 
@@ -1484,7 +1484,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.70</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.71</div>
       </div>
     </div>
   );
@@ -3518,6 +3518,8 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
     try { localStorage.setItem("apportionMasters", JSON.stringify(arr)); } catch {}
   };
   const [mApportion, setMApportion] = useState(null); // 按分マスター編集モーダル
+  const [showPestExportModal, setShowPestExportModal] = useState(false); // 農薬記録書出力モーダル
+  const [pestExportCropId, setPestExportCropId] = useState(""); // 選択品目（""=全品目）
 
   // 按分率を取得（localStorageから）
   const getApportionRates = () => {
@@ -4148,14 +4150,15 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
 
   const cropName = id => {if(!id)return"共通";const c=crops.find(x=>x.id===id);if(!c)return"共通";const db=CDB[c.type]||{};return(db.e||"🌱")+" "+(db.n||c.type)+(c.variety?"("+c.variety+")":"");};
 
-  const exportPestRecord = () => {
+  const exportPestRecord = (targetCropId) => {
     const doPestExport = (XLSX) => {
       const wb = XLSX.utils.book_new();
-      const pestLogs = logs.filter(l => l.work === "pest" && l.pestName);
+      // 防除ログ：薬剤名なしでも防除作業なら含める
+      const pestLogs = logs.filter(l => l.work === "pest" && (targetCropId ? l.cropId === targetCropId : true));
       const pestByCrop = {};
       pestLogs.forEach(l => {
         const crop = crops.find(c => c.id === l.cropId);
-        const key = crop ? cropName(crop.id) : "不明";
+        const key = crop ? cropName(crop.id) : "品目不明";
         if (!pestByCrop[key]) pestByCrop[key] = { crop, logs: [] };
         pestByCrop[key].logs.push(l);
       });
@@ -4243,7 +4246,7 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
           <button style={{...S.secBtn,background:"#8B6914",color:"#fff"}} onClick={()=>setMCost({...empty})}>＋ 費用</button>
           <button style={{...S.secBtn,background:"#2E7D32",color:"#fff"}} onClick={()=>setMCost({...empty,cat:"inc_crop"})}>＋ 収入</button>
           <button style={{...S.secBtn,background:"#1565C0",color:"#fff"}} onClick={exportLedger}>📥 帳簿Excel</button>
-          <button style={{...S.secBtn,background:"#2E7D32",color:"#fff"}} onClick={exportPestRecord}>🌿 農薬記録書</button>
+          <button style={{...S.secBtn,background:"#2E7D32",color:"#fff"}} onClick={()=>{setPestExportCropId("");setShowPestExportModal(true);}}>🌿 農薬記録書</button>
         </div>
       </div>
 
@@ -4672,6 +4675,42 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
           {mApportion.id&&<button onClick={()=>{if(window.confirm("削除しますか？")){setApportionMasters(apportionMasters.filter(a=>a.id!==mApportion.id));setMApportion(null);showToast("削除しました");}}} style={{...S.btn,...S.btnR,marginTop:8}}>削除</button>}
         </>}
       </ModalWithSave>
+
+      {/* 農薬記録書出力モーダル */}
+      {showPestExportModal&&(()=>{
+        // 防除記録がある品目のリスト
+        const pestCropIds = [...new Set(logs.filter(l=>l.work==="pest").map(l=>l.cropId).filter(Boolean))];
+        const pestCrops = crops.filter(c=>pestCropIds.includes(c.id));
+        return (
+          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+            <div style={{background:"#fff",borderRadius:16,padding:"24px 20px",width:"100%",maxWidth:360,boxShadow:"0 8px 32px rgba(0,0,0,.3)"}}>
+              <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:"1.05rem",color:G,marginBottom:16}}>🌿 農薬使用記録簿の出力</div>
+              <div style={{fontSize:".82rem",color:TX3,marginBottom:12}}>出力する品目を選択してください</div>
+              {pestCrops.length===0
+                ? <div style={{color:"#c00",fontSize:".82rem",marginBottom:12}}>防除作業の記録がまだありません</div>
+                : <>
+                  <div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:16}}>
+                    <label style={{display:"flex",alignItems:"center",gap:8,fontSize:".88rem",cursor:"pointer"}}>
+                      <input type="radio" name="pestCrop" checked={pestExportCropId===""} onChange={()=>setPestExportCropId("")} style={{accentColor:G}}/>
+                      全品目（品目別シートで出力）
+                    </label>
+                    {pestCrops.map(c=>(
+                      <label key={c.id} style={{display:"flex",alignItems:"center",gap:8,fontSize:".88rem",cursor:"pointer"}}>
+                        <input type="radio" name="pestCrop" checked={pestExportCropId===c.id} onChange={()=>setPestExportCropId(c.id)} style={{accentColor:G}}/>
+                        {cropName(c.id)}
+                      </label>
+                    ))}
+                  </div>
+                  <button style={{...S.btn,background:G,color:"#fff",width:"100%",marginBottom:8}} onClick={()=>{setShowPestExportModal(false);exportPestRecord(pestExportCropId||null);}}>
+                    📥 Excelで出力
+                  </button>
+                </>
+              }
+              <button style={{...S.btn,background:"#f5f0e8",color:TX3,width:"100%"}} onClick={()=>setShowPestExportModal(false)}>キャンセル</button>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* 申告確認タブ */}
       {mainTab==="ledger"&&(()=>{
