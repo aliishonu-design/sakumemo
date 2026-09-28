@@ -3871,50 +3871,129 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
       XLSX.utils.book_append_sheet(wb, ws8, "損益計算書");
 
       // ── シート9: 貸借対照表 ──
-      // カード未払金残高を計算
+      // カード未払金残高を計算（引き落とし済みを除く）
       const cardPayable = {};
       postOpen.filter(c=>c.payMethod&&cards&&cards.some&&cards.some(cd=>cd.name===c.payMethod)).forEach(c=>{
-        cardPayable[c.payMethod] = (cardPayable[c.payMethod]||0) + (Number(c.amt)||0);
+        // payDateが過去なら引き落とし済み → 未払金から除外
+        const isPaid = c.payDate && c.payDate <= new Date().toISOString().slice(0,10);
+        if(!isPaid) cardPayable[c.payMethod] = (cardPayable[c.payMethod]||0) + (Number(c.amt)||0);
       });
       const totalCardPayable = Object.values(cardPayable).reduce((s,v)=>s+v,0);
+
+      // 農機具・設備の帳簿価額を自動計算
+      // equips: [{id, name, cat, price, date, depYears, ...}]
+      const exportYear = new Date().getFullYear();
+      let equipBookValue = 0;
+      const equipDetails = [];
+      equips.forEach(eq=>{
+        const price = parseFloat(eq.price)||0;
+        const depYrs = parseInt(eq.depYears)||0;
+        const buyYear = eq.date ? new Date(eq.date).getFullYear() : exportYear;
+        if(price <= 0) return;
+        if(depYrs <= 0){
+          // 少額資産（減価償却なし）：購入年のみ費用として計上 → 帳簿価額0（経過済み）
+          // ただし当年購入なら帳簿価額あり（年度内）
+          if(buyYear === exportYear) equipBookValue += price;
+          equipDetails.push([eq.name, price, 0, buyYear, "(少額一括計上)", buyYear===exportYear?price:0]);
+        } else {
+          // 定額法：取得価額 ÷ 耐用年数 × 経過年数
+          const elapsed = exportYear - buyYear; // 経過年数（0年目=購入年）
+          const annual = Math.round(price / depYrs);
+          const accumulated = Math.min(price - 1, annual * elapsed); // 残存価額1円
+          const bookVal = Math.max(1, price - accumulated);
+          const isFullyDep = elapsed >= depYrs;
+          const bv = isFullyDep ? 1 : bookVal;
+          equipBookValue += bv;
+          equipDetails.push([eq.name, price, depYrs, buyYear, elapsed+"年経過", bv]);
+        }
+      });
+
+      // 現金残高推計（現金収入 − 現金支出）
+      // 開業時資金は元入金に含まれるため、開業後の収支のみで推計
+      const cashIncome = costs.filter(c=>isIncome(c.cat)&&(!c.payMethod||c.payMethod==="現金")).reduce((s,c)=>s+(Number(c.amt)||0),0);
+      const cashOut = postOpen.filter(c=>!isIncome(c.cat)&&(!c.payMethod||c.payMethod==="現金")).reduce((s,c)=>s+(Number(c.amt)||0),0);
+      const cashEst = Math.max(0, cashIncome - cashOut);
+
+      // 普通預金残高推計（振込収入 − 振込支出 − カード引き落とし）
+      const bankIncome = costs.filter(c=>isIncome(c.cat)&&c.payMethod==="振込").reduce((s,c)=>s+(Number(c.amt)||0),0);
+      const bankOut = postOpen.filter(c=>!isIncome(c.cat)&&c.payMethod==="振込").reduce((s,c)=>s+(Number(c.amt)||0),0);
+      const cardPaidTotal = postOpen.filter(c=>c.payDate&&c.payDate<=new Date().toISOString().slice(0,10)&&cards&&cards.some&&cards.some(cd=>cd.name===c.payMethod)).reduce((s,c)=>s+(Number(c.amt)||0),0);
+      const bankEst = Math.max(0, bankIncome - bankOut - cardPaidTotal);
+
+      // 元入金（前年からの引き継ぎ）
+      let motoire = 0;
+      try {
+        const stored = JSON.parse(localStorage.getItem("motoire")||"{}");
+        const prevYear = String(exportYear - 1);
+        motoire = stored[prevYear] || 0;
+      } catch {}
+
+      // 農業所得（損益計算書より）
+      const agriIncome = incTotal - totalExp - kaiShokyaku;
+      // 翌年の元入金 = 元入金 + 農業所得 − 生活費引き出し（事業主貸は手入力なので今は所得のみ）
+      const nextMotoire = motoire + Math.max(0, agriIncome);
+
+      // 開業費未償却残高
+      const kaimiShokyaku = Math.max(0, kaiTotal - kaiShokyaku);
+
+      // 資産合計・負債資本合計
+      const totalAsset = cashEst + bankEst + equipBookValue + kaimiShokyaku;
+      const totalLiabCap = totalCardPayable + motoire + Math.max(0, agriIncome);
+
       const bsRows = [
-        ["貸　借　対　照　表　令和8年12月31日現在"],
-        ["（個人事業主・農業所得用）　左右が一致すれば正しく記帳できています"],
+        ["貸　借　対　照　表　令和"+String(exportYear-2018+6)+"年12月31日現在"],
+        ["（個人事業主・農業所得用）　★印は自動計算、※印は推計値（実際の残高を確認してください）"],
         [],
         ["【資産の部】","金額（円）","","【負債・資本の部】","金額（円）"],
         ["〈流動資産〉","","","〈流動負債〉",""],
-        ["　現金","0","","　未払金（カード残高）",totalCardPayable],
-        ["　普通預金","0","","　買掛金","0"],
-        ["　売掛金","0","","　前受金","0"],
-        ["　棚卸資産（農産物等）","0","","〈固定負債〉",""],
-        ["〈固定資産〉","","","　長期借入金","0"],
-        ["　農機具・設備（帳簿価額）","0","","",""],
-        ["　開業費（未償却残高）",Math.max(0,kaiTotal-kaiShokyaku),"","〈資本の部〉",""],
-        ["","","","　元入金","0"],
-        ["","","","　事業主借","0"],
-        ["","","","　事業主貸（マイナス）","0"],
-        ["","","","　当期農業所得","0"],
+        ["　現金（※推計）",cashEst,"","　未払金（カード・★自動）",totalCardPayable],
+        ["　普通預金（※推計）",bankEst,"","　買掛金","0　←手入力"],
+        ["　売掛金","0　←手入力","","　前受金","0　←手入力"],
+        ["　棚卸資産（農産物等）","0　←手入力","","〈固定負債〉",""],
+        ["〈固定資産〉","","","　長期借入金","0　←手入力"],
+        ["　農機具・設備（帳簿価額★自動）",equipBookValue,"","",""],
+        ["　開業費（未償却残高★自動）",kaimiShokyaku,"","〈資本の部〉",""],
+        ["","","","　元入金（★前年繰越）",motoire],
+        ["","","","　事業主借","0　←手入力"],
+        ["","","","　事業主貸（マイナス）","0　←手入力（生活費引き出し）"],
+        ["","","","　当期農業所得（★自動）",Math.max(0,agriIncome)],
         [],
-        ["資産合計（★手入力で合計）","0","","負債・資本合計（★手入力で合計）","0"],
+        ["資産合計（※参考値）",totalAsset,"","負債・資本合計（※参考値）",totalLiabCap],
         [],
-        ["【入力手順】"],
-        ["①現金・普通預金の残高を通帳・現金で確認して入力"],
-        ["②農機具等の帳簿価額（取得価額－減価償却累計額）を入力"],
-        ["③カード残高は自動入力済み（引き落とし前の未払い分）"],
-        ["④開業費未償却残高は自動計算済み"],
-        ["⑤元入金・事業主借等を仕訳帳から集計して入力"],
-        ["⑥資産合計と負債・資本合計が一致すれば完成"],
+        ["【注意事項・確認手順】"],
+        ["①現金・普通預金は推計値です。実際の残高（通帳・現金）と照合してください"],
+        ["②農機具帳簿価額は定額法で自動計算（資材・設備の購入価格・耐用年数から）"],
+        ["③カード未払金は未引き落とし分を自動集計（引き落とし日入力済みのもの）"],
+        ["④開業費未償却残高は5年均等償却で自動計算"],
+        ["⑤元入金は前年の農業所得を自動引き継ぎ（帳簿Excel出力時に来年用を保存）"],
+        ["⑥借入金・売掛金・事業主貸等は実績に応じて手入力してください"],
+        ["⑦資産合計と負債・資本合計が一致すれば正しく記帳できています"],
       ];
+      // 農機具明細を追加
+      if(equipDetails.length > 0){
+        bsRows.push([]);
+        bsRows.push(["【農機具・設備　帳簿価額明細（★自動計算）】"]);
+        bsRows.push(["名称","取得価額","耐用年数","購入年","経過","帳簿価額"]);
+        equipDetails.forEach(r=>bsRows.push(r));
+        bsRows.push(["合計","","","","",equipBookValue]);
+      }
       // カード別の未払金明細を追加
       if(Object.keys(cardPayable).length > 0){
         bsRows.push([]);
-        bsRows.push(["【カード別未払金内訳（参考）】"]);
+        bsRows.push(["【カード別未払金内訳（★自動）】"]);
         Object.entries(cardPayable).forEach(([card,amt])=>{
           bsRows.push(["　"+card, amt]);
         });
       }
+      // 来年用の元入金をlocalStorageに保存
+      try {
+        const stored = JSON.parse(localStorage.getItem("motoire")||"{}");
+        stored[String(exportYear)] = nextMotoire;
+        localStorage.setItem("motoire", JSON.stringify(stored));
+      } catch {}
+
       const ws9 = XLSX.utils.aoa_to_sheet(bsRows);
-      ws9["!cols"]=[{wch:24},{wch:14},{wch:3},{wch:24},{wch:14}];
+      ws9["!cols"]=[{wch:28},{wch:14},{wch:3},{wch:26},{wch:16}];
       XLSX.utils.book_append_sheet(wb, ws9, "貸借対照表");
 
       const fname="サクメモ_青色申告帳簿_複式簿記_"+new Date().getFullYear()+".xlsx";
@@ -3941,11 +4020,11 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
 
       {/* メインタブ */}
       <div style={{display:"flex",gap:0,marginBottom:10,borderRadius:8,overflow:"hidden",border:"1px solid #e0d9ce"}}>
-        {[["cost","💰 費用・収入"],["master","📦 資材登録"]].map(([v,l])=>(
+        {[["cost","💰 費用・収入"],["master","📦 資材登録"],["ledger","📋 申告確認"]].map(([v,l])=>(
           <button key={v} onClick={()=>setMainTab(v)}
             style={{flex:1,padding:"8px 0",border:"none",background:mainTab===v?G:"#fff",
               color:mainTab===v?"#fff":"#888",fontWeight:mainTab===v?700:400,
-              fontSize:".8rem",cursor:"pointer",fontFamily:"inherit"}}>{l}</button>
+              fontSize:".75rem",cursor:"pointer",fontFamily:"inherit"}}>{l}</button>
         ))}
       </div>
 
@@ -4110,6 +4189,197 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
         })}
       </div>
       </>}
+
+      {mainTab==="ledger"&&(()=>{
+        // ── 申告確認タブ（貸借対照表・損益を画面で確認） ──
+        const KAIGYO_DATE = "2026-08-18";
+        const today10 = new Date().toISOString().slice(0,10);
+        const exportYear = new Date().getFullYear();
+
+        // 収支集計
+        const allCosts = costs.filter(c=>!c.cancelled);
+        const preOpen  = allCosts.filter(c=>c.date && c.date < KAIGYO_DATE && !isIncome(c.cat));
+        const postOpen = allCosts.filter(c=>(!c.date||c.date>=KAIGYO_DATE) && !isIncome(c.cat));
+        const incomeAll = allCosts.filter(c=>isIncome(c.cat));
+        const kaiTotal = preOpen.reduce((s,c)=>s+(Number(c.amt)||0),0);
+        const kaiShokyaku = Math.round(kaiTotal/5*4.5/12);
+        const expTotal = postOpen.reduce((s,c)=>s+(Number(c.amt)||0),0);
+        const incTotal2 = incomeAll.reduce((s,c)=>s+(Number(c.amt)||0),0);
+        const agriIncome2 = incTotal2 - expTotal - kaiShokyaku;
+        const agriIncomeAfterControl = Math.max(0, agriIncome2 - 650000);
+
+        // 農機具帳簿価額
+        let eqBookVal = 0;
+        const eqRows = [];
+        equips.forEach(eq=>{
+          const price = parseFloat(eq.price)||0;
+          const depYrs = parseInt(eq.depYears)||0;
+          const buyYear = eq.date ? new Date(eq.date).getFullYear() : exportYear;
+          if(price<=0) return;
+          if(depYrs<=0){
+            const bv = buyYear===exportYear ? price : 0;
+            eqBookVal += bv;
+            eqRows.push({name:eq.name,price,depYrs:0,bv,note:"少額一括"});
+          } else {
+            const elapsed = exportYear - buyYear;
+            const annual = Math.round(price/depYrs);
+            const acc = Math.min(price-1, annual*elapsed);
+            const bv = elapsed>=depYrs ? 1 : Math.max(1, price-acc);
+            eqBookVal += bv;
+            eqRows.push({name:eq.name,price,depYrs,bv,note:elapsed+"年経過 定額法"});
+          }
+        });
+
+        // 現金・預金推計
+        const cashIn = incomeAll.filter(c=>!c.payMethod||c.payMethod==="現金").reduce((s,c)=>s+(Number(c.amt)||0),0);
+        const cashOut2 = postOpen.filter(c=>!c.payMethod||c.payMethod==="現金").reduce((s,c)=>s+(Number(c.amt)||0),0);
+        const cashEst2 = Math.max(0, cashIn-cashOut2);
+        const bankIn = incomeAll.filter(c=>c.payMethod==="振込").reduce((s,c)=>s+(Number(c.amt)||0),0);
+        const bankOut2 = postOpen.filter(c=>c.payMethod==="振込").reduce((s,c)=>s+(Number(c.amt)||0),0);
+        const cardPaid2 = postOpen.filter(c=>c.payDate&&c.payDate<=today10&&cards&&cards.some&&cards.some(cd=>cd.name===c.payMethod)).reduce((s,c)=>s+(Number(c.amt)||0),0);
+        const bankEst2 = Math.max(0, bankIn-bankOut2-cardPaid2);
+
+        // カード未払金
+        const cardPay2 = {};
+        postOpen.filter(c=>c.payMethod&&cards&&cards.some&&cards.some(cd=>cd.name===c.payMethod)).forEach(c=>{
+          const isPaid = c.payDate && c.payDate<=today10;
+          if(!isPaid) cardPay2[c.payMethod]=(cardPay2[c.payMethod]||0)+(Number(c.amt)||0);
+        });
+        const totalCard2 = Object.values(cardPay2).reduce((s,v)=>s+v,0);
+
+        // 元入金
+        let motoire2 = 0;
+        try { const st=JSON.parse(localStorage.getItem("motoire")||"{}"); motoire2=st[String(exportYear-1)]||0; } catch {}
+        const kaimiShokyaku2 = Math.max(0, kaiTotal-kaiShokyaku);
+
+        const Row = ({label,value,note,bold,color,indent}) => (
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",padding:"5px 0",borderBottom:"1px solid #f0ece4",paddingLeft:indent?16:0}}>
+            <span style={{fontSize:".78rem",color:color||TX2,fontWeight:bold?700:400}}>{label}</span>
+            <div style={{textAlign:"right"}}>
+              <span style={{fontSize:bold?".9rem":".82rem",fontWeight:bold?700:400,color:color||"#1c1a14",fontVariantNumeric:"tabular-nums"}}>
+                {typeof value==="number"?value.toLocaleString()+"円":value}
+              </span>
+              {note&&<span style={{fontSize:".68rem",color:TX3,marginLeft:4}}>{note}</span>}
+            </div>
+          </div>
+        );
+        const SecHd = ({children,color}) => (
+          <div style={{background:color||"#f5f0e8",padding:"5px 8px",marginTop:12,marginBottom:4,borderRadius:6,fontSize:".72rem",fontWeight:700,color:color?"#fff":"#5a5040",letterSpacing:.5}}>
+            {children}
+          </div>
+        );
+
+        return (
+          <div>
+            <div style={{...S.sec,marginBottom:8}}>
+              <span style={{fontFamily:"'Shippori Mincho B1',serif"}}>📋 申告確認</span>
+              <button style={{...S.secBtn,background:"#1565C0",color:"#fff"}} onClick={exportLedger}>📥 帳簿Excel出力</button>
+            </div>
+            <div style={{fontSize:".7rem",color:"#856404",background:"#fffde7",border:"1px solid #f9e4a0",borderRadius:8,padding:"7px 10px",marginBottom:10}}>
+              ★は自動計算　※は推計値（実際の残高と照合してください）　Excelに出力して申告書に転記してください
+            </div>
+
+            {/* ── 損益計算書 ── */}
+            <div style={S.card}>
+              <div style={{fontFamily:"'Shippori Mincho B1',serif",fontWeight:700,fontSize:".88rem",marginBottom:8}}>損益計算書　{exportYear}年分</div>
+              <SecHd color="#2E7D32">農業収入</SecHd>
+              {incomeAll.filter(c=>c.cat==="inc_crop").length>0&&<Row label="農産物売上" value={incomeAll.filter(c=>c.cat==="inc_crop").reduce((s,c)=>s+(Number(c.amt)||0),0)} indent/>}
+              {incomeAll.filter(c=>c.cat==="inc_misc").length>0&&<Row label="農業雑収入" value={incomeAll.filter(c=>c.cat==="inc_misc").reduce((s,c)=>s+(Number(c.amt)||0),0)} indent/>}
+              {incomeAll.filter(c=>c.cat==="inc_subsidy").length>0&&<Row label="補助金・交付金" value={incomeAll.filter(c=>c.cat==="inc_subsidy").reduce((s,c)=>s+(Number(c.amt)||0),0)} indent/>}
+              <Row label="農業収入合計 ★" value={incTotal2} bold color="#2E7D32"/>
+
+              <SecHd color="#8B6914">農業費用</SecHd>
+              <Row label="開業後経費計" value={expTotal} indent/>
+              {kaiShokyaku>0&&<Row label={"開業費償却（"+exportYear+"年分）"} value={kaiShokyaku} indent note="★自動"/>}
+              <Row label="農業費用合計 ★" value={expTotal+kaiShokyaku} bold color="#8B6914"/>
+
+              <div style={{height:8}}/>
+              <Row label="農業所得（税引前）★" value={agriIncome2} bold color={agriIncome2>=0?"#1565C0":"#c62828"}/>
+              <Row label="青色申告特別控除" value={-650000} note="65万円"/>
+              <Row label="控除後農業所得 ★" value={agriIncomeAfterControl} bold color={agriIncomeAfterControl>0?"#1565C0":"#5a5040"}/>
+            </div>
+
+            {/* ── 貸借対照表 ── */}
+            <div style={{...S.card,marginTop:10}}>
+              <div style={{fontFamily:"'Shippori Mincho B1',serif",fontWeight:700,fontSize:".88rem",marginBottom:8}}>貸借対照表　{exportYear}年12月31日現在</div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                {/* 資産 */}
+                <div>
+                  <SecHd>資産の部</SecHd>
+                  <Row label="現金 ※推計" value={cashEst2} note="要確認"/>
+                  <Row label="普通預金 ※推計" value={bankEst2} note="要確認"/>
+                  <Row label="農機具・設備 ★" value={eqBookVal} note="帳簿価額"/>
+                  {kaimiShokyaku2>0&&<Row label="開業費（未償却）★" value={kaimiShokyaku2}/>}
+                  <Row label="資産合計（参考）" value={cashEst2+bankEst2+eqBookVal+kaimiShokyaku2} bold/>
+                </div>
+                {/* 負債・資本 */}
+                <div>
+                  <SecHd color="#5b21b6">負債・資本の部</SecHd>
+                  {totalCard2>0&&<Row label="未払金（カード）★" value={totalCard2}/>}
+                  <Row label="元入金（前年繰越）★" value={motoire2}/>
+                  <Row label="当期農業所得 ★" value={Math.max(0,agriIncome2)}/>
+                  <Row label="負債・資本合計（参考）" value={totalCard2+motoire2+Math.max(0,agriIncome2)} bold/>
+                </div>
+              </div>
+              <div style={{marginTop:8,fontSize:".7rem",color:TX3}}>
+                ※ 現金・預金は収支から推計した参考値です。実際の通帳残高・手元現金と照合してください。
+              </div>
+            </div>
+
+            {/* ── 農機具明細 ── */}
+            {eqRows.length>0&&(
+              <div style={{...S.card,marginTop:10}}>
+                <div style={{fontWeight:700,fontSize:".82rem",marginBottom:8}}>🏗️ 農機具・設備　帳簿価額明細 ★</div>
+                {eqRows.map((r,i)=>(
+                  <div key={i} style={{display:"flex",justifyContent:"space-between",padding:"4px 0",borderBottom:"1px solid #f0ece4",fontSize:".76rem"}}>
+                    <span style={{color:TX2}}>{r.name}</span>
+                    <div style={{textAlign:"right"}}>
+                      <span style={{color:"#1c1a14",fontVariantNumeric:"tabular-nums"}}>{r.bv.toLocaleString()}円</span>
+                      <span style={{color:TX3,marginLeft:4,fontSize:".68rem"}}>{r.depYrs>0?`耐用${r.depYrs}年・`+r.note:r.note}</span>
+                    </div>
+                  </div>
+                ))}
+                <div style={{textAlign:"right",paddingTop:4,fontWeight:700,fontSize:".82rem"}}>合計：{eqBookVal.toLocaleString()}円</div>
+              </div>
+            )}
+
+            {/* ── 来年の元入金 ── */}
+            <div style={{...S.card,marginTop:10}}>
+              <div style={{fontWeight:700,fontSize:".82rem",marginBottom:6}}>📅 来年の元入金（引き継ぎ）</div>
+              <Row label="今年の元入金" value={motoire2}/>
+              <Row label="当期農業所得（控除前）" value={Math.max(0,agriIncome2)}/>
+              <Row label="来年の元入金（★推計）" value={motoire2+Math.max(0,agriIncome2)} bold color="#1565C0" note="Excelを出力すると自動保存"/>
+              <div style={{marginTop:6,fontSize:".7rem",color:TX3,lineHeight:1.5}}>
+                ※ 帳簿Excelを出力すると来年の元入金が自動保存されます。生活費の引き出し（事業主貸）がある場合は差し引いて手修正してください。
+              </div>
+              <div style={{marginTop:8,display:"flex",gap:6,flexWrap:"wrap"}}>
+                <button onClick={()=>{
+                  const nextMoto = motoire2+Math.max(0,agriIncome2);
+                  try {
+                    const st=JSON.parse(localStorage.getItem("motoire")||"{}");
+                    st[String(exportYear)]=nextMoto;
+                    localStorage.setItem("motoire",JSON.stringify(st));
+                    showToast("来年の元入金を保存しました："+nextMoto.toLocaleString()+"円");
+                  } catch { showToast("保存に失敗しました"); }
+                }} style={{...S.secBtn,background:"#1565C0",color:"#fff"}}>
+                  💾 来年の元入金を保存
+                </button>
+                <button onClick={()=>{
+                  const v = window.prompt("元入金を手入力（円）:", String(motoire2+Math.max(0,agriIncome2)));
+                  if(v===null) return;
+                  const n = parseInt(v.replace(/,/g,""))||0;
+                  try {
+                    const st=JSON.parse(localStorage.getItem("motoire")||"{}");
+                    st[String(exportYear)]=n;
+                    localStorage.setItem("motoire",JSON.stringify(st));
+                    showToast("来年の元入金を保存しました："+n.toLocaleString()+"円");
+                  } catch {}
+                }} style={{...S.secBtn}}>✏️ 手動で設定</button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {mainTab==="master"&&<>
         <div style={{display:"flex",gap:6,marginBottom:12,overflowX:"auto",WebkitOverflowScrolling:"touch"}}>
