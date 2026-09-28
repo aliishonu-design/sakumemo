@@ -1435,7 +1435,7 @@ function LoginScreen() {
       <div style={{background:"#fff",borderRadius:20,padding:"28px 24px",maxWidth:360,width:"100%",textAlign:"center",boxShadow:"0 8px 40px rgba(0,0,0,.3)"}}>
         <div style={{fontSize:"2.2rem",marginBottom:6}}>🌾</div>
         <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:"1.3rem",color:G,marginBottom:4}}>サクメモ</div>
-        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v1.8.62</span></div>
+        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v1.8.63</span></div>
         {linkErr&&<div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:8,padding:"10px 12px",marginBottom:16,fontSize:".78rem",color:"#856404",textAlign:"left"}}>{linkErr}</div>}
 
 
@@ -1495,7 +1495,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.62</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.63</div>
       </div>
     </div>
   );
@@ -4089,6 +4089,85 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
       ws10["!cols"]=[{wch:10},{wch:30},{wch:14},{wch:12},{wch:14},{wch:14},{wch:25}];
       XLSX.utils.book_append_sheet(wb, ws10, "家事按分明細");
 
+      // ── 農薬使用記録簿シート（品目別）──
+      const pestLogs = logs.filter(l => l.work === "pest" && l.pestName);
+      // 品目別にグループ化
+      const pestByCrop = {};
+      pestLogs.forEach(l => {
+        const crop = crops.find(c => c.id === l.cropId);
+        const cropKey = crop ? getCropName(crop) : "不明";
+        if (!pestByCrop[cropKey]) pestByCrop[cropKey] = { crop, logs: [] };
+        pestByCrop[cropKey].logs.push(l);
+      });
+      // 品目ごとにシートを作成
+      Object.entries(pestByCrop).forEach(([cropName, { crop, logs: cLogs }]) => {
+        const sheetName = ("農薬記録_" + cropName).slice(0, 31); // Excel31文字制限
+        const cropObj = crop ? crop : {};
+        const field = cropObj.fieldIdx !== undefined ? fields[cropObj.fieldIdx] : null;
+        // ヘッダー部（提出用フォーマット）
+        const pestRows = [
+          ["農 薬 使 用 記 録 簿（ファーマーズマーケット用）"],
+          [],
+          ["会員番号", "", "作物名", cropName, "品種名", cropObj.variety||""],
+          ["栽培者名", "", "播種日", cropObj.sowDate||"", "定植日", cropObj.plantDate||""],
+          ["圃場名", field ? field.name||"" : "", "収穫開始予定日", "", "栽培面積", cropObj.cultivationArea||cropObj.ridgeLen||""],
+          ["栽培条件", cropObj.cultivationType==="pot"?"ポット・コンテナ":(cropObj.growEnv==="greenhouse"?"ハウス":"露地")],
+          [],
+          [],
+          // 列ヘッダー行（Row9相当）
+          ["防除月日", "使用薬剤名（商品名）", "", "", "", "", "剤型", "", "", "倍率", "散布量", "農協チェック欄（適用）", "倍率確認", "使用量確認", "収穫前日数", "使用回数"],
+          ["月", "日", "薬剤名", "登録番号", "適用病害虫名", "希釈倍数", "乳剤", "水和剤", "フロアブル", "倍率", "散布量(L/kg)", "適用", "倍率", "使用量", "収穫前日数", "使用回数"],
+          [],
+        ];
+        // データ行（防除記録）
+        cLogs.sort((a,b)=>(a.date||"").localeCompare(b.date||"")).forEach(l => {
+          const d = l.date ? new Date(l.date) : null;
+          const month = d ? (d.getMonth()+1) : "";
+          const day   = d ? d.getDate() : "";
+          const pestType = l.pestName ? (pestMs.find(p=>p.name===l.pestName)||{}).type||"" : "";
+          const isEmulsion = pestType.includes("乳剤") ? "○" : "";
+          const isWettable = pestType.includes("水和剤") ? "○" : "";
+          const isFlowable = (pestType.includes("フロアブル")||pestType.includes("水溶剤")) ? "○" : "";
+          const sprayAmt = [l.pestSprayAmt, l.pestUnit].filter(Boolean).join("");
+          pestRows.push([
+            month, day,
+            l.pestName||"",
+            "",  // 登録番号（手入力）
+            l.pestTarget||"",
+            l.pestDil||"",
+            isEmulsion, isWettable, isFlowable,
+            l.pestDil||"",
+            sprayAmt,
+            "", "", "", "", ""  // 農協チェック欄（手入力）
+          ]);
+        });
+        // 空行を数行追加（記入余白）
+        for(let i=0;i<5;i++) pestRows.push(["","","","","","","","","","","","","","","",""]);
+
+        const wsPest = XLSX.utils.aoa_to_sheet(pestRows);
+        wsPest["!cols"] = [{wch:5},{wch:5},{wch:20},{wch:12},{wch:18},{wch:8},{wch:6},{wch:6},{wch:8},{wch:6},{wch:10},{wch:8},{wch:6},{wch:8},{wch:10},{wch:8}];
+        // タイトル行をマージ
+        wsPest["!merges"] = [
+          {s:{r:0,c:0},e:{r:0,c:15}},   // タイトル
+          {s:{r:2,c:0},e:{r:2,c:1}},     // 会員番号label
+          {s:{r:3,c:0},e:{r:3,c:1}},     // 栽培者名label
+          {s:{r:4,c:0},e:{r:4,c:1}},     // 圃場名label
+          {s:{r:5,c:0},e:{r:5,c:1}},     // 栽培条件label
+          {s:{r:5,c:2},e:{r:5,c:15}},    // 栽培条件value
+        ];
+        XLSX.utils.book_append_sheet(wb, wsPest, sheetName);
+      });
+      // 農薬ログが0件の場合も空のサマリーシートを追加
+      if(Object.keys(pestByCrop).length === 0) {
+        const emptyPest = [
+          ["農 薬 使 用 記 録 簿（ファーマーズマーケット用）"],
+          [],
+          ["※ 農薬使用記録（防除作業）がまだ登録されていません。作業記録から「防除」を記録してください。"],
+        ];
+        const wsEmpty = XLSX.utils.aoa_to_sheet(emptyPest);
+        XLSX.utils.book_append_sheet(wb, wsEmpty, "農薬記録（未登録）");
+      }
+
       const fname="サクメモ_青色申告帳簿_複式簿記_"+new Date().getFullYear()+".xlsx";
       XLSX.writeFile(wb, fname);
       showToast("複式簿記帳簿Excelを書き出しました（"+fname+"）");
@@ -4100,6 +4179,77 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
       const s=document.createElement("script");
       s.src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js";
       s.onload=()=>doExport(window.XLSX);
+      s.onerror=()=>showToast("ライブラリの読み込みに失敗しました");
+      document.head.appendChild(s);
+    }
+  };
+
+  // 農薬使用記録簿専用Excelエクスポート
+  const exportPestRecord = () => {
+    const doPestExport = (XLSX) => {
+      const wb = XLSX.utils.book_new();
+      const pestLogs = logs.filter(l => l.work === "pest" && l.pestName);
+      const pestByCrop = {};
+      pestLogs.forEach(l => {
+        const crop = crops.find(c => c.id === l.cropId);
+        const key = crop ? getCropName(crop) : "不明";
+        if (!pestByCrop[key]) pestByCrop[key] = { crop, logs: [] };
+        pestByCrop[key].logs.push(l);
+      });
+      if (Object.keys(pestByCrop).length === 0) {
+        showToast("防除作業の記録がまだありません");
+        return;
+      }
+      Object.entries(pestByCrop).forEach(([cName, { crop: cropObj, logs: cLogs }]) => {
+        const sheetName = ("農薬記録_" + cName).slice(0, 31);
+        const field = cropObj && cropObj.fieldIdx !== undefined ? fields[cropObj.fieldIdx] : null;
+        const rows = [
+          ["農 薬 使 用 記 録 簿（ファーマーズマーケット用）"],
+          [],
+          ["会員番号", "", "作物名", cName, "品種名", (cropObj&&cropObj.variety)||""],
+          ["栽培者名", "", "播種日", (cropObj&&cropObj.sowDate)||"", "定植日", (cropObj&&cropObj.plantDate)||""],
+          ["圃場名", field?field.name||"":"", "収穫開始予定日", "", "栽培面積", (cropObj&&(cropObj.cultivationArea||cropObj.ridgeLen))||""],
+          ["栽培条件", cropObj&&cropObj.cultivationType==="pot"?"ポット・コンテナ":(cropObj&&cropObj.growEnv==="greenhouse"?"ハウス":"露地")],
+          [],
+          [],
+          ["防除月日", "使用薬剤名（商品名）", "", "", "", "", "剤型", "", "", "倍率", "散布量", "農協チェック欄（適用）", "倍率確認", "使用量確認", "収穫前日数", "使用回数"],
+          ["月", "日", "薬剤名", "登録番号", "適用病害虫名", "希釈倍数", "乳剤", "水和剤", "フロアブル", "倍率", "散布量(L/kg)", "適用", "倍率", "使用量", "収穫前日数", "使用回数"],
+          [],
+        ];
+        cLogs.sort((a,b)=>(a.date||"").localeCompare(b.date||"")).forEach(l => {
+          const d = l.date ? new Date(l.date) : null;
+          const m = d ? (d.getMonth()+1) : "";
+          const day = d ? d.getDate() : "";
+          const pm = pestMs.find(p=>p.name===l.pestName)||{};
+          const t = pm.type||"";
+          rows.push([
+            m, day, l.pestName||"", "", l.pestTarget||"", l.pestDil||"",
+            t.includes("乳剤")?"○":"", t.includes("水和剤")?"○":"",
+            (t.includes("フロアブル")||t.includes("水溶剤"))?"○":"",
+            l.pestDil||"",
+            [l.pestSprayAmt,l.pestUnit].filter(Boolean).join(""),
+            "","","","",""
+          ]);
+        });
+        for(let i=0;i<5;i++) rows.push(["","","","","","","","","","","","","","","",""]);
+        const ws = XLSX.utils.aoa_to_sheet(rows);
+        ws["!cols"]=[{wch:5},{wch:5},{wch:20},{wch:12},{wch:18},{wch:8},{wch:6},{wch:6},{wch:8},{wch:6},{wch:10},{wch:8},{wch:6},{wch:8},{wch:10},{wch:8}];
+        ws["!merges"]=[
+          {s:{r:0,c:0},e:{r:0,c:15}},
+          {s:{r:2,c:0},e:{r:2,c:1}},{s:{r:3,c:0},e:{r:3,c:1}},
+          {s:{r:4,c:0},e:{r:4,c:1}},{s:{r:5,c:0},e:{r:5,c:1}},{s:{r:5,c:2},e:{r:5,c:15}},
+        ];
+        XLSX.utils.book_append_sheet(wb, ws, sheetName);
+      });
+      const fname = "サクメモ_農薬使用記録簿_"+new Date().getFullYear()+".xlsx";
+      XLSX.writeFile(wb, fname);
+      showToast("農薬使用記録簿Excelを書き出しました（"+fname+"）");
+    };
+    if(window.XLSX){ doPestExport(window.XLSX); }
+    else {
+      const s=document.createElement("script");
+      s.src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js";
+      s.onload=()=>doPestExport(window.XLSX);
       s.onerror=()=>showToast("ライブラリの読み込みに失敗しました");
       document.head.appendChild(s);
     }
@@ -4128,6 +4278,7 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
           <button style={{...S.secBtn,background:"#8B6914",color:"#fff"}} onClick={()=>setMCost({...empty})}>＋ 費用</button>
           <button style={{...S.secBtn,background:"#2E7D32",color:"#fff"}} onClick={()=>setMCost({...empty,cat:"inc_crop"})}>＋ 収入</button>
           <button style={{...S.secBtn,background:"#1565C0",color:"#fff"}} onClick={exportLedger}>📥 帳簿Excel</button>
+          <button style={{...S.secBtn,background:"#6a1f1f",color:"#fff"}} onClick={exportPestRecord}>🌿 農薬記録書</button>
         </div>
       </div>
 
@@ -4367,7 +4518,10 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
           <div>
             <div style={{...S.sec,marginBottom:8}}>
               <span style={{fontFamily:"'Shippori Mincho B1',serif"}}>📋 申告確認</span>
-              <button style={{...S.secBtn,background:"#1565C0",color:"#fff"}} onClick={exportLedger}>📥 帳簿Excel出力</button>
+              <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
+                <button style={{...S.secBtn,background:"#1565C0",color:"#fff"}} onClick={exportLedger}>📥 帳簿Excel出力</button>
+                <button style={{...S.secBtn,background:"#6a1f1f",color:"#fff"}} onClick={exportPestRecord}>🌿 農薬記録書Excel</button>
+              </div>
             </div>
             <div style={{fontSize:".7rem",color:"#856404",background:"#fffde7",border:"1px solid #f9e4a0",borderRadius:8,padding:"7px 10px",marginBottom:10}}>
               ★は自動計算　※は推計値（実際の残高と照合してください）　Excelに出力して申告書に転記してください
