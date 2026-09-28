@@ -5056,21 +5056,15 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
             <SecHd label="💳 クレジットカード情報"/>
             <div style={{fontSize:".72rem",color:TX3,marginBottom:8}}>費用入力時の支払い方法・締め日・引き落とし日を管理します。</div>
             {creditCards.map((card,ci)=>(
-              <details key={card.id||ci} style={{marginBottom:8,borderBottom:"1px solid "+BD,paddingBottom:8}}>
-                <summary style={{fontSize:".84rem",fontWeight:700,cursor:"pointer",listStyle:"none",userSelect:"none",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                  <span>💳 {card.name||"カード"+(ci+1)}{card.closingDay?` 締め${card.closingDay}日`:""}  ▾</span>
-                  <button style={{...S.btn,...S.btnS,fontSize:".72rem"}} onClick={e=>{e.preventDefault();setMCard({...card,_idx:ci});}}>編集</button>
-                </summary>
-                <div style={{marginTop:8,fontSize:".78rem",color:TX3,display:"grid",gridTemplateColumns:"1fr 1fr",gap:"4px 12px"}}>
-                  {card.number&&<div>番号末4桁: <b style={{color:"#333"}}>●●●● {card.number.slice(-4)}</b></div>}
-                  {card.holder&&<div>名義: <b style={{color:"#333"}}>{card.holder}</b></div>}
-                  {card.expiry&&<div>有効期限: <b style={{color:"#333"}}>{card.expiry}</b></div>}
-                  {card.closingDay&&<div>締め日: <b style={{color:"#333"}}>{card.closingDay}日</b></div>}
-                  {card.payDay&&<div>引き落とし: <b style={{color:"#333"}}>{card.payDay}日</b></div>}
-                  {card.bank&&<div>引き落とし口座: <b style={{color:"#333"}}>{card.bank}</b></div>}
-                  {card.note&&<div style={{gridColumn:"1/-1"}}>メモ: {card.note}</div>}
+              <div key={card.id||ci} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 0",borderBottom:"1px solid "+BD}}>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:".84rem",fontWeight:700}}>💳 {card.name||"カード"+(ci+1)}</div>
+                  <div style={{fontSize:".7rem",color:TX3}}>
+                    {[card.closingDay&&`締め${card.closingDay}日`, card.payDay&&`引落${card.payDay}日`, card.bank].filter(Boolean).join(" · ")||"詳細未登録"}
+                  </div>
                 </div>
-              </details>
+                <button style={{...S.btn,...S.btnS,fontSize:".72rem",flexShrink:0}} onClick={()=>setMCard({...card,_idx:ci})}>編集</button>
+              </div>
             ))}
             <button style={{...S.btn,...S.btnG,marginTop:4}} onClick={()=>setMCard({name:"",number:"",holder:"",expiry:"",closingDay:"",payDay:"",bank:"",note:""})}>＋ カードを追加</button>
           </div>
