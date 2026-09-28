@@ -649,6 +649,7 @@ const COST_CATS = [
   { value:"comms",     label:"📞 通信費",            group:"農業費用" },
   { value:"insurance", label:"🛡️ 農業保険料",        group:"農業費用" },
   { value:"deprec",    label:"📉 減価償却費",        group:"農業費用" },
+  { value:"vehicle",   label:"🚗 車両費（按分）",     group:"農業費用" },
   { value:"other",     label:"📦 その他農業費用",    group:"農業費用" },
 ];
 const INCOME_CATS = [
@@ -1070,6 +1071,17 @@ const globalCss = `
   .no-select{user-select:none;-webkit-user-select:none;}
 `;
 
+// ============================================================
+// MAIN APP
+// ============================================================
+const SCREENS = [
+  { key:"home",    label:"ホーム",     icon:"🏡" },
+  { key:"fields",  label:"圃場・品目", icon:"🌾" },
+  { key:"plot",    label:"栽培計画",   icon:"📅" },
+  { key:"cost",    label:"費用・資材", icon:"💰" },
+  { key:"report",  label:"レポート",   icon:"📊" },
+];
+
 // Small components
 function Tag({ type, children }) { return <span style={{...S.tag,...(TAG_COLORS[type]||TAG_COLORS.gray)}}>{children}</span>; }
 
@@ -1423,7 +1435,7 @@ function LoginScreen() {
       <div style={{background:"#fff",borderRadius:20,padding:"28px 24px",maxWidth:360,width:"100%",textAlign:"center",boxShadow:"0 8px 40px rgba(0,0,0,.3)"}}>
         <div style={{fontSize:"2.2rem",marginBottom:6}}>🌾</div>
         <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:"1.3rem",color:G,marginBottom:4}}>サクメモ</div>
-        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v1.8.60</span></div>
+        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v1.8.62</span></div>
         {linkErr&&<div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:8,padding:"10px 12px",marginBottom:16,fontSize:".78rem",color:"#856404",textAlign:"left"}}>{linkErr}</div>}
 
 
@@ -1483,7 +1495,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.60</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.62</div>
       </div>
     </div>
   );
@@ -3508,6 +3520,27 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
   const [mItem,  setMItem]  = useState(null);
   const [mBuy,   setMBuy]   = useState(null);
 
+  // ─── 按分マスター ───
+  const [apportionMasters, setApportionMastersState] = useState(()=>{
+    try { return JSON.parse(localStorage.getItem("apportionMasters")||"[]"); } catch { return []; }
+  });
+  const setApportionMasters = (arr) => {
+    setApportionMastersState(arr);
+    try { localStorage.setItem("apportionMasters", JSON.stringify(arr)); } catch {}
+  };
+  const [mApportion, setMApportion] = useState(null); // 按分マスター編集モーダル
+
+  // 按分率を取得（localStorageから）
+  const getApportionRates = () => {
+    try { return JSON.parse(localStorage.getItem("apportionRates")||"{}"); } catch { return {}; }
+  };
+  // 按分後の実際の農業費用を返す関数
+  const getAgriAmt = (cost) => {
+    const rates = getApportionRates();
+    const rate = rates[cost.id] !== undefined ? rates[cost.id] : 100;
+    return Math.round((Number(cost.amt)||0) * rate / 100);
+  };
+
   // ─── マスター（資材）ロジック ───
   const allItems = [
     ...fertMs.map((f,i)=>({...f, _type:"fert",  _idx:i, _label:"肥料",   _color:"#d1fae5", _tc:"#065f46", _icon:"🌿"})),
@@ -3600,12 +3633,12 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
   const filteredIncome = filteredAll.filter(c=>isIncome(c.cat)&&!c.cancelled); // 収入のみ（取消除外）
   const shownList = costTab==="income" ? filteredIncome : filtered;
 
-  // 集計
-  const total   = filtered.reduce((s,c)=>s+(parseFloat(c.amt)||0),0);
+  // 集計（按分考慮）
+  const total   = filtered.reduce((s,c)=>s+getAgriAmt(c),0);
   const incomeTotal = filteredIncome.reduce((s,c)=>s+(parseFloat(c.amt)||0),0);
   const revenue = logs.filter(l=>inPeriod(l.date)).reduce((s,l)=>s+(parseFloat(l.hvKg)||0)*(parseFloat(l.hvPrice)||0),0);
   const byCat   = Object.fromEntries(COST_CATS.map(c=>[c.value,0]));
-  filtered.forEach(c=>{if(byCat[c.cat]!==undefined)byCat[c.cat]+=(parseFloat(c.amt)||0);});
+  filtered.forEach(c=>{if(byCat[c.cat]!==undefined)byCat[c.cat]+=getAgriAmt(c);});
   const maxC    = Math.max(...Object.values(byCat),1);
 
   // ソート
@@ -3638,8 +3671,23 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
     const noteWithDiscount = discount > 0
       ? (mCost.note ? mCost.note + "　割引/ポイント-"+discount+"円" : "割引/ポイント-"+discount+"円")
       : mCost.note;
-    const item={...mCost, id:mCost.id||uid0(), amt:String(realAmt), note:noteWithDiscount, discount:undefined};
+    // 按分率をnoteに付記（按分あり場合）
+    const apportionRate = mCost.apportionRate !== undefined ? mCost.apportionRate : 100;
+    const noteWithApportion = (apportionRate < 100 && !isIncome(mCost.cat))
+      ? (noteWithDiscount ? noteWithDiscount + "　[按分"+apportionRate+"%]" : "[按分"+apportionRate+"%]")
+      : noteWithDiscount;
+    const costId = mCost.id||uid0();
+    const item={...mCost, id:costId, amt:String(realAmt), note:noteWithApportion, discount:undefined, apportionId:undefined, apportionRate:undefined};
     const n=mCost.id&&costs.find(x=>x.id===mCost.id)?costs.map(x=>x.id===mCost.id?item:x):[...costs,item];
+    // 按分率をlocalStorageに保存
+    if(!isIncome(mCost.cat)){
+      try {
+        const rates = getApportionRates();
+        if(apportionRate < 100) rates[costId] = apportionRate;
+        else delete rates[costId];
+        localStorage.setItem("apportionRates", JSON.stringify(rates));
+      } catch {}
+    }
     setCosts(n,item); setMCost(null); showToast("保存しました");
   };
 
@@ -4012,6 +4060,35 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
       ws9["!cols"]=[{wch:28},{wch:14},{wch:3},{wch:26},{wch:16}];
       XLSX.utils.book_append_sheet(wb, ws9, "貸借対照表");
 
+      // ── シート10: 家事按分明細 ──
+      const apRates = (()=>{ try { return JSON.parse(localStorage.getItem("apportionRates")||"{}"); } catch { return {}; } })();
+      const apMasters = (()=>{ try { return JSON.parse(localStorage.getItem("apportionMasters")||"[]"); } catch { return []; } })();
+      const apItems = sorted.filter(c=>!isIncome(c.cat) && apRates[c.id] !== undefined && apRates[c.id] < 100);
+      const apRows = [
+        ["家事按分明細（令和8年分）"],
+        ["農業と家事で共用する支出の按分内訳"],
+        ["日付","内容","支払総額（円）","農業割合（%）","農業費用額（円）","家事費用額（円）","按分理由"],
+        ...apItems.map(c=>{
+          const r = apRates[c.id];
+          const total = Number(c.amt)||0;
+          const agri = Math.round(total*r/100);
+          const kaji = total - agri;
+          // 按分マスターから理由を探す
+          const masterMatch = apMasters.find(m=>c.note&&c.note.includes("[按分"+m.rate+"%]")&&m.rate===r);
+          const reason = masterMatch ? masterMatch.reason : ("[按分"+r+"%]");
+          return [c.date||"", c.name+(c.note?" "+c.note:""), total, r, agri, kaji, reason];
+        }),
+      ];
+      if(apItems.length > 0){
+        const apTotalAmt = apItems.reduce((s,c)=>s+(Number(c.amt)||0),0);
+        const apTotalAgri = apItems.reduce((s,c)=>s+Math.round((Number(c.amt)||0)*(apRates[c.id]||100)/100),0);
+        const apTotalKaji = apTotalAmt - apTotalAgri;
+        apRows.push(["合計","",apTotalAmt,"",apTotalAgri,apTotalKaji,""]);
+      }
+      const ws10 = XLSX.utils.aoa_to_sheet(apRows);
+      ws10["!cols"]=[{wch:10},{wch:30},{wch:14},{wch:12},{wch:14},{wch:14},{wch:25}];
+      XLSX.utils.book_append_sheet(wb, ws10, "家事按分明細");
+
       const fname="サクメモ_青色申告帳簿_複式簿記_"+new Date().getFullYear()+".xlsx";
       XLSX.writeFile(wb, fname);
       showToast("複式簿記帳簿Excelを書き出しました（"+fname+"）");
@@ -4193,6 +4270,7 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
                   textDecoration:isCancelled?"line-through":"none"}}>
                   {inc?"+":"-"}{Math.round(parseFloat(c.amt)||0).toLocaleString()}
                 </div>
+                {(()=>{const rates=getApportionRates();const r=rates[c.id];if(r!==undefined&&r<100&&!inc){return <div style={{fontSize:".6rem",color:"#795548"}}>✂️ 農業{r}%: {Math.round((parseFloat(c.amt)||0)*r/100).toLocaleString()}円</div>;}return null;})()}
               </div>
               {/* 複製ボタンのみ */}
               <div style={{display:"flex",justifyContent:"center"}}>
@@ -4393,6 +4471,32 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
                 }} style={{...S.secBtn}}>✏️ 手動で設定</button>
               </div>
             </div>
+
+            {/* ── 按分マスター管理 ── */}
+            <div style={{...S.card,marginTop:10}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+                <div style={{fontWeight:700,fontSize:".82rem"}}>✂️ 家事按分マスター</div>
+                <button style={{...S.secBtn,background:"#5b21b6",color:"#fff",fontSize:".72rem"}}
+                  onClick={()=>setMApportion({id:"",name:"",rate:80,reason:"",cat:"fuel"})}>＋ 追加</button>
+              </div>
+              <div style={{fontSize:".7rem",color:TX3,marginBottom:8,lineHeight:1.5}}>
+                車両・通信費など農業と家事で共用するものの農業割合を登録しておくと、費用入力時に素早く選択できます。
+              </div>
+              {apportionMasters.length===0&&<div style={{color:TX3,fontSize:".78rem",textAlign:"center",padding:"10px 0"}}>按分マスターがまだ登録されていません</div>}
+              {apportionMasters.map((m,i)=>(
+                <div key={m.id} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 0",borderBottom:"1px solid #f0ece4"}}>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontWeight:700,fontSize:".8rem"}}>{m.name}</div>
+                    <div style={{fontSize:".68rem",color:TX3}}>{m.reason}</div>
+                  </div>
+                  <div style={{background:"#FFF3E0",color:"#E65100",borderRadius:6,padding:"2px 8px",fontSize:".76rem",fontWeight:700,flexShrink:0}}>
+                    農業{m.rate}%
+                  </div>
+                  <button onClick={()=>setMApportion({...m})} style={{...S.secBtn,padding:"3px 8px",fontSize:".7rem"}}>編集</button>
+                  <button onClick={()=>{if(window.confirm("削除しますか？")){setApportionMasters(apportionMasters.filter((_,j)=>j!==i));}}} style={{...S.secBtn,padding:"3px 8px",fontSize:".7rem",background:"#fce4ec",color:"#c62828"}}>削除</button>
+                </div>
+              ))}
+            </div>
           </div>
         );
       })()}
@@ -4527,6 +4631,29 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
         </ModalWithSave>
       </>}
 
+      {/* 按分マスター編集モーダル */}
+      <ModalWithSave open={!!mApportion} title={mApportion?.id?"按分マスターを編集":"按分マスターを追加"} onSave={()=>{
+        if(!mApportion.name){showToast("名前を入力してください");return;}
+        const item = {...mApportion, id:mApportion.id||uid0(), rate:Number(mApportion.rate)||80};
+        const n = mApportion.id ? apportionMasters.map(x=>x.id===item.id?item:x) : [...apportionMasters, item];
+        setApportionMasters(n);
+        setMApportion(null);
+        showToast("按分マスターを保存しました");
+      }} onClose={()=>setMApportion(null)}>
+        {mApportion&&<>
+          <FG label="名前"><Inp value={mApportion.name||""} onChange={v=>setMApportion({...mApportion,name:v})} placeholder="例：軽トラック"/></FG>
+          <FG label="農業割合（%）">
+            <CalcInp value={String(mApportion.rate||80)} onChange={v=>setMApportion({...mApportion,rate:Number(v)||80})} placeholder="例：80"/>
+            <div style={{fontSize:".72rem",color:TX3,marginTop:3}}>家事割合: {100-(Number(mApportion.rate)||80)}%</div>
+          </FG>
+          <FG label="理由・メモ"><Inp value={mApportion.reason||""} onChange={v=>setMApportion({...mApportion,reason:v})} placeholder="例：農作業8割・私用2割"/></FG>
+          <FG label="デフォルト費目">
+            <Sel value={mApportion.cat||"fuel"} onChange={v=>setMApportion({...mApportion,cat:v})} options={COST_CATS.map(c=>({value:c.value,label:c.label}))}/>
+          </FG>
+          {mApportion.id&&<button onClick={()=>{if(window.confirm("削除しますか？")){setApportionMasters(apportionMasters.filter(x=>x.id!==mApportion.id));setMApportion(null);showToast("削除しました");}}} style={{...S.btn,...S.btnR,marginTop:8}}>削除</button>}
+        </>}
+      </ModalWithSave>
+
       {/* 入力/編集モーダル */}
       <ModalWithSave open={!!mCost} title={mCost?.id?(isIncome(mCost.cat)?"収入を編集":"費用を編集"):(isIncome(mCost?.cat)?"収入を追加":"費用を追加")}
         onSave={sv} onClose={()=>setMCost(null)}>
@@ -4599,12 +4726,34 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
               </div>}
             </>}
           </>}
+          {/* 家事按分 */}
+          {!isIncome(mCost.cat)&&<FG label="家事按分（農業割合）">
+            <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+              <Sel value={mCost.apportionId||""} onChange={v=>{
+                if(v==="_custom"){
+                  setMCost({...mCost, apportionId:"_custom", apportionRate:mCost.apportionRate||80});
+                } else {
+                  const m = apportionMasters.find(x=>x.id===v);
+                  setMCost({...mCost, apportionId:v, apportionRate: m?m.rate:100});
+                }
+              }} options={[
+                {value:"", label:"按分なし（100%農業費）"},
+                ...apportionMasters.map(m=>({value:m.id, label:m.name+"（農業"+m.rate+"%）"})),
+                {value:"_custom", label:"カスタム（直接入力）"},
+              ]}/>
+              {mCost.apportionId==="_custom"&&<CalcInp value={String(mCost.apportionRate||80)} onChange={v=>setMCost({...mCost,apportionRate:Number(v)||80})} placeholder="例：70"/>}
+            </div>
+            {((mCost.apportionRate||0)<100 && (mCost.apportionId||"")!=="")&&<div style={{fontSize:".78rem",background:"#FFF8E1",border:"1px solid #FFE082",borderRadius:8,padding:"6px 10px",marginTop:4,color:"#5c3d1e"}}>
+              農業費用：{Math.round((Number(mCost.amt)||0)*(mCost.apportionRate||100)/100).toLocaleString()}円
+              　（家事費：{Math.round((Number(mCost.amt)||0)*(100-(mCost.apportionRate||100))/100).toLocaleString()}円）
+            </div>}
+          </FG>}
           <FG label="メモ"><Inp value={mCost.note||""} onChange={v=>setMCost({...mCost,note:v})} placeholder="購入先・領収書番号など"/></FG>
           {mCost.id&&<div style={{display:"flex",gap:6,marginTop:8}}>
             {!mCost.cancelled
               ? <button onClick={()=>{if(window.confirm("この取引を取り消しますか？（記録は残ります）")){const updated={...mCost,cancelled:true};setCosts(costs.map(x=>x.id===mCost.id?updated:x),updated);setMCost(null);showToast("取り消しました");}}} style={{...S.btn,background:"#FFF3E0",color:"#E65100",border:"1px solid #FFCC80",flex:1}}>取消</button>
               : <button onClick={()=>{if(window.confirm("取り消しを復活させますか？")){const updated={...mCost,cancelled:false};setCosts(costs.map(x=>x.id===mCost.id?updated:x),updated);setMCost(null);showToast("復活しました");}}} style={{...S.btn,background:"#E8F5E9",color:"#2E7D32",border:"1px solid #A5D6A7",flex:1}}>復活</button>}
-            <button onClick={()=>{if(window.confirm("削除しますか？")){const n=costs.filter(x=>x.id!==mCost.id);setCosts(n);setMCost(null);showToast("削除しました");}}} style={{...S.btn,...S.btnR,flex:1}}>削除</button>
+            <button onClick={()=>{if(window.confirm("削除しますか？")){const n=costs.filter(x=>x.id!==mCost.id);setCosts(n);setMCost(null);showToast("削除しました");try{const r=getApportionRates();delete r[mCost.id];localStorage.setItem("apportionRates",JSON.stringify(r));}catch{}}}} style={{...S.btn,...S.btnR,flex:1}}>削除</button>
           </div>}
         </>}
       </ModalWithSave>
@@ -6305,17 +6454,6 @@ function SettingsScreen({ showToast, user, uid, signOut, fields, crops, logs, fe
     </div>
   );
 }
-
-// ============================================================
-// MAIN APP
-// ============================================================
-const SCREENS = [
-  { key:"home",    label:"ホーム",     icon:"🏡" },
-  { key:"fields",  label:"圃場・品目", icon:"🌾" },
-  { key:"plot",    label:"栽培計画",   icon:"📅" },
-  { key:"cost",    label:"費用・資材", icon:"💰" },
-  { key:"report",  label:"レポート",   icon:"📊" },
-];
 
 export default function App() {
   const [user,     setUser]    = useState(null);
