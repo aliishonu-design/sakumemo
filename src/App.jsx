@@ -1447,7 +1447,7 @@ function LoginScreen() {
       <div style={{background:"#fff",borderRadius:20,padding:"28px 24px",maxWidth:360,width:"100%",textAlign:"center",boxShadow:"0 8px 40px rgba(0,0,0,.3)"}}>
         <div style={{fontSize:"2.2rem",marginBottom:6}}>🌾</div>
         <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:"1.3rem",color:G,marginBottom:4}}>サクメモ</div>
-        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v1.8.84</span></div>
+        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v1.8.85</span></div>
         {linkErr&&<div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:8,padding:"10px 12px",marginBottom:16,fontSize:".78rem",color:"#856404",textAlign:"left"}}>{linkErr}</div>}
 
 
@@ -1507,7 +1507,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.84</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.85</div>
       </div>
     </div>
   );
@@ -5712,6 +5712,19 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs, equips=[], o
   });
   const [showGddConfig, setShowGddConfig] = useState(false);
 
+  // 収益予測（品目ごと・localStorageで保存）
+  const [revenueForecasts, setRevenueForecastsState] = useState(()=>{
+    try { return JSON.parse(localStorage.getItem("revenueForecasts")||"{}"); } catch { return {}; }
+  });
+  const [showForecast, setShowForecast] = useState(false);
+  const setRevenueForecasts = (val) => {
+    setRevenueForecastsState(val);
+    try { localStorage.setItem("revenueForecasts", JSON.stringify(val)); } catch {}
+  };
+  const saveForecast = (cropId, patch) => {
+    setRevenueForecasts({...revenueForecasts, [cropId]:{...(revenueForecasts[cropId]||{}),...patch}});
+  };
+
   const saveGddSetting = (cropId, patch) => {
     setGddSettings(prev=>{
       const next={...prev,[cropId]:{...(prev[cropId]||{}),...patch}};
@@ -6287,6 +6300,126 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs, equips=[], o
                 <div style={{fontSize:".66rem",color:TX3,marginTop:3}}>{s.l}</div>
               </div>
             ))}
+          </div>
+
+          {/* 収益予測 */}
+          <div style={S.card}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:showForecast?10:0}}>
+              <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".86rem",color:"#5c3d1e",cursor:"pointer",userSelect:"none"}}
+                onClick={()=>setShowForecast(p=>!p)}>
+                📈 収益予測 <span style={{fontSize:".7rem",color:TX3}}>{showForecast?"▲":"▼"}</span>
+              </div>
+              {showForecast&&(()=>{
+                // 予測合計
+                const fcTotal = cropStats.reduce((s,c)=>{
+                  const fc = revenueForecasts[c.id]||{};
+                  const price = parseFloat(fc.price)||0;
+                  const qty   = parseFloat(fc.qty)||0;
+                  const times = parseFloat(fc.times)||1;
+                  return s + price*qty*times;
+                },0);
+                const achRate = fcTotal>0 ? Math.round(totalRev/fcTotal*100) : null;
+                return (
+                  <div style={{textAlign:"right"}}>
+                    <div style={{fontSize:".72rem",color:TX3}}>予測合計</div>
+                    <div style={{fontWeight:700,color:INFO,fontSize:".95rem"}}>{Math.round(fcTotal).toLocaleString()}円</div>
+                    {achRate!==null&&<div style={{fontSize:".68rem",color:achRate>=100?G:WARN}}>達成率 {achRate}%</div>}
+                  </div>
+                );
+              })()}
+            </div>
+            {showForecast&&(
+              <div>
+                <div style={{fontSize:".68rem",color:TX3,marginBottom:8}}>品目ごとに予想単価・収穫量・回数を入力すると目標収益を計算します</div>
+                {cropStats.filter(c=>!c.ended).map(c=>{
+                  const fc = revenueForecasts[c.id]||{};
+                  // 過去の平均単価を計算
+                  const hvLogs = logs.filter(l=>l.cropId===c.id&&l.hvPrice&&l.hvKg);
+                  const avgPrice = hvLogs.length>0
+                    ? Math.round(hvLogs.reduce((s,l)=>{
+                        const kg=parseFloat(l.hvKg)||0; const pr=parseFloat(l.hvPrice)||0;
+                        return s+kg*pr;
+                      },0) / hvLogs.reduce((s,l)=>s+(parseFloat(l.hvKg)||0),0)*10)/10
+                    : null;
+                  const fcPrice = parseFloat(fc.price)||0;
+                  const fcQty   = parseFloat(fc.qty)||0;
+                  const fcTimes = parseFloat(fc.times)||1;
+                  const fcTotal = fcPrice*fcQty*fcTimes;
+                  const achRate = fcTotal>0 ? Math.round(c.rev/fcTotal*100) : null;
+                  return (
+                    <div key={c.id} style={{borderBottom:"1px solid "+BD,paddingBottom:10,marginBottom:10}}>
+                      <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:6}}>
+                        <span>{c.emoji}</span>
+                        <span style={{fontWeight:700,fontSize:".83rem"}}>{c.name}</span>
+                        {fcTotal>0&&<span style={{fontSize:".68rem",color:achRate!==null&&achRate>=100?G:WARN,marginLeft:"auto"}}>
+                          達成率 {achRate!==null?achRate+"%":"—"}
+                        </span>}
+                      </div>
+                      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:5,marginBottom:5}}>
+                        <div>
+                          <div style={{fontSize:".62rem",color:TX3,marginBottom:2}}>
+                            予想単価(円/kg)
+                            {avgPrice!==null&&<span style={{marginLeft:4,color:INFO,cursor:"pointer"}}
+                              onClick={()=>saveForecast(c.id,{price:String(avgPrice)})}
+                              title="過去平均を入力">≈{avgPrice}</span>}
+                          </div>
+                          <input type="text" inputMode="decimal" value={fc.price||""} placeholder={avgPrice!==null?"≈"+avgPrice:"単価"}
+                            onChange={e=>saveForecast(c.id,{price:e.target.value.replace(/[^0-9.]/g,"")})}
+                            style={{...S.inp,fontSize:".82rem",padding:"5px 7px"}}/>
+                        </div>
+                        <div>
+                          <div style={{fontSize:".62rem",color:TX3,marginBottom:2}}>予想収穫量(kg)</div>
+                          <input type="text" inputMode="decimal" value={fc.qty||""} placeholder="kg"
+                            onChange={e=>saveForecast(c.id,{qty:e.target.value.replace(/[^0-9.]/g,"")})}
+                            style={{...S.inp,fontSize:".82rem",padding:"5px 7px"}}/>
+                        </div>
+                        <div>
+                          <div style={{fontSize:".62rem",color:TX3,marginBottom:2}}>収穫回数</div>
+                          <input type="text" inputMode="decimal" value={fc.times||""} placeholder="1"
+                            onChange={e=>saveForecast(c.id,{times:e.target.value.replace(/[^0-9.]/g,"")})}
+                            style={{...S.inp,fontSize:".82rem",padding:"5px 7px"}}/>
+                        </div>
+                      </div>
+                      {/* 予測 vs 実績 */}
+                      <div style={{display:"flex",gap:8,fontSize:".7rem"}}>
+                        <div style={{flex:1,background:"#f0ebe3",borderRadius:6,padding:"5px 8px",textAlign:"center"}}>
+                          <div style={{color:TX3,fontSize:".6rem"}}>予測収益</div>
+                          <div style={{fontWeight:700,color:INFO}}>{fcTotal>0?Math.round(fcTotal).toLocaleString()+"円":"—"}</div>
+                        </div>
+                        <div style={{flex:1,background:"#f0ebe3",borderRadius:6,padding:"5px 8px",textAlign:"center"}}>
+                          <div style={{color:TX3,fontSize:".6rem"}}>実績収益</div>
+                          <div style={{fontWeight:700,color:G}}>{c.rev>0?Math.round(c.rev).toLocaleString()+"円":"—"}</div>
+                        </div>
+                        <div style={{flex:1,background:"#f0ebe3",borderRadius:6,padding:"5px 8px",textAlign:"center"}}>
+                          <div style={{color:TX3,fontSize:".6rem"}}>差額</div>
+                          <div style={{fontWeight:700,color:fcTotal>0&&c.rev>=fcTotal?G:ALERT}}>
+                            {fcTotal>0?((c.rev-fcTotal>=0?"+":"")+Math.round(c.rev-fcTotal).toLocaleString()+"円"):"—"}
+                          </div>
+                        </div>
+                      </div>
+                      {/* 収穫量の進捗バー */}
+                      {fcQty>0&&fcTimes>0&&(
+                        <div style={{marginTop:6}}>
+                          <div style={{display:"flex",justifyContent:"space-between",fontSize:".62rem",color:TX3,marginBottom:2}}>
+                            <span>収穫量進捗</span>
+                            <span>{c.kg.toFixed(1)}kg / {(fcQty*fcTimes).toFixed(1)}kg</span>
+                          </div>
+                          <div style={{background:"#eee",borderRadius:999,height:6,overflow:"hidden"}}>
+                            <div style={{height:"100%",borderRadius:999,
+                              background:"linear-gradient(90deg,"+G+","+G2+")",
+                              width:Math.min(100,Math.round(c.kg/(fcQty*fcTimes)*100))+"%",
+                              transition:"width .7s ease"}}/>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+                {cropStats.filter(c=>!c.ended).length===0&&(
+                  <div style={{color:TX3,fontSize:".8rem"}}>栽培中の品目がありません</div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* 品目別一覧表 */}
