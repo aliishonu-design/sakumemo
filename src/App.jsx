@@ -1407,7 +1407,7 @@ function LoginScreen() {
       <div style={{background:"#fff",borderRadius:20,padding:"28px 24px",maxWidth:360,width:"100%",textAlign:"center",boxShadow:"0 8px 40px rgba(0,0,0,.3)"}}>
         <div style={{fontSize:"2.2rem",marginBottom:6}}>🌾</div>
         <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:"1.3rem",color:G,marginBottom:4}}>サクメモ</div>
-        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v1.8.58</span></div>
+        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v1.8.59</span></div>
         {linkErr&&<div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:8,padding:"10px 12px",marginBottom:16,fontSize:".78rem",color:"#856404",textAlign:"left"}}>{linkErr}</div>}
 
 
@@ -1467,7 +1467,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.58</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.59</div>
       </div>
     </div>
   );
@@ -4254,7 +4254,7 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
 
         const Row = ({label,value,note,bold,color,indent}) => (
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",padding:"5px 0",borderBottom:"1px solid #f0ece4",paddingLeft:indent?16:0}}>
-            <span style={{fontSize:".78rem",color:color||TX2,fontWeight:bold?700:400}}>{label}</span>
+            <span style={{fontSize:".78rem",color:color||"#5a5040",fontWeight:bold?700:400}}>{label}</span>
             <div style={{textAlign:"right"}}>
               <span style={{fontSize:bold?".9rem":".82rem",fontWeight:bold?700:400,color:color||"#1c1a14",fontVariantNumeric:"tabular-nums"}}>
                 {typeof value==="number"?value.toLocaleString()+"円":value}
@@ -4332,7 +4332,7 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
                 <div style={{fontWeight:700,fontSize:".82rem",marginBottom:8}}>🏗️ 農機具・設備　帳簿価額明細 ★</div>
                 {eqRows.map((r,i)=>(
                   <div key={i} style={{display:"flex",justifyContent:"space-between",padding:"4px 0",borderBottom:"1px solid #f0ece4",fontSize:".76rem"}}>
-                    <span style={{color:TX2}}>{r.name}</span>
+                    <span style={{color:"#5a5040"}}>{r.name}</span>
                     <div style={{textAlign:"right"}}>
                       <span style={{color:"#1c1a14",fontVariantNumeric:"tabular-nums"}}>{r.bv.toLocaleString()}円</span>
                       <span style={{color:TX3,marginLeft:4,fontSize:".68rem"}}>{r.depYrs>0?`耐用${r.depYrs}年・`+r.note:r.note}</span>
