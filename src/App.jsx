@@ -219,6 +219,23 @@ const ROTATION_DB={
   kiwi:        {years:0,ng:[]},
   biwa:        {years:0,ng:[]},
 };
+// ★ TDZ防止：getFertScheduleより前に宣言
+// 施肥設計（10㎡あたりの目安）
+const getFertPlan = (cropType) => {
+  const plans = {
+    tomato:    {base:'元肥: 苦土石灰150g→1週間後 牛糞堆肥2kg 化成8-8-8150g', chase:'追肥: 2-3週ごと液肥または化成8-8-8 50g', note:'窒素過多に注意'},
+    eggplant:  {base:'元肥: 苦土石灰150g→1週間後 牛糞堆肥3kg 化成8-8-8 200g', chase:'追肥: 収穫始まったら2週ごと化成8-8-8 50g', note:'多肥を好む'},
+    cucumber:  {base:'元肥: 苦土石灰100g→1週間後 牛糞堆肥2kg 化成8-8-8 150g', chase:'追肥: 2週ごと化成8-8-8 50g', note:'窒素多め'},
+    pepper:    {base:'元肥: 苦土石灰150g→1週間後 牛糞堆肥2kg 化成8-8-8 150g', chase:'追肥: 3週ごと化成8-8-8 50g', note:''},
+    potato:    {base:'元肥: 苦土石灰不要(酸性好む) 牛糞堆肥2kg 化成8-8-8 150g', chase:'追肥: 芽かき後に1回 化成8-8-8 50g', note:'石灰はそうか病の原因'},
+    sweetpotato:{base:'元肥: 牛糞堆肥2kg のみ(肥料少なめ)', chase:'追肥: 基本不要', note:'肥料多いと葉ばかり茂る'},
+    onion:     {base:'元肥: 苦土石灰150g→1週間後 牛糞堆肥1kg 化成8-8-8 100g', chase:'追肥: 12月・2月に各50g', note:''},
+    carrot:    {base:'元肥: 苦土石灰100g→2週間後 牛糞堆肥1kg 化成8-8-8 100g', chase:'追肥: 本葉5枚ごろ化成8-8-8 50g', note:'石灰は早めに'},
+    cabbage:   {base:'元肥: 苦土石灰200g→1週間後 牛糞堆肥3kg 化成8-8-8 150g', chase:'追肥: 定植2・4週後に各50g', note:''},
+    broccoli:  {base:'元肥: 苦土石灰200g→1週間後 牛糞堆肥2kg 化成8-8-8 150g', chase:'追肥: 定植3週後 化成8-8-8 50g', note:''},
+    rice:      {base:'元肥: 牛糞堆肥3kg 化成(N:P:K=14:14:14)200g', chase:'追肥: 分けつ期・穂肥に各100g', note:''},
+    strawberry:{base:'元肥: 苦土石灰150g→2週間後 牛糞堆肥2kg 化成8-8-8 100g(Pリン多め)', chase:'追肥: 10月・2月・収穫後に各30g', note:'窒素控えめ'},
+  };
 const getFertSchedule=(cropType,plantTargetDate)=>{
   if(!plantTargetDate)return null;
   const target=new Date(plantTargetDate);
@@ -566,22 +583,7 @@ const getRecommendedTasks = (crop, logs) => {
   return tasks.slice(0,3);
 };
 
-// 施肥設計（10㎡あたりの目安）
-const getFertPlan = (cropType) => {
-  const plans = {
-    tomato:    {base:'元肥: 苦土石灰150g→1週間後 牛糞堆肥2kg 化成8-8-8150g', chase:'追肥: 2-3週ごと液肥または化成8-8-8 50g', note:'窒素過多に注意'},
-    eggplant:  {base:'元肥: 苦土石灰150g→1週間後 牛糞堆肥3kg 化成8-8-8 200g', chase:'追肥: 収穫始まったら2週ごと化成8-8-8 50g', note:'多肥を好む'},
-    cucumber:  {base:'元肥: 苦土石灰100g→1週間後 牛糞堆肥2kg 化成8-8-8 150g', chase:'追肥: 2週ごと化成8-8-8 50g', note:'窒素多め'},
-    pepper:    {base:'元肥: 苦土石灰150g→1週間後 牛糞堆肥2kg 化成8-8-8 150g', chase:'追肥: 3週ごと化成8-8-8 50g', note:''},
-    potato:    {base:'元肥: 苦土石灰不要(酸性好む) 牛糞堆肥2kg 化成8-8-8 150g', chase:'追肥: 芽かき後に1回 化成8-8-8 50g', note:'石灰はそうか病の原因'},
-    sweetpotato:{base:'元肥: 牛糞堆肥2kg のみ(肥料少なめ)', chase:'追肥: 基本不要', note:'肥料多いと葉ばかり茂る'},
-    onion:     {base:'元肥: 苦土石灰150g→1週間後 牛糞堆肥1kg 化成8-8-8 100g', chase:'追肥: 12月・2月に各50g', note:''},
-    carrot:    {base:'元肥: 苦土石灰100g→2週間後 牛糞堆肥1kg 化成8-8-8 100g', chase:'追肥: 本葉5枚ごろ化成8-8-8 50g', note:'石灰は早めに'},
-    cabbage:   {base:'元肥: 苦土石灰200g→1週間後 牛糞堆肥3kg 化成8-8-8 150g', chase:'追肥: 定植2・4週後に各50g', note:''},
-    broccoli:  {base:'元肥: 苦土石灰200g→1週間後 牛糞堆肥2kg 化成8-8-8 150g', chase:'追肥: 定植3週後 化成8-8-8 50g', note:''},
-    rice:      {base:'元肥: 牛糞堆肥3kg 化成(N:P:K=14:14:14)200g', chase:'追肥: 分けつ期・穂肥に各100g', note:''},
-    strawberry:{base:'元肥: 苦土石灰150g→2週間後 牛糞堆肥2kg 化成8-8-8 100g(Pリン多め)', chase:'追肥: 10月・2月・収穫後に各30g', note:'窒素控えめ'},
-  };
+// getFertPlanは上部（getFertScheduleの直前）に移動済み
   return plans[cropType] || {base:'元肥: 苦土石灰100-150g(2週前)→牛糞堆肥2kg+化成8-8-8 100-150g', chase:'追肥: 2-4週ごと化成8-8-8 30-50g', note:''};
 };
 // ─────────────────────────────────────────────────────────────
@@ -1438,7 +1440,7 @@ function LoginScreen() {
       <div style={{background:"#fff",borderRadius:20,padding:"28px 24px",maxWidth:360,width:"100%",textAlign:"center",boxShadow:"0 8px 40px rgba(0,0,0,.3)"}}>
         <div style={{fontSize:"2.2rem",marginBottom:6}}>🌾</div>
         <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:"1.3rem",color:G,marginBottom:4}}>サクメモ</div>
-        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v1.8.64</span></div>
+        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v1.8.65</span></div>
         {linkErr&&<div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:8,padding:"10px 12px",marginBottom:16,fontSize:".78rem",color:"#856404",textAlign:"left"}}>{linkErr}</div>}
 
 
@@ -1498,7 +1500,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.64</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.65</div>
       </div>
     </div>
   );
