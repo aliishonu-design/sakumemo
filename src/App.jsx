@@ -1424,7 +1424,7 @@ function LoginScreen() {
       <div style={{background:"#fff",borderRadius:20,padding:"28px 24px",maxWidth:360,width:"100%",textAlign:"center",boxShadow:"0 8px 40px rgba(0,0,0,.3)"}}>
         <div style={{fontSize:"2.2rem",marginBottom:6}}>🌾</div>
         <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:"1.3rem",color:G,marginBottom:4}}>サクメモ</div>
-        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v1.8.73</span></div>
+        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v1.8.74</span></div>
         {linkErr&&<div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:8,padding:"10px 12px",marginBottom:16,fontSize:".78rem",color:"#856404",textAlign:"left"}}>{linkErr}</div>}
 
 
@@ -1484,7 +1484,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.73</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.74</div>
       </div>
     </div>
   );
@@ -4165,7 +4165,7 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
       const bin = atob(PEST_TMPL_B64);
       const arr = new Uint8Array(bin.length);
       for(let i=0;i<bin.length;i++) arr[i]=bin.charCodeAt(i);
-      const wb = XLSX.read(arr, {type:"array"});
+      const wb = XLSX.read(arr, {type:"array", cellStyles:true, cellNF:true});
       const tmplSheetName = wb.SheetNames[0];
 
       // 対象ログを取得
@@ -4190,6 +4190,20 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
         const tmplWs = wb.Sheets[tmplSheetName];
         const ws = JSON.parse(JSON.stringify(tmplWs)); // deep copy
 
+        // スタイルを保持しながら値だけ書き込むヘルパー
+        const setCell = (addr, type, val) => {
+          const existing = ws[addr];
+          const strVal = val === null || val === undefined ? "" : String(val);
+          if(existing) {
+            existing.t = type;
+            existing.v = val;
+            existing.w = strVal;
+            // z(書式), s(スタイル)はそのまま保持
+          } else {
+            ws[addr] = { t: type, v: val, w: strVal };
+          }
+        };
+
         const cropObj = crops.find(c => c.id === cId);
         const field = cropObj && cropObj.fieldIdx !== undefined ? fields[cropObj.fieldIdx] : null;
         const db = cropObj ? (CDB[cropObj.type]||{}) : {};
@@ -4198,46 +4212,46 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
 
         // ── ヘッダー情報を書き込む ──
         // B3: 会員番号
-        ws["B3"] = { t:"s", v: pestExportMemberNo };
+        setCell("B3","s", pestExportMemberNo);
         // K3: 作物名
-        ws["K3"] = { t:"s", v: db.n||cropObj?.type||"" };
+        setCell("K3","s", db.n||cropObj?.type||"");
         // N3: 品種名
-        ws["N3"] = { t:"s", v: cropVariety };
+        setCell("N3","s", cropVariety);
         // B4: 栽培者名
-        ws["B4"] = { t:"s", v: pestExportGrowerName };
+        setCell("B4","s", pestExportGrowerName);
 
         // 播種日 (I4:J4=L4=年, N4=月, P4=日)
         if(cropObj?.sowDate){
           const sd = new Date(cropObj.sowDate);
-          ws["L4"] = { t:"n", v: sd.getFullYear() };
-          ws["N4"] = { t:"n", v: sd.getMonth()+1 };
-          ws["P4"] = { t:"n", v: sd.getDate() };
+          setCell("L4","n", sd.getFullYear());
+          setCell("N4","n", sd.getMonth()+1);
+          setCell("P4","n", sd.getDate());
         }
+        // B5: 圃場名
+        setCell("B5","s", field ? field.name||"" : "");
         // 定植日 (L5=年, N5=月, P5=日)
         if(cropObj?.plantDate){
           const pd = new Date(cropObj.plantDate);
-          ws["L5"] = { t:"n", v: pd.getFullYear() };
-          ws["N5"] = { t:"n", v: pd.getMonth()+1 };
-          ws["P5"] = { t:"n", v: pd.getDate() };
+          setCell("L5","n", pd.getFullYear());
+          setCell("N5","n", pd.getMonth()+1);
+          setCell("P5","n", pd.getDate());
         }
-        // B5: 圃場名
-        ws["B5"] = { t:"s", v: field ? field.name||"" : "" };
 
-        // 栽培面積 (A6エリア: aに書き込む → C6)
-        if(cropObj?.cultivationArea) ws["C6"] = { t:"s", v: String(cropObj.cultivationArea) };
+        // 栽培面積 (C6)
+        if(cropObj?.cultivationArea) setCell("C6","s", String(cropObj.cultivationArea));
 
         // 収穫開始予定日 (L6=年, N6=月, P6=日)
         if(pestExportHarvestDate){
           const hd = new Date(pestExportHarvestDate);
-          ws["L6"] = { t:"n", v: hd.getFullYear() };
-          ws["N6"] = { t:"n", v: hd.getMonth()+1 };
-          ws["P6"] = { t:"n", v: hd.getDate() };
+          setCell("L6","n", hd.getFullYear());
+          setCell("N6","n", hd.getMonth()+1);
+          setCell("P6","n", hd.getDate());
         }
 
         // 栽培条件チェック (B7=露地, D7=施設, F7=トンネル)
         const cond = cropObj?.cultivationType==="pot"?"施設":(cropObj?.growEnv==="greenhouse"?"施設":"露地");
-        ws["B7"] = { t:"s", v: cond==="露地"?"☑ 露地":"□ 露地" };
-        ws["D7"] = { t:"s", v: cond==="施設"?"☑ 施設":"□ 施設" };
+        setCell("B7","s", cond==="露地"?"☑ 露地":"□ 露地");
+        setCell("D7","s", cond==="施設"?"☑ 施設":"□ 施設");
 
         // ── 防除記録をRow11〜に書き込む ──
         const sorted = [...cLogs].sort((a,b)=>(a.date||"").localeCompare(b.date||""));
@@ -4248,17 +4262,17 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
           const t = pm.type||l.pestName||"";
           // A列: 月日
           const dateStr = d ? (d.getMonth()+1)+"月"+d.getDate()+"日" : "";
-          ws["A"+rowNum] = { t:"s", v: dateStr };
-          // B列: 薬剤名（B11:F11がマージされているのでB列に書く）
-          ws["B"+rowNum] = { t:"s", v: l.pestName||"" };
+          setCell("A"+rowNum,"s", dateStr);
+          // B列: 薬剤名（マージセルなのでB列に書く）
+          setCell("B"+rowNum,"s", l.pestName||"");
           // G列: 剤型
           const typeStr = t.includes("乳剤")?"乳剤":t.includes("水和剤")?"水和剤":t.includes("フロアブル")?"フロアブル剤":t.includes("粒剤")?"粒剤":t.includes("水溶剤")?"水溶剤":t||"";
-          ws["G"+rowNum] = { t:"s", v: typeStr };
+          setCell("G"+rowNum,"s", typeStr);
           // J列: 倍率
-          ws["J"+rowNum] = { t:"s", v: l.pestDil||"" };
+          setCell("J"+rowNum,"s", l.pestDil||"");
           // K列: 散布量
           const sprayStr = [l.pestSprayAmt, l.pestUnit].filter(Boolean).join("");
-          ws["K"+rowNum] = { t:"s", v: sprayStr };
+          setCell("K"+rowNum,"s", sprayStr);
           // L列以降: 農協チェック（空欄のまま）
         });
 
@@ -4287,7 +4301,7 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
         : new Date().getFullYear()+"年";
       const fname = (Object.keys(pestByCrop).length===1?firstCrop:"複数品目")+"_農薬記録_"+periodStr+".xlsx";
 
-      XLSX.writeFile(newWb, fname);
+      XLSX.writeFile(newWb, fname, {cellStyles:true});
       showToast("農薬使用記録簿を出力しました");
     };
 
