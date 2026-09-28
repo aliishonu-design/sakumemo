@@ -2,15 +2,15 @@ import { useState, useEffect, useLayoutEffect, useRef } from "react";
 import { createClient } from "@supabase/supabase-js";
 
 // ★ TDZ防止：uid0を最初に宣言（後続の定数初期化式で使用するため）
-const uid0 = () => crypto.randomUUID();
+var uid0 = () => crypto.randomUUID();
 
-const sb = createClient(
+var sb = createClient(
   "https://nlamtphkwdoxtjktkjzo.supabase.co",
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5sYW10cGhrd2RveHRqa3RranpvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3ODI3NzYsImV4cCI6MjA5MzM1ODc3Nn0.8gba30xxu0s132vg_xOA6-Y3XWjR1YhaprIgUYHZO0o"
 );
 
 // DB helpers
-const dbFetch = async (table, uid) => {
+var dbFetch = async (table, uid) => {
   // Supabaseデフォルト1000件制限を回避するためページネーションで全件取得
   const PAGE = 1000;
   let all = [];
@@ -28,39 +28,39 @@ const dbFetch = async (table, uid) => {
   }
   return all;
 };
-const dbUpsert = async (table, row) => {
+var dbUpsert = async (table, row) => {
   const { data, error } = await sb.from(table).upsert(row, { onConflict: "id" }).select();
   if (error) {
     console.error("DB保存エラー:", table, error.code, error.message, JSON.stringify(error));
   } else {
     }
 };
-const dbDelete = async (table, id) => {
+var dbDelete = async (table, id) => {
   const { error } = await sb.from(table).delete().eq("id", id);
   if (error) console.error("delete", table, error.message);
 };
 
 // Converters
-const fieldToDb   = (o, uid) => ({ id:o.id, user_id:uid, name:o.name||"", area:o.area||null, soil:o.soil||null, addr:o.addr||null, memo:o.memo||null, prefecture:o.prefecture||null });
-const fieldFromDb = r => ({ id:r.id, name:r.name||"", area:r.area||"", soil:r.soil||"", addr:r.addr||"", memo:r.memo||"", prefecture:r.prefecture||"" });
-const cropToDb    = (o, uid) => ({ id:o.id, user_id:uid, field_id:o.fieldId||null, type:o.type||null, variety:o.variety||null, germ_rate:o.germRate||null, stocks:o.stocks||null, ridge_w:o.ridgeW||null, ridge_h:o.ridgeH||null, rows:o.rows||null, row_space:o.rowSpace||null, plant_space:o.plantSpace||null, sow_date:o.sowDate||null, plant_date:o.plantDate||null, memo:o.memo||null, cultivation_type:o.cultivationType||null, seed_cost:o.seedCost||null, seed_note:o.seedNote||null, custom_name:o.customName||null, ended:o.ended||false, end_date:o.endDate||null, maturity:o.maturity||null, custom_days:o.customDays||null, custom_water:o.customWater||null, pot_size:o.potSize||null, pot_volume:o.potVolume||null, pot_count:o.potCount||null, grow_env:o.growEnv||null, agri_month_start:o.agriMonthStart||null, ridge_len:o.ridgeLen||null, cultivation_area:o.cultivationArea||null, temp_min:o.tempMin||null, temp_max:o.tempMax||null, fert_skip_date:o.fertSkipDate||null, fert_interval:o.fertInterval||null, reminder_mode:o.reminderMode||null, custom_events:o.customEvents?JSON.stringify(o.customEvents):null, harvest_days:o.harvestDays?parseInt(o.harvestDays):null });
-const cropFromDb  = (r, fields) => { const fi = fields.findIndex(f=>f.id===r.field_id); return { id:r.id, fieldId:r.field_id||"", fieldIdx:fi>=0?fi:0, type:r.type||"", variety:r.variety||"", germRate:r.germ_rate||"", stocks:r.stocks||"", ridgeW:r.ridge_w||"", ridgeH:r.ridge_h||"", rows:r.rows||"", rowSpace:r.row_space||"", plantSpace:r.plant_space||"", sowDate:r.sow_date||"", plantDate:r.plant_date||"", memo:r.memo||"", cultivationType:r.cultivation_type||"transplant", seedCost:r.seed_cost||"", seedNote:r.seed_note||"", customName:r.custom_name||"", ended:r.ended||false, endDate:r.end_date||"", maturity:r.maturity||"mid", customDays:r.custom_days||"", customWater:r.custom_water||"", potSize:r.pot_size||"", potVolume:r.pot_volume||"", potCount:r.pot_count||"", growEnv:r.grow_env||"field", agriMonthStart:r.agri_month_start||"", ridgeLen:r.ridge_len||"", cultivationArea:r.cultivation_area||"", tempMin:r.temp_min||"", tempMax:r.temp_max||"", fertSkipDate:r.fert_skip_date||"", fertInterval:r.fert_interval||"", reminderMode:r.reminder_mode||"auto", customEvents:r.custom_events?(typeof r.custom_events==="string"?JSON.parse(r.custom_events):r.custom_events):[], harvestDays:r.harvest_days||null, fertInterval:r.fert_interval||"" }; };
-const logToDb     = (o, uid, fields) => ({ id:o.id, user_id:uid, field_id:fields[o.fieldIdx]?.id||o.fieldId||null, crop_id:o.cropId||null, work:o.work||null, memo:o.memo||null, date:o.date||null, time:o.time||null, duration:o.duration||null, img_src:o.imgSrc||null, img2_src:o.imgSrc2||null, img3_src:o.imgSrc3||null, fert_name:o.fertName||null, fert_amt:o.fertAmt||null, fert_unit:o.fertUnit||null, fert_method:o.fertMethod||null, fert_cost:o.fertCost||null, pest_name:o.pestName||null, pest_spray_amt:o.pestSprayAmt||null, pest_dil:o.pestDil||null, pest_amt:o.pestAmt||null, pest_unit:o.pestUnit||null, pest_tgt:o.pestTarget||null, pest_cost:o.pestCost||null, hv_kg:o.hvKg||null, hv_cnt:o.hvCnt||null, hv_q:o.hvQ||null, hv_price:o.hvPrice||null, equip_ids:o.equipIds||null, equip_act:o.equipAct||null, equip_use_amt:o.equipUseAmt||null, equip_use_unit:o.equipUseUnit||null, sow_qty:o.sowQty||null, germination_cnt:o.germinationCnt||null, germ_date:o.germinationDate||null, transplant_qty:o.transplantQty||null, discard_cnt:o.discardCnt||null, add_cnt:o.addCnt||null, event_type:o.eventType||null, event_note:o.eventNote||null, hv_grade_str:o.hvGradeStr||null, other_note:o.otherNote||null, repot_size:o.repotSize||null, repot_vol:o.repotVol||null, group_id:o._groupId||null, weather:o.weather||null });
-const logFromDb   = (r, fields) => { const fi=fields.findIndex(f=>f.id===r.field_id); return { id:r.id, fieldId:r.field_id||"", fieldIdx:fi>=0?fi:0, cropId:r.crop_id||"", work:r.work||"", memo:r.memo||"", date:r.date||"", time:r.time||"", duration:r.duration||"", imgSrc:r.img_src||null, imgSrc2:r.img2_src||null, imgSrc3:r.img3_src||null, aiReply:"", fertName:r.fert_name||"", fertAmt:r.fert_amt||"", fertUnit:r.fert_unit||"", fertMethod:r.fert_method||"", fertCost:r.fert_cost||"", pestName:r.pest_name||"", pestSprayAmt:r.pest_spray_amt||"", pestDil:r.pest_dil||"", pestAmt:r.pest_amt||"", pestUnit:r.pest_unit||"", pestTarget:r.pest_target||"", pestCost:r.pest_cost||"", hvKg:r.hv_kg!=null?String(r.hv_kg):"", hvCnt:r.hv_cnt!=null?String(r.hv_cnt):"", hvQ:r.hv_q||"", hvPrice:r.hv_price||"", hvImgSrc:r.hv_img_src||null, equipIds:Array.isArray(r.equip_ids)?r.equip_ids:(r.equip_ids?JSON.parse(r.equip_ids):[]), equipAct:r.equip_act||"", hvGradeStr:r.hv_grade_str||"", otherNote:r.other_note||"", repotSize:r.repot_size||"", repotVol:r.repot_vol||"", _groupId:r.group_id||null, weather:r.weather||"", equipUseAmt:r.equip_use_amt||null, equipUseUnit:r.equip_use_unit||null, sowQty:r.sow_qty||"", germinationCnt:r.germination_cnt||"", germinationDate:r.germination_date||"", transplantQty:r.transplant_qty||"", discardCnt:r.discard_cnt||"", addCnt:r.add_cnt||"", eventType:r.event_type||"", eventNote:r.event_note||"" }; };
-const fertMToDb   = (o, uid) => ({ id:o.id||uid0(), user_id:uid, name:o.name||null, type:o.type||null, price:o.price||null, punit:o.punit||null, capacity:o.capacity||null, cunit:o.cunit||null, npk:o.npk||null, stock:o.stock||null, sunit:o.sunit||null, note:o.note||null });
-const fertMFromDb = r => ({ id:r.id, name:r.name||"", type:r.type||"", price:r.price||"", punit:r.punit||"", capacity:r.capacity||"", cunit:r.cunit||"", npk:r.npk||"", stock:r.stock||"", sunit:r.sunit||"", note:r.note||"" });
-const pestMToDb   = (o, uid) => ({ id:o.id||uid0(), user_id:uid, name:o.name||null, type:o.type||null, target:o.target||null, capacity:o.capacity||null, sunit:o.sunit||null, price:o.price||null, note:o.note||null });const pestMFromDb = r => ({ id:r.id, name:r.name||"", type:r.type||"", target:r.target||"", capacity:r.capacity||"", sunit:r.sunit||"", price:r.price||"", note:r.note||"" });
-const equipToDb   = (o, uid) => ({ id:o.id||uid0(), user_id:uid, name:o.name||null, cat:o.cat||null, status:o.status||null, price:o.price||null, date:o.date||null, note:o.note||null, dep_years:o.depYears||null });
-const equipFromDb = r => ({ id:r.id, name:r.name||"", cat:r.cat||"", status:r.status||"", price:r.price||"", date:r.date||"", note:r.note||"", depYears:r.dep_years||"" });
-const costToDb    = (o, uid, fields) => ({ id:o.id, user_id:uid, field_id:(fields&&o.fieldIdx!==undefined&&o.fieldIdx!=="")?fields[o.fieldIdx]?.id||o.fieldId||null:o.fieldId||null, crop_id:o.cropId||null, cat:o.cat||null, name:o.name||null, amt:o.amt||null, date:o.date||null, qty:o.qty||null, qunit:o.qunit||null, note:o.note||null, master_id:o.masterId||null, work:o.work||null, pay_method:o.payMethod||null, pay_date:o.payDate||null, cancelled:o.cancelled||null });
-const costFromDb  = (r, fields) => { const fi=fields.findIndex(f=>f.id===r.field_id); return { id:r.id, fieldId:r.field_id||"", fieldIdx:fi>=0?fi:0, cropId:r.crop_id||"", cat:r.cat||"", name:r.name||"", amt:r.amt||"", date:r.date||"", qty:r.qty||"1", qunit:r.qunit||"個", note:r.note||"", masterId:r.master_id||null, logId:r.work_log_id||null, depYears:r.dep_years||"", payMethod:r.pay_method||"現金", payDate:r.pay_date||"", cancelled:r.cancelled||false }; };
-const plotToDb    = (o, uid) => ({ id:o.id, user_id:uid, field_id:o.fieldId||null, name:o.name||null, cols:o.cols||20, rows:o.rows||20, cells:o.cells||[], season:o.season||null, cell_size:o.cellSize||30, bg_plot_id:o.bgPlotId||null, plant_date:o.plantDate||null, end_date:o.endDate||null, kind:o.kind||null, beds:o.beds||null, plantings:o.plantings||null });
-const plotFromDb  = r => ({ id:r.id, fieldId:r.field_id||"", name:r.name||"", cols:r.cols||20, rows:r.rows||20, cells:Array.isArray(r.cells)?r.cells:(r.cells?JSON.parse(r.cells):[]), season:r.season||"", cellSize:r.cell_size||30, bgPlotId:r.bg_plot_id||"", plantDate:r.plant_date||"", endDate:r.end_date||"", kind:r.kind||"", beds:Array.isArray(r.beds)?r.beds:(r.beds?JSON.parse(r.beds):[]), plantings:Array.isArray(r.plantings)?r.plantings:(r.plantings?JSON.parse(r.plantings):[]) });
+var fieldToDb   = (o, uid) => ({ id:o.id, user_id:uid, name:o.name||"", area:o.area||null, soil:o.soil||null, addr:o.addr||null, memo:o.memo||null, prefecture:o.prefecture||null });
+var fieldFromDb = r => ({ id:r.id, name:r.name||"", area:r.area||"", soil:r.soil||"", addr:r.addr||"", memo:r.memo||"", prefecture:r.prefecture||"" });
+var cropToDb    = (o, uid) => ({ id:o.id, user_id:uid, field_id:o.fieldId||null, type:o.type||null, variety:o.variety||null, germ_rate:o.germRate||null, stocks:o.stocks||null, ridge_w:o.ridgeW||null, ridge_h:o.ridgeH||null, rows:o.rows||null, row_space:o.rowSpace||null, plant_space:o.plantSpace||null, sow_date:o.sowDate||null, plant_date:o.plantDate||null, memo:o.memo||null, cultivation_type:o.cultivationType||null, seed_cost:o.seedCost||null, seed_note:o.seedNote||null, custom_name:o.customName||null, ended:o.ended||false, end_date:o.endDate||null, maturity:o.maturity||null, custom_days:o.customDays||null, custom_water:o.customWater||null, pot_size:o.potSize||null, pot_volume:o.potVolume||null, pot_count:o.potCount||null, grow_env:o.growEnv||null, agri_month_start:o.agriMonthStart||null, ridge_len:o.ridgeLen||null, cultivation_area:o.cultivationArea||null, temp_min:o.tempMin||null, temp_max:o.tempMax||null, fert_skip_date:o.fertSkipDate||null, fert_interval:o.fertInterval||null, reminder_mode:o.reminderMode||null, custom_events:o.customEvents?JSON.stringify(o.customEvents):null, harvest_days:o.harvestDays?parseInt(o.harvestDays):null });
+var cropFromDb  = (r, fields) => { const fi = fields.findIndex(f=>f.id===r.field_id); return { id:r.id, fieldId:r.field_id||"", fieldIdx:fi>=0?fi:0, type:r.type||"", variety:r.variety||"", germRate:r.germ_rate||"", stocks:r.stocks||"", ridgeW:r.ridge_w||"", ridgeH:r.ridge_h||"", rows:r.rows||"", rowSpace:r.row_space||"", plantSpace:r.plant_space||"", sowDate:r.sow_date||"", plantDate:r.plant_date||"", memo:r.memo||"", cultivationType:r.cultivation_type||"transplant", seedCost:r.seed_cost||"", seedNote:r.seed_note||"", customName:r.custom_name||"", ended:r.ended||false, endDate:r.end_date||"", maturity:r.maturity||"mid", customDays:r.custom_days||"", customWater:r.custom_water||"", potSize:r.pot_size||"", potVolume:r.pot_volume||"", potCount:r.pot_count||"", growEnv:r.grow_env||"field", agriMonthStart:r.agri_month_start||"", ridgeLen:r.ridge_len||"", cultivationArea:r.cultivation_area||"", tempMin:r.temp_min||"", tempMax:r.temp_max||"", fertSkipDate:r.fert_skip_date||"", fertInterval:r.fert_interval||"", reminderMode:r.reminder_mode||"auto", customEvents:r.custom_events?(typeof r.custom_events==="string"?JSON.parse(r.custom_events):r.custom_events):[], harvestDays:r.harvest_days||null, fertInterval:r.fert_interval||"" }; };
+var logToDb     = (o, uid, fields) => ({ id:o.id, user_id:uid, field_id:fields[o.fieldIdx]?.id||o.fieldId||null, crop_id:o.cropId||null, work:o.work||null, memo:o.memo||null, date:o.date||null, time:o.time||null, duration:o.duration||null, img_src:o.imgSrc||null, img2_src:o.imgSrc2||null, img3_src:o.imgSrc3||null, fert_name:o.fertName||null, fert_amt:o.fertAmt||null, fert_unit:o.fertUnit||null, fert_method:o.fertMethod||null, fert_cost:o.fertCost||null, pest_name:o.pestName||null, pest_spray_amt:o.pestSprayAmt||null, pest_dil:o.pestDil||null, pest_amt:o.pestAmt||null, pest_unit:o.pestUnit||null, pest_tgt:o.pestTarget||null, pest_cost:o.pestCost||null, hv_kg:o.hvKg||null, hv_cnt:o.hvCnt||null, hv_q:o.hvQ||null, hv_price:o.hvPrice||null, equip_ids:o.equipIds||null, equip_act:o.equipAct||null, equip_use_amt:o.equipUseAmt||null, equip_use_unit:o.equipUseUnit||null, sow_qty:o.sowQty||null, germination_cnt:o.germinationCnt||null, germ_date:o.germinationDate||null, transplant_qty:o.transplantQty||null, discard_cnt:o.discardCnt||null, add_cnt:o.addCnt||null, event_type:o.eventType||null, event_note:o.eventNote||null, hv_grade_str:o.hvGradeStr||null, other_note:o.otherNote||null, repot_size:o.repotSize||null, repot_vol:o.repotVol||null, group_id:o._groupId||null, weather:o.weather||null });
+var logFromDb   = (r, fields) => { const fi=fields.findIndex(f=>f.id===r.field_id); return { id:r.id, fieldId:r.field_id||"", fieldIdx:fi>=0?fi:0, cropId:r.crop_id||"", work:r.work||"", memo:r.memo||"", date:r.date||"", time:r.time||"", duration:r.duration||"", imgSrc:r.img_src||null, imgSrc2:r.img2_src||null, imgSrc3:r.img3_src||null, aiReply:"", fertName:r.fert_name||"", fertAmt:r.fert_amt||"", fertUnit:r.fert_unit||"", fertMethod:r.fert_method||"", fertCost:r.fert_cost||"", pestName:r.pest_name||"", pestSprayAmt:r.pest_spray_amt||"", pestDil:r.pest_dil||"", pestAmt:r.pest_amt||"", pestUnit:r.pest_unit||"", pestTarget:r.pest_target||"", pestCost:r.pest_cost||"", hvKg:r.hv_kg!=null?String(r.hv_kg):"", hvCnt:r.hv_cnt!=null?String(r.hv_cnt):"", hvQ:r.hv_q||"", hvPrice:r.hv_price||"", hvImgSrc:r.hv_img_src||null, equipIds:Array.isArray(r.equip_ids)?r.equip_ids:(r.equip_ids?JSON.parse(r.equip_ids):[]), equipAct:r.equip_act||"", hvGradeStr:r.hv_grade_str||"", otherNote:r.other_note||"", repotSize:r.repot_size||"", repotVol:r.repot_vol||"", _groupId:r.group_id||null, weather:r.weather||"", equipUseAmt:r.equip_use_amt||null, equipUseUnit:r.equip_use_unit||null, sowQty:r.sow_qty||"", germinationCnt:r.germination_cnt||"", germinationDate:r.germination_date||"", transplantQty:r.transplant_qty||"", discardCnt:r.discard_cnt||"", addCnt:r.add_cnt||"", eventType:r.event_type||"", eventNote:r.event_note||"" }; };
+var fertMToDb   = (o, uid) => ({ id:o.id||uid0(), user_id:uid, name:o.name||null, type:o.type||null, price:o.price||null, punit:o.punit||null, capacity:o.capacity||null, cunit:o.cunit||null, npk:o.npk||null, stock:o.stock||null, sunit:o.sunit||null, note:o.note||null });
+var fertMFromDb = r => ({ id:r.id, name:r.name||"", type:r.type||"", price:r.price||"", punit:r.punit||"", capacity:r.capacity||"", cunit:r.cunit||"", npk:r.npk||"", stock:r.stock||"", sunit:r.sunit||"", note:r.note||"" });
+var pestMToDb   = (o, uid) => ({ id:o.id||uid0(), user_id:uid, name:o.name||null, type:o.type||null, target:o.target||null, capacity:o.capacity||null, sunit:o.sunit||null, price:o.price||null, note:o.note||null });const pestMFromDb = r => ({ id:r.id, name:r.name||"", type:r.type||"", target:r.target||"", capacity:r.capacity||"", sunit:r.sunit||"", price:r.price||"", note:r.note||"" });
+var equipToDb   = (o, uid) => ({ id:o.id||uid0(), user_id:uid, name:o.name||null, cat:o.cat||null, status:o.status||null, price:o.price||null, date:o.date||null, note:o.note||null, dep_years:o.depYears||null });
+var equipFromDb = r => ({ id:r.id, name:r.name||"", cat:r.cat||"", status:r.status||"", price:r.price||"", date:r.date||"", note:r.note||"", depYears:r.dep_years||"" });
+var costToDb    = (o, uid, fields) => ({ id:o.id, user_id:uid, field_id:(fields&&o.fieldIdx!==undefined&&o.fieldIdx!=="")?fields[o.fieldIdx]?.id||o.fieldId||null:o.fieldId||null, crop_id:o.cropId||null, cat:o.cat||null, name:o.name||null, amt:o.amt||null, date:o.date||null, qty:o.qty||null, qunit:o.qunit||null, note:o.note||null, master_id:o.masterId||null, work:o.work||null, pay_method:o.payMethod||null, pay_date:o.payDate||null, cancelled:o.cancelled||null });
+var costFromDb  = (r, fields) => { const fi=fields.findIndex(f=>f.id===r.field_id); return { id:r.id, fieldId:r.field_id||"", fieldIdx:fi>=0?fi:0, cropId:r.crop_id||"", cat:r.cat||"", name:r.name||"", amt:r.amt||"", date:r.date||"", qty:r.qty||"1", qunit:r.qunit||"個", note:r.note||"", masterId:r.master_id||null, logId:r.work_log_id||null, depYears:r.dep_years||"", payMethod:r.pay_method||"現金", payDate:r.pay_date||"", cancelled:r.cancelled||false }; };
+var plotToDb    = (o, uid) => ({ id:o.id, user_id:uid, field_id:o.fieldId||null, name:o.name||null, cols:o.cols||20, rows:o.rows||20, cells:o.cells||[], season:o.season||null, cell_size:o.cellSize||30, bg_plot_id:o.bgPlotId||null, plant_date:o.plantDate||null, end_date:o.endDate||null, kind:o.kind||null, beds:o.beds||null, plantings:o.plantings||null });
+var plotFromDb  = r => ({ id:r.id, fieldId:r.field_id||"", name:r.name||"", cols:r.cols||20, rows:r.rows||20, cells:Array.isArray(r.cells)?r.cells:(r.cells?JSON.parse(r.cells):[]), season:r.season||"", cellSize:r.cell_size||30, bgPlotId:r.bg_plot_id||"", plantDate:r.plant_date||"", endDate:r.end_date||"", kind:r.kind||"", beds:Array.isArray(r.beds)?r.beds:(r.beds?JSON.parse(r.beds):[]), plantings:Array.isArray(r.plantings)?r.plantings:(r.plantings?JSON.parse(r.plantings):[]) });
 
 // ============================================================
 // CONSTANTS
 // ============================================================
-const CDB = {
+var CDB = {
   // ─── イネ科 ───
   // baseTemp: 基準温度(℃)、gdd: 収穫目標積算温度(℃・日)
   rice:         { n:"水稲",       e:"🌾", d:150, w:2, cat:"イネ科",    baseTemp:10, gdd:1500, hs:"穂が黄金色になり、籾が硬くなったら",          events:["穂ばらみ","出穂","収穫"], maturity:{early:130,mid:150,late:170} },
@@ -138,7 +138,7 @@ const CDB = {
 // ─── 栽培ガイド: 今日やること推奨 ───────────────────────────
 
 // ─── 科別・連作障害DB ────────────────────────────────────────
-const FAMILY_DB={
+var FAMILY_DB={
   rice:"イネ科",wheat:"イネ科",corn:"イネ科",soba:"タデ科",tomato:"ナス科",
   cherry_tomato:"ナス科",eggplant:"ナス科",pepper:"ナス科",potato:"ナス科",cucumber:"ウリ科",
   zucchini:"ウリ科",pumpkin:"ウリ科",watermelon:"ウリ科",melon:"ウリ科",bitter_gourd:"ウリ科",
@@ -154,7 +154,7 @@ const FAMILY_DB={
   lemon:"ミカン科",yuzu:"ミカン科",grape:"ブドウ科",persimmon:"カキノキ科",blueberry:"ツツジ科",
   fig:"クワ科",kiwi:"マタタビ科",biwa:"バラ科",
 };
-const ROTATION_DB={
+var ROTATION_DB={
   // ─── ナス科（連作障害が出やすい）───
   tomato:      {years:4,ng:["ナス科"]},
   cherry_tomato:{years:4,ng:["ナス科"]},
@@ -221,7 +221,7 @@ const ROTATION_DB={
 };
 // ★ TDZ防止：getFertScheduleより前に宣言
 // 施肥設計（10㎡あたりの目安）
-const getFertPlan = (cropType) => {
+var getFertPlan = (cropType) => {
   const plans = {
     tomato:    {base:'元肥: 苦土石灰150g→1週間後 牛糞堆肥2kg 化成8-8-8150g', chase:'追肥: 2-3週ごと液肥または化成8-8-8 50g', note:'窒素過多に注意'},
     eggplant:  {base:'元肥: 苦土石灰150g→1週間後 牛糞堆肥3kg 化成8-8-8 200g', chase:'追肥: 収穫始まったら2週ごと化成8-8-8 50g', note:'多肥を好む'},
@@ -236,7 +236,7 @@ const getFertPlan = (cropType) => {
     rice:      {base:'元肥: 牛糞堆肥3kg 化成(N:P:K=14:14:14)200g', chase:'追肥: 分けつ期・穂肥に各100g', note:''},
     strawberry:{base:'元肥: 苦土石灰150g→2週間後 牛糞堆肥2kg 化成8-8-8 100g(Pリン多め)', chase:'追肥: 10月・2月・収穫後に各30g', note:'窒素控えめ'},
   };
-const getFertSchedule=(cropType,plantTargetDate)=>{
+var getFertSchedule=(cropType,plantTargetDate)=>{
   if(!plantTargetDate)return null;
   const target=new Date(plantTargetDate);
   const fmt=d=>`${d.getMonth()+1}/${d.getDate()}`;
@@ -255,7 +255,7 @@ const getFertSchedule=(cropType,plantTargetDate)=>{
 
 // ─── 施肥ガイドDB (10㎡あたり・NPK8-8-8換算) ───────────────
 // 品目ごとの標準的な育苗日数（播種から定植まで・日）。育苗後定植の品目で定植予定の計算に使用
-const NURSERY_DAYS = {
+var NURSERY_DAYS = {
   tomato:50, cherry_tomato:50, eggplant:55, pepper:55, cucumber:30, zucchini:30, pumpkin:35, watermelon:35, melon:35, bitter_gourd:35, okra:30,
   cabbage:35, hakusai:30, broccoli:35, lettuce:30, leek:60,
   strawberry:30, edamame:25, green_bean:25,
@@ -263,7 +263,7 @@ const NURSERY_DAYS = {
 };
 
 // 品目ごとの標準的な追肥間隔（日）。リマインダーの次回予定計算に使用
-const FERT_INTERVAL = {
+var FERT_INTERVAL = {
   // 果菜類（長期収穫・多肥）は2週間ごと
   tomato:14, cherry_tomato:14, eggplant:14, pepper:14, cucumber:14, zucchini:18, pumpkin:21, watermelon:21, melon:21, bitter_gourd:14, okra:18, strawberry:21,
   // 葉茎菜（生育期間中1〜2回）
@@ -279,7 +279,7 @@ const FERT_INTERVAL = {
   apple:0, pear:0, peach:0, cherry:0, plum:0, mikan:0, lemon:0, yuzu:0, grape:0, persimmon:0, blueberry:0, fig:0, kiwi:0, biwa:0,
 };
 
-const FERT_GUIDE = {
+var FERT_GUIDE = {
   // ナス科
   tomato:      { base:"定植1週前: 苦土石灰150g→堆肥2kg→化成(8-8-8)150g", chase:[
     {timing:"第1花房着果後（花が咲いて2週間）",amt:"株元から20cm離して化成8-8-8 30g/株"},
@@ -475,7 +475,7 @@ const FERT_GUIDE = {
   ], tip:"摘果で大玉に。1花穂4〜5果に絞る" },
 };
 // ─────────────────────────────────────────────────────────────
-const CROP_TEMP = {
+var CROP_TEMP = {
   rice:[20,28],wheat:[10,20],corn:[20,30],soba:[15,22],
   tomato:[18,25],cherry_tomato:[18,25],eggplant:[20,30],pepper:[18,28],
   cucumber:[18,28],zucchini:[18,28],pumpkin:[18,28],watermelon:[20,30],
@@ -493,7 +493,7 @@ const CROP_TEMP = {
   parsley:[15,20],basil:[18,25]
 };
 
-const getRecommendedTasks = (crop, logs) => {
+var getRecommendedTasks = (crop, logs) => {
   const db = CDB[crop.type] || {};
   const today = new Date();
   const month = today.getMonth() + 1; // 1-12
@@ -588,8 +588,8 @@ const getRecommendedTasks = (crop, logs) => {
 };
 // ─────────────────────────────────────────────────────────────
 // 科別グループ化
-const CROP_CATS = ["イネ科","タデ科","ナス科","ウリ科","アブラナ科","マメ科","キク科","セリ科","ヒガンバナ科","ヤマノイモ科","サトイモ科","ヒルガオ科","バラ科","アカザ科","アオイ科","果樹/バラ科","果樹/ミカン科","果樹/ブドウ科","果樹/カキノキ科","果樹/ツツジ科","果樹/クワ科","果樹/マタタビ科"];
-const CROP_OPTIONS = [
+var CROP_CATS = ["イネ科","タデ科","ナス科","ウリ科","アブラナ科","マメ科","キク科","セリ科","ヒガンバナ科","ヤマノイモ科","サトイモ科","ヒルガオ科","バラ科","アカザ科","アオイ科","果樹/バラ科","果樹/ミカン科","果樹/ブドウ科","果樹/カキノキ科","果樹/ツツジ科","果樹/クワ科","果樹/マタタビ科"];
+var CROP_OPTIONS = [
   ...CROP_CATS.flatMap(cat=>{
     const items = Object.entries(CDB).filter(([,v])=>v.cat===cat);
     if(!items.length) return [];
@@ -601,7 +601,7 @@ const CROP_OPTIONS = [
   { value:"__group__custom", label:"── カスタム ──", disabled:true },
   { value:"custom", label:"✏️ カスタム（自由入力）" },
 ];
-const WORK_TYPES = [
+var WORK_TYPES = [
   { value:"sow",        label:"播種",         tag:"green",  icon:"🌰" },
   { value:"germinated", label:"発芽確認",     tag:"green",  icon:"🌱" },
   { value:"transplant", label:"定植",         tag:"purple", icon:"🪴" },
@@ -619,7 +619,7 @@ const WORK_TYPES = [
   { value:"other",      label:"その他",       tag:"gray",   icon:"✏️" },
 ];
 
-const WORK = {
+var WORK = {
     sow:{label:'播種',tag:'green',icon:'🌱'},
     germinated:{label:'発芽確認',tag:'green',icon:'🌿'},
     transplant:{label:'定植',tag:'purple',icon:'🪴'},
@@ -637,7 +637,7 @@ const WORK = {
     check:{label:'見回り',tag:'gray',icon:'👁️'},
     other:{label:'その他',tag:'gray',icon:'📝'},
   };
-const COST_CATS = [
+var COST_CATS = [
   // 農業経営の主要費目（青色申告帳簿に対応）
   { value:"seed",      label:"🌱 種苗費",           group:"農業費用" },
   { value:"fert",      label:"🌿 肥料費",            group:"農業費用" },
@@ -657,7 +657,7 @@ const COST_CATS = [
   { value:"vehicle",   label:"🚗 車両費（按分）",     group:"農業費用" },
   { value:"other",     label:"📦 その他農業費用",    group:"農業費用" },
 ];
-const INCOME_CATS = [
+var INCOME_CATS = [
   { value:"inc_crop",    label:"🌾 農産物売上",      group:"農業収入" },
   { value:"inc_direct",  label:"🤝 直売・直販",      group:"農業収入" },
   { value:"inc_process", label:"🍱 加工品売上",      group:"農業収入" },
@@ -665,24 +665,24 @@ const INCOME_CATS = [
   { value:"inc_subsidy", label:"💴 補助金・交付金",  group:"農業収入" },
   { value:"inc_other",   label:"📦 その他収入",      group:"農業収入" },
 ];
-const isIncome = (cat) => cat && cat.startsWith("inc_");
+var isIncome = (cat) => cat && cat.startsWith("inc_");
 // 品目表示名ヘルパー（カスタム品目対応）
-const getCropDisplayName = (c) => {
+var getCropDisplayName = (c) => {
   if(!c) return "";
   const db = CDB[c.type]||{};
   const name = c.type==="custom" ? (c.customName||"カスタム") : (db.n||c.type);
   return (db.e||"🌱")+" "+name+(c.variety?" ("+c.variety+")":"");
 };
-const getCropName = (c) => {
+var getCropName = (c) => {
   if(!c) return "";
   const db = CDB[c.type]||{};
   return c.type==="custom" ? (c.customName||"カスタム") : (db.n||c.type);
 };
 
 // 科の表示順（この順に並べる）
-const CAT_ORDER = ["イネ科","タデ科","ナス科","ウリ科","アブラナ科","マメ科","キク科","セリ科","ヒガンバナ科","ショウガ科","サトイモ科","バラ科","アカザ科","シソ科","ヤマノイモ科","その他"];
+var CAT_ORDER = ["イネ科","タデ科","ナス科","ウリ科","アブラナ科","マメ科","キク科","セリ科","ヒガンバナ科","ショウガ科","サトイモ科","バラ科","アカザ科","シソ科","ヤマノイモ科","その他"];
 // 品目リストを科でグループ化してソートするヘルパー
-const sortCropsByFamily = (cropList) => {
+var sortCropsByFamily = (cropList) => {
   return [...cropList].sort((a, b) => {
     const catA = (CDB[a.type]||{}).cat||"その他";
     const catB = (CDB[b.type]||{}).cat||"その他";
@@ -694,7 +694,7 @@ const sortCropsByFamily = (cropList) => {
   });
 };
 // 品目optionsを生成するヘルパー（ホームのcropGroupsと同じ品目タイプ順グループ化）
-const makeCropOptions = (cropList, emptyLabel="（選択）") => {
+var makeCropOptions = (cropList, emptyLabel="（選択）") => {
   const opts = [{value:"",label:emptyLabel}];
   const groups = {};
   const order = [];
@@ -714,11 +714,11 @@ const makeCropOptions = (cropList, emptyLabel="（選択）") => {
   return opts;
 };
 
-const WX_MAP = [[0,"☀️","快晴"],[3,"⛅","晴れ時々くもり"],[48,"🌫️","霧"],[67,"🌧️","雨"],[77,"❄️","雪"],[82,"🌦️","にわか雨"],[99,"⛈️","雷雨"]];
-const wxIcon  = c => { for(const [t,i] of WX_MAP) if(c<=t) return i; return "⛈️"; };
-const wxLabel = c => { for(const [t,,l] of WX_MAP) if(c<=t) return l; return "雷雨"; };
+var WX_MAP = [[0,"☀️","快晴"],[3,"⛅","晴れ時々くもり"],[48,"🌫️","霧"],[67,"🌧️","雨"],[77,"❄️","雪"],[82,"🌦️","にわか雨"],[99,"⛈️","雷雨"]];
+var wxIcon  = c => { for(const [t,i] of WX_MAP) if(c<=t) return i; return "⛈️"; };
+var wxLabel = c => { for(const [t,,l] of WX_MAP) if(c<=t) return l; return "雷雨"; };
 // weathercode を作業記録の天気カテゴリに変換
-const wxToCategory = (code, windspeed) => {
+var wxToCategory = (code, windspeed) => {
   if(windspeed!==undefined && windspeed>=10) return "windy"; // 強風(10m/s以上)
   if(code===0||code===1) return "sunny";
   if(code===2||code===3||code===45||code===48) return "cloudy";
@@ -726,7 +726,7 @@ const wxToCategory = (code, windspeed) => {
   if((code>=51&&code<=67)||(code>=80&&code<=99)) return "rainy";
   return "cloudy";
 };
-const wxAdvice= w => {
+var wxAdvice= w => {
   if(!w) return "取得中…";
   if(w.rain>3)  return "☔ 雨天：水やり不要";
   if(w.temp>33) return "高温注意：朝夕に水やりを";
@@ -753,13 +753,13 @@ function normalizeToMasterUnit(value, valueUnit, masterUnit) {
   // 変換できない場合はそのまま（単位が一致しないケース）
   return v;
 }
-const daysSince= d => d ? Math.floor((Date.now()-new Date(d))/86400000) : 0;
-const fmtDate  = d => (d.getMonth()+1)+"/"+d.getDate();
-const todayStr = () => {const d=new Date();const y=d.getFullYear();const m=String(d.getMonth()+1).padStart(2,"0");const day=String(d.getDate()).padStart(2,"0");return y+"-"+m+"-"+day;};
-const nowTime  = () => new Date().toTimeString().slice(0,5);
+var daysSince= d => d ? Math.floor((Date.now()-new Date(d))/86400000) : 0;
+var fmtDate  = d => (d.getMonth()+1)+"/"+d.getDate();
+var todayStr = () => {const d=new Date();const y=d.getFullYear();const m=String(d.getMonth()+1).padStart(2,"0");const day=String(d.getDate()).padStart(2,"0");return y+"-"+m+"-"+day;};
+var nowTime  = () => new Date().toTimeString().slice(0,5);
 // 日付表記の統一: fmtYMD="2026/5/20", fmtMD="5/20"（先頭ゼロなし・スラッシュ区切り）
-const fmtYMD = d => { if(!d) return ""; const dt=new Date(d); if(isNaN(dt)) return ""; return dt.getFullYear()+"/"+(dt.getMonth()+1)+"/"+dt.getDate(); };
-const fmtMD  = d => { if(!d) return ""; const dt=new Date(d); if(isNaN(dt)) return ""; return (dt.getMonth()+1)+"/"+dt.getDate(); };
+var fmtYMD = d => { if(!d) return ""; const dt=new Date(d); if(isNaN(dt)) return ""; return dt.getFullYear()+"/"+(dt.getMonth()+1)+"/"+dt.getDate(); };
+var fmtMD  = d => { if(!d) return ""; const dt=new Date(d); if(isNaN(dt)) return ""; return (dt.getMonth()+1)+"/"+dt.getDate(); };
 
 async function extractExifDate(file) {
   return new Promise(resolve => {
@@ -1021,11 +1021,11 @@ async function fetchWeather(addr) {
   window._glbNext=function(){_i=(_i+1)%_p.length;upd();};
 })();
 
-const G="#2d6a3f", G2="#419857", G3="#d4edda", GD="#1a4028";
-const ALERT="#c0392b", WARN="#e67e22", INFO="#2471a3";
-const TX3="#a09070", BD="#e0d9ce";
-const TAG_COLORS = { blue:{background:"#dbeafe",color:"#1e40af"}, green:{background:"#d1fae5",color:"#065f46"}, yellow:{background:"#fef3c7",color:"#92400e"}, pink:{background:"#fce7f3",color:"#831843"}, purple:{background:"#ede9fe",color:"#5b21b6"}, gray:{background:"#f3f4f6",color:"#374151"} };
-const S = {
+var G="#2d6a3f", G2="#419857", G3="#d4edda", GD="#1a4028";
+var ALERT="#c0392b", WARN="#e67e22", INFO="#2471a3";
+var TX3="#a09070", BD="#e0d9ce";
+var TAG_COLORS = { blue:{background:"#dbeafe",color:"#1e40af"}, green:{background:"#d1fae5",color:"#065f46"}, yellow:{background:"#fef3c7",color:"#92400e"}, pink:{background:"#fce7f3",color:"#831843"}, purple:{background:"#ede9fe",color:"#5b21b6"}, gray:{background:"#f3f4f6",color:"#374151"} };
+var S = {
   app:   { display:"flex", flexDirection:"column", height:"100dvh", maxWidth:960, margin:"0 auto", background:"#f8f5ef", boxShadow:"0 0 40px rgba(0,0,0,.15)" },
   topbar:{ background:G, color:"#fff", height:52, display:"flex", alignItems:"center", padding:"0 13px", gap:8, flexShrink:0 },
   logo:  { fontFamily:"'Shippori Mincho B1',serif", fontSize:"1.1rem", letterSpacing:".06em" },
@@ -1050,7 +1050,7 @@ const S = {
   li:    { display:"flex", alignItems:"center", gap:8, padding:"9px 11px", background:"#fff", border:"1px solid "+BD, borderRadius:10, marginBottom:6 },
   tag:   { display:"inline-flex", alignItems:"center", gap:2, fontSize:".66rem", fontWeight:700, padding:"2px 6px", borderRadius:999, whiteSpace:"nowrap" },
 };
-const globalCss = `
+var globalCss = `
   @import url('https://fonts.googleapis.com/css2?family=BIZ+UDGothic:wght@400;700&family=Shippori+Mincho+B1:wght@400;700&display=swap');
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
   html,body{font-family:'BIZ UDGothic',sans-serif;background:#f8f5ef;color:#1c1a14;overflow-x:hidden;max-width:100%;}
@@ -1079,7 +1079,7 @@ const globalCss = `
 // ============================================================
 // MAIN APP
 // ============================================================
-const SCREENS = [
+var SCREENS = [
   { key:"home",    label:"ホーム",     icon:"🏡" },
   { key:"fields",  label:"圃場・品目", icon:"🌾" },
   { key:"plot",    label:"栽培計画",   icon:"📅" },
@@ -1091,7 +1091,7 @@ const SCREENS = [
 function Tag({ type, children }) { return <span style={{...S.tag,...(TAG_COLORS[type]||TAG_COLORS.gray)}}>{children}</span>; }
 
 // 農業用語辞典
-const AGRI_TERMS = {
+var AGRI_TERMS = {
   "播種":       {read:"はしゅ",           desc:"種を土にまくこと"},
   "直まき":     {read:"じかまき",         desc:"畑やプランターに直接種をまくこと"},
   "育苗":       {read:"いくびょう",       desc:"種から苗を育てること。本畑に植える前の準備"},
@@ -1440,7 +1440,7 @@ function LoginScreen() {
       <div style={{background:"#fff",borderRadius:20,padding:"28px 24px",maxWidth:360,width:"100%",textAlign:"center",boxShadow:"0 8px 40px rgba(0,0,0,.3)"}}>
         <div style={{fontSize:"2.2rem",marginBottom:6}}>🌾</div>
         <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:"1.3rem",color:G,marginBottom:4}}>サクメモ</div>
-        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v1.8.65</span></div>
+        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v1.8.66</span></div>
         {linkErr&&<div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:8,padding:"10px 12px",marginBottom:16,fontSize:".78rem",color:"#856404",textAlign:"left"}}>{linkErr}</div>}
 
 
@@ -1500,7 +1500,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.65</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.66</div>
       </div>
     </div>
   );
