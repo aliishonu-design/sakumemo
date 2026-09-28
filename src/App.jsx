@@ -1424,7 +1424,7 @@ function LoginScreen() {
       <div style={{background:"#fff",borderRadius:20,padding:"28px 24px",maxWidth:360,width:"100%",textAlign:"center",boxShadow:"0 8px 40px rgba(0,0,0,.3)"}}>
         <div style={{fontSize:"2.2rem",marginBottom:6}}>🌾</div>
         <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:"1.3rem",color:G,marginBottom:4}}>サクメモ</div>
-        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v1.8.75</span></div>
+        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v1.8.76</span></div>
         {linkErr&&<div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:8,padding:"10px 12px",marginBottom:16,fontSize:".78rem",color:"#856404",textAlign:"left"}}>{linkErr}</div>}
 
 
@@ -1484,7 +1484,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.75</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.76</div>
       </div>
     </div>
   );
@@ -3112,7 +3112,7 @@ useEffect(()=>{
             </FG>
             <R2>
               <FG label="希釈倍数"><CalcInp value={pestDil} onChange={setPestDil} placeholder="1000"/></FG>
-              <FG label="散布量（希釈後）"><div style={{display:"flex",gap:4}}><CalcInp value={pestAmt} onChange={setPestAmt} style={{flex:1}}/><Sel value={pestUnit} onChange={setPestUnit} options={["L","ml"].map(v=>({value:v,label:v}))} style={{width:60,flex:"none"}}/></div></FG>
+              <FG label="散布量（希釈後）"><div style={{display:"flex",gap:4}}><CalcInp value={pestAmt} onChange={setPestAmt} style={{flex:1}}/><Sel value={pestUnit} onChange={setPestUnit} options={["L","g","kg"].map(v=>({value:v,label:v}))} style={{width:60,flex:"none"}}/></div></FG>
             </R2>
             <FG label="対象病害虫"><Inp value={pestTgt} onChange={setPestTgt} placeholder="アブラムシ等"/></FG>
           </div>
@@ -3131,7 +3131,7 @@ useEffect(()=>{
               </FG>
               <R2>
                 <FG label="希釈倍数"><CalcInp value={pe.dil} onChange={v=>setPestEntries(p=>p.map((x,i)=>i===pi?{...x,dil:v}:x))} placeholder="1000"/></FG>
-                <FG label="散布量（希釈後）"><div style={{display:"flex",gap:4}}><CalcInp value={pe.sprayAmt} onChange={v=>setPestEntries(p=>p.map((x,i)=>i===pi?{...x,sprayAmt:v}:x))} style={{flex:1}}/><Sel value={pe.sprayUnit} onChange={v=>setPestEntries(p=>p.map((x,i)=>i===pi?{...x,sprayUnit:v}:x))} options={["L","ml"].map(v=>({value:v,label:v}))} style={{width:60,flex:"none"}}/></div></FG>
+                <FG label="散布量（希釈後）"><div style={{display:"flex",gap:4}}><CalcInp value={pe.sprayAmt} onChange={v=>setPestEntries(p=>p.map((x,i)=>i===pi?{...x,sprayAmt:v}:x))} style={{flex:1}}/><Sel value={pe.sprayUnit} onChange={v=>setPestEntries(p=>p.map((x,i)=>i===pi?{...x,sprayUnit:v}:x))} options={["L","g","kg"].map(v=>({value:v,label:v}))} style={{width:60,flex:"none"}}/></div></FG>
               </R2>
               <FG label="対象病害虫"><Inp value={pe.tgt} onChange={v=>setPestEntries(p=>p.map((x,i)=>i===pi?{...x,tgt:v}:x))} placeholder="アブラムシ等"/></FG>
             </div>
@@ -4220,35 +4220,38 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
         // セルに値をセット（書式は触らない）
         const sc = (addr, val) => { const c = tmplWs.getCell(addr); c.value = val; };
 
+        // 漢字付き日付ヘルパー (例: "2026年" "9月" "28日")
+        const yStr = d => d.getFullYear()+"年";
+        const mStr = d => (d.getMonth()+1)+"月";
+        const dStr = d => d.getDate()+"日";
+
         // ヘッダー
         sc("B3", pestExportMemberNo);
         sc("K3", db.n||cropObj?.type||"");
-        sc("N3", cropVariety);
+        // N3: 品種名（）形式
+        if(cropVariety) sc("N3", "（"+cropVariety+"）");
         sc("B4", pestExportGrowerName);
 
-        // 播種日
+        // 播種日: L4=年, N4=月, P4=日（漢字付き文字列）
         if(cropObj?.sowDate){
           const sd = new Date(cropObj.sowDate);
-          sc("L4", sd.getFullYear()); sc("N4", sd.getMonth()+1); sc("P4", sd.getDate());
+          sc("L4", yStr(sd)); sc("N4", mStr(sd)); sc("P4", dStr(sd));
         }
         // 圃場名
         sc("B5", field ? field.name||"" : "");
-        // 定植日
+        // 定植日: L5=年, N5=月, P5=日（漢字付き文字列）
         if(cropObj?.plantDate){
           const pd = new Date(cropObj.plantDate);
-          sc("L5", pd.getFullYear()); sc("N5", pd.getMonth()+1); sc("P5", pd.getDate());
+          sc("L5", yStr(pd)); sc("N5", mStr(pd)); sc("P5", dStr(pd));
         }
         // 栽培面積
         if(cropObj?.cultivationArea) sc("C6", String(cropObj.cultivationArea));
-        // 収穫開始予定日
+        // 収穫開始予定日: L6=年, N6=月, P6=日（漢字付き文字列）
         if(pestExportHarvestDate){
           const hd = new Date(pestExportHarvestDate);
-          sc("L6", hd.getFullYear()); sc("N6", hd.getMonth()+1); sc("P6", hd.getDate());
+          sc("L6", yStr(hd)); sc("N6", mStr(hd)); sc("P6", dStr(hd));
         }
-        // 栽培条件
-        const cond = cropObj?.cultivationType==="pot"?"施設":(cropObj?.growEnv==="greenhouse"?"施設":"露地");
-        sc("B7", cond==="露地"?"☑ 露地":"□ 露地");
-        sc("D7", cond==="施設"?"☑ 施設":"□ 施設");
+        // 栽培条件: テンプレートのまま変更しない（手書きで記入）
 
         // 防除記録（Row11〜）
         const sorted = [...cLogs].sort((a,b)=>(a.date||"").localeCompare(b.date||""));
@@ -4256,16 +4259,16 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
           const rowNum = 11 + i;
           const d = l.date ? new Date(l.date) : null;
           const pm = pestMs.find(p=>p.name===l.pestName)||{};
-          // A列: 月日
-          sc("A"+rowNum, d ? (d.getMonth()+1)+"月"+d.getDate()+"日" : "");
+          // A列: 月日（漢字付き）
+          sc("A"+rowNum, d ? mStr(d)+dStr(d) : "");
           // B列: 薬剤名
           sc("B"+rowNum, l.pestName||"");
-          // G列: 剤型（○印つき）
+          // G列: 剤型（該当に○印）
           const formType = pm.formType || "";
           sc("G"+rowNum, buildFormTypeStr(formType));
           // J列: 倍率
           sc("J"+rowNum, l.pestDil||"");
-          // K列: 散布量
+          // K列: 散布量（数値+単位）
           sc("K"+rowNum, [l.pestSprayAmt, l.pestUnit].filter(Boolean).join(""));
         });
 
