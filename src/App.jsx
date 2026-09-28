@@ -1424,7 +1424,7 @@ function LoginScreen() {
       <div style={{background:"#fff",borderRadius:20,padding:"28px 24px",maxWidth:360,width:"100%",textAlign:"center",boxShadow:"0 8px 40px rgba(0,0,0,.3)"}}>
         <div style={{fontSize:"2.2rem",marginBottom:6}}>🌾</div>
         <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:"1.3rem",color:G,marginBottom:4}}>サクメモ</div>
-        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v1.8.69</span></div>
+        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v1.8.70</span></div>
         {linkErr&&<div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:8,padding:"10px 12px",marginBottom:16,fontSize:".78rem",color:"#856404",textAlign:"left"}}>{linkErr}</div>}
 
 
@@ -1484,7 +1484,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.69</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.70</div>
       </div>
     </div>
   );
@@ -4146,6 +4146,8 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
     }
   };
 
+  const cropName = id => {if(!id)return"共通";const c=crops.find(x=>x.id===id);if(!c)return"共通";const db=CDB[c.type]||{};return(db.e||"🌱")+" "+(db.n||c.type)+(c.variety?"("+c.variety+")":"");};
+
   const exportPestRecord = () => {
     const doPestExport = (XLSX) => {
       const wb = XLSX.utils.book_new();
@@ -4219,7 +4221,6 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
     <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".86rem",color:"#5c3d1e",margin:"14px 0 6px"}}>{label}</div>
   );
 
-  const cropName = id => {if(!id)return"共通";const c=crops.find(x=>x.id===id);if(!c)return"共通";const db=CDB[c.type]||{};return(db.e||"🌱")+" "+(db.n||c.type)+(c.variety?"("+c.variety+")":"");};
   const thStyle = k => ({fontSize:".64rem",color:sortKey===k?G:TX3,cursor:"pointer",userSelect:"none",padding:"2px 4px",fontWeight:sortKey===k?700:400});
 
   return (
