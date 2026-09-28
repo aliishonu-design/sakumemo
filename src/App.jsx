@@ -1289,13 +1289,29 @@ function Modal({ open, onClose, title, children }) {
 
 // Modal with a sticky save button always visible at bottom
 function ModalWithSave({ open, onClose, title, onSave, saveLabel="保存", children }) {
+  useEffect(()=>{
+    if(!open) return;
+    const onKey = e => {
+      // ESC → 閉じる
+      if(e.key==="Escape"){ e.preventDefault(); onClose(); return; }
+      // Shift+S → 保存（テキスト入力中は除外）
+      if(e.shiftKey && e.key==="S"){
+        const tag = document.activeElement?.tagName;
+        if(tag==="INPUT"||tag==="TEXTAREA"||tag==="SELECT") return;
+        e.preventDefault(); onSave();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return ()=>window.removeEventListener("keydown", onKey);
+  },[open, onClose, onSave]);
+
   if(!open) return null;
   return (
     <div className="app-modal" style={{position:"fixed",left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:960,bottom:0,zIndex:9999,display:"flex",flexDirection:"column",background:"#f8f5ef"}}>
       <div style={{background:GD,color:"#fff",padding:"11px 13px",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0,gap:8}}>
         <span style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".92rem",fontWeight:700,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{title}</span>
-        <button onClick={onClose} style={{background:"rgba(255,255,255,.18)",border:"1px solid rgba(255,255,255,.25)",color:"#fff",borderRadius:8,padding:"6px 12px",fontSize:".8rem",cursor:"pointer",flexShrink:0,minWidth:40,minHeight:40}}>✕</button>
-        <button onClick={onSave} style={{background:"#fff",border:"none",color:G,borderRadius:8,padding:"6px 14px",fontSize:".8rem",fontWeight:700,cursor:"pointer",flexShrink:0,minWidth:60,minHeight:40}}>{saveLabel} ✓</button>
+        <button onClick={onClose} title="閉じる (ESC)" style={{background:"rgba(255,255,255,.18)",border:"1px solid rgba(255,255,255,.25)",color:"#fff",borderRadius:8,padding:"6px 12px",fontSize:".8rem",cursor:"pointer",flexShrink:0,minWidth:40,minHeight:40}}>✕</button>
+        <button onClick={onSave} title="保存 (Shift+S)" style={{background:"#fff",border:"none",color:G,borderRadius:8,padding:"6px 14px",fontSize:".8rem",fontWeight:700,cursor:"pointer",flexShrink:0,minWidth:60,minHeight:40}}>{saveLabel} ✓</button>
       </div>
       <div style={{flex:1,overflowY:"auto",WebkitOverflowScrolling:"touch",padding:"14px 14px 0",paddingBottom:"calc(58px + env(safe-area-inset-bottom, 0px) + 24px)"}}>
         {children}
@@ -1407,7 +1423,7 @@ function LoginScreen() {
       <div style={{background:"#fff",borderRadius:20,padding:"28px 24px",maxWidth:360,width:"100%",textAlign:"center",boxShadow:"0 8px 40px rgba(0,0,0,.3)"}}>
         <div style={{fontSize:"2.2rem",marginBottom:6}}>🌾</div>
         <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:"1.3rem",color:G,marginBottom:4}}>サクメモ</div>
-        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v1.8.59</span></div>
+        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v1.8.60</span></div>
         {linkErr&&<div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:8,padding:"10px 12px",marginBottom:16,fontSize:".78rem",color:"#856404",textAlign:"left"}}>{linkErr}</div>}
 
 
@@ -1467,7 +1483,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.59</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.60</div>
       </div>
     </div>
   );
@@ -6315,6 +6331,23 @@ export default function App() {
   // ブラウザタイトル設定
   useEffect(()=>{ document.title = "サクメモ - 作物の記録アプリ"; },[]);
 
+  // ─── グローバルキーボードショートカット ───
+  // 作業記録モーダル用のESC / Shift+S
+  useEffect(()=>{
+    if(!logModal) return;
+    const onKey = e => {
+      if(e.key==="Escape"){ e.preventDefault(); setLogModal(false); return; }
+      if(e.shiftKey && e.key==="S"){
+        const tag = document.activeElement?.tagName;
+        if(tag==="INPUT"||tag==="TEXTAREA"||tag==="SELECT") return;
+        e.preventDefault();
+        if(logScreenSaveRef.current) logScreenSaveRef.current();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return ()=>window.removeEventListener("keydown", onKey);
+  },[logModal]);
+
 
 
   // Twemoji: 絵文字をTwitter統一デザインに（render後に適用）
@@ -6323,6 +6356,38 @@ export default function App() {
   const [scr,      setScr]     = useState("home");
   // 画面切替時にスクロール位置を先頭へ（描画前に同期実行してちらつきを防ぐ）
   useLayoutEffect(()=>{ const el=document.getElementById("main-scroll"); if(el) el.scrollTop=0; window.scrollTo(0,0); },[scr]);
+
+  // ─── グローバルキーボードショートカット（画面切替等） ───
+  // モーダルが開いているときは除外（各モーダル側で処理）
+  useEffect(()=>{
+    if(!user) return;
+    const onKey = e => {
+      if(logModal) return; // 作業記録モーダル優先
+      const tag = document.activeElement?.tagName;
+      const isInput = tag==="INPUT"||tag==="TEXTAREA"||tag==="SELECT";
+      if(isInput) return; // テキスト入力中は無効
+      // Alt+数字 → 画面切替
+      if(e.altKey && !e.shiftKey && !e.ctrlKey && !e.metaKey){
+        const SCREENS_MAP = {"1":"home","2":"fields","3":"plot","4":"cost","5":"report"};
+        if(SCREENS_MAP[e.key]){ e.preventDefault(); setScr(SCREENS_MAP[e.key]); return; }
+        if(e.key==="0"||e.key===","){ e.preventDefault(); setScr("settings"); return; }
+      }
+      // N → 新規作業記録
+      if(!e.altKey&&!e.ctrlKey&&!e.metaKey&&!e.shiftKey && e.key==="n"){
+        e.preventDefault(); setInitLog(null); setLogModal(true); return;
+      }
+      // H → ホームへ
+      if(!e.altKey&&!e.ctrlKey&&!e.metaKey&&!e.shiftKey && e.key==="h"){
+        e.preventDefault(); setScr("home"); return;
+      }
+      // トップへスクロール（T）
+      if(!e.altKey&&!e.ctrlKey&&!e.metaKey&&!e.shiftKey && e.key==="t"){
+        const el=document.getElementById("main-scroll"); if(el) el.scrollTo({top:0,behavior:"smooth"});
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return ()=>window.removeEventListener("keydown", onKey);
+  },[user, logModal, scr]);
   const [fields,   setFieldsR] = useState([]);
   const [crops,    setCropsR]  = useState([]);
   const [logs,     setLogsR]   = useState([]);
