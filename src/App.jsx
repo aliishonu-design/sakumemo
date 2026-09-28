@@ -1156,22 +1156,25 @@ function CalcInp({ value, onChange, placeholder="0", style={} }) {
   const [expr, setExpr] = useState(""); // 計算式バッファ
   const [display, setDisplay] = useState(""); // 表示文字列
 
-  // PCの場合はそのまま入力欄として表示（type="number"でテンキー・キーボード入力対応）
+  // PCの場合はそのまま入力欄として表示（キーボード・テンキー入力対応）
   if(isPC()){
-    return <input type="number" inputMode="decimal" value={value||""} placeholder={placeholder}
+    return <input type="text" inputMode="decimal" pattern="[0-9+\-*/.]*" value={value||""} placeholder={placeholder}
       onChange={e=>{
-        const v=e.target.value;
+        // 数字・演算子・小数点のみ許可（それ以外は無視）
+        const v=e.target.value.replace(/[^0-9.\-+*/]/g,"");
         onChange(v);
       }}
       onBlur={e=>{
         const v=e.target.value;
         try{
-          if(!v){onChange("");return;}
-          const rounded=Math.round(Number(v)*100)/100;
+          const safe=v.replace(/×/g,"*").replace(/÷/g,"/").replace(/[^0-9+\-*/.()]/g,"");
+          if(!safe){onChange("");return;}
+          // eslint-disable-next-line no-new-func
+          const result=Function('"use strict";return ('+safe+')')();
+          const rounded=Math.round(result*100)/100;
           onChange(String(rounded));
         }catch{}
       }}
-      onWheel={e=>e.currentTarget.blur()}
       style={{...S.inp,...style}}/>;
   }
 
@@ -1444,7 +1447,7 @@ function LoginScreen() {
       <div style={{background:"#fff",borderRadius:20,padding:"28px 24px",maxWidth:360,width:"100%",textAlign:"center",boxShadow:"0 8px 40px rgba(0,0,0,.3)"}}>
         <div style={{fontSize:"2.2rem",marginBottom:6}}>🌾</div>
         <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:"1.3rem",color:G,marginBottom:4}}>サクメモ</div>
-        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v1.8.81</span></div>
+        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v1.8.84</span></div>
         {linkErr&&<div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:8,padding:"10px 12px",marginBottom:16,fontSize:".78rem",color:"#856404",textAlign:"left"}}>{linkErr}</div>}
 
 
@@ -1504,7 +1507,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.81</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.84</div>
       </div>
     </div>
   );
@@ -4238,14 +4241,16 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
         const db2 = CDB[firstCrop.type]||{};
         return (db2.n||firstCrop.type)+(firstCrop.variety?" "+firstCrop.variety:"");
       })();
-      // 播種日 or 定植日（定植日を優先）、収穫予定日（モーダル入力値）
-      const startDate = firstCrop ? (firstCrop.plantDate||firstCrop.sowDate||"") : "";
-      const endDate   = pestExportHarvestDate||"";
-      const periodStr = startDate||endDate
-        ? (toDateStr8(startDate)||"")+(startDate&&endDate?"〜":"")+(toDateStr8(endDate)||"")
+      // 防除記録の日付範囲を最優先、なければ定植/播種日〜収穫予定日
+      const pestDates = logs.filter(l=>l.work==="pest"&&(targetCropId?l.cropId===targetCropId:true)&&l.date).map(l=>l.date).sort();
+      const periodStr = pestDates.length>0
+        ? toDateStr8(pestDates[0])+"〜"+toDateStr8(pestDates[pestDates.length-1])
         : (()=>{
-            const allDates = logs.filter(l=>l.work==="pest"&&(targetCropId?l.cropId===targetCropId:true)&&l.date).map(l=>l.date).sort();
-            return allDates.length>0 ? toDateStr8(allDates[0])+"〜"+toDateStr8(allDates[allDates.length-1]) : String(new Date().getFullYear());
+            const startDate = firstCrop ? (firstCrop.plantDate||firstCrop.sowDate||"") : "";
+            const endDate   = pestExportHarvestDate||"";
+            return (startDate||endDate)
+              ? (toDateStr8(startDate)||"")+(startDate&&endDate?"〜":"")+(toDateStr8(endDate)||"")
+              : String(new Date().getFullYear());
           })();
       const fname = (Object.keys(pestByCrop).length===1?firstCropObj:"複数品目")+"_農薬記録_"+periodStr+".xlsx";
 
@@ -4312,14 +4317,13 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
         }
         // 栽培条件: テンプレートのまま変更しない（印刷後に手書きで記入）
 
-        // 防除記録（Row11〜）— マスター登録順→同順なら日付順
+        // 防除記録（Row11〜）— 日付順→同日内はマスター登録順
         const sorted = [...cLogs].sort((a,b)=>{
+          const dateCmp = (a.date||"").localeCompare(b.date||"");
+          if(dateCmp!==0) return dateCmp;
           const ai = pestMs.findIndex(p=>p.name===a.pestName);
           const bi = pestMs.findIndex(p=>p.name===b.pestName);
-          const aOrd = ai>=0?ai:9999;
-          const bOrd = bi>=0?bi:9999;
-          if(aOrd!==bOrd) return aOrd-bOrd;
-          return (a.date||"").localeCompare(b.date||"");
+          return (ai>=0?ai:9999)-(bi>=0?bi:9999);
         });
         sorted.forEach((l, i) => {
           const rowNum = 11 + i;
