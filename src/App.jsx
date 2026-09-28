@@ -1444,7 +1444,7 @@ function LoginScreen() {
       <div style={{background:"#fff",borderRadius:20,padding:"28px 24px",maxWidth:360,width:"100%",textAlign:"center",boxShadow:"0 8px 40px rgba(0,0,0,.3)"}}>
         <div style={{fontSize:"2.2rem",marginBottom:6}}>🌾</div>
         <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:"1.3rem",color:G,marginBottom:4}}>サクメモ</div>
-        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v1.8.80</span></div>
+        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v1.8.81</span></div>
         {linkErr&&<div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:8,padding:"10px 12px",marginBottom:16,fontSize:".78rem",color:"#856404",textAlign:"left"}}>{linkErr}</div>}
 
 
@@ -1504,7 +1504,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.80</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.81</div>
       </div>
     </div>
   );
@@ -4230,17 +4230,23 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
       }
 
       // ファイル名用
+      const toDateStr8 = s => s ? s.replace(/-/g,"") : ""; // "2026-09-16" → "20260916"
+      const firstCropId = Object.keys(pestByCrop)[0];
+      const firstCrop = crops.find(x=>x.id===firstCropId);
       const firstCropObj = (() => {
-        const cId = Object.keys(pestByCrop)[0];
-        const c = crops.find(x=>x.id===cId);
-        if(!c) return "農薬記録";
-        const db2 = CDB[c.type]||{};
-        return (db2.n||c.type)+(c.variety?" "+c.variety:"");
+        if(!firstCrop) return "農薬記録";
+        const db2 = CDB[firstCrop.type]||{};
+        return (db2.n||firstCrop.type)+(firstCrop.variety?" "+firstCrop.variety:"");
       })();
-      const allDates = logs.filter(l=>l.work==="pest"&&(targetCropId?l.cropId===targetCropId:true)&&l.date).map(l=>l.date).sort();
-      const periodStr = allDates.length>0
-        ? allDates[0].slice(0,7).replace("-","年")+"月〜"+allDates[allDates.length-1].slice(0,7).replace("-","年")+"月"
-        : new Date().getFullYear()+"年";
+      // 播種日 or 定植日（定植日を優先）、収穫予定日（モーダル入力値）
+      const startDate = firstCrop ? (firstCrop.plantDate||firstCrop.sowDate||"") : "";
+      const endDate   = pestExportHarvestDate||"";
+      const periodStr = startDate||endDate
+        ? (toDateStr8(startDate)||"")+(startDate&&endDate?"〜":"")+(toDateStr8(endDate)||"")
+        : (()=>{
+            const allDates = logs.filter(l=>l.work==="pest"&&(targetCropId?l.cropId===targetCropId:true)&&l.date).map(l=>l.date).sort();
+            return allDates.length>0 ? toDateStr8(allDates[0])+"〜"+toDateStr8(allDates[allDates.length-1]) : String(new Date().getFullYear());
+          })();
       const fname = (Object.keys(pestByCrop).length===1?firstCropObj:"複数品目")+"_農薬記録_"+periodStr+".xlsx";
 
       // ExcelJSでワークブックを作成（品目ごとにシート）
