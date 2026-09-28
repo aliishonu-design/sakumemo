@@ -1,16 +1,13 @@
 import { useState, useEffect, useLayoutEffect, useRef } from "react";
 import { createClient } from "@supabase/supabase-js";
 
-// ★ TDZ防止：uid0を最初に宣言（後続の定数初期化式で使用するため）
-var uid0 = () => crypto.randomUUID();
-
-var sb = createClient(
+const sb = createClient(
   "https://nlamtphkwdoxtjktkjzo.supabase.co",
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5sYW10cGhrd2RveHRqa3RranpvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3ODI3NzYsImV4cCI6MjA5MzM1ODc3Nn0.8gba30xxu0s132vg_xOA6-Y3XWjR1YhaprIgUYHZO0o"
 );
 
 // DB helpers
-var dbFetch = async (table, uid) => {
+const dbFetch = async (table, uid) => {
   // Supabaseデフォルト1000件制限を回避するためページネーションで全件取得
   const PAGE = 1000;
   let all = [];
@@ -28,117 +25,117 @@ var dbFetch = async (table, uid) => {
   }
   return all;
 };
-var dbUpsert = async (table, row) => {
+const dbUpsert = async (table, row) => {
   const { data, error } = await sb.from(table).upsert(row, { onConflict: "id" }).select();
   if (error) {
     console.error("DB保存エラー:", table, error.code, error.message, JSON.stringify(error));
   } else {
     }
 };
-var dbDelete = async (table, id) => {
+const dbDelete = async (table, id) => {
   const { error } = await sb.from(table).delete().eq("id", id);
   if (error) console.error("delete", table, error.message);
 };
 
 // Converters
-var fieldToDb   = (o, uid) => ({ id:o.id, user_id:uid, name:o.name||"", area:o.area||null, soil:o.soil||null, addr:o.addr||null, memo:o.memo||null, prefecture:o.prefecture||null });
-var fieldFromDb = r => ({ id:r.id, name:r.name||"", area:r.area||"", soil:r.soil||"", addr:r.addr||"", memo:r.memo||"", prefecture:r.prefecture||"" });
-var cropToDb    = (o, uid) => ({ id:o.id, user_id:uid, field_id:o.fieldId||null, type:o.type||null, variety:o.variety||null, germ_rate:o.germRate||null, stocks:o.stocks||null, ridge_w:o.ridgeW||null, ridge_h:o.ridgeH||null, rows:o.rows||null, row_space:o.rowSpace||null, plant_space:o.plantSpace||null, sow_date:o.sowDate||null, plant_date:o.plantDate||null, memo:o.memo||null, cultivation_type:o.cultivationType||null, seed_cost:o.seedCost||null, seed_note:o.seedNote||null, custom_name:o.customName||null, ended:o.ended||false, end_date:o.endDate||null, maturity:o.maturity||null, custom_days:o.customDays||null, custom_water:o.customWater||null, pot_size:o.potSize||null, pot_volume:o.potVolume||null, pot_count:o.potCount||null, grow_env:o.growEnv||null, agri_month_start:o.agriMonthStart||null, ridge_len:o.ridgeLen||null, cultivation_area:o.cultivationArea||null, temp_min:o.tempMin||null, temp_max:o.tempMax||null, fert_skip_date:o.fertSkipDate||null, fert_interval:o.fertInterval||null, reminder_mode:o.reminderMode||null, custom_events:o.customEvents?JSON.stringify(o.customEvents):null, harvest_days:o.harvestDays?parseInt(o.harvestDays):null });
-var cropFromDb  = (r, fields) => { const fi = fields.findIndex(f=>f.id===r.field_id); return { id:r.id, fieldId:r.field_id||"", fieldIdx:fi>=0?fi:0, type:r.type||"", variety:r.variety||"", germRate:r.germ_rate||"", stocks:r.stocks||"", ridgeW:r.ridge_w||"", ridgeH:r.ridge_h||"", rows:r.rows||"", rowSpace:r.row_space||"", plantSpace:r.plant_space||"", sowDate:r.sow_date||"", plantDate:r.plant_date||"", memo:r.memo||"", cultivationType:r.cultivation_type||"transplant", seedCost:r.seed_cost||"", seedNote:r.seed_note||"", customName:r.custom_name||"", ended:r.ended||false, endDate:r.end_date||"", maturity:r.maturity||"mid", customDays:r.custom_days||"", customWater:r.custom_water||"", potSize:r.pot_size||"", potVolume:r.pot_volume||"", potCount:r.pot_count||"", growEnv:r.grow_env||"field", agriMonthStart:r.agri_month_start||"", ridgeLen:r.ridge_len||"", cultivationArea:r.cultivation_area||"", tempMin:r.temp_min||"", tempMax:r.temp_max||"", fertSkipDate:r.fert_skip_date||"", fertInterval:r.fert_interval||"", reminderMode:r.reminder_mode||"auto", customEvents:r.custom_events?(typeof r.custom_events==="string"?JSON.parse(r.custom_events):r.custom_events):[], harvestDays:r.harvest_days||null, fertInterval:r.fert_interval||"" }; };
-var logToDb     = (o, uid, fields) => ({ id:o.id, user_id:uid, field_id:fields[o.fieldIdx]?.id||o.fieldId||null, crop_id:o.cropId||null, work:o.work||null, memo:o.memo||null, date:o.date||null, time:o.time||null, duration:o.duration||null, img_src:o.imgSrc||null, img2_src:o.imgSrc2||null, img3_src:o.imgSrc3||null, fert_name:o.fertName||null, fert_amt:o.fertAmt||null, fert_unit:o.fertUnit||null, fert_method:o.fertMethod||null, fert_cost:o.fertCost||null, pest_name:o.pestName||null, pest_spray_amt:o.pestSprayAmt||null, pest_dil:o.pestDil||null, pest_amt:o.pestAmt||null, pest_unit:o.pestUnit||null, pest_tgt:o.pestTarget||null, pest_cost:o.pestCost||null, hv_kg:o.hvKg||null, hv_cnt:o.hvCnt||null, hv_q:o.hvQ||null, hv_price:o.hvPrice||null, equip_ids:o.equipIds||null, equip_act:o.equipAct||null, equip_use_amt:o.equipUseAmt||null, equip_use_unit:o.equipUseUnit||null, sow_qty:o.sowQty||null, germination_cnt:o.germinationCnt||null, germ_date:o.germinationDate||null, transplant_qty:o.transplantQty||null, discard_cnt:o.discardCnt||null, add_cnt:o.addCnt||null, event_type:o.eventType||null, event_note:o.eventNote||null, hv_grade_str:o.hvGradeStr||null, other_note:o.otherNote||null, repot_size:o.repotSize||null, repot_vol:o.repotVol||null, group_id:o._groupId||null, weather:o.weather||null });
-var logFromDb   = (r, fields) => { const fi=fields.findIndex(f=>f.id===r.field_id); return { id:r.id, fieldId:r.field_id||"", fieldIdx:fi>=0?fi:0, cropId:r.crop_id||"", work:r.work||"", memo:r.memo||"", date:r.date||"", time:r.time||"", duration:r.duration||"", imgSrc:r.img_src||null, imgSrc2:r.img2_src||null, imgSrc3:r.img3_src||null, aiReply:"", fertName:r.fert_name||"", fertAmt:r.fert_amt||"", fertUnit:r.fert_unit||"", fertMethod:r.fert_method||"", fertCost:r.fert_cost||"", pestName:r.pest_name||"", pestSprayAmt:r.pest_spray_amt||"", pestDil:r.pest_dil||"", pestAmt:r.pest_amt||"", pestUnit:r.pest_unit||"", pestTarget:r.pest_target||"", pestCost:r.pest_cost||"", hvKg:r.hv_kg!=null?String(r.hv_kg):"", hvCnt:r.hv_cnt!=null?String(r.hv_cnt):"", hvQ:r.hv_q||"", hvPrice:r.hv_price||"", hvImgSrc:r.hv_img_src||null, equipIds:Array.isArray(r.equip_ids)?r.equip_ids:(r.equip_ids?JSON.parse(r.equip_ids):[]), equipAct:r.equip_act||"", hvGradeStr:r.hv_grade_str||"", otherNote:r.other_note||"", repotSize:r.repot_size||"", repotVol:r.repot_vol||"", _groupId:r.group_id||null, weather:r.weather||"", equipUseAmt:r.equip_use_amt||null, equipUseUnit:r.equip_use_unit||null, sowQty:r.sow_qty||"", germinationCnt:r.germination_cnt||"", germinationDate:r.germination_date||"", transplantQty:r.transplant_qty||"", discardCnt:r.discard_cnt||"", addCnt:r.add_cnt||"", eventType:r.event_type||"", eventNote:r.event_note||"" }; };
-var fertMToDb   = (o, uid) => ({ id:o.id||uid0(), user_id:uid, name:o.name||null, type:o.type||null, price:o.price||null, punit:o.punit||null, capacity:o.capacity||null, cunit:o.cunit||null, npk:o.npk||null, stock:o.stock||null, sunit:o.sunit||null, note:o.note||null });
-var fertMFromDb = r => ({ id:r.id, name:r.name||"", type:r.type||"", price:r.price||"", punit:r.punit||"", capacity:r.capacity||"", cunit:r.cunit||"", npk:r.npk||"", stock:r.stock||"", sunit:r.sunit||"", note:r.note||"" });
-var pestMToDb   = (o, uid) => ({ id:o.id||uid0(), user_id:uid, name:o.name||null, type:o.type||null, target:o.target||null, capacity:o.capacity||null, sunit:o.sunit||null, price:o.price||null, note:o.note||null });const pestMFromDb = r => ({ id:r.id, name:r.name||"", type:r.type||"", target:r.target||"", capacity:r.capacity||"", sunit:r.sunit||"", price:r.price||"", note:r.note||"" });
-var equipToDb   = (o, uid) => ({ id:o.id||uid0(), user_id:uid, name:o.name||null, cat:o.cat||null, status:o.status||null, price:o.price||null, date:o.date||null, note:o.note||null, dep_years:o.depYears||null });
-var equipFromDb = r => ({ id:r.id, name:r.name||"", cat:r.cat||"", status:r.status||"", price:r.price||"", date:r.date||"", note:r.note||"", depYears:r.dep_years||"" });
-var costToDb    = (o, uid, fields) => ({ id:o.id, user_id:uid, field_id:(fields&&o.fieldIdx!==undefined&&o.fieldIdx!=="")?fields[o.fieldIdx]?.id||o.fieldId||null:o.fieldId||null, crop_id:o.cropId||null, cat:o.cat||null, name:o.name||null, amt:o.amt||null, date:o.date||null, qty:o.qty||null, qunit:o.qunit||null, note:o.note||null, master_id:o.masterId||null, work:o.work||null, pay_method:o.payMethod||null, pay_date:o.payDate||null, cancelled:o.cancelled||null });
-var costFromDb  = (r, fields) => { const fi=fields.findIndex(f=>f.id===r.field_id); return { id:r.id, fieldId:r.field_id||"", fieldIdx:fi>=0?fi:0, cropId:r.crop_id||"", cat:r.cat||"", name:r.name||"", amt:r.amt||"", date:r.date||"", qty:r.qty||"1", qunit:r.qunit||"個", note:r.note||"", masterId:r.master_id||null, logId:r.work_log_id||null, depYears:r.dep_years||"", payMethod:r.pay_method||"現金", payDate:r.pay_date||"", cancelled:r.cancelled||false }; };
-var plotToDb    = (o, uid) => ({ id:o.id, user_id:uid, field_id:o.fieldId||null, name:o.name||null, cols:o.cols||20, rows:o.rows||20, cells:o.cells||[], season:o.season||null, cell_size:o.cellSize||30, bg_plot_id:o.bgPlotId||null, plant_date:o.plantDate||null, end_date:o.endDate||null, kind:o.kind||null, beds:o.beds||null, plantings:o.plantings||null });
-var plotFromDb  = r => ({ id:r.id, fieldId:r.field_id||"", name:r.name||"", cols:r.cols||20, rows:r.rows||20, cells:Array.isArray(r.cells)?r.cells:(r.cells?JSON.parse(r.cells):[]), season:r.season||"", cellSize:r.cell_size||30, bgPlotId:r.bg_plot_id||"", plantDate:r.plant_date||"", endDate:r.end_date||"", kind:r.kind||"", beds:Array.isArray(r.beds)?r.beds:(r.beds?JSON.parse(r.beds):[]), plantings:Array.isArray(r.plantings)?r.plantings:(r.plantings?JSON.parse(r.plantings):[]) });
+const fieldToDb   = (o, uid) => ({ id:o.id, user_id:uid, name:o.name||"", area:o.area||null, soil:o.soil||null, addr:o.addr||null, memo:o.memo||null, prefecture:o.prefecture||null });
+const fieldFromDb = r => ({ id:r.id, name:r.name||"", area:r.area||"", soil:r.soil||"", addr:r.addr||"", memo:r.memo||"", prefecture:r.prefecture||"" });
+const cropToDb    = (o, uid) => ({ id:o.id, user_id:uid, field_id:o.fieldId||null, type:o.type||null, variety:o.variety||null, germ_rate:o.germRate||null, stocks:o.stocks||null, ridge_w:o.ridgeW||null, ridge_h:o.ridgeH||null, rows:o.rows||null, row_space:o.rowSpace||null, plant_space:o.plantSpace||null, sow_date:o.sowDate||null, plant_date:o.plantDate||null, memo:o.memo||null, cultivation_type:o.cultivationType||null, seed_cost:o.seedCost||null, seed_note:o.seedNote||null, custom_name:o.customName||null, ended:o.ended||false, end_date:o.endDate||null, maturity:o.maturity||null, custom_days:o.customDays||null, custom_water:o.customWater||null, pot_size:o.potSize||null, pot_volume:o.potVolume||null, pot_count:o.potCount||null, grow_env:o.growEnv||null, agri_month_start:o.agriMonthStart||null, ridge_len:o.ridgeLen||null, cultivation_area:o.cultivationArea||null, temp_min:o.tempMin||null, temp_max:o.tempMax||null, fert_skip_date:o.fertSkipDate||null, fert_interval:o.fertInterval||null, reminder_mode:o.reminderMode||null, custom_events:o.customEvents?JSON.stringify(o.customEvents):null, harvest_days:o.harvestDays?parseInt(o.harvestDays):null });
+const cropFromDb  = (r, fields) => { const fi = fields.findIndex(f=>f.id===r.field_id); return { id:r.id, fieldId:r.field_id||"", fieldIdx:fi>=0?fi:0, type:r.type||"", variety:r.variety||"", germRate:r.germ_rate||"", stocks:r.stocks||"", ridgeW:r.ridge_w||"", ridgeH:r.ridge_h||"", rows:r.rows||"", rowSpace:r.row_space||"", plantSpace:r.plant_space||"", sowDate:r.sow_date||"", plantDate:r.plant_date||"", memo:r.memo||"", cultivationType:r.cultivation_type||"transplant", seedCost:r.seed_cost||"", seedNote:r.seed_note||"", customName:r.custom_name||"", ended:r.ended||false, endDate:r.end_date||"", maturity:r.maturity||"mid", customDays:r.custom_days||"", customWater:r.custom_water||"", potSize:r.pot_size||"", potVolume:r.pot_volume||"", potCount:r.pot_count||"", growEnv:r.grow_env||"field", agriMonthStart:r.agri_month_start||"", ridgeLen:r.ridge_len||"", cultivationArea:r.cultivation_area||"", tempMin:r.temp_min||"", tempMax:r.temp_max||"", fertSkipDate:r.fert_skip_date||"", fertInterval:r.fert_interval||"", reminderMode:r.reminder_mode||"auto", customEvents:r.custom_events?(typeof r.custom_events==="string"?JSON.parse(r.custom_events):r.custom_events):[], harvestDays:r.harvest_days||null, fertInterval:r.fert_interval||"" }; };
+const logToDb     = (o, uid, fields) => ({ id:o.id, user_id:uid, field_id:fields[o.fieldIdx]?.id||o.fieldId||null, crop_id:o.cropId||null, work:o.work||null, memo:o.memo||null, date:o.date||null, time:o.time||null, duration:o.duration||null, img_src:o.imgSrc||null, img2_src:o.imgSrc2||null, img3_src:o.imgSrc3||null, fert_name:o.fertName||null, fert_amt:o.fertAmt||null, fert_unit:o.fertUnit||null, fert_method:o.fertMethod||null, fert_cost:o.fertCost||null, pest_name:o.pestName||null, pest_spray_amt:o.pestSprayAmt||null, pest_dil:o.pestDil||null, pest_amt:o.pestAmt||null, pest_unit:o.pestUnit||null, pest_tgt:o.pestTarget||null, pest_cost:o.pestCost||null, hv_kg:o.hvKg||null, hv_cnt:o.hvCnt||null, hv_q:o.hvQ||null, hv_price:o.hvPrice||null, equip_ids:o.equipIds||null, equip_act:o.equipAct||null, equip_use_amt:o.equipUseAmt||null, equip_use_unit:o.equipUseUnit||null, sow_qty:o.sowQty||null, germination_cnt:o.germinationCnt||null, germ_date:o.germinationDate||null, transplant_qty:o.transplantQty||null, discard_cnt:o.discardCnt||null, add_cnt:o.addCnt||null, event_type:o.eventType||null, event_note:o.eventNote||null, hv_grade_str:o.hvGradeStr||null, other_note:o.otherNote||null, repot_size:o.repotSize||null, repot_vol:o.repotVol||null, group_id:o._groupId||null, weather:o.weather||null });
+const logFromDb   = (r, fields) => { const fi=fields.findIndex(f=>f.id===r.field_id); return { id:r.id, fieldId:r.field_id||"", fieldIdx:fi>=0?fi:0, cropId:r.crop_id||"", work:r.work||"", memo:r.memo||"", date:r.date||"", time:r.time||"", duration:r.duration||"", imgSrc:r.img_src||null, imgSrc2:r.img2_src||null, imgSrc3:r.img3_src||null, aiReply:"", fertName:r.fert_name||"", fertAmt:r.fert_amt||"", fertUnit:r.fert_unit||"", fertMethod:r.fert_method||"", fertCost:r.fert_cost||"", pestName:r.pest_name||"", pestSprayAmt:r.pest_spray_amt||"", pestDil:r.pest_dil||"", pestAmt:r.pest_amt||"", pestUnit:r.pest_unit||"", pestTarget:r.pest_target||"", pestCost:r.pest_cost||"", hvKg:r.hv_kg!=null?String(r.hv_kg):"", hvCnt:r.hv_cnt!=null?String(r.hv_cnt):"", hvQ:r.hv_q||"", hvPrice:r.hv_price||"", hvImgSrc:r.hv_img_src||null, equipIds:Array.isArray(r.equip_ids)?r.equip_ids:(r.equip_ids?JSON.parse(r.equip_ids):[]), equipAct:r.equip_act||"", hvGradeStr:r.hv_grade_str||"", otherNote:r.other_note||"", repotSize:r.repot_size||"", repotVol:r.repot_vol||"", _groupId:r.group_id||null, weather:r.weather||"", equipUseAmt:r.equip_use_amt||null, equipUseUnit:r.equip_use_unit||null, sowQty:r.sow_qty||"", germinationCnt:r.germination_cnt||"", germinationDate:r.germination_date||"", transplantQty:r.transplant_qty||"", discardCnt:r.discard_cnt||"", addCnt:r.add_cnt||"", eventType:r.event_type||"", eventNote:r.event_note||"" }; };
+const fertMToDb   = (o, uid) => ({ id:o.id||uid0(), user_id:uid, name:o.name||null, type:o.type||null, price:o.price||null, punit:o.punit||null, capacity:o.capacity||null, cunit:o.cunit||null, npk:o.npk||null, stock:o.stock||null, sunit:o.sunit||null, note:o.note||null });
+const fertMFromDb = r => ({ id:r.id, name:r.name||"", type:r.type||"", price:r.price||"", punit:r.punit||"", capacity:r.capacity||"", cunit:r.cunit||"", npk:r.npk||"", stock:r.stock||"", sunit:r.sunit||"", note:r.note||"" });
+const pestMToDb   = (o, uid) => ({ id:o.id||uid0(), user_id:uid, name:o.name||null, type:o.type||null, target:o.target||null, capacity:o.capacity||null, sunit:o.sunit||null, price:o.price||null, note:o.note||null });const pestMFromDb = r => ({ id:r.id, name:r.name||"", type:r.type||"", target:r.target||"", capacity:r.capacity||"", sunit:r.sunit||"", price:r.price||"", note:r.note||"" });
+const equipToDb   = (o, uid) => ({ id:o.id||uid0(), user_id:uid, name:o.name||null, cat:o.cat||null, status:o.status||null, price:o.price||null, date:o.date||null, note:o.note||null, dep_years:o.depYears||null });
+const equipFromDb = r => ({ id:r.id, name:r.name||"", cat:r.cat||"", status:r.status||"", price:r.price||"", date:r.date||"", note:r.note||"", depYears:r.dep_years||"" });
+const costToDb    = (o, uid, fields) => ({ id:o.id, user_id:uid, field_id:(fields&&o.fieldIdx!==undefined&&o.fieldIdx!=="")?fields[o.fieldIdx]?.id||o.fieldId||null:o.fieldId||null, crop_id:o.cropId||null, cat:o.cat||null, name:o.name||null, amt:o.amt||null, date:o.date||null, qty:o.qty||null, qunit:o.qunit||null, note:o.note||null, master_id:o.masterId||null, work:o.work||null, pay_method:o.payMethod||null, pay_date:o.payDate||null, cancelled:o.cancelled||null });
+const costFromDb  = (r, fields) => { const fi=fields.findIndex(f=>f.id===r.field_id); return { id:r.id, fieldId:r.field_id||"", fieldIdx:fi>=0?fi:0, cropId:r.crop_id||"", cat:r.cat||"", name:r.name||"", amt:r.amt||"", date:r.date||"", qty:r.qty||"1", qunit:r.qunit||"個", note:r.note||"", masterId:r.master_id||null, logId:r.work_log_id||null, depYears:r.dep_years||"", payMethod:r.pay_method||"現金", payDate:r.pay_date||"", cancelled:r.cancelled||false }; };
+const plotToDb    = (o, uid) => ({ id:o.id, user_id:uid, field_id:o.fieldId||null, name:o.name||null, cols:o.cols||20, rows:o.rows||20, cells:o.cells||[], season:o.season||null, cell_size:o.cellSize||30, bg_plot_id:o.bgPlotId||null, plant_date:o.plantDate||null, end_date:o.endDate||null, kind:o.kind||null, beds:o.beds||null, plantings:o.plantings||null });
+const plotFromDb  = r => ({ id:r.id, fieldId:r.field_id||"", name:r.name||"", cols:r.cols||20, rows:r.rows||20, cells:Array.isArray(r.cells)?r.cells:(r.cells?JSON.parse(r.cells):[]), season:r.season||"", cellSize:r.cell_size||30, bgPlotId:r.bg_plot_id||"", plantDate:r.plant_date||"", endDate:r.end_date||"", kind:r.kind||"", beds:Array.isArray(r.beds)?r.beds:(r.beds?JSON.parse(r.beds):[]), plantings:Array.isArray(r.plantings)?r.plantings:(r.plantings?JSON.parse(r.plantings):[]) });
 
 // ============================================================
 // CONSTANTS
 // ============================================================
-var CDB = {
+const CDB = {
   // ─── イネ科 ───
-  // baseTemp: 基準温度(℃)、gdd: 収穫目標積算温度(℃・日)
-  rice:         { n:"水稲",       e:"🌾", d:150, w:2, cat:"イネ科",    baseTemp:10, gdd:1500, hs:"穂が黄金色になり、籾が硬くなったら",          events:["穂ばらみ","出穂","収穫"], maturity:{early:130,mid:150,late:170} },
-  wheat:        { n:"麦",         e:"🌾", d:240, w:5, cat:"イネ科",    baseTemp:5,  gdd:2000, hs:"穂が黄色くなり茎が枯れてきたら",              events:["出穂","収穫"], maturity:{early:210,mid:240,late:270} },
-  corn:         { n:"トウモロコシ",e:"🌽", d:80, hd:14, w:2, cat:"イネ科",    baseTemp:10, gdd:700,  hs:"絹糸が茶色になり、押すと乳液が出る状態",      events:["雄穂開花","絹糸出現","収穫"], maturity:{early:70,mid:80,late:95} },
-  soba:         { n:"そば",       e:"🌿", d:75,  w:3, cat:"タデ科",    baseTemp:5,  gdd:600,  hs:"実の7〜8割が黒褐色になったら",                events:["開花","収穫"], maturity:{early:65,mid:75,late:85} },
+  rice:         { n:"水稲",       e:"🌾", d:150, w:2, cat:"イネ科",   hs:"穂が黄金色になり、籾が硬くなったら",          events:["穂ばらみ","出穂","収穫"], maturity:{early:130,mid:150,late:170} },
+  wheat:        { n:"麦",         e:"🌾", d:240, w:5, cat:"イネ科",   hs:"穂が黄色くなり茎が枯れてきたら",              events:["出穂","収穫"], maturity:{early:210,mid:240,late:270} },
+  corn:         { n:"トウモロコシ",e:"🌽", d:80, hd:14,  w:2, cat:"イネ科",   hs:"絹糸が茶色になり、押すと乳液が出る状態",      events:["雄穂開花","絹糸出現","収穫"], maturity:{early:70,mid:80,late:95} },
+  soba:         { n:"そば",       e:"🌿", d:75,  w:3, cat:"タデ科",   hs:"実の7〜8割が黒褐色になったら",                events:["開花","収穫"], maturity:{early:65,mid:75,late:85} },
   // ─── ナス科 ───
-  tomato:       { n:"トマト",     e:"🍅", d:90, hd:60, w:2, cat:"ナス科",    baseTemp:10, gdd:700,  hs:"果皮が均一に赤くなりヘタが反り返ったら",      events:["第1花房開花","着果","摘芯","第1果肥大","色づき開始","収穫開始","収穫終了","わき芽処理","摘花","異常発生"], maturity:{early:75,mid:90,late:110} },
-  cherry_tomato:{ n:"ミニトマト", e:"🍅", d:75,  w:2, cat:"ナス科",    baseTemp:10, gdd:600,  hs:"鮮やかな赤になりわずかに柔らかくなったら",    events:["第1花房開花","着果","摘芯","色づき開始","収穫開始","収穫終了","異常発生"], maturity:{early:60,mid:75,late:90} },
-  eggplant:     { n:"ナス",       e:"🍆", d:75, hd:90, w:1, cat:"ナス科",    baseTemp:10, gdd:650,  hs:"果皮に光沢・ガクのとげが鋭い状態",            events:["一番花開花","着果","摘芯","更新剪定","収穫開始","収穫終了","異常発生"], maturity:{early:65,mid:75,late:90} },
-  pepper:       { n:"ピーマン",   e:"🫑", d:70, hd:90, w:2, cat:"ナス科",    baseTemp:10, gdd:600,  hs:"長さ6〜7cm・果肉が厚くなったら",              events:["一番花開花","着果","摘芯","収穫開始","収穫終了","異常発生"], maturity:{early:60,mid:70,late:85} },
-  potato:       { n:"ジャガイモ", e:"🥔", d:90,  w:3, cat:"ナス科",    baseTemp:7,  gdd:900,  hs:"地上部の葉が黄化・枯死したら掘る",            events:["萌芽","開花","地上部枯死"], maturity:{early:75,mid:90,late:110} },
+  tomato:       { n:"トマト",     e:"🍅", d:90, hd:60,  w:2, cat:"ナス科",   hs:"果皮が均一に赤くなりヘタが反り返ったら",      events:["第1花房開花","着果","摘芯","第1果肥大","色づき開始","収穫開始","収穫終了","わき芽処理","摘花","異常発生"], maturity:{early:75,mid:90,late:110} },
+  cherry_tomato:{ n:"ミニトマト", e:"🍅", d:75,  w:2, cat:"ナス科",   hs:"鮮やかな赤になりわずかに柔らかくなったら",    events:["第1花房開花","着果","摘芯","色づき開始","収穫開始","収穫終了","異常発生"], maturity:{early:60,mid:75,late:90} },
+  eggplant:     { n:"ナス",       e:"🍆", d:75, hd:90,  w:1, cat:"ナス科",   hs:"果皮に光沢・ガクのとげが鋭い状態",            events:["一番花開花","着果","摘芯","更新剪定","収穫開始","収穫終了","異常発生"], maturity:{early:65,mid:75,late:90} },
+  pepper:       { n:"ピーマン",   e:"🫑", d:70, hd:90,  w:2, cat:"ナス科",   hs:"長さ6〜7cm・果肉が厚くなったら",              events:["一番花開花","着果","摘芯","収穫開始","収穫終了","異常発生"], maturity:{early:60,mid:70,late:85} },
+  potato:       { n:"ジャガイモ", e:"🥔", d:90,  w:3, cat:"ナス科",   hs:"地上部の葉が黄化・枯死したら掘る",            events:["萌芽","開花","地上部枯死"], maturity:{early:75,mid:90,late:110} },
   // ─── ウリ科 ───
-  cucumber:     { n:"キュウリ",   e:"🥒", d:55, hd:60, w:1, cat:"ウリ科",    baseTemp:12, gdd:500,  hs:"長さ18〜22cm・イボが鮮明で張りがあるうちに",  events:["雄花開花","雌花開花","着果","摘芯","収穫開始","収穫終了","摘葉","異常発生"], maturity:{early:45,mid:55,late:65} },
-  zucchini:     { n:"ズッキーニ", e:"🥒", d:55, hd:60, w:1, cat:"ウリ科",    baseTemp:12, gdd:500,  hs:"長さ20cm前後・果皮にツヤがあるうちに",        events:["雄花開花","雌花開花","着果","摘芯","収穫","異常発生"], maturity:{early:45,mid:55,late:65} },
-  pumpkin:      { n:"カボチャ",   e:"🎃", d:100, w:3, cat:"ウリ科",    baseTemp:10, gdd:900,  hs:"ヘタがコルク化し葉が枯れ始めたら",            events:["雄花開花","雌花開花","受粉","着果","摘芯","収穫","異常発生"], maturity:{early:85,mid:100,late:120} },
-  watermelon:   { n:"スイカ",     e:"🍉", d:85,  w:3, cat:"ウリ科",    baseTemp:12, gdd:900,  hs:"ヘタの巻きひげが枯れ叩くと濁音がする状態",    events:["雄花開花","雌花開花","受粉","着果","摘芯","玉返し","収穫","異常発生"], maturity:{early:75,mid:85,late:100} },
-  melon:        { n:"メロン",     e:"🍈", d:90,  w:3, cat:"ウリ科",    baseTemp:12, gdd:1000, hs:"ヘタの周りが黄色くなり香りが出たら",          events:["雄花開花","雌花開花","受粉","着果","摘芯","摘果","収穫","異常発生"], maturity:{early:75,mid:90,late:110} },
-  bitter_gourd: { n:"ゴーヤ",     e:"🌿", d:60,  w:1, cat:"ウリ科",    baseTemp:12, gdd:550,  hs:"長さ20cm前後・黄緑色均一の状態",              events:["開花","着果","摘芯","収穫開始","収穫終了","異常発生"], maturity:{early:50,mid:60,late:75} },
+  cucumber:     { n:"キュウリ",   e:"🥒", d:55, hd:60,  w:1, cat:"ウリ科",   hs:"長さ18〜22cm・イボが鮮明で張りがあるうちに",  events:["雄花開花","雌花開花","着果","摘芯","収穫開始","収穫終了","摘葉","異常発生"], maturity:{early:45,mid:55,late:65} },
+  zucchini:     { n:"ズッキーニ", e:"🥒", d:55, hd:60,  w:1, cat:"ウリ科",   hs:"長さ20cm前後・果皮にツヤがあるうちに",        events:["雄花開花","雌花開花","着果","摘芯","収穫","異常発生"], maturity:{early:45,mid:55,late:65} },
+  pumpkin:      { n:"カボチャ",   e:"🎃", d:100, w:3, cat:"ウリ科",   hs:"ヘタがコルク化し葉が枯れ始めたら",            events:["雄花開花","雌花開花","受粉","着果","摘芯","収穫","異常発生"], maturity:{early:85,mid:100,late:120} },
+  watermelon:   { n:"スイカ",     e:"🍉", d:85,  w:3, cat:"ウリ科",   hs:"ヘタの巻きひげが枯れ叩くと濁音がする状態",    events:["雄花開花","雌花開花","受粉","着果","摘芯","玉返し","収穫","異常発生"], maturity:{early:75,mid:85,late:100} },
+  melon:        { n:"メロン",     e:"🍈", d:90,  w:3, cat:"ウリ科",   hs:"ヘタの周りが黄色くなり香りが出たら",          events:["雄花開花","雌花開花","受粉","着果","摘芯","摘果","収穫","異常発生"], maturity:{early:75,mid:90,late:110} },
+  bitter_gourd: { n:"ゴーヤ",     e:"🌿", d:60,  w:1, cat:"ウリ科",   hs:"長さ20cm前後・黄緑色均一の状態",              events:["開花","着果","摘芯","収穫開始","収穫終了","異常発生"], maturity:{early:50,mid:60,late:75} },
   // ─── アブラナ科 ───
-  cabbage:      { n:"キャベツ",   e:"🥬", d:90,  w:2, cat:"アブラナ科", baseTemp:5,  gdd:650,  hs:"結球が固く締まり外葉に張りがある状態",        events:["結球開始","収穫"], maturity:{early:70,mid:90,late:120} },
-  hakusai:      { n:"白菜",       e:"🥬", d:90,  w:2, cat:"アブラナ科", baseTemp:5,  gdd:650,  hs:"頭部を押して固く締まっていたら",              events:["結球開始","収穫"], maturity:{early:70,mid:90,late:110} },
-  broccoli:     { n:"ブロッコリー",e:"🥦", d:90,  w:2, cat:"アブラナ科", baseTemp:5,  gdd:700,  hs:"花蕾が緊密で15〜18cm・黄色くなる前に",       events:["頂花蕾形成","収穫"], maturity:{early:75,mid:90,late:110} },
-  radish:       { n:"ダイコン",   e:"🫜", d:60, hd:30, w:2, cat:"アブラナ科", baseTemp:5,  gdd:400,  hs:"根が地表に出て肩の直径6〜8cm",               events:["間引き完了","収穫"], maturity:{early:50,mid:60,late:75} },
-  turnip:       { n:"カブ",       e:"🫜", d:50, hd:20, w:2, cat:"アブラナ科", baseTemp:5,  gdd:350,  hs:"根径5〜6cmで葉が黄化し始めたら収穫" },
-  komatsuna:    { n:"小松菜",     e:"🥬", d:35, hd:14, w:1, cat:"アブラナ科", baseTemp:5,  gdd:200,  hs:"草丈20〜25cmで収穫",                         events:["収穫"], maturity:{early:30,mid:35,late:45} },
+  cabbage:      { n:"キャベツ",   e:"🥬", d:90,  w:2, cat:"アブラナ科",hs:"結球が固く締まり外葉に張りがある状態",        events:["結球開始","収穫"], maturity:{early:70,mid:90,late:120} },
+  hakusai:      { n:"白菜",       e:"🥬", d:90,  w:2, cat:"アブラナ科",hs:"頭部を押して固く締まっていたら",              events:["結球開始","収穫"], maturity:{early:70,mid:90,late:110} },
+  broccoli:     { n:"ブロッコリー",e:"🥦", d:90,  w:2, cat:"アブラナ科",hs:"花蕾が緊密で15〜18cm・黄色くなる前に",       events:["頂花蕾形成","収穫"], maturity:{early:75,mid:90,late:110} },
+  radish:       { n:"ダイコン",   e:"🫜", d:60, hd:30,  w:2, cat:"アブラナ科",hs:"根が地表に出て肩の直径6〜8cm",               events:["間引き完了","収穫"], maturity:{early:50,mid:60,late:75} },
+  turnip:       { n:"カブ",       e:"🫜", d:50, hd:20,  w:2, cat:"アブラナ科",hs:"根径5〜6cmで葉が黄化し始めたら収穫" },
+  komatsuna:    { n:"小松菜",     e:"🥬", d:35, hd:14,  w:1, cat:"アブラナ科",hs:"草丈20〜25cmで収穫",                         events:["収穫"], maturity:{early:30,mid:35,late:45} },
   // ─── マメ科 ───
-  edamame:      { n:"枝豆",       e:"🫛", d:70,  w:2, cat:"マメ科",    baseTemp:10, gdd:600,  hs:"さやが膨らんで豆の形がはっきりわかる状態",    events:["開花","さや形成","収穫"], maturity:{early:60,mid:70,late:85} },
-  green_bean:   { n:"インゲン",   e:"🫛", d:55, hd:30, w:2, cat:"マメ科",    baseTemp:10, gdd:450,  hs:"さやが膨らむ前・すじが出る前に収穫",          events:["開花","さや形成","収穫"], maturity:{early:45,mid:55,late:65} },
-  pea:          { n:"エンドウ",   e:"🫛", d:60, hd:20, w:1, cat:"マメ科",    baseTemp:5,  gdd:500,  hs:"さやが膨らみ豆が見えてきたら（実エンドウ）" },
-  peanut:       { n:"落花生",     e:"🥜", d:120,hd:40, w:2, cat:"マメ科",    baseTemp:12, gdd:1200, hs:"葉が黄化してきたら試し掘り。完全乾燥前に収穫" },
-  ginger:       { n:"ショウガ",   e:"🫚", d:150,hd:60, w:1, cat:"ショウガ科",baseTemp:15, gdd:1800, hs:"葉が枯れ始めたら収穫。新生姜は8〜9月" },
-  azuki:        { n:"小豆",       e:"🫘", d:100, w:3, cat:"マメ科",    baseTemp:10, gdd:900,  hs:"さやが黄褐色になり乾燥してきたら",            events:["開花","さや形成","収穫"], maturity:{early:90,mid:100,late:115} },
+  edamame:      { n:"枝豆",       e:"🫛", d:70,  w:2, cat:"マメ科",   hs:"さやが膨らんで豆の形がはっきりわかる状態",    events:["開花","さや形成","収穫"], maturity:{early:60,mid:70,late:85} },
+  green_bean:   { n:"インゲン",   e:"🫛", d:55, hd:30,  w:2, cat:"マメ科",   hs:"さやが膨らむ前・すじが出る前に収穫",          events:["開花","さや形成","収穫"], maturity:{early:45,mid:55,late:65} },
+  pea:          { n:"エンドウ",   e:"🫛", d:60, hd:20,  w:1, cat:"マメ科",   hs:"さやが膨らみ豆が見えてきたら（実エンドウ）" },
+  peanut:       { n:"落花生",     e:"🥜", d:120,hd:40,  w:2, cat:"マメ科",   hs:"葉が黄化してきたら試し掘り。完全乾燥前に収穫" },
+  ginger:       { n:"ショウガ",   e:"🫚", d:150,hd:60,  w:1, cat:"ショウガ科",hs:"葉が枯れ始めたら収穫。新生姜は8〜9月" },
+  azuki:        { n:"小豆",       e:"🫘", d:100, w:3, cat:"マメ科",   hs:"さやが黄褐色になり乾燥してきたら",            events:["開花","さや形成","収穫"], maturity:{early:90,mid:100,late:115} },
   // ─── キク科 ───
-  lettuce:      { n:"レタス",     e:"🥬", d:55,  w:1, cat:"キク科",    baseTemp:5,  gdd:350,  hs:"結球部を押して固くなったら",                  events:["結球開始","収穫"], maturity:{early:45,mid:55,late:70} },
+  lettuce:      { n:"レタス",     e:"🥬", d:55,  w:1, cat:"キク科",   hs:"結球部を押して固くなったら",                  events:["結球開始","収穫"], maturity:{early:45,mid:55,late:70} },
   // ─── セリ科 ───
-  carrot:       { n:"ニンジン",   e:"🥕", d:100,hd:30, w:2, cat:"セリ科",    baseTemp:5,  gdd:700,  hs:"根頭部の直径2.5〜3cm・根長12〜15cm",          events:["間引き完了","収穫"], maturity:{early:85,mid:100,late:120} },
+  carrot:       { n:"ニンジン",   e:"🥕", d:100, hd:30, w:2, cat:"セリ科",   hs:"根頭部の直径2.5〜3cm・根長12〜15cm",          events:["間引き完了","収穫"], maturity:{early:85,mid:100,late:120} },
   // ─── ヒガンバナ科 ───
-  onion:        { n:"タマネギ",   e:"🧅", d:210, w:4, cat:"ヒガンバナ科",baseTemp:5, gdd:1500, hs:"葉の80%が倒伏し始めてから1週間後",         events:["葉鞘肥大","倒伏開始","収穫"], maturity:{early:180,mid:210,late:240} },
-  leek:         { n:"ネギ",       e:"🌿", d:100, w:3, cat:"ヒガンバナ科",baseTemp:5, gdd:800,  hs:"白根部が20〜25cmになったら",               events:["土寄せ","収穫"], maturity:{early:85,mid:100,late:120} },
-  garlic:       { n:"ニンニク",   e:"🧄", d:240, w:4, cat:"ヒガンバナ科",baseTemp:5, gdd:1800, hs:"葉が半分枯れたら",                         events:["萌芽","スケープ発生","収穫"], maturity:{early:210,mid:240,late:270} },
+  onion:        { n:"タマネギ",   e:"🧅", d:210, w:4, cat:"ヒガンバナ科",hs:"葉の80%が倒伏し始めてから1週間後",         events:["葉鞘肥大","倒伏開始","収穫"], maturity:{early:180,mid:210,late:240} },
+  leek:         { n:"ネギ",       e:"🌿", d:100, w:3, cat:"ヒガンバナ科",hs:"白根部が20〜25cmになったら",               events:["土寄せ","収穫"], maturity:{early:85,mid:100,late:120} },
+  garlic:       { n:"ニンニク",   e:"🧄", d:240, w:4, cat:"ヒガンバナ科",hs:"葉が半分枯れたら",                         events:["萌芽","スケープ発生","収穫"], maturity:{early:210,mid:240,late:270} },
   // ─── ヤマノイモ科 ───
-  jinenjo:      { n:"自然薯",     e:"🌿", d:210, w:4, cat:"ヤマノイモ科",baseTemp:10,gdd:2000, hs:"葉が黄色くなり枯れ始めたら",              events:["萌芽","収穫"], maturity:{early:180,mid:210,late:240} },
+  jinenjo:      { n:"自然薯",     e:"🌿", d:210, w:4, cat:"ヤマノイモ科",hs:"葉が黄色くなり枯れ始めたら",              events:["萌芽","収穫"], maturity:{early:180,mid:210,late:240} },
   // ─── サトイモ科 ───
-  taro:         { n:"里芋",       e:"🥔", d:150, w:3, cat:"サトイモ科", baseTemp:13, gdd:1500, hs:"葉が黄化し始めたら・霜が降りる前に収穫",     events:["萌芽","増殖","収穫"], maturity:{early:130,mid:150,late:180} },
+  taro:         { n:"里芋",       e:"🥔", d:150, w:3, cat:"サトイモ科",hs:"葉が黄化し始めたら・霜が降りる前に収穫",     events:["萌芽","増殖","収穫"], maturity:{early:130,mid:150,late:180} },
   // ─── ヒルガオ科 ───
-  sweetpotato:  { n:"サツマイモ", e:"🍠", d:120, w:4, cat:"ヒルガオ科", baseTemp:15, gdd:1200, hs:"定植後120〜130日・試し掘りで確認",           events:["活着","収穫"], maturity:{early:110,mid:120,late:140} },
+  sweetpotato:  { n:"サツマイモ", e:"🍠", d:120, w:4, cat:"ヒルガオ科",hs:"定植後120〜130日・試し掘りで確認",           events:["活着","収穫"], maturity:{early:110,mid:120,late:140} },
   // ─── バラ科 ───
-  strawberry:   { n:"イチゴ",     e:"🍓", d:180,hd:60, w:1, cat:"バラ科",    baseTemp:5,  gdd:600,  hs:"果実全体が赤く着色しヘタが反り返ったら",      events:["開花","着果","収穫"], maturity:{early:160,mid:180,late:210} },
+  strawberry:   { n:"イチゴ",     e:"🍓", d:180, hd:60, w:1, cat:"バラ科",   hs:"果実全体が赤く着色しヘタが反り返ったら",      events:["開花","着果","収穫"], maturity:{early:160,mid:180,late:210} },
   // ─── アカザ科 ───
-  spinach:      { n:"ほうれん草", e:"🌿", d:40,  w:1, cat:"アカザ科",   baseTemp:5,  gdd:250,  hs:"草丈20〜25cm・本葉がしっかり展開したら",      events:["本葉展開","収穫"], maturity:{early:35,mid:40,late:50} },
+  spinach:      { n:"ほうれん草", e:"🌿", d:40,  w:1, cat:"アカザ科",  hs:"草丈20〜25cm・本葉がしっかり展開したら",      events:["本葉展開","収穫"], maturity:{early:35,mid:40,late:50} },
+  // ─── タデ科 ───
   // ─── オクラ（アオイ科）───
-  okra:         { n:"オクラ",     e:"🌿", d:60, hd:60, w:1, cat:"アオイ科",  baseTemp:13, gdd:600,  hs:"長さ7〜8cm・開花後4〜5日で収穫",              events:["開花","摘芯","収穫開始","収穫終了","異常発生"], maturity:{early:55,mid:60,late:70} },
+  okra:         { n:"オクラ",     e:"🌿", d:60, hd:60,  w:1, cat:"アオイ科",  hs:"長さ7〜8cm・開花後4〜5日で収穫",              events:["開花","摘芯","収穫開始","収穫終了","異常発生"], maturity:{early:55,mid:60,late:70} },
   // ─── 果樹（バラ科）───
-  apple:        { n:"リンゴ",     e:"🍎", d:150, w:5, cat:"果樹/バラ科", baseTemp:5,  gdd:1400, hs:"品種固有の色に着色し、甘みが出たら",        events:["開花","摘果","着色","収穫"], maturity:{early:120,mid:150,late:180}, fruit:true },
-  pear:         { n:"ナシ",       e:"🍐", d:140, w:5, cat:"果樹/バラ科", baseTemp:5,  gdd:1200, hs:"果皮が品種特有の色になり香りが出たら",       events:["開花","摘果","収穫"], maturity:{early:120,mid:140,late:160}, fruit:true },
-  peach:        { n:"モモ",       e:"🍑", d:100, w:4, cat:"果樹/バラ科", baseTemp:7,  gdd:900,  hs:"果皮が品種特有の色になり果肉が軟化したら",   events:["開花","摘果","収穫"], maturity:{early:80,mid:100,late:120}, fruit:true },
-  cherry:       { n:"サクランボ", e:"🍒", d:50,  w:3, cat:"果樹/バラ科", baseTemp:5,  gdd:400,  hs:"果皮が濃い赤色になり甘みが出たら",          events:["開花","収穫"], maturity:{early:40,mid:50,late:60}, fruit:true },
-  plum:         { n:"ウメ",       e:"🌸", d:90,  w:4, cat:"果樹/バラ科", baseTemp:5,  gdd:700,  hs:"梅酒用は青いうち・梅干し用は黄色くなったら",events:["開花","収穫"], maturity:{early:80,mid:90,late:100}, fruit:true },
+  apple:        { n:"リンゴ",     e:"🍎", d:150, w:5, cat:"果樹/バラ科",hs:"品種固有の色に着色し、甘みが出たら",        events:["開花","摘果","着色","収穫"], maturity:{early:120,mid:150,late:180}, fruit:true },
+  pear:         { n:"ナシ",       e:"🍐", d:140, w:5, cat:"果樹/バラ科",hs:"果皮が品種特有の色になり香りが出たら",       events:["開花","摘果","収穫"], maturity:{early:120,mid:140,late:160}, fruit:true },
+  peach:        { n:"モモ",       e:"🍑", d:100, w:4, cat:"果樹/バラ科",hs:"果皮が品種特有の色になり果肉が軟化したら",   events:["開花","摘果","収穫"], maturity:{early:80,mid:100,late:120}, fruit:true },
+  cherry:       { n:"サクランボ", e:"🍒", d:50,  w:3, cat:"果樹/バラ科",hs:"果皮が濃い赤色になり甘みが出たら",          events:["開花","収穫"], maturity:{early:40,mid:50,late:60}, fruit:true },
+  plum:         { n:"ウメ",       e:"🌸", d:90,  w:4, cat:"果樹/バラ科",hs:"梅酒用は青いうち・梅干し用は黄色くなったら",events:["開花","収穫"], maturity:{early:80,mid:90,late:100}, fruit:true },
   // ─── 果樹（ミカン科）───
-  mikan:        { n:"ミカン",     e:"🍊", d:180, w:5, cat:"果樹/ミカン科",baseTemp:13,gdd:1800, hs:"果皮がオレンジ色になり酸味が落ち着いたら",events:["開花","着果","収穫"], maturity:{early:160,mid:180,late:210}, fruit:true },
-  lemon:        { n:"レモン",     e:"🍋", d:180, w:5, cat:"果樹/ミカン科",baseTemp:13,gdd:1600, hs:"果皮が黄色くなったら",                     events:["開花","着果","収穫"], maturity:{early:160,mid:180,late:200}, fruit:true },
-  yuzu:         { n:"ユズ",       e:"🍋", d:180, w:5, cat:"果樹/ミカン科",baseTemp:10,gdd:1600, hs:"果皮が黄色くなったら",                     events:["開花","着果","収穫"], maturity:{early:160,mid:180,late:200}, fruit:true },
+  mikan:        { n:"ミカン",     e:"🍊", d:180, w:5, cat:"果樹/ミカン科",hs:"果皮がオレンジ色になり酸味が落ち着いたら",events:["開花","着果","収穫"], maturity:{early:160,mid:180,late:210}, fruit:true },
+  lemon:        { n:"レモン",     e:"🍋", d:180, w:5, cat:"果樹/ミカン科",hs:"果皮が黄色くなったら",                     events:["開花","着果","収穫"], maturity:{early:160,mid:180,late:200}, fruit:true },
+  yuzu:         { n:"ユズ",       e:"🍋", d:180, w:5, cat:"果樹/ミカン科",hs:"果皮が黄色くなったら",                     events:["開花","着果","収穫"], maturity:{early:160,mid:180,late:200}, fruit:true },
   // ─── 果樹（ブドウ科）───
-  grape:        { n:"ブドウ",     e:"🍇", d:120, w:4, cat:"果樹/ブドウ科",baseTemp:10,gdd:1200, hs:"果皮が品種の色になり糖度が上がったら",     events:["開花","摘粒","着色","収穫"], maturity:{early:100,mid:120,late:140}, fruit:true },
+  grape:        { n:"ブドウ",     e:"🍇", d:120, w:4, cat:"果樹/ブドウ科",hs:"果皮が品種の色になり糖度が上がったら",     events:["開花","摘粒","着色","収穫"], maturity:{early:100,mid:120,late:140}, fruit:true },
   // ─── 果樹（カキノキ科）───
-  persimmon:    { n:"カキ",       e:"🧡", d:180, w:5, cat:"果樹/カキノキ科",baseTemp:10,gdd:1800,hs:"果皮がオレンジ色になり渋が抜けたら",    events:["開花","着果","収穫"], maturity:{early:160,mid:180,late:200}, fruit:true },
+  persimmon:    { n:"カキ",       e:"🧡", d:180, w:5, cat:"果樹/カキノキ科",hs:"果皮がオレンジ色になり渋が抜けたら",    events:["開花","着果","収穫"], maturity:{early:160,mid:180,late:200}, fruit:true },
   // ─── 果樹（その他）───
-  blueberry:    { n:"ブルーベリー",e:"🫐", d:60,  w:3, cat:"果樹/ツツジ科",baseTemp:7, gdd:500,  hs:"果皮が濃い青紫色になり甘みが出たら",     events:["開花","着果","収穫"], maturity:{early:50,mid:60,late:75}, fruit:true },
-  fig:          { n:"イチジク",   e:"🍈", d:90,  w:3, cat:"果樹/クワ科", baseTemp:10, gdd:800,  hs:"果皮が品種の色になり果頂部が裂け始めたら",  events:["着果","収穫"], maturity:{early:80,mid:90,late:100}, fruit:true },
-  kiwi:         { n:"キウイ",     e:"🥝", d:180, w:4, cat:"果樹/マタタビ科",baseTemp:10,gdd:1600,hs:"果実が硬いまま収穫し追熟させる",        events:["開花","着果","収穫"], maturity:{early:160,mid:180,late:200}, fruit:true },
-  biwa:         { n:"ビワ",       e:"🍊", d:150, w:4, cat:"果樹/バラ科", baseTemp:10, gdd:1200, hs:"果皮がオレンジ色になり甘みが出たら",        events:["開花","着果","収穫"], maturity:{early:130,mid:150,late:170}, fruit:true },
+  blueberry:    { n:"ブルーベリー",e:"🫐", d:60,  w:3, cat:"果樹/ツツジ科",hs:"果皮が濃い青紫色になり甘みが出たら",     events:["開花","着果","収穫"], maturity:{early:50,mid:60,late:75}, fruit:true },
+  fig:          { n:"イチジク",   e:"🍈", d:90,  w:3, cat:"果樹/クワ科",hs:"果皮が品種の色になり果頂部が裂け始めたら",  events:["着果","収穫"], maturity:{early:80,mid:90,late:100}, fruit:true },
+  kiwi:         { n:"キウイ",     e:"🥝", d:180, w:4, cat:"果樹/マタタビ科",hs:"果実が硬いまま収穫し追熟させる",        events:["開花","着果","収穫"], maturity:{early:160,mid:180,late:200}, fruit:true },
+  biwa:         { n:"ビワ",       e:"🍊", d:150, w:4, cat:"果樹/バラ科",hs:"果皮がオレンジ色になり甘みが出たら",        events:["開花","着果","収穫"], maturity:{early:130,mid:150,late:170}, fruit:true },
 };
 
 // ─── 栽培ガイド: 今日やること推奨 ───────────────────────────
 
 // ─── 科別・連作障害DB ────────────────────────────────────────
-var FAMILY_DB={
+const FAMILY_DB={
   rice:"イネ科",wheat:"イネ科",corn:"イネ科",soba:"タデ科",tomato:"ナス科",
   cherry_tomato:"ナス科",eggplant:"ナス科",pepper:"ナス科",potato:"ナス科",cucumber:"ウリ科",
   zucchini:"ウリ科",pumpkin:"ウリ科",watermelon:"ウリ科",melon:"ウリ科",bitter_gourd:"ウリ科",
@@ -154,7 +151,7 @@ var FAMILY_DB={
   lemon:"ミカン科",yuzu:"ミカン科",grape:"ブドウ科",persimmon:"カキノキ科",blueberry:"ツツジ科",
   fig:"クワ科",kiwi:"マタタビ科",biwa:"バラ科",
 };
-var ROTATION_DB={
+const ROTATION_DB={
   // ─── ナス科（連作障害が出やすい）───
   tomato:      {years:4,ng:["ナス科"]},
   cherry_tomato:{years:4,ng:["ナス科"]},
@@ -219,24 +216,7 @@ var ROTATION_DB={
   kiwi:        {years:0,ng:[]},
   biwa:        {years:0,ng:[]},
 };
-// ★ TDZ防止：getFertScheduleより前に宣言
-// 施肥設計（10㎡あたりの目安）
-var getFertPlan = (cropType) => {
-  const plans = {
-    tomato:    {base:'元肥: 苦土石灰150g→1週間後 牛糞堆肥2kg 化成8-8-8150g', chase:'追肥: 2-3週ごと液肥または化成8-8-8 50g', note:'窒素過多に注意'},
-    eggplant:  {base:'元肥: 苦土石灰150g→1週間後 牛糞堆肥3kg 化成8-8-8 200g', chase:'追肥: 収穫始まったら2週ごと化成8-8-8 50g', note:'多肥を好む'},
-    cucumber:  {base:'元肥: 苦土石灰100g→1週間後 牛糞堆肥2kg 化成8-8-8 150g', chase:'追肥: 2週ごと化成8-8-8 50g', note:'窒素多め'},
-    pepper:    {base:'元肥: 苦土石灰150g→1週間後 牛糞堆肥2kg 化成8-8-8 150g', chase:'追肥: 3週ごと化成8-8-8 50g', note:''},
-    potato:    {base:'元肥: 苦土石灰不要(酸性好む) 牛糞堆肥2kg 化成8-8-8 150g', chase:'追肥: 芽かき後に1回 化成8-8-8 50g', note:'石灰はそうか病の原因'},
-    sweetpotato:{base:'元肥: 牛糞堆肥2kg のみ(肥料少なめ)', chase:'追肥: 基本不要', note:'肥料多いと葉ばかり茂る'},
-    onion:     {base:'元肥: 苦土石灰150g→1週間後 牛糞堆肥1kg 化成8-8-8 100g', chase:'追肥: 12月・2月に各50g', note:''},
-    carrot:    {base:'元肥: 苦土石灰100g→2週間後 牛糞堆肥1kg 化成8-8-8 100g', chase:'追肥: 本葉5枚ごろ化成8-8-8 50g', note:'石灰は早めに'},
-    cabbage:   {base:'元肥: 苦土石灰200g→1週間後 牛糞堆肥3kg 化成8-8-8 150g', chase:'追肥: 定植2・4週後に各50g', note:''},
-    broccoli:  {base:'元肥: 苦土石灰200g→1週間後 牛糞堆肥2kg 化成8-8-8 150g', chase:'追肥: 定植3週後 化成8-8-8 50g', note:''},
-    rice:      {base:'元肥: 牛糞堆肥3kg 化成(N:P:K=14:14:14)200g', chase:'追肥: 分けつ期・穂肥に各100g', note:''},
-    strawberry:{base:'元肥: 苦土石灰150g→2週間後 牛糞堆肥2kg 化成8-8-8 100g(Pリン多め)', chase:'追肥: 10月・2月・収穫後に各30g', note:'窒素控えめ'},
-  };
-var getFertSchedule=(cropType,plantTargetDate)=>{
+const getFertSchedule=(cropType,plantTargetDate)=>{
   if(!plantTargetDate)return null;
   const target=new Date(plantTargetDate);
   const fmt=d=>`${d.getMonth()+1}/${d.getDate()}`;
@@ -255,7 +235,7 @@ var getFertSchedule=(cropType,plantTargetDate)=>{
 
 // ─── 施肥ガイドDB (10㎡あたり・NPK8-8-8換算) ───────────────
 // 品目ごとの標準的な育苗日数（播種から定植まで・日）。育苗後定植の品目で定植予定の計算に使用
-var NURSERY_DAYS = {
+const NURSERY_DAYS = {
   tomato:50, cherry_tomato:50, eggplant:55, pepper:55, cucumber:30, zucchini:30, pumpkin:35, watermelon:35, melon:35, bitter_gourd:35, okra:30,
   cabbage:35, hakusai:30, broccoli:35, lettuce:30, leek:60,
   strawberry:30, edamame:25, green_bean:25,
@@ -263,7 +243,7 @@ var NURSERY_DAYS = {
 };
 
 // 品目ごとの標準的な追肥間隔（日）。リマインダーの次回予定計算に使用
-var FERT_INTERVAL = {
+const FERT_INTERVAL = {
   // 果菜類（長期収穫・多肥）は2週間ごと
   tomato:14, cherry_tomato:14, eggplant:14, pepper:14, cucumber:14, zucchini:18, pumpkin:21, watermelon:21, melon:21, bitter_gourd:14, okra:18, strawberry:21,
   // 葉茎菜（生育期間中1〜2回）
@@ -279,7 +259,7 @@ var FERT_INTERVAL = {
   apple:0, pear:0, peach:0, cherry:0, plum:0, mikan:0, lemon:0, yuzu:0, grape:0, persimmon:0, blueberry:0, fig:0, kiwi:0, biwa:0,
 };
 
-var FERT_GUIDE = {
+const FERT_GUIDE = {
   // ナス科
   tomato:      { base:"定植1週前: 苦土石灰150g→堆肥2kg→化成(8-8-8)150g", chase:[
     {timing:"第1花房着果後（花が咲いて2週間）",amt:"株元から20cm離して化成8-8-8 30g/株"},
@@ -475,7 +455,7 @@ var FERT_GUIDE = {
   ], tip:"摘果で大玉に。1花穂4〜5果に絞る" },
 };
 // ─────────────────────────────────────────────────────────────
-var CROP_TEMP = {
+const CROP_TEMP = {
   rice:[20,28],wheat:[10,20],corn:[20,30],soba:[15,22],
   tomato:[18,25],cherry_tomato:[18,25],eggplant:[20,30],pepper:[18,28],
   cucumber:[18,28],zucchini:[18,28],pumpkin:[18,28],watermelon:[20,30],
@@ -493,7 +473,7 @@ var CROP_TEMP = {
   parsley:[15,20],basil:[18,25]
 };
 
-var getRecommendedTasks = (crop, logs) => {
+const getRecommendedTasks = (crop, logs) => {
   const db = CDB[crop.type] || {};
   const today = new Date();
   const month = today.getMonth() + 1; // 1-12
@@ -583,13 +563,28 @@ var getRecommendedTasks = (crop, logs) => {
   return tasks.slice(0,3);
 };
 
-// getFertPlanは上部（getFertScheduleの直前）に移動済み
+// 施肥設計（10㎡あたりの目安）
+const getFertPlan = (cropType) => {
+  const plans = {
+    tomato:    {base:'元肥: 苦土石灰150g→1週間後 牛糞堆肥2kg 化成8-8-8150g', chase:'追肥: 2-3週ごと液肥または化成8-8-8 50g', note:'窒素過多に注意'},
+    eggplant:  {base:'元肥: 苦土石灰150g→1週間後 牛糞堆肥3kg 化成8-8-8 200g', chase:'追肥: 収穫始まったら2週ごと化成8-8-8 50g', note:'多肥を好む'},
+    cucumber:  {base:'元肥: 苦土石灰100g→1週間後 牛糞堆肥2kg 化成8-8-8 150g', chase:'追肥: 2週ごと化成8-8-8 50g', note:'窒素多め'},
+    pepper:    {base:'元肥: 苦土石灰150g→1週間後 牛糞堆肥2kg 化成8-8-8 150g', chase:'追肥: 3週ごと化成8-8-8 50g', note:''},
+    potato:    {base:'元肥: 苦土石灰不要(酸性好む) 牛糞堆肥2kg 化成8-8-8 150g', chase:'追肥: 芽かき後に1回 化成8-8-8 50g', note:'石灰はそうか病の原因'},
+    sweetpotato:{base:'元肥: 牛糞堆肥2kg のみ(肥料少なめ)', chase:'追肥: 基本不要', note:'肥料多いと葉ばかり茂る'},
+    onion:     {base:'元肥: 苦土石灰150g→1週間後 牛糞堆肥1kg 化成8-8-8 100g', chase:'追肥: 12月・2月に各50g', note:''},
+    carrot:    {base:'元肥: 苦土石灰100g→2週間後 牛糞堆肥1kg 化成8-8-8 100g', chase:'追肥: 本葉5枚ごろ化成8-8-8 50g', note:'石灰は早めに'},
+    cabbage:   {base:'元肥: 苦土石灰200g→1週間後 牛糞堆肥3kg 化成8-8-8 150g', chase:'追肥: 定植2・4週後に各50g', note:''},
+    broccoli:  {base:'元肥: 苦土石灰200g→1週間後 牛糞堆肥2kg 化成8-8-8 150g', chase:'追肥: 定植3週後 化成8-8-8 50g', note:''},
+    rice:      {base:'元肥: 牛糞堆肥3kg 化成(N:P:K=14:14:14)200g', chase:'追肥: 分けつ期・穂肥に各100g', note:''},
+    strawberry:{base:'元肥: 苦土石灰150g→2週間後 牛糞堆肥2kg 化成8-8-8 100g(Pリン多め)', chase:'追肥: 10月・2月・収穫後に各30g', note:'窒素控えめ'},
+  };
   return plans[cropType] || {base:'元肥: 苦土石灰100-150g(2週前)→牛糞堆肥2kg+化成8-8-8 100-150g', chase:'追肥: 2-4週ごと化成8-8-8 30-50g', note:''};
 };
 // ─────────────────────────────────────────────────────────────
 // 科別グループ化
-var CROP_CATS = ["イネ科","タデ科","ナス科","ウリ科","アブラナ科","マメ科","キク科","セリ科","ヒガンバナ科","ヤマノイモ科","サトイモ科","ヒルガオ科","バラ科","アカザ科","アオイ科","果樹/バラ科","果樹/ミカン科","果樹/ブドウ科","果樹/カキノキ科","果樹/ツツジ科","果樹/クワ科","果樹/マタタビ科"];
-var CROP_OPTIONS = [
+const CROP_CATS = ["イネ科","タデ科","ナス科","ウリ科","アブラナ科","マメ科","キク科","セリ科","ヒガンバナ科","ヤマノイモ科","サトイモ科","ヒルガオ科","バラ科","アカザ科","アオイ科","果樹/バラ科","果樹/ミカン科","果樹/ブドウ科","果樹/カキノキ科","果樹/ツツジ科","果樹/クワ科","果樹/マタタビ科"];
+const CROP_OPTIONS = [
   ...CROP_CATS.flatMap(cat=>{
     const items = Object.entries(CDB).filter(([,v])=>v.cat===cat);
     if(!items.length) return [];
@@ -601,7 +596,7 @@ var CROP_OPTIONS = [
   { value:"__group__custom", label:"── カスタム ──", disabled:true },
   { value:"custom", label:"✏️ カスタム（自由入力）" },
 ];
-var WORK_TYPES = [
+const WORK_TYPES = [
   { value:"sow",        label:"播種",         tag:"green",  icon:"🌰" },
   { value:"germinated", label:"発芽確認",     tag:"green",  icon:"🌱" },
   { value:"transplant", label:"定植",         tag:"purple", icon:"🪴" },
@@ -619,7 +614,7 @@ var WORK_TYPES = [
   { value:"other",      label:"その他",       tag:"gray",   icon:"✏️" },
 ];
 
-var WORK = {
+const WORK = {
     sow:{label:'播種',tag:'green',icon:'🌱'},
     germinated:{label:'発芽確認',tag:'green',icon:'🌿'},
     transplant:{label:'定植',tag:'purple',icon:'🪴'},
@@ -637,7 +632,7 @@ var WORK = {
     check:{label:'見回り',tag:'gray',icon:'👁️'},
     other:{label:'その他',tag:'gray',icon:'📝'},
   };
-var COST_CATS = [
+const COST_CATS = [
   // 農業経営の主要費目（青色申告帳簿に対応）
   { value:"seed",      label:"🌱 種苗費",           group:"農業費用" },
   { value:"fert",      label:"🌿 肥料費",            group:"農業費用" },
@@ -657,7 +652,7 @@ var COST_CATS = [
   { value:"vehicle",   label:"🚗 車両費（按分）",     group:"農業費用" },
   { value:"other",     label:"📦 その他農業費用",    group:"農業費用" },
 ];
-var INCOME_CATS = [
+const INCOME_CATS = [
   { value:"inc_crop",    label:"🌾 農産物売上",      group:"農業収入" },
   { value:"inc_direct",  label:"🤝 直売・直販",      group:"農業収入" },
   { value:"inc_process", label:"🍱 加工品売上",      group:"農業収入" },
@@ -665,24 +660,24 @@ var INCOME_CATS = [
   { value:"inc_subsidy", label:"💴 補助金・交付金",  group:"農業収入" },
   { value:"inc_other",   label:"📦 その他収入",      group:"農業収入" },
 ];
-var isIncome = (cat) => cat && cat.startsWith("inc_");
+const isIncome = (cat) => cat && cat.startsWith("inc_");
 // 品目表示名ヘルパー（カスタム品目対応）
-var getCropDisplayName = (c) => {
+const getCropDisplayName = (c) => {
   if(!c) return "";
   const db = CDB[c.type]||{};
   const name = c.type==="custom" ? (c.customName||"カスタム") : (db.n||c.type);
   return (db.e||"🌱")+" "+name+(c.variety?" ("+c.variety+")":"");
 };
-var getCropName = (c) => {
+const getCropName = (c) => {
   if(!c) return "";
   const db = CDB[c.type]||{};
   return c.type==="custom" ? (c.customName||"カスタム") : (db.n||c.type);
 };
 
 // 科の表示順（この順に並べる）
-var CAT_ORDER = ["イネ科","タデ科","ナス科","ウリ科","アブラナ科","マメ科","キク科","セリ科","ヒガンバナ科","ショウガ科","サトイモ科","バラ科","アカザ科","シソ科","ヤマノイモ科","その他"];
+const CAT_ORDER = ["イネ科","タデ科","ナス科","ウリ科","アブラナ科","マメ科","キク科","セリ科","ヒガンバナ科","ショウガ科","サトイモ科","バラ科","アカザ科","シソ科","ヤマノイモ科","その他"];
 // 品目リストを科でグループ化してソートするヘルパー
-var sortCropsByFamily = (cropList) => {
+const sortCropsByFamily = (cropList) => {
   return [...cropList].sort((a, b) => {
     const catA = (CDB[a.type]||{}).cat||"その他";
     const catB = (CDB[b.type]||{}).cat||"その他";
@@ -694,7 +689,7 @@ var sortCropsByFamily = (cropList) => {
   });
 };
 // 品目optionsを生成するヘルパー（ホームのcropGroupsと同じ品目タイプ順グループ化）
-var makeCropOptions = (cropList, emptyLabel="（選択）") => {
+const makeCropOptions = (cropList, emptyLabel="（選択）") => {
   const opts = [{value:"",label:emptyLabel}];
   const groups = {};
   const order = [];
@@ -714,11 +709,11 @@ var makeCropOptions = (cropList, emptyLabel="（選択）") => {
   return opts;
 };
 
-var WX_MAP = [[0,"☀️","快晴"],[3,"⛅","晴れ時々くもり"],[48,"🌫️","霧"],[67,"🌧️","雨"],[77,"❄️","雪"],[82,"🌦️","にわか雨"],[99,"⛈️","雷雨"]];
-var wxIcon  = c => { for(const [t,i] of WX_MAP) if(c<=t) return i; return "⛈️"; };
-var wxLabel = c => { for(const [t,,l] of WX_MAP) if(c<=t) return l; return "雷雨"; };
+const WX_MAP = [[0,"☀️","快晴"],[3,"⛅","晴れ時々くもり"],[48,"🌫️","霧"],[67,"🌧️","雨"],[77,"❄️","雪"],[82,"🌦️","にわか雨"],[99,"⛈️","雷雨"]];
+const wxIcon  = c => { for(const [t,i] of WX_MAP) if(c<=t) return i; return "⛈️"; };
+const wxLabel = c => { for(const [t,,l] of WX_MAP) if(c<=t) return l; return "雷雨"; };
 // weathercode を作業記録の天気カテゴリに変換
-var wxToCategory = (code, windspeed) => {
+const wxToCategory = (code, windspeed) => {
   if(windspeed!==undefined && windspeed>=10) return "windy"; // 強風(10m/s以上)
   if(code===0||code===1) return "sunny";
   if(code===2||code===3||code===45||code===48) return "cloudy";
@@ -726,7 +721,7 @@ var wxToCategory = (code, windspeed) => {
   if((code>=51&&code<=67)||(code>=80&&code<=99)) return "rainy";
   return "cloudy";
 };
-var wxAdvice= w => {
+const wxAdvice= w => {
   if(!w) return "取得中…";
   if(w.rain>3)  return "☔ 雨天：水やり不要";
   if(w.temp>33) return "高温注意：朝夕に水やりを";
@@ -736,7 +731,7 @@ var wxAdvice= w => {
 };
 
 // Utils
-// uid0は冒頭で宣言済み（TDZ防止）
+const uid0     = () => crypto.randomUUID();
 
 // 単位を正規化して同じ単位に変換（masterUnit基準）
 function normalizeToMasterUnit(value, valueUnit, masterUnit) {
@@ -753,13 +748,13 @@ function normalizeToMasterUnit(value, valueUnit, masterUnit) {
   // 変換できない場合はそのまま（単位が一致しないケース）
   return v;
 }
-var daysSince= d => d ? Math.floor((Date.now()-new Date(d))/86400000) : 0;
-var fmtDate  = d => (d.getMonth()+1)+"/"+d.getDate();
-var todayStr = () => {const d=new Date();const y=d.getFullYear();const m=String(d.getMonth()+1).padStart(2,"0");const day=String(d.getDate()).padStart(2,"0");return y+"-"+m+"-"+day;};
-var nowTime  = () => new Date().toTimeString().slice(0,5);
+const daysSince= d => d ? Math.floor((Date.now()-new Date(d))/86400000) : 0;
+const fmtDate  = d => (d.getMonth()+1)+"/"+d.getDate();
+const todayStr = () => {const d=new Date();const y=d.getFullYear();const m=String(d.getMonth()+1).padStart(2,"0");const day=String(d.getDate()).padStart(2,"0");return y+"-"+m+"-"+day;};
+const nowTime  = () => new Date().toTimeString().slice(0,5);
 // 日付表記の統一: fmtYMD="2026/5/20", fmtMD="5/20"（先頭ゼロなし・スラッシュ区切り）
-var fmtYMD = d => { if(!d) return ""; const dt=new Date(d); if(isNaN(dt)) return ""; return dt.getFullYear()+"/"+(dt.getMonth()+1)+"/"+dt.getDate(); };
-var fmtMD  = d => { if(!d) return ""; const dt=new Date(d); if(isNaN(dt)) return ""; return (dt.getMonth()+1)+"/"+dt.getDate(); };
+const fmtYMD = d => { if(!d) return ""; const dt=new Date(d); if(isNaN(dt)) return ""; return dt.getFullYear()+"/"+(dt.getMonth()+1)+"/"+dt.getDate(); };
+const fmtMD  = d => { if(!d) return ""; const dt=new Date(d); if(isNaN(dt)) return ""; return (dt.getMonth()+1)+"/"+dt.getDate(); };
 
 async function extractExifDate(file) {
   return new Promise(resolve => {
@@ -1021,11 +1016,11 @@ async function fetchWeather(addr) {
   window._glbNext=function(){_i=(_i+1)%_p.length;upd();};
 })();
 
-var G="#2d6a3f", G2="#419857", G3="#d4edda", GD="#1a4028";
-var ALERT="#c0392b", WARN="#e67e22", INFO="#2471a3";
-var TX3="#a09070", BD="#e0d9ce";
-var TAG_COLORS = { blue:{background:"#dbeafe",color:"#1e40af"}, green:{background:"#d1fae5",color:"#065f46"}, yellow:{background:"#fef3c7",color:"#92400e"}, pink:{background:"#fce7f3",color:"#831843"}, purple:{background:"#ede9fe",color:"#5b21b6"}, gray:{background:"#f3f4f6",color:"#374151"} };
-var S = {
+const G="#2d6a3f", G2="#419857", G3="#d4edda", GD="#1a4028";
+const ALERT="#c0392b", WARN="#e67e22", INFO="#2471a3";
+const TX3="#a09070", BD="#e0d9ce";
+const TAG_COLORS = { blue:{background:"#dbeafe",color:"#1e40af"}, green:{background:"#d1fae5",color:"#065f46"}, yellow:{background:"#fef3c7",color:"#92400e"}, pink:{background:"#fce7f3",color:"#831843"}, purple:{background:"#ede9fe",color:"#5b21b6"}, gray:{background:"#f3f4f6",color:"#374151"} };
+const S = {
   app:   { display:"flex", flexDirection:"column", height:"100dvh", maxWidth:960, margin:"0 auto", background:"#f8f5ef", boxShadow:"0 0 40px rgba(0,0,0,.15)" },
   topbar:{ background:G, color:"#fff", height:52, display:"flex", alignItems:"center", padding:"0 13px", gap:8, flexShrink:0 },
   logo:  { fontFamily:"'Shippori Mincho B1',serif", fontSize:"1.1rem", letterSpacing:".06em" },
@@ -1050,7 +1045,7 @@ var S = {
   li:    { display:"flex", alignItems:"center", gap:8, padding:"9px 11px", background:"#fff", border:"1px solid "+BD, borderRadius:10, marginBottom:6 },
   tag:   { display:"inline-flex", alignItems:"center", gap:2, fontSize:".66rem", fontWeight:700, padding:"2px 6px", borderRadius:999, whiteSpace:"nowrap" },
 };
-var globalCss = `
+const globalCss = `
   @import url('https://fonts.googleapis.com/css2?family=BIZ+UDGothic:wght@400;700&family=Shippori+Mincho+B1:wght@400;700&display=swap');
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
   html,body{font-family:'BIZ UDGothic',sans-serif;background:#f8f5ef;color:#1c1a14;overflow-x:hidden;max-width:100%;}
@@ -1076,22 +1071,11 @@ var globalCss = `
   .no-select{user-select:none;-webkit-user-select:none;}
 `;
 
-// ============================================================
-// MAIN APP
-// ============================================================
-var SCREENS = [
-  { key:"home",    label:"ホーム",     icon:"🏡" },
-  { key:"fields",  label:"圃場・品目", icon:"🌾" },
-  { key:"plot",    label:"栽培計画",   icon:"📅" },
-  { key:"cost",    label:"費用・資材", icon:"💰" },
-  { key:"report",  label:"レポート",   icon:"📊" },
-];
-
 // Small components
 function Tag({ type, children }) { return <span style={{...S.tag,...(TAG_COLORS[type]||TAG_COLORS.gray)}}>{children}</span>; }
 
 // 農業用語辞典
-var AGRI_TERMS = {
+const AGRI_TERMS = {
   "播種":       {read:"はしゅ",           desc:"種を土にまくこと"},
   "直まき":     {read:"じかまき",         desc:"畑やプランターに直接種をまくこと"},
   "育苗":       {read:"いくびょう",       desc:"種から苗を育てること。本畑に植える前の準備"},
@@ -1440,7 +1424,7 @@ function LoginScreen() {
       <div style={{background:"#fff",borderRadius:20,padding:"28px 24px",maxWidth:360,width:"100%",textAlign:"center",boxShadow:"0 8px 40px rgba(0,0,0,.3)"}}>
         <div style={{fontSize:"2.2rem",marginBottom:6}}>🌾</div>
         <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:"1.3rem",color:G,marginBottom:4}}>サクメモ</div>
-        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v1.8.66</span></div>
+        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v1.8.68</span></div>
         {linkErr&&<div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:8,padding:"10px 12px",marginBottom:16,fontSize:".78rem",color:"#856404",textAlign:"left"}}>{linkErr}</div>}
 
 
@@ -1500,7 +1484,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.66</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.68</div>
       </div>
     </div>
   );
@@ -3520,7 +3504,7 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
   const [costTab,   setCostTab]  = useState("expense");
   const [sortKey, setSortKey] = useState("date");
   const [sortAsc, setSortAsc] = useState(false);
-  const [mainTab, setMainTab] = useState("cost"); // "cost" | "master"
+  const [mainTab, setMainTab] = useState("cost"); // "cost" | "master" | "ledger"
   const [srchM, setSrchM] = useState("");
   const [mItem,  setMItem]  = useState(null);
   const [mBuy,   setMBuy]   = useState(null);
@@ -4100,76 +4084,49 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
       const pestByCrop = {};
       pestLogs.forEach(l => {
         const crop = crops.find(c => c.id === l.cropId);
-        const cropKey = crop ? getCropName(crop) : "不明";
-        if (!pestByCrop[cropKey]) pestByCrop[cropKey] = { crop, logs: [] };
-        pestByCrop[cropKey].logs.push(l);
+        const key = crop ? getCropName(crop) : "不明";
+        if (!pestByCrop[key]) pestByCrop[key] = { crop, logs: [] };
+        pestByCrop[key].logs.push(l);
       });
-      // 品目ごとにシートを作成
-      Object.entries(pestByCrop).forEach(([cropName, { crop, logs: cLogs }]) => {
-        const sheetName = ("農薬記録_" + cropName).slice(0, 31); // Excel31文字制限
-        const cropObj = crop ? crop : {};
-        const field = cropObj.fieldIdx !== undefined ? fields[cropObj.fieldIdx] : null;
-        // ヘッダー部（提出用フォーマット）
-        const pestRows = [
-          ["農 薬 使 用 記 録 簿（ファーマーズマーケット用）"],
-          [],
-          ["会員番号", "", "作物名", cropName, "品種名", cropObj.variety||""],
-          ["栽培者名", "", "播種日", cropObj.sowDate||"", "定植日", cropObj.plantDate||""],
-          ["圃場名", field ? field.name||"" : "", "収穫開始予定日", "", "栽培面積", cropObj.cultivationArea||cropObj.ridgeLen||""],
-          ["栽培条件", cropObj.cultivationType==="pot"?"ポット・コンテナ":(cropObj.growEnv==="greenhouse"?"ハウス":"露地")],
-          [],
-          [],
-          // 列ヘッダー行（Row9相当）
-          ["防除月日", "使用薬剤名（商品名）", "", "", "", "", "剤型", "", "", "倍率", "散布量", "農協チェック欄（適用）", "倍率確認", "使用量確認", "収穫前日数", "使用回数"],
-          ["月", "日", "薬剤名", "登録番号", "適用病害虫名", "希釈倍数", "乳剤", "水和剤", "フロアブル", "倍率", "散布量(L/kg)", "適用", "倍率", "使用量", "収穫前日数", "使用回数"],
-          [],
-        ];
-        // データ行（防除記録）
-        cLogs.sort((a,b)=>(a.date||"").localeCompare(b.date||"")).forEach(l => {
-          const d = l.date ? new Date(l.date) : null;
-          const month = d ? (d.getMonth()+1) : "";
-          const day   = d ? d.getDate() : "";
-          const pestType = l.pestName ? (pestMs.find(p=>p.name===l.pestName)||{}).type||"" : "";
-          const isEmulsion = pestType.includes("乳剤") ? "○" : "";
-          const isWettable = pestType.includes("水和剤") ? "○" : "";
-          const isFlowable = (pestType.includes("フロアブル")||pestType.includes("水溶剤")) ? "○" : "";
-          const sprayAmt = [l.pestSprayAmt, l.pestUnit].filter(Boolean).join("");
-          pestRows.push([
-            month, day,
-            l.pestName||"",
-            "",  // 登録番号（手入力）
-            l.pestTarget||"",
-            l.pestDil||"",
-            isEmulsion, isWettable, isFlowable,
-            l.pestDil||"",
-            sprayAmt,
-            "", "", "", "", ""  // 農協チェック欄（手入力）
-          ]);
+      if(Object.keys(pestByCrop).length > 0){
+        Object.entries(pestByCrop).forEach(([cName, { crop: cropObj, logs: cLogs }]) => {
+          const sheetName = ("農薬記録_" + cName).slice(0, 31); // Excel31文字制限
+          const field = cropObj && cropObj.fieldIdx !== undefined ? fields[cropObj.fieldIdx] : null;
+          const pestRows = [
+            ["農 薬 使 用 記 録 簿（ファーマーズマーケット用）"],
+            [],
+            ["会員番号", "", "作物名", cName, "品種名", (cropObj&&cropObj.variety)||""],
+            ["栽培者名", "", "播種日", (cropObj&&cropObj.sowDate)||"", "定植日", (cropObj&&cropObj.plantDate)||""],
+            ["圃場名", field?field.name||"":"", "収穫開始予定日", "", "栽培面積", (cropObj&&(cropObj.cultivationArea||cropObj.ridgeLen))||""],
+            ["栽培条件", cropObj&&cropObj.cultivationType==="pot"?"ポット・コンテナ":(cropObj&&cropObj.growEnv==="greenhouse"?"ハウス":"露地")],
+            [],
+            [],
+            ["防除月日", "使用薬剤名（商品名）", "", "", "", "", "剤型", "", "", "倍率", "散布量", "農協チェック欄（適用）", "倍率確認", "使用量確認", "収穫前日数", "使用回数"],
+            ["月", "日", "薬剤名", "登録番号", "適用病害虫名", "希釈倍数", "乳剤", "水和剤", "フロアブル", "倍率", "散布量(L/kg)", "適用", "倍率", "使用量", "収穫前日数", "使用回数"],
+            [],
+          ];
+          cLogs.sort((a,b)=>(a.date||"").localeCompare(b.date||"")).forEach(l => {
+            const d = l.date ? new Date(l.date) : null;
+            const m = d ? (d.getMonth()+1) : "";
+            const day = d ? d.getDate() : "";
+            const pm = pestMs.find(p=>p.name===l.pestName)||{};
+            const t = pm.type||"";
+            pestRows.push([
+              m, day, l.pestName||"", "", l.pestTarget||"", l.pestDil||"",
+              t.includes("乳剤")?"○":"", t.includes("水和剤")?"○":"",
+              (t.includes("フロアブル")||t.includes("水溶剤"))?"○":"",
+              l.pestDil||"",
+              [l.pestSprayAmt,l.pestUnit].filter(Boolean).join(""),
+              "","","","",""
+            ]);
+          });
+          for(let i=0;i<5;i++) pestRows.push(["","","","","","","","","","","","","","","",""]);
+          const wsPest = XLSX.utils.aoa_to_sheet(pestRows);
+          wsPest["!cols"]=[{wch:5},{wch:5},{wch:20},{wch:12},{wch:18},{wch:8},{wch:6},{wch:6},{wch:8},{wch:6},{wch:10},{wch:8},{wch:6},{wch:8},{wch:10},{wch:8}];
+          XLSX.utils.book_append_sheet(wb, wsPest, sheetName);
         });
-        // 空行を数行追加（記入余白）
-        for(let i=0;i<5;i++) pestRows.push(["","","","","","","","","","","","","","","",""]);
-
-        const wsPest = XLSX.utils.aoa_to_sheet(pestRows);
-        wsPest["!cols"] = [{wch:5},{wch:5},{wch:20},{wch:12},{wch:18},{wch:8},{wch:6},{wch:6},{wch:8},{wch:6},{wch:10},{wch:8},{wch:6},{wch:8},{wch:10},{wch:8}];
-        // タイトル行をマージ
-        wsPest["!merges"] = [
-          {s:{r:0,c:0},e:{r:0,c:15}},   // タイトル
-          {s:{r:2,c:0},e:{r:2,c:1}},     // 会員番号label
-          {s:{r:3,c:0},e:{r:3,c:1}},     // 栽培者名label
-          {s:{r:4,c:0},e:{r:4,c:1}},     // 圃場名label
-          {s:{r:5,c:0},e:{r:5,c:1}},     // 栽培条件label
-          {s:{r:5,c:2},e:{r:5,c:15}},    // 栽培条件value
-        ];
-        XLSX.utils.book_append_sheet(wb, wsPest, sheetName);
-      });
-      // 農薬ログが0件の場合も空のサマリーシートを追加
-      if(Object.keys(pestByCrop).length === 0) {
-        const emptyPest = [
-          ["農 薬 使 用 記 録 簿（ファーマーズマーケット用）"],
-          [],
-          ["※ 農薬使用記録（防除作業）がまだ登録されていません。作業記録から「防除」を記録してください。"],
-        ];
-        const wsEmpty = XLSX.utils.aoa_to_sheet(emptyPest);
+      } else {
+        const wsEmpty = XLSX.utils.aoa_to_sheet([["農薬使用記録簿"],["防除作業の記録がまだありません"]]);
         XLSX.utils.book_append_sheet(wb, wsEmpty, "農薬記録（未登録）");
       }
 
@@ -4189,7 +4146,6 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
     }
   };
 
-  // 農薬使用記録簿専用Excelエクスポート
   const exportPestRecord = () => {
     const doPestExport = (XLSX) => {
       const wb = XLSX.utils.book_new();
@@ -4197,7 +4153,7 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
       const pestByCrop = {};
       pestLogs.forEach(l => {
         const crop = crops.find(c => c.id === l.cropId);
-        const key = crop ? getCropName(crop) : "不明";
+        const key = crop ? cropName(crop.id) : "不明";
         if (!pestByCrop[key]) pestByCrop[key] = { crop, logs: [] };
         pestByCrop[key].logs.push(l);
       });
@@ -4206,13 +4162,11 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
         return;
       }
       Object.entries(pestByCrop).forEach(([cName, { crop: cropObj, logs: cLogs }]) => {
-        const sheetName = ("農薬記録_" + cName).slice(0, 31);
-        const field = cropObj && cropObj.fieldIdx !== undefined ? fields[cropObj.fieldIdx] : null;
-        const rows = [
-          ["農 薬 使 用 記 録 簿（ファーマーズマーケット用）"],
-          [],
-          ["会員番号", "", "作物名", cName, "品種名", (cropObj&&cropObj.variety)||""],
-          ["栽培者名", "", "播種日", (cropObj&&cropObj.sowDate)||"", "定植日", (cropObj&&cropObj.plantDate)||""],
+        const sheetName = ("農薬記録_" + cName.replace(/[^\w぀-鿿]/g,"")).slice(0, 31);
+        const field = fields[cropObj?.fieldIdx];
+        const pestRows = [
+          ["農薬使用記録簿"],
+          ["作物名", cName, "", "生産者", user?.email||"", "", "農薬帳簿"],
           ["圃場名", field?field.name||"":"", "収穫開始予定日", "", "栽培面積", (cropObj&&(cropObj.cultivationArea||cropObj.ridgeLen))||""],
           ["栽培条件", cropObj&&cropObj.cultivationType==="pot"?"ポット・コンテナ":(cropObj&&cropObj.growEnv==="greenhouse"?"ハウス":"露地")],
           [],
@@ -4225,9 +4179,9 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
           const d = l.date ? new Date(l.date) : null;
           const m = d ? (d.getMonth()+1) : "";
           const day = d ? d.getDate() : "";
-          const pm = pestMs.find(p=>p.name===l.pestName)||{};
-          const t = pm.type||"";
-          rows.push([
+          const pm2 = pestMs.find(p=>p.name===l.pestName)||{};
+          const t = pm2.type||"";
+          pestRows.push([
             m, day, l.pestName||"", "", l.pestTarget||"", l.pestDil||"",
             t.includes("乳剤")?"○":"", t.includes("水和剤")?"○":"",
             (t.includes("フロアブル")||t.includes("水溶剤"))?"○":"",
@@ -4236,15 +4190,10 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
             "","","","",""
           ]);
         });
-        for(let i=0;i<5;i++) rows.push(["","","","","","","","","","","","","","","",""]);
-        const ws = XLSX.utils.aoa_to_sheet(rows);
-        ws["!cols"]=[{wch:5},{wch:5},{wch:20},{wch:12},{wch:18},{wch:8},{wch:6},{wch:6},{wch:8},{wch:6},{wch:10},{wch:8},{wch:6},{wch:8},{wch:10},{wch:8}];
-        ws["!merges"]=[
-          {s:{r:0,c:0},e:{r:0,c:15}},
-          {s:{r:2,c:0},e:{r:2,c:1}},{s:{r:3,c:0},e:{r:3,c:1}},
-          {s:{r:4,c:0},e:{r:4,c:1}},{s:{r:5,c:0},e:{r:5,c:1}},{s:{r:5,c:2},e:{r:5,c:15}},
-        ];
-        XLSX.utils.book_append_sheet(wb, ws, sheetName);
+        for(let i=0;i<5;i++) pestRows.push(["","","","","","","","","","","","","","","",""]);
+        const wsPest = XLSX.utils.aoa_to_sheet(pestRows);
+        wsPest["!cols"]=[{wch:5},{wch:5},{wch:20},{wch:12},{wch:18},{wch:8},{wch:6},{wch:6},{wch:8},{wch:6},{wch:10},{wch:8},{wch:6},{wch:8},{wch:10},{wch:8}];
+        XLSX.utils.book_append_sheet(wb, wsPest, sheetName);
       });
       const fname = "サクメモ_農薬使用記録簿_"+new Date().getFullYear()+".xlsx";
       XLSX.writeFile(wb, fname);
@@ -4259,6 +4208,16 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
       document.head.appendChild(s);
     }
   };
+  // ─── 申告確認タブ用ヘルパーコンポーネント ───
+  const LedgerRow = ({label,val,sub,bold})=>(
+    <div style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid "+BD,fontSize:".82rem",fontWeight:bold?700:400}}>
+      <span style={{color:sub?TX3:"inherit",paddingLeft:sub?12:0}}>{label}</span>
+      <span style={{fontWeight:bold?700:400}}>{typeof val==="number"?val.toLocaleString()+"円":val}</span>
+    </div>
+  );
+  const LedgerSecHd = ({label})=>(
+    <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".86rem",color:"#5c3d1e",margin:"14px 0 6px"}}>{label}</div>
+  );
 
   const cropName = id => {if(!id)return"共通";const c=crops.find(x=>x.id===id);if(!c)return"共通";const db=CDB[c.type]||{};return(db.e||"🌱")+" "+(db.n||c.type)+(c.variety?"("+c.variety+")":"");};
   const thStyle = k => ({fontSize:".64rem",color:sortKey===k?G:TX3,cursor:"pointer",userSelect:"none",padding:"2px 4px",fontWeight:sortKey===k?700:400});
@@ -4268,11 +4227,11 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
 
       {/* メインタブ */}
       <div style={{display:"flex",gap:0,marginBottom:10,borderRadius:8,overflow:"hidden",border:"1px solid #e0d9ce"}}>
-        {[["cost","💰 費用・収入"],["master","📦 資材登録"],["ledger","📋 申告確認"]].map(([v,l])=>(
+        {[["cost","💰 費用・収入"],["master","📦 資材登録"],["ledger","📊 申告確認"]].map(([v,l])=>(
           <button key={v} onClick={()=>setMainTab(v)}
             style={{flex:1,padding:"8px 0",border:"none",background:mainTab===v?G:"#fff",
               color:mainTab===v?"#fff":"#888",fontWeight:mainTab===v?700:400,
-              fontSize:".75rem",cursor:"pointer",fontFamily:"inherit"}}>{l}</button>
+              fontSize:".8rem",cursor:"pointer",fontFamily:"inherit"}}>{l}</button>
         ))}
       </div>
 
@@ -4283,7 +4242,7 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
           <button style={{...S.secBtn,background:"#8B6914",color:"#fff"}} onClick={()=>setMCost({...empty})}>＋ 費用</button>
           <button style={{...S.secBtn,background:"#2E7D32",color:"#fff"}} onClick={()=>setMCost({...empty,cat:"inc_crop"})}>＋ 収入</button>
           <button style={{...S.secBtn,background:"#1565C0",color:"#fff"}} onClick={exportLedger}>📥 帳簿Excel</button>
-          <button style={{...S.secBtn,background:"#6a1f1f",color:"#fff"}} onClick={exportPestRecord}>🌿 農薬記録書</button>
+          <button style={{...S.secBtn,background:"#2E7D32",color:"#fff"}} onClick={exportPestRecord}>🌿 農薬記録書</button>
         </div>
       </div>
 
@@ -4426,7 +4385,6 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
                   textDecoration:isCancelled?"line-through":"none"}}>
                   {inc?"+":"-"}{Math.round(parseFloat(c.amt)||0).toLocaleString()}
                 </div>
-                {(()=>{const rates=getApportionRates();const r=rates[c.id];if(r!==undefined&&r<100&&!inc){return <div style={{fontSize:".6rem",color:"#795548"}}>✂️ 農業{r}%: {Math.round((parseFloat(c.amt)||0)*r/100).toLocaleString()}円</div>;}return null;})()}
               </div>
               {/* 複製ボタンのみ */}
               <div style={{display:"flex",justifyContent:"center"}}>
@@ -4439,226 +4397,6 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
         })}
       </div>
       </>}
-
-      {mainTab==="ledger"&&(()=>{
-        // ── 申告確認タブ（貸借対照表・損益を画面で確認） ──
-        const KAIGYO_DATE = "2026-08-18";
-        const today10 = new Date().toISOString().slice(0,10);
-        const exportYear = new Date().getFullYear();
-
-        // 収支集計
-        const allCosts = costs.filter(c=>!c.cancelled);
-        const preOpen  = allCosts.filter(c=>c.date && c.date < KAIGYO_DATE && !isIncome(c.cat));
-        const postOpen = allCosts.filter(c=>(!c.date||c.date>=KAIGYO_DATE) && !isIncome(c.cat));
-        const incomeAll = allCosts.filter(c=>isIncome(c.cat));
-        const kaiTotal = preOpen.reduce((s,c)=>s+(Number(c.amt)||0),0);
-        const kaiShokyaku = Math.round(kaiTotal/5*4.5/12);
-        const expTotal = postOpen.reduce((s,c)=>s+(Number(c.amt)||0),0);
-        const incTotal2 = incomeAll.reduce((s,c)=>s+(Number(c.amt)||0),0);
-        const agriIncome2 = incTotal2 - expTotal - kaiShokyaku;
-        const agriIncomeAfterControl = Math.max(0, agriIncome2 - 650000);
-
-        // 農機具帳簿価額
-        let eqBookVal = 0;
-        const eqRows = [];
-        equips.forEach(eq=>{
-          const price = parseFloat(eq.price)||0;
-          const depYrs = parseInt(eq.depYears)||0;
-          const buyYear = eq.date ? new Date(eq.date).getFullYear() : exportYear;
-          if(price<=0) return;
-          if(depYrs<=0){
-            const bv = buyYear===exportYear ? price : 0;
-            eqBookVal += bv;
-            eqRows.push({name:eq.name,price,depYrs:0,bv,note:"少額一括"});
-          } else {
-            const elapsed = exportYear - buyYear;
-            const annual = Math.round(price/depYrs);
-            const acc = Math.min(price-1, annual*elapsed);
-            const bv = elapsed>=depYrs ? 1 : Math.max(1, price-acc);
-            eqBookVal += bv;
-            eqRows.push({name:eq.name,price,depYrs,bv,note:elapsed+"年経過 定額法"});
-          }
-        });
-
-        // 現金・預金推計
-        const cashIn = incomeAll.filter(c=>!c.payMethod||c.payMethod==="現金").reduce((s,c)=>s+(Number(c.amt)||0),0);
-        const cashOut2 = postOpen.filter(c=>!c.payMethod||c.payMethod==="現金").reduce((s,c)=>s+(Number(c.amt)||0),0);
-        const cashEst2 = Math.max(0, cashIn-cashOut2);
-        const bankIn = incomeAll.filter(c=>c.payMethod==="振込").reduce((s,c)=>s+(Number(c.amt)||0),0);
-        const bankOut2 = postOpen.filter(c=>c.payMethod==="振込").reduce((s,c)=>s+(Number(c.amt)||0),0);
-        const cardPaid2 = postOpen.filter(c=>c.payDate&&c.payDate<=today10&&cards&&cards.some&&cards.some(cd=>cd.name===c.payMethod)).reduce((s,c)=>s+(Number(c.amt)||0),0);
-        const bankEst2 = Math.max(0, bankIn-bankOut2-cardPaid2);
-
-        // カード未払金
-        const cardPay2 = {};
-        postOpen.filter(c=>c.payMethod&&cards&&cards.some&&cards.some(cd=>cd.name===c.payMethod)).forEach(c=>{
-          const isPaid = c.payDate && c.payDate<=today10;
-          if(!isPaid) cardPay2[c.payMethod]=(cardPay2[c.payMethod]||0)+(Number(c.amt)||0);
-        });
-        const totalCard2 = Object.values(cardPay2).reduce((s,v)=>s+v,0);
-
-        // 元入金
-        let motoire2 = 0;
-        try { const st=JSON.parse(localStorage.getItem("motoire")||"{}"); motoire2=st[String(exportYear-1)]||0; } catch {}
-        const kaimiShokyaku2 = Math.max(0, kaiTotal-kaiShokyaku);
-
-        const Row = ({label,value,note,bold,color,indent}) => (
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",padding:"5px 0",borderBottom:"1px solid #f0ece4",paddingLeft:indent?16:0}}>
-            <span style={{fontSize:".78rem",color:color||"#5a5040",fontWeight:bold?700:400}}>{label}</span>
-            <div style={{textAlign:"right"}}>
-              <span style={{fontSize:bold?".9rem":".82rem",fontWeight:bold?700:400,color:color||"#1c1a14",fontVariantNumeric:"tabular-nums"}}>
-                {typeof value==="number"?value.toLocaleString()+"円":value}
-              </span>
-              {note&&<span style={{fontSize:".68rem",color:TX3,marginLeft:4}}>{note}</span>}
-            </div>
-          </div>
-        );
-        const SecHd = ({children,color}) => (
-          <div style={{background:color||"#f5f0e8",padding:"5px 8px",marginTop:12,marginBottom:4,borderRadius:6,fontSize:".72rem",fontWeight:700,color:color?"#fff":"#5a5040",letterSpacing:.5}}>
-            {children}
-          </div>
-        );
-
-        return (
-          <div>
-            <div style={{...S.sec,marginBottom:8}}>
-              <span style={{fontFamily:"'Shippori Mincho B1',serif"}}>📋 申告確認</span>
-              <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
-                <button style={{...S.secBtn,background:"#1565C0",color:"#fff"}} onClick={exportLedger}>📥 帳簿Excel出力</button>
-                <button style={{...S.secBtn,background:"#6a1f1f",color:"#fff"}} onClick={exportPestRecord}>🌿 農薬記録書Excel</button>
-              </div>
-            </div>
-            <div style={{fontSize:".7rem",color:"#856404",background:"#fffde7",border:"1px solid #f9e4a0",borderRadius:8,padding:"7px 10px",marginBottom:10}}>
-              ★は自動計算　※は推計値（実際の残高と照合してください）　Excelに出力して申告書に転記してください
-            </div>
-
-            {/* ── 損益計算書 ── */}
-            <div style={S.card}>
-              <div style={{fontFamily:"'Shippori Mincho B1',serif",fontWeight:700,fontSize:".88rem",marginBottom:8}}>損益計算書　{exportYear}年分</div>
-              <SecHd color="#2E7D32">農業収入</SecHd>
-              {incomeAll.filter(c=>c.cat==="inc_crop").length>0&&<Row label="農産物売上" value={incomeAll.filter(c=>c.cat==="inc_crop").reduce((s,c)=>s+(Number(c.amt)||0),0)} indent/>}
-              {incomeAll.filter(c=>c.cat==="inc_misc").length>0&&<Row label="農業雑収入" value={incomeAll.filter(c=>c.cat==="inc_misc").reduce((s,c)=>s+(Number(c.amt)||0),0)} indent/>}
-              {incomeAll.filter(c=>c.cat==="inc_subsidy").length>0&&<Row label="補助金・交付金" value={incomeAll.filter(c=>c.cat==="inc_subsidy").reduce((s,c)=>s+(Number(c.amt)||0),0)} indent/>}
-              <Row label="農業収入合計 ★" value={incTotal2} bold color="#2E7D32"/>
-
-              <SecHd color="#8B6914">農業費用</SecHd>
-              <Row label="開業後経費計" value={expTotal} indent/>
-              {kaiShokyaku>0&&<Row label={"開業費償却（"+exportYear+"年分）"} value={kaiShokyaku} indent note="★自動"/>}
-              <Row label="農業費用合計 ★" value={expTotal+kaiShokyaku} bold color="#8B6914"/>
-
-              <div style={{height:8}}/>
-              <Row label="農業所得（税引前）★" value={agriIncome2} bold color={agriIncome2>=0?"#1565C0":"#c62828"}/>
-              <Row label="青色申告特別控除" value={-650000} note="65万円"/>
-              <Row label="控除後農業所得 ★" value={agriIncomeAfterControl} bold color={agriIncomeAfterControl>0?"#1565C0":"#5a5040"}/>
-            </div>
-
-            {/* ── 貸借対照表 ── */}
-            <div style={{...S.card,marginTop:10}}>
-              <div style={{fontFamily:"'Shippori Mincho B1',serif",fontWeight:700,fontSize:".88rem",marginBottom:8}}>貸借対照表　{exportYear}年12月31日現在</div>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-                {/* 資産 */}
-                <div>
-                  <SecHd>資産の部</SecHd>
-                  <Row label="現金 ※推計" value={cashEst2} note="要確認"/>
-                  <Row label="普通預金 ※推計" value={bankEst2} note="要確認"/>
-                  <Row label="農機具・設備 ★" value={eqBookVal} note="帳簿価額"/>
-                  {kaimiShokyaku2>0&&<Row label="開業費（未償却）★" value={kaimiShokyaku2}/>}
-                  <Row label="資産合計（参考）" value={cashEst2+bankEst2+eqBookVal+kaimiShokyaku2} bold/>
-                </div>
-                {/* 負債・資本 */}
-                <div>
-                  <SecHd color="#5b21b6">負債・資本の部</SecHd>
-                  {totalCard2>0&&<Row label="未払金（カード）★" value={totalCard2}/>}
-                  <Row label="元入金（前年繰越）★" value={motoire2}/>
-                  <Row label="当期農業所得 ★" value={Math.max(0,agriIncome2)}/>
-                  <Row label="負債・資本合計（参考）" value={totalCard2+motoire2+Math.max(0,agriIncome2)} bold/>
-                </div>
-              </div>
-              <div style={{marginTop:8,fontSize:".7rem",color:TX3}}>
-                ※ 現金・預金は収支から推計した参考値です。実際の通帳残高・手元現金と照合してください。
-              </div>
-            </div>
-
-            {/* ── 農機具明細 ── */}
-            {eqRows.length>0&&(
-              <div style={{...S.card,marginTop:10}}>
-                <div style={{fontWeight:700,fontSize:".82rem",marginBottom:8}}>🏗️ 農機具・設備　帳簿価額明細 ★</div>
-                {eqRows.map((r,i)=>(
-                  <div key={i} style={{display:"flex",justifyContent:"space-between",padding:"4px 0",borderBottom:"1px solid #f0ece4",fontSize:".76rem"}}>
-                    <span style={{color:"#5a5040"}}>{r.name}</span>
-                    <div style={{textAlign:"right"}}>
-                      <span style={{color:"#1c1a14",fontVariantNumeric:"tabular-nums"}}>{r.bv.toLocaleString()}円</span>
-                      <span style={{color:TX3,marginLeft:4,fontSize:".68rem"}}>{r.depYrs>0?`耐用${r.depYrs}年・`+r.note:r.note}</span>
-                    </div>
-                  </div>
-                ))}
-                <div style={{textAlign:"right",paddingTop:4,fontWeight:700,fontSize:".82rem"}}>合計：{eqBookVal.toLocaleString()}円</div>
-              </div>
-            )}
-
-            {/* ── 来年の元入金 ── */}
-            <div style={{...S.card,marginTop:10}}>
-              <div style={{fontWeight:700,fontSize:".82rem",marginBottom:6}}>📅 来年の元入金（引き継ぎ）</div>
-              <Row label="今年の元入金" value={motoire2}/>
-              <Row label="当期農業所得（控除前）" value={Math.max(0,agriIncome2)}/>
-              <Row label="来年の元入金（★推計）" value={motoire2+Math.max(0,agriIncome2)} bold color="#1565C0" note="Excelを出力すると自動保存"/>
-              <div style={{marginTop:6,fontSize:".7rem",color:TX3,lineHeight:1.5}}>
-                ※ 帳簿Excelを出力すると来年の元入金が自動保存されます。生活費の引き出し（事業主貸）がある場合は差し引いて手修正してください。
-              </div>
-              <div style={{marginTop:8,display:"flex",gap:6,flexWrap:"wrap"}}>
-                <button onClick={()=>{
-                  const nextMoto = motoire2+Math.max(0,agriIncome2);
-                  try {
-                    const st=JSON.parse(localStorage.getItem("motoire")||"{}");
-                    st[String(exportYear)]=nextMoto;
-                    localStorage.setItem("motoire",JSON.stringify(st));
-                    showToast("来年の元入金を保存しました："+nextMoto.toLocaleString()+"円");
-                  } catch { showToast("保存に失敗しました"); }
-                }} style={{...S.secBtn,background:"#1565C0",color:"#fff"}}>
-                  💾 来年の元入金を保存
-                </button>
-                <button onClick={()=>{
-                  const v = window.prompt("元入金を手入力（円）:", String(motoire2+Math.max(0,agriIncome2)));
-                  if(v===null) return;
-                  const n = parseInt(v.replace(/,/g,""))||0;
-                  try {
-                    const st=JSON.parse(localStorage.getItem("motoire")||"{}");
-                    st[String(exportYear)]=n;
-                    localStorage.setItem("motoire",JSON.stringify(st));
-                    showToast("来年の元入金を保存しました："+n.toLocaleString()+"円");
-                  } catch {}
-                }} style={{...S.secBtn}}>✏️ 手動で設定</button>
-              </div>
-            </div>
-
-            {/* ── 按分マスター管理 ── */}
-            <div style={{...S.card,marginTop:10}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-                <div style={{fontWeight:700,fontSize:".82rem"}}>✂️ 家事按分マスター</div>
-                <button style={{...S.secBtn,background:"#5b21b6",color:"#fff",fontSize:".72rem"}}
-                  onClick={()=>setMApportion({id:"",name:"",rate:80,reason:"",cat:"fuel"})}>＋ 追加</button>
-              </div>
-              <div style={{fontSize:".7rem",color:TX3,marginBottom:8,lineHeight:1.5}}>
-                車両・通信費など農業と家事で共用するものの農業割合を登録しておくと、費用入力時に素早く選択できます。
-              </div>
-              {apportionMasters.length===0&&<div style={{color:TX3,fontSize:".78rem",textAlign:"center",padding:"10px 0"}}>按分マスターがまだ登録されていません</div>}
-              {apportionMasters.map((m,i)=>(
-                <div key={m.id} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 0",borderBottom:"1px solid #f0ece4"}}>
-                  <div style={{flex:1,minWidth:0}}>
-                    <div style={{fontWeight:700,fontSize:".8rem"}}>{m.name}</div>
-                    <div style={{fontSize:".68rem",color:TX3}}>{m.reason}</div>
-                  </div>
-                  <div style={{background:"#FFF3E0",color:"#E65100",borderRadius:6,padding:"2px 8px",fontSize:".76rem",fontWeight:700,flexShrink:0}}>
-                    農業{m.rate}%
-                  </div>
-                  <button onClick={()=>setMApportion({...m})} style={{...S.secBtn,padding:"3px 8px",fontSize:".7rem"}}>編集</button>
-                  <button onClick={()=>{if(window.confirm("削除しますか？")){setApportionMasters(apportionMasters.filter((_,j)=>j!==i));}}} style={{...S.secBtn,padding:"3px 8px",fontSize:".7rem",background:"#fce4ec",color:"#c62828"}}>削除</button>
-                </div>
-              ))}
-            </div>
-          </div>
-        );
-      })()}
 
       {mainTab==="master"&&<>
         <div style={{display:"flex",gap:6,marginBottom:12,overflowX:"auto",WebkitOverflowScrolling:"touch"}}>
@@ -4790,29 +4528,6 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
         </ModalWithSave>
       </>}
 
-      {/* 按分マスター編集モーダル */}
-      <ModalWithSave open={!!mApportion} title={mApportion?.id?"按分マスターを編集":"按分マスターを追加"} onSave={()=>{
-        if(!mApportion.name){showToast("名前を入力してください");return;}
-        const item = {...mApportion, id:mApportion.id||uid0(), rate:Number(mApportion.rate)||80};
-        const n = mApportion.id ? apportionMasters.map(x=>x.id===item.id?item:x) : [...apportionMasters, item];
-        setApportionMasters(n);
-        setMApportion(null);
-        showToast("按分マスターを保存しました");
-      }} onClose={()=>setMApportion(null)}>
-        {mApportion&&<>
-          <FG label="名前"><Inp value={mApportion.name||""} onChange={v=>setMApportion({...mApportion,name:v})} placeholder="例：軽トラック"/></FG>
-          <FG label="農業割合（%）">
-            <CalcInp value={String(mApportion.rate||80)} onChange={v=>setMApportion({...mApportion,rate:Number(v)||80})} placeholder="例：80"/>
-            <div style={{fontSize:".72rem",color:TX3,marginTop:3}}>家事割合: {100-(Number(mApportion.rate)||80)}%</div>
-          </FG>
-          <FG label="理由・メモ"><Inp value={mApportion.reason||""} onChange={v=>setMApportion({...mApportion,reason:v})} placeholder="例：農作業8割・私用2割"/></FG>
-          <FG label="デフォルト費目">
-            <Sel value={mApportion.cat||"fuel"} onChange={v=>setMApportion({...mApportion,cat:v})} options={COST_CATS.map(c=>({value:c.value,label:c.label}))}/>
-          </FG>
-          {mApportion.id&&<button onClick={()=>{if(window.confirm("削除しますか？")){setApportionMasters(apportionMasters.filter(x=>x.id!==mApportion.id));setMApportion(null);showToast("削除しました");}}} style={{...S.btn,...S.btnR,marginTop:8}}>削除</button>}
-        </>}
-      </ModalWithSave>
-
       {/* 入力/編集モーダル */}
       <ModalWithSave open={!!mCost} title={mCost?.id?(isIncome(mCost.cat)?"収入を編集":"費用を編集"):(isIncome(mCost?.cat)?"収入を追加":"費用を追加")}
         onSave={sv} onClose={()=>setMCost(null)}>
@@ -4885,37 +4600,156 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
               </div>}
             </>}
           </>}
-          {/* 家事按分 */}
-          {!isIncome(mCost.cat)&&<FG label="家事按分（農業割合）">
-            <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
-              <Sel value={mCost.apportionId||""} onChange={v=>{
-                if(v==="_custom"){
-                  setMCost({...mCost, apportionId:"_custom", apportionRate:mCost.apportionRate||80});
-                } else {
-                  const m = apportionMasters.find(x=>x.id===v);
-                  setMCost({...mCost, apportionId:v, apportionRate: m?m.rate:100});
-                }
-              }} options={[
-                {value:"", label:"按分なし（100%農業費）"},
-                ...apportionMasters.map(m=>({value:m.id, label:m.name+"（農業"+m.rate+"%）"})),
-                {value:"_custom", label:"カスタム（直接入力）"},
-              ]}/>
-              {mCost.apportionId==="_custom"&&<CalcInp value={String(mCost.apportionRate||80)} onChange={v=>setMCost({...mCost,apportionRate:Number(v)||80})} placeholder="例：70"/>}
-            </div>
-            {((mCost.apportionRate||0)<100 && (mCost.apportionId||"")!=="")&&<div style={{fontSize:".78rem",background:"#FFF8E1",border:"1px solid #FFE082",borderRadius:8,padding:"6px 10px",marginTop:4,color:"#5c3d1e"}}>
-              農業費用：{Math.round((Number(mCost.amt)||0)*(mCost.apportionRate||100)/100).toLocaleString()}円
-              　（家事費：{Math.round((Number(mCost.amt)||0)*(100-(mCost.apportionRate||100))/100).toLocaleString()}円）
-            </div>}
-          </FG>}
+          {!isIncome(mCost.cat)&&mCost.cat==="vehicle"&&(
+            <FG label="家事按分（農業割合）">
+              <div style={{display:"flex",alignItems:"center",gap:8}}>
+                <input type="range" min={0} max={100} step={5}
+                  value={mCost.apportionRate!==undefined?mCost.apportionRate:100}
+                  onChange={e=>setMCost({...mCost,apportionRate:Number(e.target.value)})}
+                  style={{flex:1}}/>
+                <span style={{minWidth:36,textAlign:"right",fontWeight:700,color:G}}>
+                  {mCost.apportionRate!==undefined?mCost.apportionRate:100}%
+                </span>
+              </div>
+              <div style={{fontSize:".7rem",color:TX3,marginTop:2}}>
+                農業利用割合。100%=全額農業費用、50%=半分を農業費用として計上
+              </div>
+            </FG>
+          )}
+          {!isIncome(mCost.cat)&&mCost.cat!=="vehicle"&&(()=>{
+            const am = apportionMasters.find(a=>a.cat===mCost.cat);
+            if(!am) return null;
+            const rate = mCost.apportionRate!==undefined?mCost.apportionRate:am.defaultRate||100;
+            return <FG label={"家事按分（農業割合）- "+am.name}>
+              <div style={{display:"flex",alignItems:"center",gap:8}}>
+                <input type="range" min={0} max={100} step={5}
+                  value={rate}
+                  onChange={e=>setMCost({...mCost,apportionRate:Number(e.target.value)})}
+                  style={{flex:1}}/>
+                <span style={{minWidth:36,textAlign:"right",fontWeight:700,color:G}}>{rate}%</span>
+              </div>
+            </FG>;
+          })()}
           <FG label="メモ"><Inp value={mCost.note||""} onChange={v=>setMCost({...mCost,note:v})} placeholder="購入先・領収書番号など"/></FG>
           {mCost.id&&<div style={{display:"flex",gap:6,marginTop:8}}>
             {!mCost.cancelled
               ? <button onClick={()=>{if(window.confirm("この取引を取り消しますか？（記録は残ります）")){const updated={...mCost,cancelled:true};setCosts(costs.map(x=>x.id===mCost.id?updated:x),updated);setMCost(null);showToast("取り消しました");}}} style={{...S.btn,background:"#FFF3E0",color:"#E65100",border:"1px solid #FFCC80",flex:1}}>取消</button>
               : <button onClick={()=>{if(window.confirm("取り消しを復活させますか？")){const updated={...mCost,cancelled:false};setCosts(costs.map(x=>x.id===mCost.id?updated:x),updated);setMCost(null);showToast("復活しました");}}} style={{...S.btn,background:"#E8F5E9",color:"#2E7D32",border:"1px solid #A5D6A7",flex:1}}>復活</button>}
-            <button onClick={()=>{if(window.confirm("削除しますか？")){const n=costs.filter(x=>x.id!==mCost.id);setCosts(n);setMCost(null);showToast("削除しました");try{const r=getApportionRates();delete r[mCost.id];localStorage.setItem("apportionRates",JSON.stringify(r));}catch{}}}} style={{...S.btn,...S.btnR,flex:1}}>削除</button>
+            <button onClick={()=>{if(window.confirm("削除しますか？")){const n=costs.filter(x=>x.id!==mCost.id);try{const r=getApportionRates();delete r[mCost.id];localStorage.setItem("apportionRates",JSON.stringify(r));}catch{}setCosts(n);setMCost(null);showToast("削除しました");}}} style={{...S.btn,...S.btnR,flex:1}}>削除</button>
           </div>}
         </>}
       </ModalWithSave>
+
+      {/* 按分マスター編集モーダル */}
+      <ModalWithSave open={!!mApportion} title={mApportion?.id?"按分マスターを編集":"按分マスターを追加"} onClose={()=>setMApportion(null)}
+        onSave={()=>{
+          if(!mApportion.name){showToast("名称を入力してください");return;}
+          const list = mApportion.id
+            ? apportionMasters.map(a=>a.id===mApportion.id?{...mApportion}:a)
+            : [...apportionMasters,{...mApportion,id:uid0()}];
+          setApportionMasters(list);
+          setMApportion(null);
+          showToast("保存しました");
+        }}>
+        {mApportion&&<>
+          <FG label="名称"><Inp value={mApportion.name||""} onChange={v=>setMApportion({...mApportion,name:v})} placeholder="例：電気代"/></FG>
+          <FG label="費用カテゴリ">
+            <Sel value={mApportion.cat||""} onChange={v=>setMApportion({...mApportion,cat:v})}
+              options={[{value:"",label:"（選択）"},...COST_CATS.filter(c=>!c.value.startsWith("inc_")).map(c=>({value:c.value,label:c.label}))]}/>
+          </FG>
+          <FG label="デフォルト農業割合（%）">
+            <div style={{display:"flex",alignItems:"center",gap:8}}>
+              <input type="range" min={0} max={100} step={5}
+                value={mApportion.defaultRate!==undefined?mApportion.defaultRate:50}
+                onChange={e=>setMApportion({...mApportion,defaultRate:Number(e.target.value)})}
+                style={{flex:1}}/>
+              <span style={{minWidth:36,textAlign:"right",fontWeight:700,color:G}}>
+                {mApportion.defaultRate!==undefined?mApportion.defaultRate:50}%
+              </span>
+            </div>
+          </FG>
+          {mApportion.id&&<button onClick={()=>{if(window.confirm("削除しますか？")){setApportionMasters(apportionMasters.filter(a=>a.id!==mApportion.id));setMApportion(null);showToast("削除しました");}}} style={{...S.btn,...S.btnR,marginTop:8}}>削除</button>}
+        </>}
+      </ModalWithSave>
+
+      {/* 申告確認タブ */}
+      {mainTab==="ledger"&&(()=>{
+        const LedgerRowInner = LedgerRow; const LedgerSecHdInner = LedgerSecHd;
+        const Row = LedgerRowInner; const SecHd = LedgerSecHdInner;
+        const yr = selYear;
+        const yrCosts = costs.filter(c=>!c.cancelled&&(c.date||"").startsWith(String(yr)));
+        const incTotal = yrCosts.filter(c=>isIncome(c.cat)).reduce((s,c)=>s+(Number(c.amt)||0),0);
+        const expTotal = yrCosts.filter(c=>!isIncome(c.cat)).reduce((s,c)=>s+getAgriAmt(c),0);
+        const profit = incTotal - expTotal;
+        // 農機具帳簿価額
+        const thisYear = new Date().getFullYear();
+        let equipBookVal = 0;
+        (equips||[]).forEach(eq=>{
+          if(!eq.price||!eq.purchaseDate) return;
+          const py = new Date(eq.purchaseDate).getFullYear();
+          const life = eq.usefulLife||5;
+          const annual = Math.floor(eq.price / life);
+          const dep = Math.min(eq.price, annual*(thisYear-py));
+          equipBookVal += Math.max(0, eq.price - dep);
+        });
+        const motoire = (()=>{try{return Number(localStorage.getItem("motoire")||"0");}catch{return 0;}})();
+        const nextMotoire = motoire + profit;
+        return (<>
+          <div style={S.card}>
+            <SecHd label="📊 損益計算書（"+yr+"年）"/>
+            <Row label="農業収入合計" val={incTotal} bold/>
+            <Row label="農業費用合計（按分後）" val={expTotal}/>
+            <Row label={profit>=0?"農業所得（利益）":"農業損失"} val={profit} bold/>
+            {profit>0&&<>
+              <Row label="青色申告特別控除（65万円）" val={-Math.min(650000,profit)} sub/>
+              <Row label="課税農業所得（概算）" val={Math.max(0,profit-650000)} bold/>
+            </>}
+          </div>
+          <div style={S.card}>
+            <SecHd label="📋 貸借対照表（簡易）"/>
+            <div style={{fontSize:".76rem",color:TX3,marginBottom:6}}>資産の部</div>
+            <Row label="農機具帳簿価額（自動計算）" val={equipBookVal} sub/>
+            <div style={{fontSize:".76rem",color:TX3,margin:"8px 0 6px"}}>負債・資本の部</div>
+            <Row label="元入金（期首）" val={motoire} sub/>
+            <Row label="農業所得（当期）" val={profit} sub/>
+            <Row label="元入金（期末・来年への繰越）" val={nextMotoire} bold/>
+            <button style={{...S.btn,...S.btnS,marginTop:8}} onClick={()=>{
+              try{localStorage.setItem("motoire",String(nextMotoire));showToast("来年の元入金を保存しました（"+nextMotoire.toLocaleString()+"円）");}catch{}
+            }}>来年の元入金として保存</button>
+          </div>
+          {(equips||[]).length>0&&(
+            <div style={S.card}>
+              <SecHd label="🚜 農機具明細"/>
+              {(equips||[]).map((eq,i)=>{
+                if(!eq.price||!eq.purchaseDate) return null;
+                const py = new Date(eq.purchaseDate).getFullYear();
+                const life = eq.usefulLife||5;
+                const annual = Math.floor(eq.price/life);
+                const dep = Math.min(eq.price, annual*(thisYear-py));
+                const book = Math.max(0, eq.price-dep);
+                return <div key={i} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid "+BD,fontSize:".78rem"}}>
+                  <span>{eq.name||"農機具"}</span>
+                  <span>{book.toLocaleString()}円（取得価額{(eq.price||0).toLocaleString()}円・{thisYear-py}年経過）</span>
+                </div>;
+              })}
+            </div>
+          )}
+          <div style={S.card}>
+            <SecHd label="⚖️ 按分マスター管理"/>
+            <div style={{fontSize:".72rem",color:TX3,marginBottom:8}}>費用カテゴリごとに農業利用割合を管理します。費用入力時に自動適用されます。</div>
+            {apportionMasters.map(a=>(
+              <div key={a.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 0",borderBottom:"1px solid "+BD}}>
+                <div>
+                  <div style={{fontSize:".82rem",fontWeight:700}}>{a.name}</div>
+                  <div style={{fontSize:".7rem",color:TX3}}>{COST_CATS.find(c=>c.value===a.cat)?.label||a.cat} · 農業{a.defaultRate||50}%</div>
+                </div>
+                <button style={{...S.btn,...S.btnS,fontSize:".74rem"}} onClick={()=>setMApportion({...a})}>編集</button>
+              </div>
+            ))}
+            <button style={{...S.btn,...S.btnG,marginTop:8}} onClick={()=>setMApportion({name:"",cat:"",defaultRate:50})}>＋ 按分マスターを追加</button>
+          </div>
+        </>);
+      })()}
     </div>
   );
 }
@@ -6614,6 +6448,17 @@ function SettingsScreen({ showToast, user, uid, signOut, fields, crops, logs, fe
   );
 }
 
+// ============================================================
+// MAIN APP
+// ============================================================
+const SCREENS = [
+  { key:"home",    label:"ホーム",     icon:"🏡" },
+  { key:"fields",  label:"圃場・品目", icon:"🌾" },
+  { key:"plot",    label:"栽培計画",   icon:"📅" },
+  { key:"cost",    label:"費用・資材", icon:"💰" },
+  { key:"report",  label:"レポート",   icon:"📊" },
+];
+
 export default function App() {
   const [user,     setUser]    = useState(null);
   const [offline, setOffline] = useState(typeof navigator!=="undefined" && !navigator.onLine);
@@ -6628,23 +6473,6 @@ export default function App() {
   // ブラウザタイトル設定
   useEffect(()=>{ document.title = "サクメモ - 作物の記録アプリ"; },[]);
 
-  // ─── グローバルキーボードショートカット ───
-  // 作業記録モーダル用のESC / Shift+S
-  useEffect(()=>{
-    if(!logModal) return;
-    const onKey = e => {
-      if(e.key==="Escape"){ e.preventDefault(); setLogModal(false); return; }
-      if(e.shiftKey && e.key==="S"){
-        const tag = document.activeElement?.tagName;
-        if(tag==="INPUT"||tag==="TEXTAREA"||tag==="SELECT") return;
-        e.preventDefault();
-        if(logScreenSaveRef.current) logScreenSaveRef.current();
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return ()=>window.removeEventListener("keydown", onKey);
-  },[logModal]);
-
 
 
   // Twemoji: 絵文字をTwitter統一デザインに（render後に適用）
@@ -6653,38 +6481,6 @@ export default function App() {
   const [scr,      setScr]     = useState("home");
   // 画面切替時にスクロール位置を先頭へ（描画前に同期実行してちらつきを防ぐ）
   useLayoutEffect(()=>{ const el=document.getElementById("main-scroll"); if(el) el.scrollTop=0; window.scrollTo(0,0); },[scr]);
-
-  // ─── グローバルキーボードショートカット（画面切替等） ───
-  // モーダルが開いているときは除外（各モーダル側で処理）
-  useEffect(()=>{
-    if(!user) return;
-    const onKey = e => {
-      if(logModal) return; // 作業記録モーダル優先
-      const tag = document.activeElement?.tagName;
-      const isInput = tag==="INPUT"||tag==="TEXTAREA"||tag==="SELECT";
-      if(isInput) return; // テキスト入力中は無効
-      // Alt+数字 → 画面切替
-      if(e.altKey && !e.shiftKey && !e.ctrlKey && !e.metaKey){
-        const SCREENS_MAP = {"1":"home","2":"fields","3":"plot","4":"cost","5":"report"};
-        if(SCREENS_MAP[e.key]){ e.preventDefault(); setScr(SCREENS_MAP[e.key]); return; }
-        if(e.key==="0"||e.key===","){ e.preventDefault(); setScr("settings"); return; }
-      }
-      // N → 新規作業記録
-      if(!e.altKey&&!e.ctrlKey&&!e.metaKey&&!e.shiftKey && e.key==="n"){
-        e.preventDefault(); setInitLog(null); setLogModal(true); return;
-      }
-      // H → ホームへ
-      if(!e.altKey&&!e.ctrlKey&&!e.metaKey&&!e.shiftKey && e.key==="h"){
-        e.preventDefault(); setScr("home"); return;
-      }
-      // トップへスクロール（T）
-      if(!e.altKey&&!e.ctrlKey&&!e.metaKey&&!e.shiftKey && e.key==="t"){
-        const el=document.getElementById("main-scroll"); if(el) el.scrollTo({top:0,behavior:"smooth"});
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return ()=>window.removeEventListener("keydown", onKey);
-  },[user, logModal, scr]);
   const [fields,   setFieldsR] = useState([]);
   const [crops,    setCropsR]  = useState([]);
   const [logs,     setLogsR]   = useState([]);
@@ -6766,6 +6562,34 @@ export default function App() {
   const [pendingEditCrop, setPendingEditCrop] = useState(null); // ホームから品目編集
   const toastTimer = useRef(null);
   const showToast = msg => { setToast(msg); clearTimeout(toastTimer.current); toastTimer.current=setTimeout(()=>setToast(""),2400); };
+
+  // グローバルキーボードショートカット
+  useEffect(()=>{
+    const onKey = e => {
+      // モーダルやテキスト入力中は無視
+      const tag = document.activeElement?.tagName;
+      if(tag==="INPUT"||tag==="TEXTAREA"||tag==="SELECT") return;
+      if(logModal) {
+        // logModal内: ESC→閉じる, Shift+S→保存
+        if(e.key==="Escape"){ e.preventDefault(); setLogModal(false); return; }
+        if(e.shiftKey&&e.key==="S"){ e.preventDefault(); logScreenSaveRef.current&&logScreenSaveRef.current(); return; }
+        return;
+      }
+      // グローバル画面切替
+      if(e.key==="n"||e.key==="N"){ e.preventDefault(); setInitLog(null);setLogModal(true); return; }
+      if(e.key==="h"||e.key==="H"){ e.preventDefault(); setScr("home"); return; }
+      if(e.key==="t"||e.key==="T"){ e.preventDefault(); setScr("log"); return; }
+      if(e.altKey){
+        if(e.key==="1"){ e.preventDefault(); setScr("home"); return; }
+        if(e.key==="2"){ e.preventDefault(); setScr("fields"); return; }
+        if(e.key==="3"){ e.preventDefault(); setScr("log"); return; }
+        if(e.key==="4"){ e.preventDefault(); setScr("cost"); return; }
+        if(e.key==="5"){ e.preventDefault(); setScr("report"); return; }
+      }
+    };
+    window.addEventListener("keydown",onKey);
+    return ()=>window.removeEventListener("keydown",onKey);
+  },[logModal]);
 
   // Auth
   useEffect(()=>{
