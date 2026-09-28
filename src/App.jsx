@@ -1424,7 +1424,7 @@ function LoginScreen() {
       <div style={{background:"#fff",borderRadius:20,padding:"28px 24px",maxWidth:360,width:"100%",textAlign:"center",boxShadow:"0 8px 40px rgba(0,0,0,.3)"}}>
         <div style={{fontSize:"2.2rem",marginBottom:6}}>🌾</div>
         <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:"1.3rem",color:G,marginBottom:4}}>サクメモ</div>
-        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v1.8.78</span></div>
+        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v1.8.79</span></div>
         {linkErr&&<div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:8,padding:"10px 12px",marginBottom:16,fontSize:".78rem",color:"#856404",textAlign:"left"}}>{linkErr}</div>}
 
 
@@ -1484,7 +1484,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.78</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.79</div>
       </div>
     </div>
   );
@@ -3231,7 +3231,7 @@ useEffect(()=>{
 }
 
 // TIMELINE
-function TimelineScreen({ fields, crops, equips, logs, setLogs, setLogsR, showToast, onEdit, onNew, onCopy, openLb }) {
+function TimelineScreen({ fields, crops, equips, logs, setLogs, setLogsR, showToast, onEdit, onNew, onCopy, openLb, pestMs, fertMs }) {
   const [q,    setQ]    = useState("");
   const [fW,   setFW]   = useState("");
   const [selCropId, setSelCropId] = useState(""); // 品目フィルタ
@@ -3435,11 +3435,13 @@ function TimelineScreen({ fields, crops, equips, logs, setLogs, setLogsR, showTo
                         </div>
                         {/* 詳細 — 農薬・肥料はマスター登録順にソート */}
                         {(() => {
+                          const _pestMs = pestMs||[];
+                          const _fertMs = fertMs||[];
                           const sortedByMaster = [...card.logs].sort((a,b)=>{
-                            const ai = pestMs.findIndex(p=>p.name===a.pestName);
-                            const bi = pestMs.findIndex(p=>p.name===b.pestName);
-                            const af = fertMs.findIndex(f=>f.name===a.fertName);
-                            const bf = fertMs.findIndex(f=>f.name===b.fertName);
+                            const ai = _pestMs.findIndex(p=>p.name===a.pestName);
+                            const bi = _pestMs.findIndex(p=>p.name===b.pestName);
+                            const af = _fertMs.findIndex(f=>f.name===a.fertName);
+                            const bf = _fertMs.findIndex(f=>f.name===b.fertName);
                             const aOrd = a.pestName ? (ai>=0?ai:999) : a.fertName ? (af>=0?af+500:1499) : 9999;
                             const bOrd = b.pestName ? (bi>=0?bi:999) : b.fertName ? (bf>=0?bf+500:1499) : 9999;
                             return aOrd - bOrd;
@@ -6950,7 +6952,7 @@ export default function App() {
       </div>
       <div id="main-scroll" style={S.main}>
         {scr==="fields"  &&<FieldsScreen  fields={fields} setFields={setFields} setFieldsR={setFieldsR} crops={crops} setCrops={setCrops} setCropsR={setCropsR} costs={costs} setCosts={setCosts} logs={logs} setLogs={setLogs} setLogsR={setLogsR} plots={plots} setPlots={setPlots} setPlotsR={setPlotsR} showToast={showToast} editCrop={pendingEditCrop}/>}
-        {(scr==="log"||scr==="home") && <><HomeScreen fields={fields} crops={crops} setCrops={setCrops} logs={logs} costs={costs} showToast={showToast} setScr={setScr} dbLoad={dbLoad} onEditCrop={c=>{setPendingEditCrop(c);setScr("fields");}} onNew={()=>{setInitLog(null);setLogModal(true);}} setLogs={setLogs} dbSaveLog={dbSaveLog} dbDelete={dbDelete}/><TimelineScreen fields={fields} crops={crops} equips={equips} logs={logs} setLogs={setLogs} setLogsR={setLogsR} showToast={showToast} openLb={openLb}
+        {(scr==="log"||scr==="home") && <><HomeScreen fields={fields} crops={crops} setCrops={setCrops} logs={logs} costs={costs} showToast={showToast} setScr={setScr} dbLoad={dbLoad} onEditCrop={c=>{setPendingEditCrop(c);setScr("fields");}} onNew={()=>{setInitLog(null);setLogModal(true);}} setLogs={setLogs} dbSaveLog={dbSaveLog} dbDelete={dbDelete}/><TimelineScreen fields={fields} crops={crops} equips={equips} logs={logs} setLogs={setLogs} setLogsR={setLogsR} showToast={showToast} openLb={openLb} pestMs={pestMs} fertMs={fertMs}
         onEdit={ls=>{const _ls=Array.isArray(ls)?ls:[ls];const _sorted=[..._ls].sort((a,b)=>(a.imgSrc?-1:0)-(b.imgSrc?-1:0));setInitLogs(_ls);setInitLog(_sorted[0]);setLogModal(true);}}
         onNew={()=>{setInitLog(null);setLogModal(true);}}
         onCopy={ls=>{
