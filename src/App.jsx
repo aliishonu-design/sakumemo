@@ -1447,7 +1447,7 @@ function LoginScreen() {
       <div style={{background:"#fff",borderRadius:20,padding:"28px 24px",maxWidth:360,width:"100%",textAlign:"center",boxShadow:"0 8px 40px rgba(0,0,0,.3)"}}>
         <div style={{fontSize:"2.2rem",marginBottom:6}}>🌾</div>
         <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:"1.3rem",color:G,marginBottom:4}}>サクメモ</div>
-        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v1.8.86</span></div>
+        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v1.8.87</span></div>
         {linkErr&&<div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:8,padding:"10px 12px",marginBottom:16,fontSize:".78rem",color:"#856404",textAlign:"left"}}>{linkErr}</div>}
 
 
@@ -1507,7 +1507,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.86</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.87</div>
       </div>
     </div>
   );
@@ -3561,13 +3561,43 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
   const [pestExportGrowerName, setPestExportGrowerName] = useState(()=>{try{return localStorage.getItem("pestGrowerName")||"";}catch{return "";}});
   const [pestExportHarvestDate, setPestExportHarvestDate] = useState("");
 
-  // ─── クレジットカード情報 ───
+  // ─── クレジットカード情報（Supabase同期） ───
+  const CARD_SETTINGS_ID = "card_settings_" + (user?.id||"local");
   const [creditCards, setCreditCardsState] = useState(()=>{
     try { return JSON.parse(localStorage.getItem("creditCards")||"[]"); } catch { return []; }
   });
+  // Supabaseからクレカ設定をロード（costsテーブルのcat="__card_cfg"行）
+  useEffect(()=>{
+    if(!user?.id) return;
+    sb.from("costs").select("*").eq("user_id", user.id).eq("cat","__card_cfg").maybeSingle()
+      .then(({data})=>{
+        if(data?.note){
+          try {
+            const arr = JSON.parse(data.note);
+            if(Array.isArray(arr)){
+              setCreditCardsState(arr);
+              try { localStorage.setItem("creditCards", JSON.stringify(arr)); } catch {}
+            }
+          } catch {}
+        }
+      });
+  },[user?.id]);
   const setCreditCards = (arr) => {
     setCreditCardsState(arr);
     try { localStorage.setItem("creditCards", JSON.stringify(arr)); } catch {}
+    // Supabaseにも保存（costsテーブルのcat="__card_cfg"行にupsert）
+    if(user?.id){
+      dbUpsert("costs", {
+        id: CARD_SETTINGS_ID,
+        user_id: user.id,
+        cat: "__card_cfg",
+        name: "__card_settings",
+        note: JSON.stringify(arr),
+        amt: "0", date: null, field_id: null, crop_id: null,
+        qty: null, qunit: null, master_id: null, work: null,
+        pay_method: null, pay_date: null, cancelled: false
+      });
+    }
   };
   const [mCard, setMCard] = useState(null); // 編集中カード（null=閉じ）
 
@@ -3669,7 +3699,7 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
     if(unit==="month") return d.slice(0,7)===selMon;
     return true;
   };
-  const filteredAll = costs.filter(c=>inPeriod(c.date));
+  const filteredAll = costs.filter(c=>c.cat!=="__card_cfg"&&inPeriod(c.date));
   const filtered = filteredAll.filter(c=>!isIncome(c.cat)&&!c.cancelled);   // 費用のみ（取消除外）
   const filteredIncome = filteredAll.filter(c=>isIncome(c.cat)&&!c.cancelled); // 収入のみ（取消除外）
   const shownList = costTab==="income" ? filteredIncome : filtered;
@@ -4979,7 +5009,7 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
         const LedgerRowInner = LedgerRow; const LedgerSecHdInner = LedgerSecHd;
         const Row = LedgerRowInner; const SecHd = LedgerSecHdInner;
         const yr = selYear;
-        const yrCosts = costs.filter(c=>!c.cancelled&&(c.date||"").startsWith(String(yr)));
+        const yrCosts = costs.filter(c=>c.cat!=="__card_cfg"&&!c.cancelled&&(c.date||"").startsWith(String(yr)));
         const incTotal = yrCosts.filter(c=>isIncome(c.cat)).reduce((s,c)=>s+(Number(c.amt)||0),0);
         const expTotal = yrCosts.filter(c=>!isIncome(c.cat)).reduce((s,c)=>s+getAgriAmt(c),0);
         const profit = incTotal - expTotal;
@@ -5858,8 +5888,8 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs, equips=[], o
   // 全体集計
   const totalKg  = cropStats.reduce((s,c)=>s+c.kg,0);
   const totalRev = cropStats.reduce((s,c)=>s+c.rev,0);
-  const totalCost= costs.reduce((s,c)=>s+costAmount(c),0);
-  const commonCost= costs.filter(c=>!c.cropId).reduce((s,c)=>s+costAmount(c),0);
+  const totalCost= costs.filter(c=>c.cat!=="__card_cfg").reduce((s,c)=>s+costAmount(c),0);
+  const commonCost= costs.filter(c=>c.cat!=="__card_cfg"&&!c.cropId).reduce((s,c)=>s+costAmount(c),0);
   const totalMin = logs.filter(l=>inPeriod(l.date)).reduce((s,l)=>s+(parseInt(l.duration)||0),0);
   const th=Math.floor(totalMin/60),tm=totalMin%60;
   const totalTimeStr=totalMin>0?(th>0?th+"時間"+tm+"分":tm+"分"):"0分";
