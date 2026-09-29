@@ -651,6 +651,8 @@ const COST_CATS = [
   { value:"deprec",    label:"📉 減価償却費",        group:"農業費用" },
   { value:"vehicle",   label:"🚗 車両費（按分）",     group:"農業費用" },
   { value:"other",     label:"📦 その他農業費用",    group:"農業費用" },
+  { value:"worker",    label:"👨‍👩‍👧 専従者給与",        group:"農業費用" },
+  { value:"owner_loan",label:"💼 事業主借（個人口座から）", group:"資金管理" },
 ];
 const INCOME_CATS = [
   { value:"inc_crop",    label:"🌾 農産物売上",      group:"農業収入" },
@@ -659,6 +661,7 @@ const INCOME_CATS = [
   { value:"inc_misc",    label:"🌿 農業雑収入",      group:"農業収入" },
   { value:"inc_subsidy", label:"💴 補助金・交付金",  group:"農業収入" },
   { value:"inc_other",   label:"📦 その他収入",      group:"農業収入" },
+  { value:"inc_owner_draw", label:"💼 事業主貸（個人口座へ）", group:"資金管理" },
 ];
 const isIncome = (cat) => cat && cat.startsWith("inc_");
 // 品目表示名ヘルパー（カスタム品目対応）
@@ -1447,7 +1450,7 @@ function LoginScreen() {
       <div style={{background:"#fff",borderRadius:20,padding:"28px 24px",maxWidth:360,width:"100%",textAlign:"center",boxShadow:"0 8px 40px rgba(0,0,0,.3)"}}>
         <div style={{fontSize:"2.2rem",marginBottom:6}}>🌾</div>
         <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:"1.3rem",color:G,marginBottom:4}}>サクメモ</div>
-        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v1.8.94</span></div>
+        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v1.8.96</span></div>
         {linkErr&&<div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:8,padding:"10px 12px",marginBottom:16,fontSize:".78rem",color:"#856404",textAlign:"left"}}>{linkErr}</div>}
 
 
@@ -1507,7 +1510,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.94</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.96</div>
       </div>
     </div>
   );
@@ -1875,8 +1878,8 @@ function MasterScreen({ fertMs, setFertMs, pestMs, setPestMs, equips, setEquips,
 
 
   // 新規作成のデフォルト
-  const newFert  = {_type:"fert",  name:"",type:"化成肥料",npk:"",price:"",punit:"円/袋",capacity:"",cunit:"kg",stock:"0",sunit:"kg",note:""};
-  const newPest  = {_type:"pest",  name:"",type:"殺虫剤",dil:"",target:"",price:"",punit:"円/本",capacity:"",cunit:"ml",stock:"0",sunit:"ml",note:""};
+  const newFert  = {_type:"fert",  name:"",type:"化成肥料",npk:"",price:"",punit:"円/袋",capacity:"",cunit:"kg",stock:"0",sunit:"kg",note:"",status:"使用中"};
+  const newPest  = {_type:"pest",  name:"",type:"殺虫剤",dil:"",target:"",price:"",punit:"円/本",capacity:"",cunit:"ml",stock:"0",sunit:"ml",note:"",status:"使用中"};
   const newEquip = {_type:"equip", name:"",cat:"マルチ",status:"使用中",price:"",date:todayStr(),note:"",_label:"資材",_color:"#ede9fe",_tc:"#5b21b6",_icon:"🏗️"};
 
   return (
@@ -1899,13 +1902,15 @@ function MasterScreen({ fertMs, setFertMs, pestMs, setPestMs, equips, setEquips,
 
       {!shown.length&&<div style={{color:TX3,fontSize:".82rem",padding:16,textAlign:"center"}}>資材がまだ登録されていません</div>}
 
-      {shown.map((item,i)=>(
-        <div key={item.id||i} style={{...S.card,borderLeft:"4px solid "+(item._type==="fert"?"#6ee7b7":item._type==="pest"?"#fcd34d":"#a78bfa")}}>
+      {shown.map((item,i)=>{
+        const isArchived = item.status==="使い切り（非表示）";
+        return (
+        <div key={item.id||i} style={{...S.card,borderLeft:"4px solid "+(isArchived?"#ccc":item._type==="fert"?"#6ee7b7":item._type==="pest"?"#fcd34d":"#a78bfa"),opacity:isArchived?0.55:1}}>
           <div style={{display:"flex",alignItems:"flex-start",gap:10}}>
             <span style={{fontSize:"1.6rem",lineHeight:1.2}}>{item._icon}</span>
             <div style={{flex:1,minWidth:0}}>
               <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
-                <span style={{fontWeight:700,fontSize:".92rem"}}>{item.name}</span>
+                <span style={{fontWeight:700,fontSize:".92rem",color:isArchived?TX3:undefined}}>{item.name}{isArchived&&<span style={{fontSize:".7rem",fontWeight:400,color:"#888",marginLeft:4}}>（使い切り）</span>}</span>
                 <span style={{fontSize:".65rem",fontWeight:700,padding:"2px 7px",borderRadius:999,background:item._color,color:item._tc}}>{item._label}</span>
                 {item.type&&<span style={{fontSize:".65rem",color:TX3}}>{item.type}</span>}
               </div>
@@ -1952,7 +1957,8 @@ function MasterScreen({ fertMs, setFertMs, pestMs, setPestMs, equips, setEquips,
             <button style={{...S.btn,...S.btnR,...S.btnSm}} onClick={()=>deleteItem(item)}>削除</button>
           </div>
         </div>
-      ))}
+        );
+      })}
 
       {/* 登録・編集モーダル */}
       <ModalWithSave open={!!mItem} onClose={()=>setMItem(null)} title={mItem?._idx!==undefined?"資材を編集":"資材を登録"} onSave={saveItem}>
@@ -1965,6 +1971,8 @@ function MasterScreen({ fertMs, setFertMs, pestMs, setPestMs, equips, setEquips,
                 options={["化成肥料","有機肥料","液肥","緩効性肥料","石灰・土壌改良材","培養土・堆肥","その他"].map(v=>({value:v,label:v}))}/></FG>
               <FG label="N-P-K"><Inp value={mItem.npk||""} onChange={v=>setMItem({...mItem,npk:v})} placeholder="8-8-8"/></FG>
             </R2>
+            <FG label="状態"><Sel value={mItem.status||"使用中"} onChange={v=>setMItem({...mItem,status:v})}
+              options={["使用中","使い切り（非表示）"].map(v=>({value:v,label:v}))}/></FG>
           </>}
 
           {mItem._type==="pest"&&<>
@@ -1976,6 +1984,8 @@ function MasterScreen({ fertMs, setFertMs, pestMs, setPestMs, equips, setEquips,
             </R2>
             <FG label="希釈倍数"><CalcInp value={mItem.dil||""} onChange={v=>setMItem({...mItem,dil:v})} placeholder="1000"/></FG>
             <FG label="対象作物・病害虫"><Inp value={mItem.target||""} onChange={v=>setMItem({...mItem,target:v})} placeholder="例：アブラムシ"/></FG>
+            <FG label="状態"><Sel value={mItem.status||"使用中"} onChange={v=>setMItem({...mItem,status:v})}
+              options={["使用中","使い切り（非表示）"].map(v=>({value:v,label:v}))}/></FG>
           </>}
 
           {mItem._type==="equip"&&<>
@@ -3091,7 +3101,7 @@ useEffect(()=>{
                 setFertName(v);
                 const fm=fertMs.find(f=>f.name===v);
                 if(fm){if(fm.cunit||fm.sunit)setFertUnit(fm.cunit||fm.sunit);}
-              }} options={[{value:"",label:"（選択）"},...fertMs.map(f=>({value:f.name,label:f.name}))]}/>
+              }} options={[{value:"",label:"（選択）"},...fertMs.filter(f=>f.status!=="使い切り（非表示）").map(f=>({value:f.name,label:f.name}))]}/>
             </FG>
             <R2>
               <FG label="施用量"><div style={{display:"flex",gap:4}}><CalcInp value={fertAmt} onChange={setFertAmt} style={{flex:1}}/><Sel value={fertUnit} onChange={setFertUnit} options={["kg","g","L","ml","袋"].map(v=>({value:v,label:v}))} style={{width:60,flex:"none"}}/></div></FG>
@@ -3109,7 +3119,7 @@ useEffect(()=>{
                   setFertEntries(p=>p.map((x,i)=>i===fi?{...x,name:v}:x));
                   const fm2=fertMs.find(f=>f.name===v);
                   if(fm2)setFertEntries(p=>p.map((x,i)=>i===fi?{...x,unit:fm2.cunit||fm2.sunit||x.unit}:x));
-                }} options={[{value:"",label:"（選択）"},...fertMs.map(f=>({value:f.name,label:f.name}))]}/>
+                }} options={[{value:"",label:"（選択）"},...fertMs.filter(f=>f.status!=="使い切り（非表示）").map(f=>({value:f.name,label:f.name}))]}/>
               </FG>
               <R2>
                 <FG label="施用量"><div style={{display:"flex",gap:4}}><CalcInp value={fe.amt} onChange={v=>setFertEntries(p=>p.map((x,i)=>i===fi?{...x,amt:v}:x))} style={{flex:1}}/><Sel value={fe.unit} onChange={v=>setFertEntries(p=>p.map((x,i)=>i===fi?{...x,unit:v}:x))} options={["kg","g","L","ml","袋"].map(v=>({value:v,label:v}))} style={{width:60,flex:"none"}}/></div></FG>
@@ -3131,7 +3141,7 @@ useEffect(()=>{
             <div style={{fontSize:".72rem",fontWeight:700,color:"#92400e",marginBottom:5}}>農薬 1</div>
             <FG label="農薬を選ぶ">
               <Sel value={pestMs.findIndex(p=>p.name===pestName)} onChange={v=>{if(v===""){setPestName("");}else{const pm=pestMs[parseInt(v)];if(pm){setPestName(pm.name);setPestDil(pm.dil||"");}}}}
-                options={[{value:"",label:"（選択）"},...pestMs.map((p,i)=>({value:i,label:p.name}))]}/>
+                options={[{value:"",label:"（選択）"},...pestMs.map((p,i)=>({value:i,label:p.name})).filter((_,i)=>pestMs[i]?.status!=="使い切り（非表示）")]}/>
             </FG>
             <R2>
               <FG label="希釈倍数"><CalcInp value={pestDil} onChange={setPestDil} placeholder="1000"/></FG>
@@ -3150,7 +3160,7 @@ useEffect(()=>{
                 <Sel value={pe.name?pestMs.findIndex(p=>p.name===pe.name):""} onChange={v=>{
                   if(v===""){setPestEntries(p=>p.map((x,i)=>i===pi?{...x,name:""}:x));}
                   else{const pm=pestMs[parseInt(v)];setPestEntries(p=>p.map((x,i)=>i===pi?{...x,name:pm.name,dil:pm.dil||x.dil}:x));}
-                }} options={[{value:"",label:"（選択）"},...pestMs.map((p,i)=>({value:i,label:p.name}))]}/>
+                }} options={[{value:"",label:"（選択）"},...pestMs.map((p,i)=>({value:i,label:p.name})).filter((_,i)=>pestMs[i]?.status!=="使い切り（非表示）")]}/>
               </FG>
               <R2>
                 <FG label="希釈倍数"><CalcInp value={pe.dil} onChange={v=>setPestEntries(p=>p.map((x,i)=>i===pi?{...x,dil:v}:x))} placeholder="1000"/></FG>
@@ -3569,6 +3579,24 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
   const [motoireEditOpen, setMotoireEditOpen] = useState(false);
   const [motoireInput, setMotoireInput] = useState("");
 
+  // ─── 補助金リスト ───
+  const [subsidyList, setSubsidyListState] = useState(()=>{
+    try { return JSON.parse(localStorage.getItem("subsidyList")||"[]"); } catch { return []; }
+  });
+  const setSubsidyList = (arr) => {
+    setSubsidyListState(arr);
+    try { localStorage.setItem("subsidyList", JSON.stringify(arr)); } catch {}
+  };
+  const [mSubsidy, setMSubsidy] = useState(null);
+
+  // ─── 棚卸資産 ───
+  const getInventory = (yr) => {
+    try { return JSON.parse(localStorage.getItem("inventoryValue_"+yr)||"{}"); } catch { return {}; }
+  };
+  const setInventory = (yr, obj) => {
+    try { localStorage.setItem("inventoryValue_"+yr, JSON.stringify(obj)); } catch {}
+  };
+
   // 按分率を取得（localStorageから）
   const getApportionRates = () => {
     try { return JSON.parse(localStorage.getItem("apportionRates")||"{}"); } catch { return {}; }
@@ -3590,8 +3618,8 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
   const toKataM=s=>(s||'').replace(/[ぁ-ゖ]/g,c=>String.fromCharCode(c.charCodeAt(0)+0x60));
   const matchM=(t,w)=>{const a=(t||'').toLowerCase(),b=w.toLowerCase();return toHiraM(a).includes(toHiraM(b))||toKataM(a).includes(toKataM(b))||a.includes(b);};
   const shownMaster = srchM ? allItems.filter(x=>matchM(x.name,srchM)||matchM(x._label,srchM)||matchM(x.note,srchM)) : allItems;
-  const newFert  = {_type:"fert",  name:"",type:"化成肥料",npk:"",price:"",punit:"円/袋",capacity:"",cunit:"kg",stock:"0",sunit:"kg",note:""};
-  const newPest  = {_type:"pest",  name:"",type:"殺虫剤",dil:"",target:"",price:"",punit:"円/本",capacity:"",cunit:"ml",stock:"0",sunit:"ml",note:""};
+  const newFert  = {_type:"fert",  name:"",type:"化成肥料",npk:"",price:"",punit:"円/袋",capacity:"",cunit:"kg",stock:"0",sunit:"kg",note:"",status:"使用中"};
+  const newPest  = {_type:"pest",  name:"",type:"殺虫剤",dil:"",target:"",price:"",punit:"円/本",capacity:"",cunit:"ml",stock:"0",sunit:"ml",note:"",status:"使用中"};
   const newEquip = {_type:"equip", name:"",cat:"マルチ",status:"使用中",price:"",date:todayStr(),note:"",_label:"資材",_color:"#ede9fe",_tc:"#5b21b6",_icon:"🏗️"};
 
   const saveItem = () => {
@@ -3687,6 +3715,7 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
     if(costTab==="income") return all.filter(c=>isIncome(c.cat));
     if(costTab==="expense") return all.filter(c=>!isIncome(c.cat));
     if(costTab==="card") return all.filter(c=>c.payMethod&&cards&&cards.some&&cards.some(cd=>cd.name===c.payMethod));
+    if(costTab==="receivable") return costs.filter(c=>c.isReceivable&&!c.cancelled); // 全期間の未収金
     return all; // "all"
   })();
   const viewList_unsorted = baseList;
@@ -4422,7 +4451,7 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
 
       {/* メインタブ */}
       <div style={{display:"flex",gap:0,marginBottom:10,borderRadius:8,overflow:"hidden",border:"1px solid #e0d9ce"}}>
-        {[["cost","💰 費用・収入"],["master","📦 資材登録"],["ledger","📊 申告確認"]].map(([v,l])=>(
+        {[["cost","💰 費用・収入"],["master","📦 資材登録"],["ledger","📊 申告確認"],["cashflow","📈 資金繰り"],["subsidy","🎯 補助金"]].map(([v,l])=>(
           <button key={v} onClick={()=>setMainTab(v)}
             style={{flex:1,padding:"8px 0",border:"none",background:mainTab===v?G:"#fff",
               color:mainTab===v?"#fff":"#888",fontWeight:mainTab===v?700:400,
@@ -4509,7 +4538,7 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
       {mainTab==="cost"&&<>
       {/* フィルタータブ */}
       <div style={{display:"flex",gap:0,marginBottom:8,borderRadius:8,overflow:"hidden",border:"1px solid #e0d9ce"}}>
-        {[["all","すべて"],["income","収入のみ"],["expense","費用のみ"],["card","カード払い"]].map(([v,l])=>(
+        {[["all","すべて"],["income","収入のみ"],["expense","費用のみ"],["card","カード払い"],["receivable","未収金"]].map(([v,l])=>(
           <button key={v} onClick={()=>setCostTab(v)}
             style={{flex:1,padding:"5px 0",border:"none",background:costTab===v?G:"#fff",
               color:costTab===v?"#fff":"#888",fontWeight:costTab===v?700:400,
@@ -4581,11 +4610,13 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
                   {inc?"+":"-"}{Math.round(parseFloat(c.amt)||0).toLocaleString()}
                 </div>
               </div>
-              {/* 複製ボタンのみ */}
-              <div style={{display:"flex",justifyContent:"center"}}>
+              {/* 複製・入金済みボタン */}
+              <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
                 <button onClick={e=>{e.stopPropagation();setMCost({...c,id:undefined,date:todayStr(),cancelled:false,payDate:""});showToast("複製しました。内容を確認して保存してください");}}
                   title="複製"
                   style={{fontSize:"1rem",lineHeight:1,border:"none",background:"none",cursor:"pointer",padding:"4px",color:"#9b59b6"}}>📋</button>
+                {costTab==="receivable"&&c.isReceivable&&<button onClick={e=>{e.stopPropagation();const updated={...c,isReceivable:false,receivableDate:""};setCosts(costs.map(x=>x.id===c.id?updated:x),updated);showToast("入金済みにしました");}}
+                  style={{fontSize:".6rem",background:"#E8F5E9",color:"#2E7D32",border:"1px solid #A5D6A7",borderRadius:6,padding:"2px 4px",cursor:"pointer",whiteSpace:"nowrap"}}>入金済</button>}
               </div>
             </div>
           );
@@ -4814,6 +4845,17 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
               </div>
             </FG>;
           })()}
+          {/* 売掛（未収）フラグ */}
+          {isIncome(mCost.cat)&&<FG label="売掛・未収金">
+            <label style={{display:"flex",alignItems:"center",gap:8,fontSize:".85rem",cursor:"pointer"}}>
+              <input type="checkbox" checked={!!mCost.isReceivable} onChange={e=>setMCost({...mCost,isReceivable:e.target.checked,receivableDate:e.target.checked?mCost.receivableDate||"":""})} style={{accentColor:"#2D6A3F",width:16,height:16}}/>
+              <span>売掛（未収）として記録する</span>
+            </label>
+            {mCost.isReceivable&&<div style={{marginTop:6}}>
+              <div style={{fontSize:".72rem",color:"#5c3d1e",marginBottom:3}}>入金予定日</div>
+              <Inp type="date" value={mCost.receivableDate||""} onChange={v=>setMCost({...mCost,receivableDate:v})}/>
+            </div>}
+          </FG>}
           <FG label="メモ"><Inp value={mCost.note||""} onChange={v=>setMCost({...mCost,note:v})} placeholder="購入先・領収書番号など"/></FG>
           {mCost.id&&<div style={{display:"flex",gap:6,marginTop:8}}>
             {!mCost.cancelled
@@ -4975,8 +5017,15 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
         const Row = LedgerRowInner; const SecHd = LedgerSecHdInner;
         const yr = selYear;
         const yrCosts = costs.filter(c=>c.cat!=="__card_cfg"&&!c.cancelled&&(c.date||"").startsWith(String(yr)));
-        const incTotal = yrCosts.filter(c=>isIncome(c.cat)).reduce((s,c)=>s+(Number(c.amt)||0),0);
-        const expTotal = yrCosts.filter(c=>!isIncome(c.cat)).reduce((s,c)=>s+getAgriAmt(c),0);
+        // inc_owner_draw は損益計算から除外
+        const incTotal = yrCosts.filter(c=>isIncome(c.cat)&&c.cat!=="inc_owner_draw").reduce((s,c)=>s+(Number(c.amt)||0),0);
+        // owner_loan は資金管理なので農業費用合計から除外
+        const expTotal0 = yrCosts.filter(c=>!isIncome(c.cat)&&c.cat!=="owner_loan").reduce((s,c)=>s+getAgriAmt(c),0);
+        // 棚卸資産（期首+・期末-）
+        const invData = getInventory(yr);
+        const invStart = Number(invData.start||0);
+        const invEnd   = Number(invData.end||0);
+        const expTotal = expTotal0 + invStart - invEnd;
         const profit = incTotal - expTotal;
         // 農機具帳簿価額
         const thisYear = new Date().getFullYear();
@@ -4993,10 +5042,52 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
         const motoire = (()=>{try{return Number(localStorage.getItem("motoire")||"0");}catch{return 0;}})();
         const nextMotoire = motoire + profit;
         return (<>
+          {/* 棚卸資産入力 */}
+          <div style={S.card}>
+            <SecHd label={"📦 棚卸資産（"+yr+"年）"}/>
+            <div style={{fontSize:".72rem",color:TX3,marginBottom:8}}>期首・期末の在庫（種苗・肥料等）を入力すると損益計算に反映されます。</div>
+            <R2>
+              <FG label="期首棚卸（円）">
+                <input type="number" inputMode="numeric" value={invData.start||""} placeholder="例：50000"
+                  style={{...S.inp,width:"100%",boxSizing:"border-box"}}
+                  onChange={e=>{const v=e.target.value;const obj={...getInventory(yr),start:v};setInventory(yr,obj);}}/>
+              </FG>
+              <FG label="期末棚卸（円）">
+                <input type="number" inputMode="numeric" value={invData.end||""} placeholder="例：30000"
+                  style={{...S.inp,width:"100%",boxSizing:"border-box"}}
+                  onChange={e=>{const v=e.target.value;const obj={...getInventory(yr),end:v};setInventory(yr,obj);}}/>
+              </FG>
+            </R2>
+            <button style={{...S.btn,background:"#e8f5e9",color:"#2d6a3f",border:"1px solid #b2dfdb",width:"100%",marginTop:8,padding:"8px 0",fontSize:".8rem",fontWeight:700,borderRadius:8}}
+              onClick={()=>{
+                const total = [...fertMs,...pestMs].filter(f=>f.status!=="使い切り（非表示）").reduce((sum,f)=>{
+                  const stock = parseFloat(f.stock)||0;
+                  const cap   = parseFloat(f.capacity)||1;
+                  const price = parseFloat(f.price)||0;
+                  if(!price) return sum;
+                  return sum + Math.round(stock/cap*price);
+                },0);
+                const obj={...getInventory(yr),end:String(total)};
+                setInventory(yr,obj);
+                showToast("在庫から期末棚卸を自動計算しました："+total.toLocaleString()+"円");
+              }}>
+              📦 在庫から期末棚卸を自動計算
+            </button>
+            <div style={{fontSize:".68rem",color:TX3,marginTop:4}}>※ 資材マスターの「在庫÷内容量×単価」で集計します（使い切り済みは除外）</div>
+            {(invStart>0||invEnd>0)&&<div style={{fontSize:".78rem",color:G,background:G3,borderRadius:8,padding:"6px 10px",marginTop:6}}>
+              費用への加算：{(invStart-invEnd>=0?"+":"")+Math.round(invStart-invEnd).toLocaleString()}円（期首{invStart.toLocaleString()} - 期末{invEnd.toLocaleString()}）
+            </div>}
+          </div>
           <div style={S.card}>
             <SecHd label={"📊 損益計算書（"+yr+"年）"}/>
             <Row label="農業収入合計" val={incTotal} bold/>
-            <Row label="農業費用合計（按分後）" val={expTotal}/>
+            <Row label="農業費用合計（按分後）" val={expTotal0} sub/>
+            {(invStart>0||invEnd>0)&&<>
+              <Row label="＋期首棚卸" val={invStart} sub/>
+              <Row label="－期末棚卸" val={-invEnd} sub/>
+              <Row label="棚卸調整後 費用合計" val={expTotal}/>
+            </>}
+            {(invStart===0&&invEnd===0)&&<Row label="農業費用合計（按分後）" val={expTotal}/>}
             <Row label={profit>=0?"農業所得（利益）":"農業損失"} val={profit} bold/>
             {profit>0&&<>
               <Row label="青色申告特別控除（65万円）" val={-Math.min(650000,profit)} sub/>
@@ -5110,6 +5201,136 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
           </div>
         </>);
       })()}
+
+      {/* 資金繰り表タブ */}
+      {mainTab==="cashflow"&&(()=>{
+        const today2 = new Date();
+        const motoire2 = (()=>{try{return Number(localStorage.getItem("motoire")||"0");}catch{return 0;}})();
+        // 過去6ヶ月〜今後3ヶ月
+        const months9 = [];
+        for(let i=-6;i<=2;i++){
+          const d = new Date(today2.getFullYear(), today2.getMonth()+i, 1);
+          months9.push(d.toISOString().slice(0,7));
+        }
+        // 月ごとに集計
+        let cumulative = motoire2;
+        const rows = months9.map(ym=>{
+          // 収入：date基準
+          const inc = costs.filter(c=>!c.cancelled&&isIncome(c.cat)&&(c.date||"").startsWith(ym))
+            .reduce((s,c)=>s+(Number(c.amt)||0),0);
+          // 費用：現金はdate基準、カード払いはpayDate基準
+          const exp = costs.filter(c=>!c.cancelled&&!isIncome(c.cat)).reduce((s,c)=>{
+            const isCard2 = c.payMethod&&cards&&cards.some&&cards.some(cd=>cd.name===c.payMethod);
+            const useDate = isCard2 ? (c.payDate||c.date||"") : (c.date||"");
+            return s + (useDate.startsWith(ym)?(Number(c.amt)||0):0);
+          },0);
+          const diff = inc - exp;
+          cumulative += diff;
+          return {ym, inc, exp, diff, cumulative};
+        });
+        return (
+          <div style={S.card}>
+            <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".9rem",color:"#5c3d1e",marginBottom:4}}>📈 資金繰り表（月別キャッシュフロー）</div>
+            <div style={{fontSize:".7rem",color:"#888",marginBottom:10}}>元入金 {motoire2.toLocaleString()}円 からスタート。カード払いは引き落とし予定日基準。</div>
+            <div style={{overflowX:"auto"}}>
+              <table style={{width:"100%",borderCollapse:"collapse",fontSize:".75rem"}}>
+                <thead>
+                  <tr style={{background:"#f0ebe3"}}>
+                    {["月","収入","支出","差引","累計残高"].map(h=>(
+                      <th key={h} style={{padding:"5px 6px",textAlign:"right",fontWeight:700,color:"#5c3d1e",borderBottom:"2px solid #ddd",whiteSpace:"nowrap"}}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((r,i)=>{
+                    const isCur = r.ym===today2.toISOString().slice(0,7);
+                    return (
+                      <tr key={r.ym} style={{background:isCur?"#fffde7":i%2===0?"#fff":"#fafafa"}}>
+                        <td style={{padding:"5px 6px",fontWeight:isCur?700:400,whiteSpace:"nowrap"}}>{r.ym.slice(0,4)}/{r.ym.slice(5,7)}{isCur?" ★":""}</td>
+                        <td style={{padding:"5px 6px",textAlign:"right",color:"#1B5E20"}}>{r.inc>0?r.inc.toLocaleString():"-"}</td>
+                        <td style={{padding:"5px 6px",textAlign:"right",color:"#B71C1C"}}>{r.exp>0?r.exp.toLocaleString():"-"}</td>
+                        <td style={{padding:"5px 6px",textAlign:"right",color:r.diff>=0?"#1565C0":"#C62828",fontWeight:700}}>{r.diff>=0?"+":""}{r.diff.toLocaleString()}</td>
+                        <td style={{padding:"5px 6px",textAlign:"right",fontWeight:700,color:r.cumulative>=0?"#2E7D32":"#C62828"}}>{r.cumulative.toLocaleString()}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* 補助金・助成金管理タブ */}
+      {mainTab==="subsidy"&&(()=>{
+        const today3 = new Date();
+        const todayStr3 = today3.toISOString().slice(0,10);
+        const statusOpts = [{value:"未申請",label:"📋 未申請"},{value:"申請中",label:"⏳ 申請中"},{value:"採択",label:"✅ 採択"},{value:"不採択",label:"❌ 不採択"}];
+        const isNearDeadline = (d) => {
+          if(!d) return false;
+          const diff = (new Date(d)-today3)/(1000*60*60*24);
+          return diff>=0 && diff<=30;
+        };
+        return (<>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
+            <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".9rem",color:"#5c3d1e"}}>🎯 補助金・助成金スケジュール</div>
+            <button style={{...S.btn,...S.btnS,width:"auto",padding:"6px 14px"}} onClick={()=>setMSubsidy({name:"",deadline:"",amount:"",status:"未申請",memo:""})}>＋ 追加</button>
+          </div>
+          {subsidyList.length===0&&<div style={{color:"#aaa",fontSize:".82rem",padding:"16px 0",textAlign:"center"}}>補助金情報がありません</div>}
+          {subsidyList.map((s,i)=>{
+            const near = isNearDeadline(s.deadline);
+            const past = s.deadline && s.deadline < todayStr3;
+            return (
+              <div key={s.id||i} style={{...S.card,border:"1px solid "+(near?"#ff9800":past?"#eee":"#e0d9ce"),marginBottom:8,background:near?"#FFF3E0":"#fff"}}
+                onClick={()=>setMSubsidy({...s,_idx:i})}>
+                <div style={{display:"flex",alignItems:"flex-start",gap:8}}>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontWeight:700,fontSize:".86rem",color:near?"#E65100":"#1c1a14"}}>{s.name||"（名称未設定）"}</div>
+                    <div style={{fontSize:".72rem",color:near?"#E65100":"#888",marginTop:2}}>
+                      {s.deadline?"申請期限："+s.deadline+(near?" ⚠️あと"+ Math.ceil((new Date(s.deadline)-today3)/(1000*60*60*24))+"日":""):"期限未設定"}
+                    </div>
+                    {s.amount&&<div style={{fontSize:".74rem",color:"#1B5E20",marginTop:1}}>予定金額：{Number(s.amount).toLocaleString()}円</div>}
+                    {s.memo&&<div style={{fontSize:".7rem",color:"#666",marginTop:2}}>{s.memo}</div>}
+                  </div>
+                  <div style={{flexShrink:0}}>
+                    <span style={{fontSize:".7rem",background:s.status==="採択"?"#E8F5E9":s.status==="不採択"?"#FFEBEE":s.status==="申請中"?"#E3F2FD":"#f5f0e8",
+                      color:s.status==="採択"?"#2E7D32":s.status==="不採択"?"#C62828":s.status==="申請中"?"#1565C0":"#8B6914",
+                      borderRadius:8,padding:"2px 8px",fontWeight:700}}>{s.status||"未申請"}</span>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+          {/* 補助金編集モーダル */}
+          <ModalWithSave open={!!mSubsidy} title={mSubsidy?._idx!==undefined?"補助金情報を編集":"補助金を追加"} onClose={()=>setMSubsidy(null)}
+            onSave={()=>{
+              if(!mSubsidy.name){showToast("名称を入力してください");return;}
+              let list;
+              if(mSubsidy._idx!==undefined){
+                list = subsidyList.map((s,i)=>i===mSubsidy._idx?{...mSubsidy,id:s.id||uid0()}:s);
+              } else {
+                list = [...subsidyList,{...mSubsidy,id:uid0()}];
+              }
+              setSubsidyList(list);
+              setMSubsidy(null);
+              showToast("保存しました");
+            }}>
+            {mSubsidy&&<>
+              <FG label="補助金名称"><Inp value={mSubsidy.name||""} onChange={v=>setMSubsidy({...mSubsidy,name:v})} placeholder="例：農業機械導入支援事業"/></FG>
+              <R2>
+                <FG label="申請期限"><Inp type="date" value={mSubsidy.deadline||""} onChange={v=>setMSubsidy({...mSubsidy,deadline:v})}/></FG>
+                <FG label="予定金額（円）"><Inp type="number" value={mSubsidy.amount||""} onChange={v=>setMSubsidy({...mSubsidy,amount:v})} placeholder="例：500000"/></FG>
+              </R2>
+              <FG label="ステータス">
+                <Sel value={mSubsidy.status||"未申請"} onChange={v=>setMSubsidy({...mSubsidy,status:v})} options={statusOpts}/>
+              </FG>
+              <FG label="メモ"><Inp value={mSubsidy.memo||""} onChange={v=>setMSubsidy({...mSubsidy,memo:v})} placeholder="担当窓口・必要書類など"/></FG>
+              {mSubsidy._idx!==undefined&&<button onClick={()=>{if(window.confirm("削除しますか？")){setSubsidyList(subsidyList.filter((_,i)=>i!==mSubsidy._idx));setMSubsidy(null);showToast("削除しました");}}} style={{...S.btn,...S.btnR,marginTop:8}}>削除</button>}
+            </>}
+          </ModalWithSave>
+        </>);
+      })()}
+
     </div>
   );
 }
@@ -6502,6 +6723,77 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs, equips=[], o
               ))}
             </div>
           )}
+        {/* 品目ごとの収益性比較 */}
+        <div style={S.card}>
+          <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".86rem",color:"#5c3d1e",marginBottom:8}}>💹 品目別収益性</div>
+          {cropStats.length===0&&<div style={{color:TX3,fontSize:".82rem"}}>品目が登録されていません</div>}
+          {cropStats.map(c=>{
+            const area = parseFloat(crops.find(x=>x.id===c.id)?.cultivationArea||fields[crops.find(x=>x.id===c.id)?.fieldIdx||0]?.area||0)||0;
+            const per10a = area>0 ? Math.round(c.profit/area*10) : null;
+            return (
+              <div key={c.id} style={{borderBottom:"1px solid "+BD,paddingBottom:8,marginBottom:8}}>
+                <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:4}}>
+                  <span style={{fontSize:"1.2rem"}}>{c.emoji}</span>
+                  <span style={{fontWeight:700,fontSize:".84rem"}}>{c.name}</span>
+                  {c.ended&&<span style={{fontSize:".6rem",background:"#e67e22",color:"#fff",borderRadius:999,padding:"1px 5px"}}>終了</span>}
+                </div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:4}}>
+                  {[
+                    {l:"売上",v:Math.round(c.rev).toLocaleString()+"円",c:"#1B5E20"},
+                    {l:"費用",v:Math.round(c.costTotal).toLocaleString()+"円",c:"#B71C1C"},
+                    {l:"損益",v:(c.profit>=0?"+":"")+Math.round(c.profit).toLocaleString()+"円",c:c.profit>=0?"#1565C0":"#C62828"},
+                    {l:"10a損益",v:per10a!=null?(per10a>=0?"+":"")+per10a.toLocaleString()+"円":"—",c:per10a!=null&&per10a>=0?"#2E7D32":"#999"},
+                  ].map(x=>(
+                    <div key={x.l} style={{background:"#f5f0e8",borderRadius:6,padding:"4px 6px",textAlign:"center"}}>
+                      <div style={{fontSize:".6rem",color:TX3,marginBottom:1}}>{x.l}</div>
+                      <div style={{fontSize:".72rem",fontWeight:700,color:x.c}}>{x.v}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* 労働生産性 */}
+        <div style={S.card}>
+          <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".86rem",color:"#5c3d1e",marginBottom:8}}>⏱️ 労働生産性（時給換算）</div>
+          {(()=>{
+            const totalMin = cropStats.reduce((s,c)=>s+c.minutes,0);
+            const totalRevAll = cropStats.reduce((s,c)=>s+c.rev,0);
+            const totalH = totalMin/60;
+            const totalHourly = totalH>0 ? Math.round(totalRevAll/totalH) : null;
+            return (<>
+              <div style={{display:"flex",gap:8,marginBottom:10}}>
+                <div style={{flex:1,background:"#E3F2FD",borderRadius:8,padding:"8px",textAlign:"center"}}>
+                  <div style={{fontSize:".64rem",color:"#1565C0",marginBottom:2}}>年間総作業時間</div>
+                  <div style={{fontWeight:700,color:"#1565C0"}}>{Math.floor(totalH)}時間{Math.round(totalMin%60)}分</div>
+                </div>
+                <div style={{flex:1,background:"#E8F5E9",borderRadius:8,padding:"8px",textAlign:"center"}}>
+                  <div style={{fontSize:".64rem",color:"#2E7D32",marginBottom:2}}>全体 時給換算</div>
+                  <div style={{fontWeight:700,color:"#2E7D32"}}>{totalHourly!=null?totalHourly.toLocaleString()+"円/h":"—"}</div>
+                </div>
+              </div>
+              {cropStats.filter(c=>c.minutes>0).map(c=>{
+                const h=c.minutes/60;
+                const hourly=h>0?Math.round(c.rev/h):null;
+                return (
+                  <div key={c.id} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 0",borderBottom:"1px solid "+BD}}>
+                    <span>{c.emoji}</span>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontSize:".8rem",fontWeight:700}}>{c.name}</div>
+                      <div style={{fontSize:".68rem",color:TX3}}>{c.timeStr} / 売上{Math.round(c.rev).toLocaleString()}円</div>
+                    </div>
+                    <div style={{textAlign:"right",flexShrink:0}}>
+                      <div style={{fontWeight:700,fontSize:".84rem",color:hourly!=null&&hourly>=1000?"#1B5E20":"#E65100"}}>{hourly!=null?hourly.toLocaleString()+"円/h":"—"}</div>
+                    </div>
+                  </div>
+                );
+              })}
+              {cropStats.filter(c=>c.minutes>0).length===0&&<div style={{color:TX3,fontSize:".8rem"}}>作業時間の記録がありません</div>}
+            </>);
+          })()}
+        </div>
         </>
       )}
 
