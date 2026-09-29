@@ -1159,7 +1159,16 @@ function Inp({ value, onChange, type="text", placeholder="", style={}, ...props 
 }
 
 // 計算機キーボード付き数値入力（PC:テキスト直接入力、スマホ:計算機キーボード）
-const isPC = ()=> !('ontouchstart' in window) && !navigator.maxTouchPoints;
+// タッチデバイス判定：userAgentも併用して確実に判定
+const isPC = ()=> {
+  if(typeof window==="undefined") return true;
+  const ua = navigator.userAgent||"";
+  const isMobileUA = /Android|iPhone|iPad|iPod|Mobile/i.test(ua);
+  if(isMobileUA) return false;
+  const hasTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints>0);
+  // タッチ対応PCもあるのでUAを優先
+  return !hasTouch || !isMobileUA;
+};
 function CalcInp({ value, onChange, placeholder="0", style={} }) {
   const [open, setOpen] = useState(false);
   const [expr, setExpr] = useState(""); // 計算式バッファ
@@ -1456,7 +1465,7 @@ function LoginScreen() {
       <div style={{background:"#fff",borderRadius:20,padding:"28px 24px",maxWidth:360,width:"100%",textAlign:"center",boxShadow:"0 8px 40px rgba(0,0,0,.3)"}}>
         <div style={{fontSize:"2.2rem",marginBottom:6}}>🌾</div>
         <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:"1.3rem",color:G,marginBottom:4}}>サクメモ</div>
-        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v2.0.3</span></div>
+        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v2.0.4</span></div>
         {linkErr&&<div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:8,padding:"10px 12px",marginBottom:16,fontSize:".78rem",color:"#856404",textAlign:"left"}}>{linkErr}</div>}
 
 
@@ -1516,7 +1525,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v2.0.3</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v2.0.4</div>
       </div>
     </div>
   );
@@ -5013,6 +5022,14 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
                   🛒 費用を記録
                 </button>
                 <button style={{...S.btn,...S.btnS,...S.btnSm}} onClick={()=>setMItem({...item,_type:"equip",_idx:realIdx})}>編集</button>
+                <button style={{...S.btn,background:"#f0fdf4",color:"#2d6a3f",border:"1px solid #bbf7d0",borderRadius:8,padding:"4px 8px",fontSize:".68rem",width:"auto",cursor:"pointer",fontFamily:"inherit"}}
+                  onClick={()=>{
+                    if(!window.confirm(`「${item.name}」を在庫（消耗資材）管理に移動しますか？\nカテゴリを「消耗品」に変更します。`)) return;
+                    const upd={...item,cat:"消耗品",stock:item.stock||"0",sunit:item.sunit||"個",cunit:item.cunit||"個",capacity:item.capacity||"",_type:"equip",_idx:realIdx};
+                    const newArr=equips.map((x,i)=>i===realIdx?{...upd}:x);
+                    setEquips(newArr,upd);
+                    showToast(`「${item.name}」を消耗資材に移動しました`);
+                  }}>📦 在庫へ移動</button>
                 <button style={{...S.btn,...S.btnR,...S.btnSm}} onClick={()=>deleteItem({...item,_type:"equip",_idx:realIdx})}>削除</button>
               </div>
             </div>
@@ -5509,44 +5526,51 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
               )}
             </div>
           </div>
-          {(equips||[]).length>0&&(
-            <div style={S.card}>
-              <SecHd label="🚜 農機具明細"/>
-              {(equips||[]).filter(e=>!MATERIAL_CATS.includes(e.cat)).map((eq,i)=>{
+          {(()=>{
+            // 今年度に償却費が発生するもの（少額一括計上は今年購入のもの）のみ表示
+            const depItems = (equips||[]).filter(e=>!MATERIAL_CATS.includes(e.cat)).filter(eq=>{
+              const buyDate = eq.purchaseDate||eq.date||eq.buyDate;
+              if(!eq.price||!buyDate) return false;
+              const py = new Date(buyDate).getFullYear();
+              const life = parseInt(eq.usefulLife||eq.depYears)||0;
+              if(life<=0) return py===thisYear; // 今年購入の一括計上のみ
+              const elapsed = thisYear-py;
+              return elapsed>=0 && elapsed<life; // 償却期間中のみ
+            });
+            if(depItems.length===0) return null;
+            return <div style={S.card}>
+              <SecHd label="🚜 農機具明細（今年度償却分）"/>
+              <div style={{fontSize:".72rem",color:TX3,marginBottom:8}}>今年度に減価償却費が発生する農機具のみ表示しています。</div>
+              {depItems.map((eq,i)=>{
                 const buyDate = eq.purchaseDate||eq.date||eq.buyDate;
-                if(!eq.price||!buyDate) return null;
                 const py = new Date(buyDate).getFullYear();
                 const life = parseInt(eq.usefulLife||eq.depYears)||0;
                 const price = parseFloat(eq.price)||0;
                 const elapsed = thisYear-py;
                 if(life<=0){
-                  // 耐用年数なし → 少額一括計上（購入年のみ費用計上）
-                  const isThisYear = py===thisYear;
                   return <div key={i} style={{padding:"7px 0",borderBottom:"1px solid "+BD,fontSize:".78rem"}}>
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                       <span style={{fontWeight:700}}>{eq.name||"農機具"}<span style={{fontSize:".65rem",color:"#888",marginLeft:4}}>(少額一括計上)</span></span>
-                      <span style={{fontWeight:700,color:"#aaa"}}>{isThisYear?price.toLocaleString()+"円":"―"}</span>
+                      <span style={{fontWeight:700,color:INFO}}>{price.toLocaleString()}円</span>
                     </div>
-                    <div style={{color:TX3,marginTop:2}}>取得価額 {price.toLocaleString()}円 · {py}年購入 · 耐用年数なし（一括費用計上）</div>
+                    <div style={{color:TX3,marginTop:2}}>取得価額 {price.toLocaleString()}円 · {py}年購入 · 今年一括費用計上</div>
                   </div>;
                 }
                 const annual = Math.floor(price/life);
-                const dep = Math.min(price, annual*elapsed);
-                const book = Math.max(0, price-dep);
-                const finished = elapsed>=life;
+                const book = Math.max(0, price - Math.min(price, annual*elapsed));
                 return <div key={i} style={{padding:"7px 0",borderBottom:"1px solid "+BD,fontSize:".78rem"}}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                    <span style={{fontWeight:700}}>{eq.name||"農機具"}{finished&&<span style={{fontSize:".65rem",color:"#999",marginLeft:4}}>(償却済)</span>}</span>
-                    <span style={{fontWeight:700,color:finished?"#aaa":INFO}}>{book.toLocaleString()}円</span>
+                    <span style={{fontWeight:700}}>{eq.name||"農機具"}</span>
+                    <div style={{textAlign:"right"}}>
+                      <div style={{fontWeight:700,color:INFO,fontSize:".82rem"}}>帳簿残 {book.toLocaleString()}円</div>
+                      <div style={{fontSize:".68rem",color:TX3}}>今年度償却 {annual.toLocaleString()}円</div>
+                    </div>
                   </div>
-                  <div style={{color:TX3,marginTop:2}}>取得価額 {price.toLocaleString()}円 · {buyDate.slice(0,4)}年購入 · 耐用{life}年 · {elapsed}年経過</div>
+                  <div style={{color:TX3,marginTop:2}}>取得価額 {price.toLocaleString()}円 · {buyDate.slice(0,4)}年購入 · 耐用{life}年 · {elapsed+1}年目/{life}年</div>
                 </div>;
               })}
-              {(equips||[]).every(eq=>!eq.price||(!(eq.purchaseDate||eq.date||eq.buyDate)))&&(
-                <div style={{fontSize:".78rem",color:TX3}}>購入日・価格が登録された農機具がありません。<br/>資材登録で「設備・資材」に購入日と価格を登録すると表示されます。</div>
-              )}
-            </div>
-          )}
+            </div>;
+          })()}
           <div style={S.card}>
             <SecHd label="⚖️ 按分マスター管理"/>
             <div style={{fontSize:".72rem",color:TX3,marginBottom:8}}>費用カテゴリごとに農業利用割合を管理します。費用入力時に自動適用されます。</div>
