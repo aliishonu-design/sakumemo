@@ -44,9 +44,9 @@ const cropToDb    = (o, uid) => ({ id:o.id, user_id:uid, field_id:o.fieldId||nul
 const cropFromDb  = (r, fields) => { const fi = fields.findIndex(f=>f.id===r.field_id); return { id:r.id, fieldId:r.field_id||"", fieldIdx:fi>=0?fi:0, type:r.type||"", variety:r.variety||"", germRate:r.germ_rate||"", stocks:r.stocks||"", ridgeW:r.ridge_w||"", ridgeH:r.ridge_h||"", rows:r.rows||"", rowSpace:r.row_space||"", plantSpace:r.plant_space||"", sowDate:r.sow_date||"", plantDate:r.plant_date||"", memo:r.memo||"", cultivationType:r.cultivation_type||"transplant", seedCost:r.seed_cost||"", seedNote:r.seed_note||"", customName:r.custom_name||"", ended:r.ended||false, endDate:r.end_date||"", maturity:r.maturity||"mid", customDays:r.custom_days||"", customWater:r.custom_water||"", potSize:r.pot_size||"", potVolume:r.pot_volume||"", potCount:r.pot_count||"", growEnv:r.grow_env||"field", agriMonthStart:r.agri_month_start||"", ridgeLen:r.ridge_len||"", cultivationArea:r.cultivation_area||"", tempMin:r.temp_min||"", tempMax:r.temp_max||"", fertSkipDate:r.fert_skip_date||"", fertInterval:r.fert_interval||"", reminderMode:r.reminder_mode||"auto", customEvents:r.custom_events?(typeof r.custom_events==="string"?JSON.parse(r.custom_events):r.custom_events):[], harvestDays:r.harvest_days||null, fertInterval:r.fert_interval||"" }; };
 const logToDb     = (o, uid, fields) => ({ id:o.id, user_id:uid, field_id:fields[o.fieldIdx]?.id||o.fieldId||null, crop_id:o.cropId||null, work:o.work||null, memo:o.memo||null, date:o.date||null, time:o.time||null, duration:o.duration||null, img_src:o.imgSrc||null, img2_src:o.imgSrc2||null, img3_src:o.imgSrc3||null, fert_name:o.fertName||null, fert_amt:o.fertAmt||null, fert_unit:o.fertUnit||null, fert_method:o.fertMethod||null, fert_cost:o.fertCost||null, fert_dil:o.fertDil||null, fert_spray_amt:o.fertSprayAmt||null, fert_spray_unit:o.fertSprayUnit||null, pest_name:o.pestName||null, pest_spray_amt:o.pestSprayAmt||null, pest_dil:o.pestDil||null, pest_amt:o.pestAmt||null, pest_unit:o.pestUnit||null, pest_tgt:o.pestTarget||null, pest_cost:o.pestCost||null, hv_kg:o.hvKg||null, hv_cnt:o.hvCnt||null, hv_q:o.hvQ||null, hv_price:o.hvPrice||null, equip_ids:o.equipIds||null, equip_act:o.equipAct||null, equip_use_amt:o.equipUseAmt||null, equip_use_unit:o.equipUseUnit||null, sow_qty:o.sowQty||null, germination_cnt:o.germinationCnt||null, germ_date:o.germinationDate||null, transplant_qty:o.transplantQty||null, discard_cnt:o.discardCnt||null, add_cnt:o.addCnt||null, event_type:o.eventType||null, event_note:o.eventNote||null, hv_grade_str:o.hvGradeStr||null, other_note:o.otherNote||null, repot_size:o.repotSize||null, repot_vol:o.repotVol||null, group_id:o._groupId||null, weather:o.weather||null });
 const logFromDb   = (r, fields) => { const fi=fields.findIndex(f=>f.id===r.field_id); return { id:r.id, fieldId:r.field_id||"", fieldIdx:fi>=0?fi:0, cropId:r.crop_id||"", work:r.work||"", memo:r.memo||"", date:r.date||"", time:r.time||"", duration:r.duration||"", imgSrc:r.img_src||null, imgSrc2:r.img2_src||null, imgSrc3:r.img3_src||null, aiReply:"", fertName:r.fert_name||"", fertAmt:r.fert_amt||"", fertUnit:r.fert_unit||"", fertMethod:r.fert_method||"", fertCost:r.fert_cost||"", fertDil:r.fert_dil||"", fertSprayAmt:r.fert_spray_amt||"", fertSprayUnit:r.fert_spray_unit||"L", pestName:r.pest_name||"", pestSprayAmt:r.pest_spray_amt||"", pestDil:r.pest_dil||"", pestAmt:r.pest_amt||"", pestUnit:r.pest_unit||"", pestTarget:r.pest_target||"", pestCost:r.pest_cost||"", hvKg:r.hv_kg!=null?String(r.hv_kg):"", hvCnt:r.hv_cnt!=null?String(r.hv_cnt):"", hvQ:r.hv_q||"", hvPrice:r.hv_price||"", hvImgSrc:r.hv_img_src||null, equipIds:Array.isArray(r.equip_ids)?r.equip_ids:(r.equip_ids?JSON.parse(r.equip_ids):[]), equipAct:r.equip_act||"", hvGradeStr:r.hv_grade_str||"", otherNote:r.other_note||"", repotSize:r.repot_size||"", repotVol:r.repot_vol||"", _groupId:r.group_id||null, weather:r.weather||"", equipUseAmt:r.equip_use_amt||null, equipUseUnit:r.equip_use_unit||null, sowQty:r.sow_qty||"", germinationCnt:r.germination_cnt||"", germinationDate:r.germination_date||"", transplantQty:r.transplant_qty||"", discardCnt:r.discard_cnt||"", addCnt:r.add_cnt||"", eventType:r.event_type||"", eventNote:r.event_note||"" }; };
-const fertMToDb   = (o, uid) => ({ id:o.id||uid0(), user_id:uid, name:o.name||null, type:o.type||null, price:o.price||null, punit:o.punit||null, capacity:o.capacity||null, cunit:o.cunit||null, npk:o.npk||null, stock:o.stock||null, sunit:o.sunit||null, note:o.note||null });
-const fertMFromDb = r => ({ id:r.id, name:r.name||"", type:r.type||"", price:r.price||"", punit:r.punit||"", capacity:r.capacity||"", cunit:r.cunit||"", npk:r.npk||"", stock:r.stock||"", sunit:r.sunit||"", note:r.note||"" });
-const pestMToDb   = (o, uid) => ({ id:o.id||uid0(), user_id:uid, name:o.name||null, type:o.type||null, target:o.target||null, capacity:o.capacity||null, sunit:o.sunit||null, price:o.price||null, note:o.note||null });const pestMFromDb = r => ({ id:r.id, name:r.name||"", type:r.type||"", target:r.target||"", capacity:r.capacity||"", sunit:r.sunit||"", price:r.price||"", note:r.note||"" });
+const fertMToDb   = (o, uid) => ({ id:o.id||uid0(), user_id:uid, name:o.name||null, type:o.type||null, price:o.price||null, punit:o.punit||null, capacity:o.capacity||null, cunit:o.cunit||null, npk:o.npk||null, stock:o.stock||null, sunit:o.sunit||null, note:o.note||null, status:o.status||null });
+const fertMFromDb = r => ({ id:r.id, name:r.name||"", type:r.type||"", price:r.price||"", punit:r.punit||"", capacity:r.capacity||"", cunit:r.cunit||"", npk:r.npk||"", stock:r.stock||"", sunit:r.sunit||"", note:r.note||"", status:r.status||"使用中" });
+const pestMToDb   = (o, uid) => ({ id:o.id||uid0(), user_id:uid, name:o.name||null, type:o.type||null, target:o.target||null, capacity:o.capacity||null, sunit:o.sunit||null, price:o.price||null, note:o.note||null, status:o.status||null });const pestMFromDb = r => ({ id:r.id, name:r.name||"", type:r.type||"", target:r.target||"", capacity:r.capacity||"", sunit:r.sunit||"", price:r.price||"", note:r.note||"", status:r.status||"使用中" });
 const equipToDb   = (o, uid) => ({ id:o.id||uid0(), user_id:uid, name:o.name||null, cat:o.cat||null, status:o.status||null, price:o.price||null, date:o.date||null, note:o.note||null, dep_years:o.depYears||null });
 const equipFromDb = r => ({ id:r.id, name:r.name||"", cat:r.cat||"", status:r.status||"", price:r.price||"", date:r.date||"", note:r.note||"", depYears:r.dep_years||"" });
 const costToDb    = (o, uid, fields) => ({ id:o.id, user_id:uid, field_id:(fields&&o.fieldIdx!==undefined&&o.fieldIdx!=="")?fields[o.fieldIdx]?.id||o.fieldId||null:o.fieldId||null, crop_id:o.cropId||null, cat:o.cat||null, name:o.name||null, amt:o.amt||null, date:o.date||null, qty:o.qty||null, qunit:o.qunit||null, note:o.note||null, master_id:o.masterId||null, work:o.work||null, pay_method:o.payMethod||null, pay_date:o.payDate||null, cancelled:o.cancelled||null });
@@ -1450,7 +1450,7 @@ function LoginScreen() {
       <div style={{background:"#fff",borderRadius:20,padding:"28px 24px",maxWidth:360,width:"100%",textAlign:"center",boxShadow:"0 8px 40px rgba(0,0,0,.3)"}}>
         <div style={{fontSize:"2.2rem",marginBottom:6}}>🌾</div>
         <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:"1.3rem",color:G,marginBottom:4}}>サクメモ</div>
-        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v2.0.0</span></div>
+        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v2.0.1</span></div>
         {linkErr&&<div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:8,padding:"10px 12px",marginBottom:16,fontSize:".78rem",color:"#856404",textAlign:"left"}}>{linkErr}</div>}
 
 
@@ -1510,7 +1510,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v2.0.0</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v2.0.1</div>
       </div>
     </div>
   );
@@ -1869,8 +1869,8 @@ function MasterScreen({ fertMs, setFertMs, pestMs, setPestMs, equips, setEquips,
     // 費用追加
     const cap2 = parseFloat(mBuy.capacity)||0;
     const label = mBuy.name+(cap2>0?" "+cnt+"個("+addStock+(mBuy.sunit||mBuy.cunit||"")+")":" "+cnt+"個");
-    setCosts([...costs,{id:uid0(),cat:mBuy._type==="equip"?"equip":mBuy._type,name:label,amt:String(mBuy.amt),date:mBuy.date||todayStr(),qty:String(cnt),qunit:"個",fieldIdx:"",note:mBuy.note||""}],
-      {id:uid0(),cat:mBuy._type==="equip"?"equip":mBuy._type,name:label,amt:String(mBuy.amt),date:mBuy.date||todayStr(),qty:String(cnt),qunit:"個",fieldIdx:"",note:mBuy.note||""});
+    const newCostObj = {id:uid0(),cat:mBuy._type==="equip"?"equip":mBuy._type,name:label,amt:String(mBuy.amt),date:mBuy.date||todayStr(),qty:String(cnt),qunit:"個",fieldIdx:"",note:mBuy.note||"",masterId:mBuy._item?.id||mBuy.id||null,capacity:String(mBuy.capacity||"")};
+    setCosts([...costs,newCostObj], newCostObj);
     showToast("購入記録しました（在庫+"+(cap>0?addStock+(mBuy.sunit||mBuy.cunit||""):cnt+"個")+"・費用+"+Math.round(mBuy.amt).toLocaleString()+"円）");
     setMBuy(null);
   };
@@ -1971,8 +1971,6 @@ function MasterScreen({ fertMs, setFertMs, pestMs, setPestMs, equips, setEquips,
                 options={["化成肥料","有機肥料","液肥","緩効性肥料","石灰・土壌改良材","培養土・堆肥","その他"].map(v=>({value:v,label:v}))}/></FG>
               <FG label="N-P-K"><Inp value={mItem.npk||""} onChange={v=>setMItem({...mItem,npk:v})} placeholder="8-8-8"/></FG>
             </R2>
-            <FG label="状態"><Sel value={mItem.status||"使用中"} onChange={v=>setMItem({...mItem,status:v})}
-              options={["使用中","使い切り（非表示）"].map(v=>({value:v,label:v}))}/></FG>
           </>}
 
           {mItem._type==="pest"&&<>
@@ -1984,8 +1982,6 @@ function MasterScreen({ fertMs, setFertMs, pestMs, setPestMs, equips, setEquips,
             </R2>
             <FG label="希釈倍数"><CalcInp value={mItem.dil||""} onChange={v=>setMItem({...mItem,dil:v})} placeholder="1000"/></FG>
             <FG label="対象作物・病害虫"><Inp value={mItem.target||""} onChange={v=>setMItem({...mItem,target:v})} placeholder="例：アブラムシ"/></FG>
-            <FG label="状態"><Sel value={mItem.status||"使用中"} onChange={v=>setMItem({...mItem,status:v})}
-              options={["使用中","使い切り（非表示）"].map(v=>({value:v,label:v}))}/></FG>
           </>}
 
           {mItem._type==="equip"&&<>
@@ -3750,8 +3746,8 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
     else if(mBuy._type==="pest") setPestMs(pestMs.map((x,i)=>i===mBuy._idx?updItem:x),updItem);
     const cap2 = parseFloat(mBuy.capacity)||0;
     const label = mBuy.name+(cap2>0?" "+cnt+"個("+addStock+(mBuy.sunit||mBuy.cunit||"")+")":" "+cnt+"個");
-    setCosts([...costs,{id:uid0(),cat:mBuy._type==="equip"?"equip":mBuy._type,name:label,amt:String(mBuy.amt),date:mBuy.date||todayStr(),qty:String(cnt),qunit:"個",fieldIdx:"",note:mBuy.note||""}],
-      {id:uid0(),cat:mBuy._type==="equip"?"equip":mBuy._type,name:label,amt:String(mBuy.amt),date:mBuy.date||todayStr(),qty:String(cnt),qunit:"個",fieldIdx:"",note:mBuy.note||""});
+    const newCostObj2 = {id:uid0(),cat:mBuy._type==="equip"?"equip":mBuy._type,name:label,amt:String(mBuy.amt),date:mBuy.date||todayStr(),qty:String(cnt),qunit:"個",fieldIdx:"",note:mBuy.note||"",masterId:mBuy._item?.id||mBuy.id||null,capacity:String(mBuy.capacity||"")};
+    setCosts([...costs,newCostObj2], newCostObj2);
     showToast("購入記録しました");
     setMBuy(null);
   };
@@ -4750,7 +4746,13 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
             肥料・農薬がまだ登録されていません<br/>費用欄で肥料費・農薬費を入力すると自動登録されます
           </div>
         }
-        {[...fertMs.map((f,i)=>({...f,_type:"fert",_idx:i})),...pestMs.map((p,i)=>({...p,_type:"pest",_idx:i}))].map((item)=>{
+        {[...fertMs.map((f,i)=>({...f,_type:"fert",_idx:i})),...pestMs.map((p,i)=>({...p,_type:"pest",_idx:i}))]
+          .sort((a,b)=>{
+            const aOut = a.status==="使い切り（非表示）"?1:0;
+            const bOut = b.status==="使い切り（非表示）"?1:0;
+            return aOut-bOut;
+          })
+          .map((item)=>{
           const stock = parseFloat(item.stock)||0;
           const su = item.sunit||item.cunit||"";
           const cap = parseFloat(item.capacity)||0;
@@ -4860,10 +4862,6 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
                 <CalcInp value={mItem.stock||"0"} onChange={v=>setMItem({...mItem,stock:v})} placeholder="0" style={{flex:1}}/>
                 <span style={{fontSize:".8rem",color:TX3}}>{mItem.sunit||mItem.cunit||""}</span>
               </div>
-            </FG>
-            <FG label="状態">
-              <Sel value={mItem.status||"使用中"} onChange={v=>setMItem({...mItem,status:v})}
-                options={["使用中","使い切り（非表示）"].map(v=>({value:v,label:v}))}/>
             </FG>
             <FG label="メモ"><Inp value={mItem.note||""} onChange={v=>setMItem({...mItem,note:v})} placeholder="購入先・注意事項など"/></FG>
           </>}
@@ -5096,7 +5094,7 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
           <FG label="メモ"><Inp value={mCost.note||""} onChange={v=>setMCost({...mCost,note:v})} placeholder="購入先・領収書番号など"/></FG>
           {mCost.id&&<div style={{display:"flex",gap:6,marginTop:8}}>
             {!mCost.cancelled
-              ? <button onClick={()=>{if(window.confirm("この取引を取り消しますか？（記録は残ります）")){const updated={...mCost,cancelled:true};setCosts(costs.map(x=>x.id===mCost.id?updated:x),updated);if(mCost.masterId&&(mCost.cat==="fert"||mCost.cat==="pest")){const qty=parseFloat(mCost.qty)||0;if(mCost.cat==="fert"){const idx=fertMs.findIndex(m=>m.id===mCost.masterId);if(idx>=0){const m=fertMs[idx];const cap=parseFloat(m.capacity)||0;const sub=cap>0?qty*cap:qty;const newStock=Math.max(0,(parseFloat(m.stock)||0)-sub);const upd={...m,stock:String(Math.round(newStock*100)/100)};setFertMs(fertMs.map((x,i)=>i===idx?upd:x),upd);}}else{const idx=pestMs.findIndex(m=>m.id===mCost.masterId);if(idx>=0){const m=pestMs[idx];const cap=parseFloat(m.capacity)||0;const sub=cap>0?qty*cap:qty;const newStock=Math.max(0,(parseFloat(m.stock)||0)-sub);const upd={...m,stock:String(Math.round(newStock*100)/100)};setPestMs(pestMs.map((x,i)=>i===idx?upd:x),upd);}}}setMCost(null);showToast("取り消しました");}}} style={{...S.btn,background:"#FFF3E0",color:"#E65100",border:"1px solid #FFCC80",flex:1}}>取消</button>
+              ? <button onClick={()=>{if(window.confirm("この取引を取り消しますか？（記録は残ります）")){const updated={...mCost,cancelled:true};setCosts(costs.map(x=>x.id===mCost.id?updated:x),updated);if(mCost.masterId&&(mCost.cat==="fert"||mCost.cat==="pest")){const qty=parseFloat(mCost.qty)||0;const costCap=parseFloat(mCost.capacity)||0;const sub=costCap>0?qty*costCap:qty;if(mCost.cat==="fert"){const idx=fertMs.findIndex(m=>m.id===mCost.masterId);if(idx>=0){const m=fertMs[idx];const newStock=Math.max(0,(parseFloat(m.stock)||0)-sub);const upd={...m,stock:String(Math.round(newStock*100)/100)};setFertMs(fertMs.map((x,i)=>i===idx?upd:x),upd);}}else{const idx=pestMs.findIndex(m=>m.id===mCost.masterId);if(idx>=0){const m=pestMs[idx];const newStock=Math.max(0,(parseFloat(m.stock)||0)-sub);const upd={...m,stock:String(Math.round(newStock*100)/100)};setPestMs(pestMs.map((x,i)=>i===idx?upd:x),upd);}}}setMCost(null);showToast("取り消しました");}}} style={{...S.btn,background:"#FFF3E0",color:"#E65100",border:"1px solid #FFCC80",flex:1}}>取消</button>
               : <button onClick={()=>{if(window.confirm("取り消しを復活させますか？")){const updated={...mCost,cancelled:false};setCosts(costs.map(x=>x.id===mCost.id?updated:x),updated);setMCost(null);showToast("復活しました");}}} style={{...S.btn,background:"#E8F5E9",color:"#2E7D32",border:"1px solid #A5D6A7",flex:1}}>復活</button>}
             <button onClick={()=>{if(window.confirm("削除しますか？")){const n=costs.filter(x=>x.id!==mCost.id);try{const r=getApportionRates();delete r[mCost.id];localStorage.setItem("apportionRates",JSON.stringify(r));}catch{}if(mCost.id){dbDelete("costs",mCost.id);}setCosts(n);setMCost(null);showToast("削除しました");}}} style={{...S.btn,...S.btnR,flex:1}}>削除</button>
           </div>}
