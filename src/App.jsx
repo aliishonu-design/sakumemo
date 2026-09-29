@@ -46,7 +46,7 @@ const logToDb     = (o, uid, fields) => ({ id:o.id, user_id:uid, field_id:fields
 const logFromDb   = (r, fields) => { const fi=fields.findIndex(f=>f.id===r.field_id); return { id:r.id, fieldId:r.field_id||"", fieldIdx:fi>=0?fi:0, cropId:r.crop_id||"", work:r.work||"", memo:r.memo||"", date:r.date||"", time:r.time||"", duration:r.duration||"", imgSrc:r.img_src||null, imgSrc2:r.img2_src||null, imgSrc3:r.img3_src||null, aiReply:"", fertName:r.fert_name||"", fertAmt:r.fert_amt||"", fertUnit:r.fert_unit||"", fertMethod:r.fert_method||"", fertCost:r.fert_cost||"", fertDil:r.fert_dil||"", fertSprayAmt:r.fert_spray_amt||"", fertSprayUnit:r.fert_spray_unit||"L", pestName:r.pest_name||"", pestSprayAmt:r.pest_spray_amt||"", pestDil:r.pest_dil||"", pestAmt:r.pest_amt||"", pestUnit:r.pest_unit||"", pestTarget:r.pest_target||"", pestCost:r.pest_cost||"", hvKg:r.hv_kg!=null?String(r.hv_kg):"", hvCnt:r.hv_cnt!=null?String(r.hv_cnt):"", hvQ:r.hv_q||"", hvPrice:r.hv_price||"", hvImgSrc:r.hv_img_src||null, equipIds:Array.isArray(r.equip_ids)?r.equip_ids:(r.equip_ids?JSON.parse(r.equip_ids):[]), equipAct:r.equip_act||"", hvGradeStr:r.hv_grade_str||"", otherNote:r.other_note||"", repotSize:r.repot_size||"", repotVol:r.repot_vol||"", _groupId:r.group_id||null, weather:r.weather||"", equipUseAmt:r.equip_use_amt||null, equipUseUnit:r.equip_use_unit||null, sowQty:r.sow_qty||"", germinationCnt:r.germination_cnt||"", germinationDate:r.germination_date||"", transplantQty:r.transplant_qty||"", discardCnt:r.discard_cnt||"", addCnt:r.add_cnt||"", eventType:r.event_type||"", eventNote:r.event_note||"" }; };
 const fertMToDb   = (o, uid) => ({ id:o.id||uid0(), user_id:uid, name:o.name||null, type:o.type||null, price:o.price||null, punit:o.punit||null, capacity:o.capacity||null, cunit:o.cunit||null, npk:o.npk||null, stock:o.stock||null, sunit:o.sunit||null, note:o.note||null, status:o.status||null });
 const fertMFromDb = r => ({ id:r.id, name:r.name||"", type:r.type||"", price:r.price||"", punit:r.punit||"", capacity:r.capacity||"", cunit:r.cunit||"", npk:r.npk||"", stock:r.stock||"", sunit:r.sunit||"", note:r.note||"", status:r.status||"使用中" });
-const pestMToDb   = (o, uid) => ({ id:o.id||uid0(), user_id:uid, name:o.name||null, type:o.type||null, target:o.target||null, capacity:o.capacity||null, sunit:o.sunit||null, price:o.price||null, note:o.note||null, status:o.status||null });const pestMFromDb = r => ({ id:r.id, name:r.name||"", type:r.type||"", target:r.target||"", capacity:r.capacity||"", sunit:r.sunit||"", price:r.price||"", note:r.note||"", status:r.status||"使用中" });
+const pestMToDb   = (o, uid) => ({ id:o.id||uid0(), user_id:uid, name:o.name||null, type:o.type||null, target:o.target||null, capacity:o.capacity||null, sunit:o.cunit||o.sunit||null, price:o.price||null, note:o.note||null, status:o.status||null });const pestMFromDb = r => ({ id:r.id, name:r.name||"", type:r.type||"", target:r.target||"", capacity:r.capacity||"", cunit:r.sunit||"ml", sunit:r.sunit||"ml", price:r.price||"", note:r.note||"", status:r.status||"使用中" });
 const equipToDb   = (o, uid) => ({ id:o.id||uid0(), user_id:uid, name:o.name||null, cat:o.cat||null, status:o.status||null, price:o.price||null, date:o.date||null, note:o.note||null, dep_years:o.depYears||null });
 const equipFromDb = r => ({ id:r.id, name:r.name||"", cat:r.cat||"", status:r.status||"", price:r.price||"", date:r.date||"", note:r.note||"", depYears:r.dep_years||"" });
 const costToDb    = (o, uid, fields) => ({ id:o.id, user_id:uid, field_id:(fields&&o.fieldIdx!==undefined&&o.fieldIdx!=="")?fields[o.fieldIdx]?.id||o.fieldId||null:o.fieldId||null, crop_id:o.cropId||null, cat:o.cat||null, name:o.name||null, amt:o.amt||null, date:o.date||null, qty:o.qty||null, qunit:o.qunit||null, note:o.note||null, master_id:o.masterId||null, work:o.work||null, pay_method:o.payMethod||null, pay_date:o.payDate||null, cancelled:o.cancelled||null });
@@ -1451,7 +1451,7 @@ function LoginScreen() {
       <div style={{background:"#fff",borderRadius:20,padding:"28px 24px",maxWidth:360,width:"100%",textAlign:"center",boxShadow:"0 8px 40px rgba(0,0,0,.3)"}}>
         <div style={{fontSize:"2.2rem",marginBottom:6}}>🌾</div>
         <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:"1.3rem",color:G,marginBottom:4}}>サクメモ</div>
-        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v2.1.0</span></div>
+        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v2.1.1</span></div>
         {linkErr&&<div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:8,padding:"10px 12px",marginBottom:16,fontSize:".78rem",color:"#856404",textAlign:"left"}}>{linkErr}</div>}
 
 
@@ -1511,7 +1511,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v2.1.0</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v2.1.1</div>
       </div>
     </div>
   );
@@ -3835,16 +3835,21 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
     const costId = mCost.id||uid0();
     // 新方式購入記録: _buyQtyをqtyに反映し、masterId/capacityも保存
     const buyQtyVal = mCost._buyQty ? String(mCost._buyQty) : (mCost.qty||"1");
-    // 資材情報編集時はcapacityも更新後の値を使う
+    // 資材情報編集時はcapacity/cunitも更新後の値を使う
     const editedCapForItem = mCost._editMaster && mCost._editCapacity!==undefined ? mCost._editCapacity : null;
+    const editedCunitForItem = mCost._editMaster && mCost._editCunit!==undefined ? mCost._editCunit : null;
+    const masterRec = mCost.masterId&&(mCost.cat==="fert"||mCost.cat==="pest")
+      ? (mCost.cat==="fert"?fertMs:pestMs).find(m=>m.id===mCost.masterId) : null;
     const buyCapVal = editedCapForItem !== null ? String(editedCapForItem)
-      : mCost.masterId&&(mCost.cat==="fert"||mCost.cat==="pest")
-        ? String((mCost.cat==="fert"?fertMs:pestMs).find(m=>m.id===mCost.masterId)?.capacity||"")
-        : (mCost.capacity||"");
+      : masterRec ? String(masterRec.capacity||"")
+      : (mCost.capacity||"");
+    const buyCunitVal = editedCunitForItem !== null ? String(editedCunitForItem)
+      : masterRec ? String(masterRec.cunit||"")
+      : (mCost.cunit||"");
     // _editNameがあれば費用レコードの品名も更新
     const finalName = (mCost._editMaster && mCost._editName!==undefined) ? mCost._editName : effName;
     const item={...mCost, id:costId, name:finalName, amt:String(realAmt), note:noteWithApportion,
-      qty:buyQtyVal, qunit:mCost.qunit||"個", capacity:buyCapVal,
+      qty:buyQtyVal, qunit:mCost.qunit||"個", capacity:buyCapVal, cunit:buyCunitVal,
       discount:undefined, apportionId:undefined, apportionRate:undefined,
       _buyQty:undefined, _buyUnitPrice:undefined, _buyOpen:undefined, _histSrch:undefined,
       _newItem:undefined, _newName:undefined, _newType:undefined, _newCapacity:undefined,
@@ -3943,7 +3948,7 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
               name:mCost._editName!==undefined?mCost._editName:m.name,
               type:mCost._editType!==undefined?mCost._editType:m.type,
               target:mCost._editTarget!==undefined?mCost._editTarget:m.target,
-              capacity:editedCap, sunit:editedCunit,
+              capacity:editedCap, cunit:editedCunit, sunit:editedCunit,
               price:mCost._editPrice!==undefined?mCost._editPrice:m.price,
             }:{}),
             stock:addStock>0?String(Math.round(((parseFloat(m.stock)||0)+addStock)*100)/100):m.stock,
