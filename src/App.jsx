@@ -1451,7 +1451,7 @@ function LoginScreen() {
       <div style={{background:"#fff",borderRadius:20,padding:"28px 24px",maxWidth:360,width:"100%",textAlign:"center",boxShadow:"0 8px 40px rgba(0,0,0,.3)"}}>
         <div style={{fontSize:"2.2rem",marginBottom:6}}>🌾</div>
         <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:"1.3rem",color:G,marginBottom:4}}>サクメモ</div>
-        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v2.0.8</span></div>
+        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v2.0.9</span></div>
         {linkErr&&<div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:8,padding:"10px 12px",marginBottom:16,fontSize:".78rem",color:"#856404",textAlign:"left"}}>{linkErr}</div>}
 
 
@@ -1511,7 +1511,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v2.0.8</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v2.0.9</div>
       </div>
     </div>
   );
@@ -3840,7 +3840,10 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
     const item={...mCost, id:costId, amt:String(realAmt), note:noteWithApportion,
       qty:buyQtyVal, qunit:mCost.qunit||"個", capacity:buyCapVal,
       discount:undefined, apportionId:undefined, apportionRate:undefined,
-      _buyQty:undefined, _buyUnitPrice:undefined, _buyOpen:undefined, _histSrch:undefined};
+      _buyQty:undefined, _buyUnitPrice:undefined, _buyOpen:undefined, _histSrch:undefined,
+      _newItem:undefined, _newName:undefined, _newType:undefined, _newCapacity:undefined,
+      _newCunit:undefined, _newPrice:undefined, _newTarget:undefined, _newNpk:undefined,
+      _newItemType:undefined};
     const n=mCost.id&&costs.find(x=>x.id===mCost.id)?costs.map(x=>x.id===mCost.id?item:x):[...costs,item];
     // 按分率をlocalStorageに保存
     if(!isIncome(mCost.cat)){
@@ -3889,7 +3892,7 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
         }
       }
     }
-    // 肥料費・農薬費：新方式（masterId + _buyQty）で在庫を加算 (v2.0.8)
+    // 肥料費・農薬費：新方式（masterId + _buyQty）で在庫を加算 (v2.0.9)
     if((mCost.cat==="fert"||mCost.cat==="pest")&&mCost.masterId&&mCost._buyQty&&!mCost.id){
       const buyQty = parseFloat(mCost._buyQty)||0;
       if(mCost.cat==="fert"){
@@ -3923,6 +3926,32 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
         const depVal = mCost.depYears!==undefined ? mCost.depYears : "";
         const updEq = {...equips[eqIdx], depYears:depVal};
         setEquips(equips.map((x,i)=>i===eqIdx?updEq:x), updEq);
+      }
+    }
+    // 新規資材登録（_newItem）：マスター登録 → 在庫加算
+    if(mCost._newItem && mCost._newName && !mCost.id){
+      const newId = uid0();
+      const buyQty2 = parseFloat(mCost._buyQty)||0;
+      const cap2 = parseFloat(mCost._newCapacity)||0;
+      const addStock2 = cap2>0 ? buyQty2*cap2 : buyQty2;
+      if(mCost.cat==="fert"){
+        const newM = {
+          id:newId, name:mCost._newName, type:mCost._newType||"化成肥料",
+          npk:mCost._newNpk||"", price:mCost._newPrice||"", punit:"円/個",
+          capacity:mCost._newCapacity||"", cunit:mCost._newCunit||"kg",
+          stock:String(Math.round(addStock2*100)/100),
+          sunit:mCost._newCunit||"kg", note:"", status:"使用中"
+        };
+        setFertMs([...fertMs, newM], newM);
+        showToast("「"+mCost._newName+"」を資材マスターに登録し、在庫に"+Math.round(addStock2*100)/100+(mCost._newCunit||"kg")+"を加算しました");
+      } else if(mCost.cat==="pest"){
+        const newM = {
+          id:newId, name:mCost._newName, type:mCost._newType||"殺虫剤",
+          target:mCost._newTarget||"", capacity:mCost._newCapacity||"",
+          sunit:mCost._newCunit||"ml", price:mCost._newPrice||"", note:"", status:"使用中"
+        };
+        setPestMs([...pestMs, newM], newM);
+        showToast("「"+mCost._newName+"」を資材マスターに登録し、在庫に"+Math.round(addStock2*100)/100+(mCost._newCunit||"ml")+"を加算しました");
       }
     }
     setMCost(null); showToast("保存しました");
@@ -4802,18 +4831,9 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
 
       {/* ── 在庫管理タブ ── */}
       {mainTab==="stock"&&<>
-        <div style={{display:"flex",gap:6,marginBottom:10,flexWrap:"wrap",alignItems:"center"}}>
-          <div style={{flex:1,fontSize:".72rem",color:TX3}}>購入は費用タブから記録 / 作業記録で自動減算</div>
-          <button style={{...S.btn,background:G3,color:G,border:"1px solid "+G,borderRadius:999,padding:"6px 12px",fontSize:".75rem",fontWeight:700,width:"auto"}}
-            onClick={()=>setMItem({...newFert,_idx:undefined})}>＋ 肥料</button>
-          <button style={{...S.btn,background:"#fffde7",color:"#92400e",border:"1px solid #f9e4a0",borderRadius:999,padding:"6px 12px",fontSize:".75rem",fontWeight:700,width:"auto"}}
-            onClick={()=>setMItem({...newPest,_idx:undefined})}>＋ 農薬</button>
-          <button style={{...S.btn,background:"#ede9fe",color:"#5b21b6",border:"1px solid #c4b5fd",borderRadius:999,padding:"6px 12px",fontSize:".75rem",fontWeight:700,width:"auto"}}
-            onClick={()=>setMItem({...newMaterial,_idx:undefined})}>＋ 消耗資材</button>
-        </div>
-        {/* 在庫一覧 */}
+        {/* 在庫一覧 - 閲覧専用 */}
         <div style={{fontSize:".72rem",color:TX3,background:"#f0f9f0",borderRadius:8,padding:"8px 10px",marginBottom:10,lineHeight:1.6}}>
-          💡 在庫を増やすには<b>費用タブ</b>から購入を記録してください。購入記録で在庫が自動加算されます。作業記録で使用すると在庫が自動減算されます。
+          📦 在庫は<b>費用タブ</b>から購入を記録すると自動加算されます。資材の新規登録も費用タブから行ってください。
         </div>
         {[...fertMs.map((f,i)=>({...f,_type:"fert",_idx:i})),...pestMs.map((p,i)=>({...p,_type:"pest",_idx:i})),...materialMs.map((m,i)=>({...m,_type:"material",_idx:equips.indexOf(m)}))].length===0
           &&<div style={{color:TX3,fontSize:".82rem",padding:20,textAlign:"center"}}>
@@ -4893,125 +4913,10 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
                   }}>
                   ↩ 使用中に戻す
                 </button>}
-                <button style={{...S.btn,...S.btnS,...S.btnSm}} onClick={()=>setMItem({...item})}>編集</button>
-                <button style={{...S.btn,...S.btnR,...S.btnSm}} onClick={()=>deleteItem({...item})}>削除</button>
               </div>
             </div>
           );
         })}
-        {/* 資材登録モーダル */}
-        <ModalWithSave open={!!mItem&&mItem._type!=="equip"} onClose={()=>setMItem(null)} title={mItem?._idx!==undefined?"資材を編集":"資材を追加"} onSave={saveItem}>
-          {mItem&&mItem._type!=="equip"&&<>
-            {mItem._type==="material"&&<>
-              <FG label="資材名"><Inp value={mItem.name||""} onChange={v=>setMItem({...mItem,name:v})} placeholder="例：黒マルチ 幅95cm"/></FG>
-              <FG label="カテゴリ"><Sel value={mItem.cat||"マルチ"} onChange={v=>setMItem({...mItem,cat:v})}
-                options={MATERIAL_CATS.map(v=>({value:v,label:v}))}/></FG>
-              <R2>
-                <FG label="単価（円）"><CalcInp value={mItem.price||""} onChange={v=>setMItem({...mItem,price:v})} placeholder="例：1500"/></FG>
-                <FG label="単価単位"><Inp value={mItem.punit||"円/本"} onChange={v=>setMItem({...mItem,punit:v})} placeholder="円/本" style={{width:70}}/></FG>
-              </R2>
-              <R2>
-                <FG label="内容量（1個あたり）"><CalcInp value={mItem.capacity||"1"} onChange={v=>setMItem({...mItem,capacity:v})} placeholder="1"/></FG>
-                <FG label="単位"><Inp value={mItem.cunit||"本"} onChange={v=>setMItem({...mItem,cunit:v,sunit:v})} placeholder="本" style={{width:60}}/></FG>
-              </R2>
-              <FG label="現在の在庫数">
-                <div style={{display:"flex",gap:4,alignItems:"center"}}>
-                  <CalcInp value={mItem.stock||"0"} onChange={v=>setMItem({...mItem,stock:v})} placeholder="0" style={{flex:1}}/>
-                  <span style={{fontSize:".8rem",color:TX3}}>{mItem.sunit||mItem.cunit||"本"}</span>
-                </div>
-              </FG>
-              <FG label="メモ"><Inp value={mItem.note||""} onChange={v=>setMItem({...mItem,note:v})} placeholder="購入先・サイズなど"/></FG>
-            </>}
-            {mItem._type!=="material"&&<>
-            <FG label="資材名"><Inp value={mItem.name||""} onChange={v=>setMItem({...mItem,name:v})} placeholder="例：スミチオン乳剤"/></FG>
-            {mItem._type==="fert"&&<>
-              <R2>
-                <FG label="肥料の種類"><Sel value={mItem.type||"化成肥料"} onChange={v=>setMItem({...mItem,type:v})}
-                  options={["化成肥料","有機肥料","液肥","緩効性肥料","石灰・土壌改良材","培養土・堆肥","その他"].map(v=>({value:v,label:v}))}/></FG>
-                <FG label="N-P-K"><Inp value={mItem.npk||""} onChange={v=>setMItem({...mItem,npk:v})} placeholder="8-8-8"/></FG>
-              </R2>
-            </>}
-            {mItem._type==="pest"&&<>
-              <R2>
-                <FG label="農薬の種類"><Sel value={mItem.type||"殺虫剤"} onChange={v=>setMItem({...mItem,type:v})}
-                  options={["殺虫剤","殺菌剤","除草剤","殺虫殺菌剤","その他"].map(v=>({value:v,label:v}))}/></FG>
-                <FG label="剤型"><Sel value={mItem.formType||""} onChange={v=>setMItem({...mItem,formType:v})}
-                  options={[{value:"",label:"（未設定）"},...["乳剤","水和剤","水溶剤","フロアブル剤","粒剤","その他"].map(v=>({value:v,label:v}))]}/></FG>
-              </R2>
-              <FG label="希釈倍数（標準）"><CalcInp value={mItem.dil||""} onChange={v=>setMItem({...mItem,dil:v})} placeholder="1000"/></FG>
-              <FG label="対象作物・病害虫"><Inp value={mItem.target||""} onChange={v=>setMItem({...mItem,target:v})} placeholder="例：アブラムシ"/></FG>
-            </>}
-            <R2>
-              <FG label="内容量（1個あたり）">
-                <div style={{display:"flex",gap:4}}>
-                  <CalcInp value={mItem.capacity||""} onChange={v=>setMItem({...mItem,capacity:v})} placeholder="例：500" style={{flex:1}}/>
-                  <Sel value={mItem.cunit||"ml"} onChange={v=>setMItem({...mItem,cunit:v,sunit:v})}
-                    options={["ml","L","g","kg"].map(v=>({value:v,label:v}))} style={{width:60,flex:"none"}}/>
-                </div>
-              </FG>
-              <FG label="単価（円/個）"><CalcInp value={mItem.price||""} onChange={v=>setMItem({...mItem,price:v})} placeholder="例：2000"/></FG>
-            </R2>
-            <FG label="現在の在庫数量">
-              <div style={{display:"flex",gap:4,alignItems:"center"}}>
-                <CalcInp value={mItem.stock||"0"} onChange={v=>setMItem({...mItem,stock:v})} placeholder="0" style={{flex:1}}/>
-                <span style={{fontSize:".8rem",color:TX3}}>{mItem.sunit||mItem.cunit||""}</span>
-              </div>
-            </FG>
-            <FG label="メモ"><Inp value={mItem.note||""} onChange={v=>setMItem({...mItem,note:v})} placeholder="購入先・注意事項など"/></FG>
-          </>}
-          </>}
-        </ModalWithSave>
-        {/* 購入記録モーダル */}
-        <ModalWithSave open={!!mBuy&&mBuy._type!=="equip"} onClose={()=>setMBuy(null)} title={"🛒 "+(mBuy?.name||"")+" を購入"} onSave={saveBuy}>
-          {mBuy&&mBuy._type!=="equip"&&<>
-            {/* 単価×個数＝合計金額の自動計算 */}
-            <R2>
-              <FG label="単価（円）">
-                <CalcInp value={mBuy.unitPrice||mBuy.price||""} onChange={v=>{
-                  const up=parseFloat(v)||0;
-                  const cnt=parseFloat(mBuy.cnt)||0;
-                  const autoAmt=up>0&&cnt>0?String(Math.round(up*cnt)):(mBuy.amt||"");
-                  setMBuy({...mBuy,unitPrice:v,amt:autoAmt});
-                }} placeholder="例：2000"/>
-              </FG>
-              <FG label="購入個数">
-                <CalcInp value={mBuy.cnt||""} onChange={v=>{
-                  const cnt=parseFloat(v)||0;
-                  const cap=parseFloat(mBuy.capacity)||0;
-                  const up=parseFloat(mBuy.unitPrice||mBuy.price)||0;
-                  const autoAmt=up>0&&cnt>0?String(Math.round(up*cnt)):"";
-                  setMBuy({...mBuy,cnt:v,amt:autoAmt,_addStock:cap>0?cnt*cap:cnt});
-                }} placeholder="例：3"/>
-              </FG>
-            </R2>
-            {/* 合計金額表示 */}
-            {(parseFloat(mBuy.unitPrice||mBuy.price)>0&&parseFloat(mBuy.cnt)>0)&&(
-              <div style={{background:"#f0fdf4",border:"1px solid #bbf7d0",borderRadius:8,padding:"7px 12px",marginBottom:8,fontSize:".82rem",color:"#166534",fontWeight:700}}>
-                合計: {(Math.round((parseFloat(mBuy.unitPrice||mBuy.price)||0)*(parseFloat(mBuy.cnt)||0))).toLocaleString()}円
-              </div>
-            )}
-            <FG label="合計金額（円）">
-              <CalcInp value={mBuy.amt||""} onChange={v=>setMBuy({...mBuy,amt:v})} placeholder="自動計算（手動修正可）"/>
-            </FG>
-            <R2>
-              <FG label="内容量（1個あたり）">
-                <CalcInp value={mBuy.capacity||""} onChange={v=>{
-                  const cnt=parseFloat(mBuy.cnt)||0;
-                  const cap=parseFloat(v)||0;
-                  setMBuy({...mBuy,capacity:v,_addStock:cap>0?cnt*cap:cnt});
-                }} placeholder={mBuy.capacity||""}/>
-              </FG>
-              <FG label="単位">
-                <Inp value={mBuy.cunit||mBuy.sunit||""} onChange={v=>setMBuy({...mBuy,cunit:v,sunit:v})} placeholder="kg" style={{width:70}}/>
-              </FG>
-            </R2>
-            {mBuy.cnt&&<div style={{fontSize:".72rem",color:G,background:G3,borderRadius:8,padding:"5px 10px",marginBottom:6}}>
-              📦 在庫に加算: {parseFloat(mBuy.capacity)>0?((parseFloat(mBuy.cnt)||0)*(parseFloat(mBuy.capacity)||0)):(parseFloat(mBuy.cnt)||0)}{mBuy.sunit||mBuy.cunit||""}（費用に自動登録）
-            </div>}
-            <FG label="購入日"><Inp type="date" value={mBuy.date||todayStr()} onChange={v=>setMBuy({...mBuy,date:v})}/></FG>
-            <FG label="メモ（購入先など）"><Inp value={mBuy.note||""} onChange={v=>setMBuy({...mBuy,note:v})} placeholder="例：農協"/></FG>
-          </>}
-        </ModalWithSave>
       </>}
 
       {/* ── 農具タブ ── */}
@@ -5168,7 +5073,7 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
             </div>}
           </>}
           <FG label="内容・品名"><Inp value={mCost.name||""} onChange={v=>setMCost({...mCost,name:v})} placeholder="例：トマト苗/肥料/農産物売上"/></FG>
-          {/* 肥料費・農薬費：購入記録＋在庫連動 (v2.0.8 強化) */}
+          {/* 肥料費・農薬費：購入記録＋在庫連動 (v2.0.9 強化) */}
           {(mCost.cat==="fert"||mCost.cat==="pest")&&(()=>{
             const msList = mCost.cat==="fert" ? fertMs : pestMs;
             const costCatLabel = mCost.cat==="fert" ? "肥料" : "農薬";
@@ -5226,20 +5131,90 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
                       })}
                     </div>
                   </>}
-                  {/* 資材選択（手動）*/}
-                  {!mCost.masterId&&<>
+                  {/* 資材選択（既存 or 新規登録）*/}
+                  {!mCost.masterId&&!mCost._newItem&&<>
                     <div style={{fontSize:".73rem",fontWeight:700,color:"#2d6a3f",marginBottom:4}}>
-                      {historyItems.length>0?"または新しい資材を選択":"資材マスターから選択"}
+                      {historyItems.length>0?"または資材を選択・新規登録":"資材マスターから選択 or 新規登録"}
                     </div>
-                    <Sel value={mCost.masterId||""} onChange={v=>{
-                      const ms=msList.find(m=>m.id===v);
-                      if(ms) setMCost({...mCost,masterId:ms.id,name:ms.name,_buyUnitPrice:ms.price||"",_buyQty:mCost._buyQty||"1",_buyOpen:true});
-                      else setMCost({...mCost,masterId:"",_buyOpen:true});
-                    }} options={[{value:"",label:"（選択してください）"},...msList.filter(m=>m.status!=="使い切り（非表示）").map(m=>({value:m.id,label:m.name}))]}/>
-                    <div style={{fontSize:".68rem",color:"#888",marginTop:3}}>
-                      💡 資材が未登録の場合は先に在庫タブの「＋{costCatLabel}」で登録してください
-                    </div>
+                    {msList.filter(m=>m.status!=="使い切り（非表示）").length>0&&<>
+                      <Sel value={mCost.masterId||""} onChange={v=>{
+                        const ms=msList.find(m=>m.id===v);
+                        if(ms) setMCost({...mCost,masterId:ms.id,name:ms.name,_buyUnitPrice:ms.price||"",_buyQty:mCost._buyQty||"1",_buyOpen:true});
+                        else setMCost({...mCost,masterId:"",_buyOpen:true});
+                      }} options={[{value:"",label:"（既存の資材から選ぶ）"},...msList.filter(m=>m.status!=="使い切り（非表示）").map(m=>({value:m.id,label:m.name}))]}/>
+                      <div style={{textAlign:"center",fontSize:".72rem",color:TX3,margin:"6px 0"}}>または</div>
+                    </>}
+                    <button
+                      onClick={()=>{
+                        const defaultNew = mCost.cat==="fert"
+                          ? {_newItemType:"fert",_newName:"",_newType:"化成肥料",_newCapacity:"",_newCunit:"kg",_newPrice:"",_newNpk:""}
+                          : {_newItemType:"pest",_newName:"",_newType:"殺虫剤",_newCapacity:"",_newCunit:"ml",_newPrice:"",_newTarget:""};
+                        setMCost({...mCost,...defaultNew,_newItem:true,_buyOpen:true});
+                      }}
+                      style={{...S.btn,background:"#e8f5e9",color:"#2d6a3f",border:"1px solid #a5d6a7",borderRadius:8,width:"100%",padding:"8px 0",fontSize:".8rem",fontWeight:700}}>
+                      ＋ 新しい{costCatLabel}を登録して購入
+                    </button>
                   </>}
+                  {/* 新規資材登録フォーム */}
+                  {!mCost.masterId&&mCost._newItem&&<div style={{background:"#f0fff4",border:"1px solid #a5d6a7",borderRadius:8,padding:"10px 12px",marginBottom:6}}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+                      <span style={{fontSize:".78rem",fontWeight:700,color:"#2d6a3f"}}>✨ 新しい{costCatLabel}を登録</span>
+                      <button onClick={()=>setMCost({...mCost,_newItem:false,_newName:"",_newType:"",_newCapacity:"",_newCunit:"",_newPrice:""})}
+                        style={{fontSize:".72rem",background:"none",border:"1px solid #ccc",borderRadius:6,padding:"2px 8px",cursor:"pointer",color:"#888"}}>キャンセル</button>
+                    </div>
+                    <FG label={costCatLabel+"名（必須）"}>
+                      <Inp value={mCost._newName||""} onChange={v=>setMCost({...mCost,_newName:v,name:v})} placeholder={"例："+(mCost.cat==="fert"?"スーパーリン酸":"スミチオン乳剤")}/>
+                    </FG>
+                    {mCost.cat==="fert"&&<>
+                      <R2>
+                        <FG label="肥料の種類"><Sel value={mCost._newType||"化成肥料"} onChange={v=>setMCost({...mCost,_newType:v})}
+                          options={["化成肥料","有機肥料","液肥","緩効性肥料","石灰・土壌改良材","培養土・堆肥","その他"].map(v=>({value:v,label:v}))}/></FG>
+                        <FG label="N-P-K"><Inp value={mCost._newNpk||""} onChange={v=>setMCost({...mCost,_newNpk:v})} placeholder="8-8-8"/></FG>
+                      </R2>
+                    </>}
+                    {mCost.cat==="pest"&&<>
+                      <R2>
+                        <FG label="農薬の種類"><Sel value={mCost._newType||"殺虫剤"} onChange={v=>setMCost({...mCost,_newType:v})}
+                          options={["殺虫剤","殺菌剤","除草剤","殺虫殺菌剤","その他"].map(v=>({value:v,label:v}))}/></FG>
+                      </R2>
+                      <FG label="対象作物・病害虫"><Inp value={mCost._newTarget||""} onChange={v=>setMCost({...mCost,_newTarget:v})} placeholder="例：アブラムシ"/></FG>
+                    </>}
+                    <R2>
+                      <FG label="内容量（1個）">
+                        <div style={{display:"flex",gap:4}}>
+                          <CalcInp value={mCost._newCapacity||""} onChange={v=>setMCost({...mCost,_newCapacity:v})} placeholder="例：500" style={{flex:1}}/>
+                          <Sel value={mCost._newCunit||"ml"} onChange={v=>setMCost({...mCost,_newCunit:v})}
+                            options={["ml","L","g","kg"].map(v=>({value:v,label:v}))} style={{width:60,flex:"none"}}/>
+                        </div>
+                      </FG>
+                      <FG label="単価（円/個）">
+                        <CalcInp value={mCost._newPrice||""} onChange={v=>{
+                          const qty=parseFloat(mCost._buyQty)||0;
+                          const price=parseFloat(v)||0;
+                          const autoAmt=price&&qty?String(Math.round(price*qty)):"";
+                          setMCost({...mCost,_newPrice:v,_buyUnitPrice:v,amt:autoAmt||mCost.amt});
+                        }} placeholder="例：2000"/>
+                      </FG>
+                    </R2>
+                    <div style={{fontSize:".68rem",color:"#888",marginBottom:6}}>※ 購入個数・合計金額は下の欄に入力してください</div>
+                    <R2>
+                      <FG label="購入個数">
+                        <CalcInp value={mCost._buyQty||""} onChange={v=>{
+                          const price=parseFloat(mCost._newPrice||mCost._buyUnitPrice)||0;
+                          const qty=parseFloat(v)||0;
+                          const autoAmt=price&&qty?String(Math.round(price*qty)):"";
+                          setMCost({...mCost,_buyQty:v,amt:autoAmt||mCost.amt});
+                        }} placeholder="1"/>
+                      </FG>
+                      <FG label="合計金額（円）">
+                        <CalcInp value={mCost.amt||""} onChange={v=>setMCost({...mCost,amt:v})} placeholder="自動計算"/>
+                      </FG>
+                    </R2>
+                    {mCost._buyQty&&mCost._newCapacity&&<div style={{fontSize:".72rem",color:"#2d6a3f",background:"#e6f7ee",borderRadius:6,padding:"5px 8px",marginBottom:6}}>
+                      ✅ 在庫に加算: +{Math.round((parseFloat(mCost._buyQty)||0)*(parseFloat(mCost._newCapacity)||0)*100)/100}{mCost._newCunit||""}
+                    </div>}
+                    <div style={{fontSize:".68rem",color:"#888"}}>💡 保存時に資材が新規登録され、在庫が加算されます</div>
+                  </div>}
                   {/* 選択中資材の購入入力 */}
                   {selectedMaster&&<div style={{marginTop:8,borderTop:"1px dashed #b2dfdb",paddingTop:8}}>
                     <div style={{fontSize:".73rem",fontWeight:700,color:"#2d6a3f",marginBottom:6}}>
@@ -5734,21 +5709,6 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
               })}
             </div>;
           })()}
-          <div style={S.card}>
-            <SecHd label="⚖️ 按分マスター管理"/>
-            <div style={{fontSize:".72rem",color:TX3,marginBottom:8}}>費用カテゴリごとに農業利用割合を管理します。費用入力時に自動適用されます。</div>
-            {apportionMasters.map(a=>(
-              <div key={a.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 0",borderBottom:"1px solid "+BD}}>
-                <div>
-                  <div style={{fontSize:".82rem",fontWeight:700}}>{a.name}</div>
-                  <div style={{fontSize:".7rem",color:TX3}}>{COST_CATS.find(c=>c.value===a.cat)?.label||a.cat} · 農業{a.defaultRate||50}%</div>
-                </div>
-                <button style={{...S.btn,...S.btnS,fontSize:".74rem"}} onClick={()=>setMApportion({...a})}>編集</button>
-              </div>
-            ))}
-            <button style={{...S.btn,...S.btnG,marginTop:8}} onClick={()=>setMApportion({name:"",cat:"",defaultRate:50})}>＋ 按分マスターを追加</button>
-          </div>
-
           {/* クレジットカード情報 */}
           <div style={S.card}>
             <SecHd label="💳 クレジットカード情報"/>
