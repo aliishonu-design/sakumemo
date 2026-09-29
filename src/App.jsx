@@ -1450,7 +1450,7 @@ function LoginScreen() {
       <div style={{background:"#fff",borderRadius:20,padding:"28px 24px",maxWidth:360,width:"100%",textAlign:"center",boxShadow:"0 8px 40px rgba(0,0,0,.3)"}}>
         <div style={{fontSize:"2.2rem",marginBottom:6}}>🌾</div>
         <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:"1.3rem",color:G,marginBottom:4}}>サクメモ</div>
-        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v1.8.99</span></div>
+        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v1.9.0</span></div>
         {linkErr&&<div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:8,padding:"10px 12px",marginBottom:16,fontSize:".78rem",color:"#856404",textAlign:"left"}}>{linkErr}</div>}
 
 
@@ -1510,7 +1510,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.99</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.9.0</div>
       </div>
     </div>
   );
@@ -3624,7 +3624,7 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
   const [costTab,   setCostTab]  = useState("expense");
   const [sortKey, setSortKey] = useState("date");
   const [sortAsc, setSortAsc] = useState(false);
-  const [mainTab, setMainTab] = useState("cost"); // "cost" | "master" | "ledger"
+  const [mainTab, setMainTab] = useState("cost"); // "cost" | "stock" | "equip" | "ledger" | "cashflow" | "subsidy"
   const [srchM, setSrchM] = useState("");
   const [mItem,  setMItem]  = useState(null);
   const [mBuy,   setMBuy]   = useState(null);
@@ -4561,12 +4561,12 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
     <div style={S.scr} className="scr-inner">
 
       {/* メインタブ */}
-      <div style={{display:"flex",gap:0,marginBottom:10,borderRadius:8,overflow:"hidden",border:"1px solid #e0d9ce"}}>
-        {[["cost","💰 費用・収入"],["master","📦 資材登録"],["ledger","📊 申告確認"],["cashflow","📈 資金繰り"],["subsidy","🎯 補助金"]].map(([v,l])=>(
+      <div style={{display:"flex",gap:0,marginBottom:10,borderRadius:8,overflow:"hidden",border:"1px solid #e0d9ce",overflowX:"auto"}}>
+        {[["cost","💰 費用"],["stock","📦 在庫"],["equip","🔧 農具"],["ledger","📊 申告"],["cashflow","📈 資金"],["subsidy","🎯 補助金"]].map(([v,l])=>(
           <button key={v} onClick={()=>setMainTab(v)}
-            style={{flex:1,padding:"8px 0",border:"none",background:mainTab===v?G:"#fff",
+            style={{flex:"0 0 auto",padding:"8px 10px",border:"none",background:mainTab===v?G:"#fff",
               color:mainTab===v?"#fff":"#888",fontWeight:mainTab===v?700:400,
-              fontSize:".8rem",cursor:"pointer",fontFamily:"inherit"}}>{l}</button>
+              fontSize:".75rem",cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>{l}</button>
         ))}
       </div>
 
@@ -4735,63 +4735,98 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
       </div>
       </>}
 
-      {mainTab==="master"&&<>
-        <div style={{display:"flex",gap:6,marginBottom:12,overflowX:"auto",WebkitOverflowScrolling:"touch"}}>
-          <div style={{flex:1}}/>
-          <button style={{...S.btn,background:G3,color:G,border:"1px solid "+G,borderRadius:999,padding:"6px 14px",fontSize:".78rem",fontWeight:700,width:"auto",flexShrink:0}}
+      {/* ── 在庫管理タブ ── */}
+      {mainTab==="stock"&&<>
+        <div style={{display:"flex",gap:6,marginBottom:10,flexWrap:"wrap",alignItems:"center"}}>
+          <div style={{flex:1,fontSize:".72rem",color:TX3}}>費用欄から自動登録 / 作業記録で自動減算</div>
+          <button style={{...S.btn,background:G3,color:G,border:"1px solid "+G,borderRadius:999,padding:"6px 12px",fontSize:".75rem",fontWeight:700,width:"auto"}}
             onClick={()=>setMItem({...newFert,_idx:undefined})}>＋ 肥料</button>
-          <button style={{...S.btn,background:"#fffde7",color:"#92400e",border:"1px solid #f9e4a0",borderRadius:999,padding:"6px 14px",fontSize:".78rem",fontWeight:700,width:"auto",flexShrink:0}}
+          <button style={{...S.btn,background:"#fffde7",color:"#92400e",border:"1px solid #f9e4a0",borderRadius:999,padding:"6px 12px",fontSize:".75rem",fontWeight:700,width:"auto"}}
             onClick={()=>setMItem({...newPest,_idx:undefined})}>＋ 農薬</button>
-          <button style={{...S.btn,background:"#ede9fe",color:"#5b21b6",border:"1px solid #c4b5fd",borderRadius:999,padding:"6px 14px",fontSize:".78rem",fontWeight:700,width:"auto",flexShrink:0}}
-            onClick={()=>setMItem({...newEquip,_idx:undefined})}>＋ 資材・設備</button>
         </div>
-        <div style={{fontSize:".7rem",color:TX3,background:"#f6f3ec",borderRadius:8,padding:"8px 10px",marginBottom:10,lineHeight:1.5}}>
-          💡 ここで登録した肥料・農薬は<b>使った分だけ</b>費用に計上されます（作業記録の使用量×単価）。設備・農機具は購入額が費用ページに記録され、減価償却の設定も可能です。
-        </div>
-        {!shownMaster.length&&<div style={{color:TX3,fontSize:".82rem",padding:16,textAlign:"center"}}>資材がまだ登録されていません</div>}
-        {shownMaster.map((item,i)=>(
-          <div key={item.id||i} style={{...S.card,borderLeft:"4px solid "+(item._type==="fert"?"#6ee7b7":item._type==="pest"?"#fcd34d":"#a78bfa")}}>
-            <div style={{display:"flex",alignItems:"flex-start",gap:10}}>
-              <span style={{fontSize:"1.6rem",lineHeight:1.2}}>{item._icon}</span>
-              <div style={{flex:1,minWidth:0}}>
-                <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
-                  <span style={{fontWeight:700,fontSize:".92rem"}}>{item.name}</span>
-                  <span style={{fontSize:".65rem",fontWeight:700,padding:"2px 7px",borderRadius:999,background:item._color,color:item._tc}}>{item._label}</span>
-                  {item.type&&<span style={{fontSize:".65rem",color:TX3}}>{item.type}</span>}
+        {/* 在庫一覧 */}
+        {[...fertMs.map((f,i)=>({...f,_type:"fert",_idx:i})),...pestMs.map((p,i)=>({...p,_type:"pest",_idx:i}))].length===0
+          &&<div style={{color:TX3,fontSize:".82rem",padding:20,textAlign:"center"}}>
+            肥料・農薬がまだ登録されていません<br/>費用欄で肥料費・農薬費を入力すると自動登録されます
+          </div>
+        }
+        {[...fertMs.map((f,i)=>({...f,_type:"fert",_idx:i})),...pestMs.map((p,i)=>({...p,_type:"pest",_idx:i}))].map((item)=>{
+          const stock = parseFloat(item.stock)||0;
+          const su = item.sunit||item.cunit||"";
+          const cap = parseFloat(item.capacity)||0;
+          const unitPricePerSu = (cap>0 && parseFloat(item.price)>0) ? parseFloat(item.price)/cap : 0;
+          const stockVal = unitPricePerSu>0 ? Math.round(unitPricePerSu*stock) : 0;
+          const isOut = item.status==="使い切り（非表示）";
+          const isFert = item._type==="fert";
+          const borderColor = isFert?"#6ee7b7":"#fcd34d";
+          const bgColor = isFert?"#d1fae5":"#fef3c7";
+          const tcColor = isFert?"#065f46":"#92400e";
+          // 在庫バー（内容量1個分を満タン基準）
+          const maxStock = cap>0 ? cap*5 : (stock>0?stock*2:100);
+          const barPct = stock>0 ? Math.min(100, stock/maxStock*100) : 0;
+          const barColor = stock<=0?"#ef4444":stock/maxStock<0.2?"#f97316":stock/maxStock<0.5?"#eab308":"#22c55e";
+          return (
+            <div key={item.id||item._idx} style={{...S.card,borderLeft:"4px solid "+borderColor,opacity:isOut?0.55:1}}>
+              <div style={{display:"flex",alignItems:"flex-start",gap:10}}>
+                <span style={{fontSize:"1.5rem",lineHeight:1.2}}>{isFert?"🌿":"🐛"}</span>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
+                    <span style={{fontWeight:700,fontSize:".9rem"}}>{item.name}</span>
+                    <span style={{fontSize:".62rem",fontWeight:700,padding:"1px 6px",borderRadius:999,background:bgColor,color:tcColor}}>{item.type||""}</span>
+                    {isOut&&<span style={{fontSize:".62rem",background:"#fee2e2",color:"#991b1b",borderRadius:999,padding:"1px 6px",fontWeight:700}}>使い切り</span>}
+                  </div>
+                  {/* 在庫バー */}
+                  <div style={{marginTop:6}}>
+                    <div style={{display:"flex",justifyContent:"space-between",fontSize:".7rem",marginBottom:2}}>
+                      <span style={{color:TX3}}>在庫</span>
+                      <span style={{fontWeight:700,color:stock<=0?"#ef4444":TX3}}>{stock}{su}{stockVal>0?` ≒ ${stockVal.toLocaleString()}円`:""}</span>
+                    </div>
+                    <div style={{background:"#e5e7eb",borderRadius:4,height:6,overflow:"hidden"}}>
+                      <div style={{width:barPct+"%",background:barColor,height:"100%",transition:"width .4s"}}/>
+                    </div>
+                  </div>
+                  <div style={{marginTop:5,display:"flex",gap:8,flexWrap:"wrap",fontSize:".72rem",color:TX3}}>
+                    {item.capacity&&<span>📦 {item.capacity}{item.cunit}/個</span>}
+                    {item.price&&<span>💴 {item.price}円/個</span>}
+                    {item.note&&<span>{item.note}</span>}
+                  </div>
                 </div>
-                <div style={{marginTop:5,display:"flex",gap:10,flexWrap:"wrap",fontSize:".75rem"}}>
-                  {item.capacity&&<div style={{background:"#f5f5f0",borderRadius:8,padding:"4px 10px"}}>
-                    <span style={{color:TX3}}>内容量 </span><span style={{fontWeight:700}}>{item.capacity}{item.cunit||""}</span>
-                  </div>}
-                  {item.price&&<div style={{background:"#f5f5f0",borderRadius:8,padding:"4px 10px"}}>
-                    <span style={{color:TX3}}>単価 </span><span style={{fontWeight:700}}>{item.price}円</span>
-                  </div>}
-                  {item._type==="equip"&&item.status&&<div style={{background:"#f5f5f0",borderRadius:8,padding:"4px 10px"}}>
-                    <span style={{fontWeight:700}}>{item.status}</span>
-                  </div>}
-                </div>
-                {item.note&&<div style={{fontSize:".7rem",color:TX3,marginTop:4}}>{item.note}</div>}
+              </div>
+              <div style={{display:"flex",gap:5,marginTop:9,flexWrap:"wrap"}}>
+                <button style={{...S.btn,background:G,color:"#fff",padding:"5px 10px",fontSize:".73rem",borderRadius:8,width:"auto",fontWeight:700}}
+                  onClick={()=>setMBuy({...item,_item:item,cnt:"",amt:"",date:todayStr(),note:""})}>
+                  🛒 購入
+                </button>
+                {!isOut&&stock>0&&<button
+                  style={{...S.btn,background:"#fee2e2",color:"#991b1b",border:"1px solid #fca5a5",padding:"5px 10px",fontSize:".73rem",borderRadius:8,width:"auto",fontWeight:700}}
+                  onClick={()=>{
+                    if(!window.confirm(`「${item.name}」を使い切りにしますか？\n在庫を0にして非表示に変更します`))return;
+                    const updated={...item,stock:"0",status:"使い切り（非表示）"};
+                    if(item._type==="fert") setFertMs(fertMs.map((x,i)=>i===item._idx?updated:x),updated);
+                    else setPestMs(pestMs.map((x,i)=>i===item._idx?updated:x),updated);
+                    showToast(item.name+"を使い切りにしました");
+                  }}>
+                  ✅ 使い切り
+                </button>}
+                {isOut&&<button
+                  style={{...S.btn,background:"#d1fae5",color:"#065f46",border:"1px solid #6ee7b7",padding:"5px 10px",fontSize:".73rem",borderRadius:8,width:"auto",fontWeight:700}}
+                  onClick={()=>{
+                    const updated={...item,status:"使用中"};
+                    if(item._type==="fert") setFertMs(fertMs.map((x,i)=>i===item._idx?updated:x),updated);
+                    else setPestMs(pestMs.map((x,i)=>i===item._idx?updated:x),updated);
+                    showToast("使用中に戻しました");
+                  }}>
+                  ↩ 使用中に戻す
+                </button>}
+                <button style={{...S.btn,...S.btnS,...S.btnSm}} onClick={()=>setMItem({...item})}>編集</button>
+                <button style={{...S.btn,...S.btnR,...S.btnSm}} onClick={()=>deleteItem({...item})}>削除</button>
               </div>
             </div>
-            <div style={{display:"flex",gap:6,marginTop:10,flexWrap:"wrap"}}>
-              {item._type!=="equip"&&<button
-                style={{...S.btn,background:G,color:"#fff",padding:"6px 12px",fontSize:".75rem",borderRadius:8,width:"auto",fontWeight:700}}
-                onClick={()=>setMBuy({...item,_item:item,cnt:"",amt:"",date:todayStr(),note:""})}>
-                🛒 購入を記録
-              </button>}
-              {item._type==="equip"&&<button
-                style={{...S.btn,background:G,color:"#fff",padding:"6px 12px",fontSize:".75rem",borderRadius:8,width:"auto",fontWeight:700}}
-                onClick={()=>setMBuy({...item,_item:item,cnt:"1",amt:item.price||"",date:todayStr(),note:""})}>
-                🛒 費用を記録
-              </button>}
-              <button style={{...S.btn,...S.btnS,...S.btnSm}} onClick={()=>setMItem({...item})}>編集</button>
-              <button style={{...S.btn,...S.btnR,...S.btnSm}} onClick={()=>deleteItem(item)}>削除</button>
-            </div>
-          </div>
-        ))}
+          );
+        })}
         {/* 資材登録モーダル */}
-        <ModalWithSave open={!!mItem} onClose={()=>setMItem(null)} title={mItem?._idx!==undefined?"資材を編集":"資材を登録"} onSave={saveItem}>
-          {mItem&&<>
+        <ModalWithSave open={!!mItem&&mItem._type!=="equip"} onClose={()=>setMItem(null)} title={mItem?._idx!==undefined?"資材を編集":"資材を追加"} onSave={saveItem}>
+          {mItem&&mItem._type!=="equip"&&<>
             <FG label="資材名"><Inp value={mItem.name||""} onChange={v=>setMItem({...mItem,name:v})} placeholder="例：スミチオン乳剤"/></FG>
             {mItem._type==="fert"&&<>
               <R2>
@@ -4807,43 +4842,35 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
                 <FG label="剤型"><Sel value={mItem.formType||""} onChange={v=>setMItem({...mItem,formType:v})}
                   options={[{value:"",label:"（未設定）"},...["乳剤","水和剤","水溶剤","フロアブル剤","粒剤","その他"].map(v=>({value:v,label:v}))]}/></FG>
               </R2>
-              <FG label="希釈倍数"><CalcInp value={mItem.dil||""} onChange={v=>setMItem({...mItem,dil:v})} placeholder="1000"/></FG>
+              <FG label="希釈倍数（標準）"><CalcInp value={mItem.dil||""} onChange={v=>setMItem({...mItem,dil:v})} placeholder="1000"/></FG>
               <FG label="対象作物・病害虫"><Inp value={mItem.target||""} onChange={v=>setMItem({...mItem,target:v})} placeholder="例：アブラムシ"/></FG>
             </>}
-            {mItem._type==="equip"&&<>
-              <R2>
-                <FG label="カテゴリ"><Sel value={mItem.cat||"マルチ"} onChange={v=>setMItem({...mItem,cat:v})}
-                  options={["マルチ","トンネル資材","防虫ネット","支柱・杭","ハウス設備","かん水設備","動力機械","プランター・育苗ポット","農機具","その他"].map(v=>({value:v,label:v}))}/></FG>
-                <FG label="状態"><Sel value={mItem.status||"使用中"} onChange={v=>setMItem({...mItem,status:v})}
-                  options={["使用中","保管中","メンテナンス中","廃棄"].map(v=>({value:v,label:v}))}/></FG>
-              </R2>
-              <R2>
-                <FG label="購入価格（円）"><CalcInp value={mItem.price||""} onChange={v=>setMItem({...mItem,price:v})} placeholder="例：50000"/></FG>
-                <FG label="購入日"><Inp type="date" value={mItem.date||todayStr()} onChange={v=>setMItem({...mItem,date:v})}/></FG>
-              </R2>
-              <FG label="減価償却年数">
-                <Sel value={mItem.depYears||""} onChange={v=>setMItem({...mItem,depYears:v})}
-                  options={[{value:"",label:"償却しない（購入時に全額計上）"},...[2,3,4,5,6,7,8,10,15,17,22].map(n=>({value:String(n),label:n+"年で償却"}))]}/>
+            <R2>
+              <FG label="内容量（1個あたり）">
+                <div style={{display:"flex",gap:4}}>
+                  <CalcInp value={mItem.capacity||""} onChange={v=>setMItem({...mItem,capacity:v})} placeholder="例：500" style={{flex:1}}/>
+                  <Sel value={mItem.cunit||"ml"} onChange={v=>setMItem({...mItem,cunit:v,sunit:v})}
+                    options={["ml","L","g","kg"].map(v=>({value:v,label:v}))} style={{width:60,flex:"none"}}/>
+                </div>
               </FG>
-            </>}
-            {mItem._type!=="equip"&&<>
-              <R2>
-                <FG label="内容量（1個あたり）">
-                  <div style={{display:"flex",gap:4}}>
-                    <CalcInp value={mItem.capacity||""} onChange={v=>setMItem({...mItem,capacity:v})} placeholder="例：500" style={{flex:1}}/>
-                    <Sel value={mItem.cunit||"ml"} onChange={v=>setMItem({...mItem,cunit:v,sunit:v})}
-                      options={["ml","L","g","kg"].map(v=>({value:v,label:v}))} style={{width:60,flex:"none"}}/>
-                  </div>
-                </FG>
-                <FG label="単価（円/個）"><CalcInp value={mItem.price||""} onChange={v=>setMItem({...mItem,price:v})} placeholder="例：2000"/></FG>
-              </R2>
-            </>}
+              <FG label="単価（円/個）"><CalcInp value={mItem.price||""} onChange={v=>setMItem({...mItem,price:v})} placeholder="例：2000"/></FG>
+            </R2>
+            <FG label="現在の在庫数量">
+              <div style={{display:"flex",gap:4,alignItems:"center"}}>
+                <CalcInp value={mItem.stock||"0"} onChange={v=>setMItem({...mItem,stock:v})} placeholder="0" style={{flex:1}}/>
+                <span style={{fontSize:".8rem",color:TX3}}>{mItem.sunit||mItem.cunit||""}</span>
+              </div>
+            </FG>
+            <FG label="状態">
+              <Sel value={mItem.status||"使用中"} onChange={v=>setMItem({...mItem,status:v})}
+                options={["使用中","使い切り（非表示）"].map(v=>({value:v,label:v}))}/>
+            </FG>
             <FG label="メモ"><Inp value={mItem.note||""} onChange={v=>setMItem({...mItem,note:v})} placeholder="購入先・注意事項など"/></FG>
           </>}
         </ModalWithSave>
         {/* 購入記録モーダル */}
-        <ModalWithSave open={!!mBuy} onClose={()=>setMBuy(null)} title={"🛒 "+(mBuy?.name||"")+" の購入"} onSave={saveBuy}>
-          {mBuy&&<>
+        <ModalWithSave open={!!mBuy&&mBuy._type!=="equip"} onClose={()=>setMBuy(null)} title={"🛒 "+(mBuy?.name||"")+" を購入"} onSave={saveBuy}>
+          {mBuy&&mBuy._type!=="equip"&&<>
             <div style={{background:G3,borderRadius:9,padding:"8px 12px",marginBottom:10,fontSize:".8rem",color:G}}>
               {mBuy.capacity&&<span>内容量: <b>{mBuy.capacity}{mBuy.cunit}/個</b> · </span>}
               {mBuy.price&&<span>単価: <b>{mBuy.price}円/個</b></span>}
@@ -4857,12 +4884,89 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
                   setMBuy({...mBuy,cnt:v,amt:autoAmt,_addStock:cap>0?cnt*cap:cnt});
                 }} placeholder="例：3"/>
               </FG>
-              <FG label="購入金額（円・任意）">
+              <FG label="購入金額（円）">
                 <CalcInp value={mBuy.amt||""} onChange={v=>setMBuy({...mBuy,amt:v})} placeholder="自動計算"/>
               </FG>
             </R2>
+            {mBuy.cnt&&<div style={{fontSize:".72rem",color:G,background:G3,borderRadius:8,padding:"5px 10px",marginBottom:6}}>
+              📦 在庫 +{parseFloat(mBuy.capacity)>0?((parseFloat(mBuy.cnt)||0)*(parseFloat(mBuy.capacity)||0)):(parseFloat(mBuy.cnt)||0)}{mBuy.sunit||mBuy.cunit||""}（費用に自動登録）
+            </div>}
             <FG label="購入日"><Inp type="date" value={mBuy.date||todayStr()} onChange={v=>setMBuy({...mBuy,date:v})}/></FG>
             <FG label="メモ（購入先など）"><Inp value={mBuy.note||""} onChange={v=>setMBuy({...mBuy,note:v})} placeholder="例：農協"/></FG>
+          </>}
+        </ModalWithSave>
+      </>}
+
+      {/* ── 農具タブ ── */}
+      {mainTab==="equip"&&<>
+        <div style={{display:"flex",gap:6,marginBottom:10,alignItems:"center"}}>
+          <div style={{flex:1,fontSize:".72rem",color:TX3}}>農機具・設備の管理</div>
+          <button style={{...S.btn,background:"#ede9fe",color:"#5b21b6",border:"1px solid #c4b5fd",borderRadius:999,padding:"6px 12px",fontSize:".75rem",fontWeight:700,width:"auto"}}
+            onClick={()=>setMItem({...newEquip,_idx:undefined})}>＋ 農具・設備</button>
+        </div>
+        {equips.length===0&&<div style={{color:TX3,fontSize:".82rem",padding:20,textAlign:"center"}}>農機具・設備がまだ登録されていません</div>}
+        {equips.map((item,i)=>{
+          const statusColor=item.status==="廃棄"?"#ef4444":item.status==="メンテナンス中"?"#f97316":item.status==="保管中"?"#6b7280":"#22c55e";
+          return (
+            <div key={item.id||i} style={{...S.card,borderLeft:"4px solid #a78bfa"}}>
+              <div style={{display:"flex",alignItems:"flex-start",gap:10}}>
+                <span style={{fontSize:"1.5rem",lineHeight:1.2}}>🔧</span>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
+                    <span style={{fontWeight:700,fontSize:".9rem"}}>{item.name}</span>
+                    <span style={{fontSize:".62rem",fontWeight:700,padding:"1px 6px",borderRadius:999,background:"#ede9fe",color:"#5b21b6"}}>{item.cat||"その他"}</span>
+                    <span style={{fontSize:".62rem",fontWeight:700,padding:"1px 6px",borderRadius:999,background:statusColor+"22",color:statusColor}}>{item.status||"使用中"}</span>
+                  </div>
+                  <div style={{marginTop:5,display:"flex",gap:8,flexWrap:"wrap",fontSize:".72rem",color:TX3}}>
+                    {item.price&&<span>💴 {parseFloat(item.price).toLocaleString()}円</span>}
+                    {item.date&&<span>📅 {fmtYMD(item.date)}</span>}
+                    {item.depYears&&<span>📉 {item.depYears}年償却</span>}
+                    {item.note&&<span>{item.note}</span>}
+                  </div>
+                </div>
+              </div>
+              <div style={{display:"flex",gap:5,marginTop:9,flexWrap:"wrap"}}>
+                <button style={{...S.btn,background:G,color:"#fff",padding:"5px 10px",fontSize:".73rem",borderRadius:8,width:"auto",fontWeight:700}}
+                  onClick={()=>setMBuy({...item,_item:item,_type:"equip",_idx:i,cnt:"1",amt:item.price||"",date:todayStr(),note:""})}>
+                  🛒 費用を記録
+                </button>
+                <button style={{...S.btn,...S.btnS,...S.btnSm}} onClick={()=>setMItem({...item,_type:"equip",_idx:i})}>編集</button>
+                <button style={{...S.btn,...S.btnR,...S.btnSm}} onClick={()=>deleteItem({...item,_type:"equip",_idx:i})}>削除</button>
+              </div>
+            </div>
+          );
+        })}
+        {/* 農具登録モーダル */}
+        <ModalWithSave open={!!mItem&&mItem._type==="equip"} onClose={()=>setMItem(null)} title={mItem?._idx!==undefined?"農具・設備を編集":"農具・設備を登録"} onSave={saveItem}>
+          {mItem&&mItem._type==="equip"&&<>
+            <FG label="名称"><Inp value={mItem.name||""} onChange={v=>setMItem({...mItem,name:v})} placeholder="例：管理機 クボタ"/></FG>
+            <R2>
+              <FG label="カテゴリ"><Sel value={mItem.cat||"マルチ"} onChange={v=>setMItem({...mItem,cat:v})}
+                options={["マルチ","トンネル資材","防虫ネット","支柱・杭","ハウス設備","かん水設備","動力機械","プランター・育苗ポット","農機具","その他"].map(v=>({value:v,label:v}))}/></FG>
+              <FG label="状態"><Sel value={mItem.status||"使用中"} onChange={v=>setMItem({...mItem,status:v})}
+                options={["使用中","保管中","メンテナンス中","廃棄"].map(v=>({value:v,label:v}))}/></FG>
+            </R2>
+            <R2>
+              <FG label="購入価格（円）"><CalcInp value={mItem.price||""} onChange={v=>setMItem({...mItem,price:v})} placeholder="例：50000"/></FG>
+              <FG label="購入日"><Inp type="date" value={mItem.date||todayStr()} onChange={v=>setMItem({...mItem,date:v})}/></FG>
+            </R2>
+            <FG label="減価償却年数">
+              <Sel value={mItem.depYears||""} onChange={v=>setMItem({...mItem,depYears:v})}
+                options={[{value:"",label:"償却しない（購入時に全額計上）"},...[2,3,4,5,6,7,8,10,15,17,22].map(n=>({value:String(n),label:n+"年で償却"}))]}/>
+            </FG>
+            <FG label="メモ"><Inp value={mItem.note||""} onChange={v=>setMItem({...mItem,note:v})} placeholder="購入先・シリアル番号など"/></FG>
+          </>}
+        </ModalWithSave>
+        {/* 農具費用記録モーダル */}
+        <ModalWithSave open={!!mBuy&&mBuy._type==="equip"} onClose={()=>setMBuy(null)} title={"🛒 "+(mBuy?.name||"")+" の費用"} onSave={saveBuy}>
+          {mBuy&&mBuy._type==="equip"&&<>
+            <R2>
+              <FG label="金額（円）">
+                <CalcInp value={mBuy.amt||""} onChange={v=>setMBuy({...mBuy,amt:v})} placeholder="例：50000"/>
+              </FG>
+              <FG label="日付"><Inp type="date" value={mBuy.date||todayStr()} onChange={v=>setMBuy({...mBuy,date:v})}/></FG>
+            </R2>
+            <FG label="メモ"><Inp value={mBuy.note||""} onChange={v=>setMBuy({...mBuy,note:v})} placeholder="例：燃料代・修理費"/></FG>
           </>}
         </ModalWithSave>
       </>}
@@ -6236,16 +6340,29 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs, equips=[], o
     const h=Math.floor(minutes/60), m=minutes%60;
     const timeStr=minutes>0?(h>0?h+"時間"+m+"分":m+"分"):"—";
     const name=(getCropName(c))+(c.variety?" ("+c.variety+")":"");
-    // 施肥・農薬の使用量集計
+    // 施肥・農薬の使用量集計（原液量で集計）
     const fertUse={}; // {name: {amt, unit}}
     const pestUse={}; // {name: {amt, unit}}
-    cl.filter(l=>l.fertName&&l.fertAmt).forEach(l=>{
-      if(!fertUse[l.fertName]) fertUse[l.fertName]={amt:0,unit:l.fertUnit||""};
-      fertUse[l.fertName].amt+=parseFloat(l.fertAmt)||0;
+    cl.filter(l=>l.fertName).forEach(l=>{
+      let useAmt=0, useUnit=l.fertUnit||"";
+      if(l.fertDil && l.fertSprayAmt && parseFloat(l.fertSprayAmt)>0){
+        useAmt = parseFloat(l.fertSprayAmt)/(parseFloat(l.fertDil)||1);
+        useUnit = l.fertSprayUnit||l.fertUnit||"L";
+      } else if(parseFloat(l.fertAmt)>0){
+        useAmt = parseFloat(l.fertAmt); useUnit = l.fertUnit||"";
+      }
+      if(useAmt>0){
+        if(!fertUse[l.fertName]) fertUse[l.fertName]={amt:0,unit:useUnit};
+        fertUse[l.fertName].amt+=useAmt;
+      }
     });
-    cl.filter(l=>l.pestName&&l.pestAmt).forEach(l=>{
-      if(!pestUse[l.pestName]) pestUse[l.pestName]={amt:0,unit:l.pestUnit||""};
-      pestUse[l.pestName].amt+=parseFloat(l.pestAmt)||0;
+    cl.filter(l=>l.pestName&&l.pestAmt&&parseFloat(l.pestAmt)>0).forEach(l=>{
+      // 農薬は散布量÷希釈倍率=原液量
+      const dil=parseFloat(l.pestDil)||1;
+      const useAmt=parseFloat(l.pestAmt)/(dil>0?dil:1);
+      const useUnit=l.pestUnit||"L";
+      if(!pestUse[l.pestName]) pestUse[l.pestName]={amt:0,unit:useUnit};
+      pestUse[l.pestName].amt+=useAmt;
     });
     return{id:c.id,name,emoji:db.e||"🌱",field:f.name||"?",ended:c.ended||false,endDate:c.endDate||"",
       kg,cnt,rev,minutes,timeStr,stocks,disc,added,germRate,costTotal,profit:rev-costTotal,
@@ -6644,20 +6761,21 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs, equips=[], o
             </div>
           )}
 
-          {/* 施肥・農薬使用量 */}
+          {/* 施肥・農薬使用量（原液量） */}
           {(Object.keys(sel.fertUse).length>0||Object.keys(sel.pestUse).length>0)&&(
             <div style={S.card}>
-              <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".86rem",color:"#5c3d1e",marginBottom:8}}>📊 資材使用量</div>
+              <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".86rem",color:"#5c3d1e",marginBottom:4}}>📊 資材使用量（原液量）</div>
+              <div style={{fontSize:".68rem",color:TX3,marginBottom:8}}>液肥・農薬は希釈前の原液量で集計</div>
               {Object.entries(sel.fertUse).map(([name,{amt,unit}])=>(
                 <div key={name} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"5px 0",borderBottom:"1px solid "+BD,fontSize:".82rem"}}>
                   <span style={{color:"#065f46"}}>🌿 {name}</span>
-                  <span style={{fontWeight:700}}>{amt.toFixed(1)}{unit}</span>
+                  <span style={{fontWeight:700}}>{amt%1===0?amt:amt.toFixed(2)}{unit}</span>
                 </div>
               ))}
               {Object.entries(sel.pestUse).map(([name,{amt,unit}])=>(
                 <div key={name} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"5px 0",borderBottom:"1px solid "+BD,fontSize:".82rem"}}>
                   <span style={{color:"#92400e"}}>🐛 {name}</span>
-                  <span style={{fontWeight:700}}>{amt.toFixed(1)}{unit}</span>
+                  <span style={{fontWeight:700}}>{amt%1===0?amt:amt.toFixed(2)}{unit}</span>
                 </div>
               ))}
             </div>
