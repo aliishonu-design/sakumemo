@@ -1451,7 +1451,7 @@ function LoginScreen() {
       <div style={{background:"#fff",borderRadius:20,padding:"28px 24px",maxWidth:360,width:"100%",textAlign:"center",boxShadow:"0 8px 40px rgba(0,0,0,.3)"}}>
         <div style={{fontSize:"2.2rem",marginBottom:6}}>🌾</div>
         <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:"1.3rem",color:G,marginBottom:4}}>サクメモ</div>
-        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v2.1.4</span></div>
+        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v2.1.5</span></div>
         {linkErr&&<div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:8,padding:"10px 12px",marginBottom:16,fontSize:".78rem",color:"#856404",textAlign:"left"}}>{linkErr}</div>}
 
 
@@ -1511,7 +1511,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v2.1.4</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v2.1.5</div>
       </div>
     </div>
   );
@@ -5077,7 +5077,7 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
                   const up=parseFloat(mBuy.unitPrice)||0;
                   const autoAmt=up>0&&cnt>0?String(Math.round(up*cnt)):"";
                   setMBuy({...mBuy,cnt:v,amt:autoAmt});
-                }} placeholder="1"/>
+                }} placeholder="0"/>
               </FG>
             </R2>
             {(parseFloat(mBuy.unitPrice)>0&&parseFloat(mBuy.cnt)>0)&&(
@@ -5274,7 +5274,7 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
                           const qty=parseFloat(v)||0;
                           const autoAmt=price&&qty?String(Math.round(price*qty)):"";
                           setMCost({...mCost,_buyQty:v,amt:autoAmt||mCost.amt});
-                        }} placeholder="1"/>
+                        }} placeholder="0"/>
                       </FG>
                       <FG label="合計金額（円）">
                         <CalcInp value={mCost.amt||""} onChange={v=>setMCost({...mCost,amt:v})} placeholder="自動計算"/>
@@ -5351,7 +5351,7 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
                           const qty=parseFloat(v)||0;
                           const autoAmt=price&&qty?String(Math.round(price*qty)):"";
                           setMCost({...mCost,_buyQty:v,amt:autoAmt||mCost.amt});
-                        }} placeholder="1"/>
+                        }} placeholder="0"/>
                       </FG>
                       <FG label="単価（円/個）">
                         <CalcInp value={mCost._buyUnitPrice||selectedMaster.price||""} onChange={v=>{
