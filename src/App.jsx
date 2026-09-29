@@ -1447,7 +1447,7 @@ function LoginScreen() {
       <div style={{background:"#fff",borderRadius:20,padding:"28px 24px",maxWidth:360,width:"100%",textAlign:"center",boxShadow:"0 8px 40px rgba(0,0,0,.3)"}}>
         <div style={{fontSize:"2.2rem",marginBottom:6}}>🌾</div>
         <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:"1.3rem",color:G,marginBottom:4}}>サクメモ</div>
-        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v1.8.90</span></div>
+        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v1.8.91</span></div>
         {linkErr&&<div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:8,padding:"10px 12px",marginBottom:16,fontSize:".78rem",color:"#856404",textAlign:"left"}}>{linkErr}</div>}
 
 
@@ -1507,7 +1507,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.90</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.91</div>
       </div>
     </div>
   );
@@ -3529,7 +3529,7 @@ function TimelineScreen({ fields, crops, equips, logs, setLogs, setLogsR, showTo
   );
 }
 
-function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equips, setEquips, costs, setCosts, logs, showToast, cards=[], calcPayDate, user }) {
+function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equips, setEquips, costs, setCosts, logs, showToast, cards=[], setCards, calcPayDate, user }) {
   const today = new Date();
   const curYear  = String(today.getFullYear());
   const curMonth = today.toISOString().slice(0,7);
@@ -3561,44 +3561,9 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
   const [pestExportGrowerName, setPestExportGrowerName] = useState(()=>{try{return localStorage.getItem("pestGrowerName")||"";}catch{return "";}});
   const [pestExportHarvestDate, setPestExportHarvestDate] = useState("");
 
-  // ─── クレジットカード情報（Supabase同期） ───
-  const CARD_SETTINGS_ID = "card_settings_" + (user?.id||"local");
-  const [creditCards, setCreditCardsState] = useState(()=>{
-    try { return JSON.parse(localStorage.getItem("creditCards")||"[]"); } catch { return []; }
-  });
-  // Supabaseからクレカ設定をロード（costsテーブルのcat="__card_cfg"行）
-  useEffect(()=>{
-    if(!user?.id) return;
-    sb.from("costs").select("*").eq("user_id", user.id).eq("cat","__card_cfg").maybeSingle()
-      .then(({data})=>{
-        if(data?.note){
-          try {
-            const arr = JSON.parse(data.note);
-            if(Array.isArray(arr)){
-              setCreditCardsState(arr);
-              try { localStorage.setItem("creditCards", JSON.stringify(arr)); } catch {}
-            }
-          } catch {}
-        }
-      });
-  },[user?.id]);
-  const setCreditCards = (arr) => {
-    setCreditCardsState(arr);
-    try { localStorage.setItem("creditCards", JSON.stringify(arr)); } catch {}
-    // Supabaseにも保存（costsテーブルのcat="__card_cfg"行にupsert）
-    if(user?.id){
-      dbUpsert("costs", {
-        id: CARD_SETTINGS_ID,
-        user_id: user.id,
-        cat: "__card_cfg",
-        name: "__card_settings",
-        note: JSON.stringify(arr),
-        amt: "0", date: null, field_id: null, crop_id: null,
-        qty: null, qunit: null, master_id: null, work: null,
-        pay_method: null, pay_date: null, cancelled: false
-      });
-    }
-  };
+  // ─── クレジットカード：propsのcards/setCardsを使用（App levelで管理・Supabase同期） ───
+  const creditCards = cards;
+  const setCreditCards = setCards || (()=>{});
   const [mCard, setMCard] = useState(null); // 編集中カード（null=閉じ）
   // 元入金手動修正用state
   const [motoireEditOpen, setMotoireEditOpen] = useState(false);
@@ -6903,13 +6868,53 @@ export default function App() {
   const [plots,    setPlotsR]  = useState([]);
   const [apiKey,   setApiKeyR] = useState(()=>localStorage.getItem("sakumemo_key")||"");
   const [toast,    setToast]   = useState("");
-  // クレジットカード設定（localStorage永続化）
+  // クレジットカード設定（localStorage + Supabase同期）
   const [cards, setCardsState] = useState(()=>{
-    try{ return JSON.parse(localStorage.getItem('sakumemo_cards')||'[]'); }catch{ return []; }
+    // sakumemo_cards と creditCards 両方から読み込み（旧キー互換）
+    try{
+      const v1 = localStorage.getItem('sakumemo_cards');
+      if(v1) return JSON.parse(v1);
+      const v2 = localStorage.getItem('creditCards');
+      if(v2) return JSON.parse(v2);
+      return [];
+    }catch{ return []; }
   });
   const setCards = (arr) => {
     setCardsState(arr);
     try{ localStorage.setItem('sakumemo_cards', JSON.stringify(arr)); }catch{}
+    try{ localStorage.setItem('creditCards', JSON.stringify(arr)); }catch{}
+  };
+  // Supabaseからクレカ設定をロード
+  useEffect(()=>{
+    if(!user?.id) return;
+    sb.from("costs").select("*").eq("user_id", user.id).eq("cat","__card_cfg").maybeSingle()
+      .then(({data})=>{
+        if(data?.note){
+          try{
+            const arr = JSON.parse(data.note);
+            if(Array.isArray(arr) && arr.length > 0){
+              setCardsState(arr);
+              try{ localStorage.setItem('sakumemo_cards', JSON.stringify(arr)); }catch{}
+              try{ localStorage.setItem('creditCards', JSON.stringify(arr)); }catch{}
+            }
+          }catch{}
+        }
+      });
+  },[user?.id]);
+  const saveCardsToSupabase = (arr, uid) => {
+    if(!uid) return;
+    const id = "card_settings_" + uid;
+    dbUpsert("costs", {
+      id, user_id: uid, cat: "__card_cfg",
+      name: "__card_settings", note: JSON.stringify(arr),
+      amt: "0", date: null, field_id: null, crop_id: null,
+      qty: null, qunit: null, master_id: null, work: null,
+      pay_method: null, pay_date: null, cancelled: false
+    });
+  };
+  const setCardsAndSync = (arr) => {
+    setCards(arr);
+    saveCardsToSupabase(arr, user?.id);
   };
   // 日本の祝日リスト（2024-2027年）
   const JP_HOLIDAYS = new Set([
@@ -7155,10 +7160,10 @@ export default function App() {
       /></>}
         
         {scr==="plot"    &&<PlanScreen    fields={fields} crops={crops} setCrops={setCrops} plots={plots} setPlots={setPlots} setPlotsR={setPlotsR} showToast={showToast} setScr={setScr}/>}
-        {scr==="cost"    &&<CostScreen    fields={fields} crops={crops} fertMs={fertMs} setFertMs={setFertMs} pestMs={pestMs} setPestMs={setPestMs} equips={equips} setEquips={setEquips} costs={costs} setCosts={setCosts} logs={logs} showToast={showToast} cards={cards} calcPayDate={calcPayDate} user={user}/>}
+        {scr==="cost"    &&<CostScreen    fields={fields} crops={crops} fertMs={fertMs} setFertMs={setFertMs} pestMs={pestMs} setPestMs={setPestMs} equips={equips} setEquips={setEquips} costs={costs} setCosts={setCosts} logs={logs} showToast={showToast} cards={cards} setCards={setCardsAndSync} calcPayDate={calcPayDate} user={user}/>}
 
         {scr==="report"  &&<ReportScreen  fields={fields} crops={crops} logs={logs} costs={costs} fertMs={fertMs} pestMs={pestMs} equips={equips} openLb={openLb}/>}
-        {scr==="settings"&&<SettingsScreen showToast={showToast} user={user} uid={uid} signOut={signOut} fields={fields} crops={crops} logs={logs} fertMs={fertMs} cards={cards} setCards={setCards} pestMs={pestMs} equips={equips} costs={costs} setScr={setScr}/>}
+        {scr==="settings"&&<SettingsScreen showToast={showToast} user={user} uid={uid} signOut={signOut} fields={fields} crops={crops} logs={logs} fertMs={fertMs} cards={cards} setCards={setCardsAndSync} pestMs={pestMs} equips={equips} costs={costs} setScr={setScr}/>}
       </div>
       {/* ライトボックス */}
       {lb&&<div onClick={closeLb} style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,.92)',zIndex:9999,display:'flex',alignItems:'center',justifyContent:'center',touchAction:'pinch-zoom',overflow:'hidden'}}>
