@@ -65,6 +65,7 @@
 <div class="container" id="main-container"><div class="loading">🌱 読み込み中…</div></div>
 <div class="container" id="fav-container" style="display:none"></div>
 
+<script src="card-format.js?v=2.2.0"></script>
 <script>
 var SB_URL='https://nlamtphkwdoxtjktkjzo.supabase.co';
 var SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5sYW10cGhrd2RveHRqa3RranpvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3ODI3NzYsImV4cCI6MjA5MzM1ODc3Nn0.8gba30xxu0s132vg_xOA6-Y3XWjR1YhaprIgUYHZO0o';
@@ -161,40 +162,39 @@ function toggleFavView(){
 // 作物名取得
 function getCropName(c){
   var db=CDB[c.type]||{};
-  return (db.e||'🌱')+' '+(c.type==='custom'?(c.custom_name||'カスタム'):(db.n||c.type));
+  return (db.e||'🌱')+' '+skEsc(c.type==='custom'?(c.custom_name||'カスタム'):(db.n||c.type));
 }
 
-// 最新ログHTML生成
-function makeLatestHtml(l){
-  if(!l) return '';
+// 最新の作業カード（アプリ・農場ページと同じ順番・書式：card-format.js）
+function makeLatestHtml(logs){
+  if(!logs||!logs.length) return '';
+  var l=logs[0];
   var crop=null;
   for(var i=0;i<allCrops.length;i++){if(allCrops[i].id===l.crop_id){crop=allCrops[i];break;}}
   var db=crop?CDB[crop.type]||{}:{};
   var cn=crop?(crop.type==='custom'?crop.custom_name||'カスタム':db.n||crop.type||''):'';
-  var em=db.e||'🌱';
-  var wk=WORK[l.work]||{l:l.work||'その他',cls:'other'};
-  var detail='';
-  if(l.fert_name) detail=l.fert_name+(l.fert_amt?' '+l.fert_amt+(l.fert_unit||''):'');
-  else if(l.pest_name) detail=l.pest_name+(l.pest_dil?' '+l.pest_dil+'倍':'');
-  else if(l.hv_kg||l.hv_cnt) detail=(l.hv_kg||0)+'kg'+(l.hv_cnt?' '+l.hv_cnt+'個':'');
-  else if(l.transplant_qty) detail='定植 '+l.transplant_qty+'株';
-  else if(l.work==='equip'&&l.equip_act) detail=l.equip_act;
-  else if(l.event_type) detail=l.event_type;
   var html='<div class="latest-log">';
   html+='<div class="latest-top">';
-  html+='<span>'+em+'</span>';
-  if(cn) html+='<span style="font-weight:700;font-size:.8rem">'+cn+'</span>';
-  html+='<span class="work-tag tag-'+wk.cls+'">'+wk.l+'</span>';
-  if(detail) html+='<span style="font-size:.72rem;color:#666">'+detail+'</span>';
+  html+='<span>'+(db.e||'🌱')+'</span>';
+  if(cn) html+='<span style="font-weight:700;font-size:.8rem">'+skEsc(cn)+(crop&&crop.variety?' ('+skEsc(crop.variety)+')':'')+'</span>';
+  if(l.date) html+='<span style="font-size:.68rem;color:#999;margin-left:auto">'+skEsc(skMD(l.date))+'</span>';
   html+='</div>';
-  if(l.memo) html+='<div class="latest-memo">'+l.memo+'</div>';
-  if(l.img_src) html+='<img src="'+l.img_src+'" class="latest-photo" alt="">';
+  html+='<div style="display:flex;gap:4px;flex-wrap:wrap;margin:4px 0">'+skCardWorks(logs).map(function(w){
+    var wi=skWorkInfo(w); return '<span class="work-tag" style="background:'+wi.bg+';color:'+wi.fg+'">'+wi.icon+' '+skEsc(wi.label)+'</span>';
+  }).join('')+'</div>';
+  var lines=skCardLines(logs);
+  html+=lines.slice(0,3).map(function(ln){return '<div style="font-size:.72rem;color:'+ln.color+'">'+skEsc(ln.text)+'</div>';}).join('');
+  if(lines.length>3) html+='<div style="font-size:.68rem;color:#999">ほか'+(lines.length-3)+'件</div>';
+  var memoLog=logs.find(function(x){return x.memo;});
+  if(memoLog) html+='<div class="latest-memo">'+skEsc(memoLog.memo)+'</div>';
+  var photo=null; logs.forEach(function(x){ if(!photo) photo=x.img_src||x.img2_src||x.img3_src||null; });
+  if(photo) html+='<img src="'+skEsc(photo)+'" class="latest-photo" alt="">';
   html+='</div>';
   return html;
 }
 
 // サクメモカードHTML生成
-function makeFarmCard(farm,latestLog){
+function makeFarmCard(farm,latestCard){
   var fc=allCrops.filter(function(c){return c.user_id===farm.user_id;});
   var url=farm.slug?('farm.html?u='+farm.slug):('farm.html?uid='+farm.user_id);
   var fav=isFav(farm.user_id);
@@ -205,13 +205,13 @@ function makeFarmCard(farm,latestLog){
   html+='<div class="farm-header">';
   html+='<span style="font-size:1.8rem">🌾</span>';
   html+='<div style="flex:1;min-width:0">';
-  html+='<div class="farm-name">'+(farm.display_name||'さくめも')+'</div>';
-  if(farm.description) html+='<div style="font-size:.74rem;color:#888;margin-top:2px">'+farm.description+'</div>';
+  html+='<div class="farm-name">'+skEsc(farm.display_name||'さくめも')+'</div>';
+  if(farm.description) html+='<div style="font-size:.74rem;color:#888;margin-top:2px">'+skEsc(farm.description)+'</div>';
   html+='</div>';
   html+='<button class="star-btn" onclick="toggleFav(\''+farm.user_id+'\');event.stopPropagation();">'+(fav?'⭐':'☆')+'</button>';
   html+='</div>';
   if(tags) html+='<div class="crop-tags">'+tags+'</div>';
-  html+=makeLatestHtml(latestLog);
+  html+=makeLatestHtml(latestCard);
   html+='<div class="farm-footer"><a class="see-btn" href="'+url+'">サクメモを見る →</a></div>';
   html+='</div>';
   return html;
@@ -222,7 +222,12 @@ function sortedFarms(){
   return allFarms.map(function(farm){
     var logs=allLogs.filter(function(l){return l.user_id===farm.user_id;});
     logs.sort(function(a,b){return (b.created_at||'')>(a.created_at||'')?1:(b.created_at||'')<(a.created_at||'')?-1:0;});
-    return {farm:farm,latestLog:logs[0]||null};
+    var top=logs[0]||null, card=[];
+    if(top){
+      var gk=function(x){return x.group_id||((x.crop_id||'')+'_'+(x.field_id||'')+'_'+(x.date||'')+'_'+(x.time||''));};
+      var k=gk(top); card=logs.filter(function(x){return gk(x)===k;});
+    }
+    return {farm:farm,latestLog:top,latestCard:card};
   }).sort(function(a,b){
     var ta=a.latestLog?a.latestLog.created_at||'':'';
     var tb=b.latestLog?b.latestLog.created_at||'':'';
@@ -264,7 +269,7 @@ function renderAll(){
     return;
   }
   document.getElementById('main-container').innerHTML=data.map(function(d){
-    return makeFarmCard(d.farm,d.latestLog);
+    return makeFarmCard(d.farm,d.latestCard);
   }).join('');
 }
 
@@ -286,7 +291,7 @@ function renderFavs(){
   var fd=sortedFarms().filter(function(d){return farmFavs.indexOf(d.farm.user_id)>=0;});
   if(fd.length){
     html+='<div style="font-size:.8rem;font-weight:700;color:#2d6a3f;margin-bottom:8px;padding:4px 0;border-bottom:2px solid #e0d9ce;">🌾 お気に入りのサクメモ</div>';
-    html+=fd.map(function(d){return makeFarmCard(d.farm,d.latestLog);}).join('');
+    html+=fd.map(function(d){return makeFarmCard(d.farm,d.latestCard);}).join('');
   }
 
   // 品目お気に入り
@@ -302,23 +307,15 @@ function renderFavs(){
       var em=db.e||'🌱';
       var cl=allLogs.filter(function(l){return l.crop_id===c.id;});
       cl.sort(function(a,b){return(b.created_at||'')>(a.created_at||'')?1:-1;});
-      var lat=cl[0];
-      var lh='';
-      if(lat){
-        var wk=WORK[lat.work]||{l:lat.work||'',cls:'other'};
-        var dd=lat.date?((new Date(lat.date).getMonth()+1)+'/'+(new Date(lat.date).getDate())):'';
-        lh='<div class="latest-log"><div class="latest-top">'
-          +'<span class="work-tag tag-'+wk.cls+'">'+wk.l+'</span>'
-          +(lat.memo?'<span style="color:#666;font-size:.7rem;margin-left:4px">'+lat.memo.slice(0,25)+'</span>':'')
-          +'<span style="color:#aaa;font-size:.68rem;margin-left:auto">'+dd+'</span>'
-          +'</div></div>';
-      }
+      var lat=cl[0], lcard=[];
+      if(lat){ var gk=function(x){return x.group_id||((x.crop_id||'')+'_'+(x.field_id||'')+'_'+(x.date||'')+'_'+(x.time||''));}; var k=gk(lat); lcard=cl.filter(function(x){return gk(x)===k;}); }
+      var lh=makeLatestHtml(lcard);
       // onclickをdata属性で実装
       return '<div class="farm-card" style="border-left:3px solid #2d6a3f" data-crop-id="'+c.id+'">'
         +'<div class="farm-header"><span style="font-size:1.5rem">'+em+'</span>'
         +'<div style="flex:1;min-width:0">'
-        +'<div class="farm-name" style="font-size:.88rem">'+nm+(c.variety?' ('+c.variety+')':'')+'</div>'
-        +'<div style="font-size:.72rem;color:#888">🌾 '+(frm.display_name||'さくめも')+'</div></div>'
+        +'<div class="farm-name" style="font-size:.88rem">'+skEsc(nm)+(c.variety?' ('+skEsc(c.variety)+')':'')+'</div>'
+        +'<div style="font-size:.72rem;color:#888">🌾 '+skEsc(frm.display_name||'さくめも')+'</div></div>'
         +'<button class="crop-unfav-btn" data-id="'+c.id+'" style="background:none;border:none;font-size:1.1rem;cursor:pointer;padding:4px;color:#f0a500;" title="お気に入りを解除">⭐</button>'
         +'</div>'+lh
         +'<div class="farm-footer"><a class="see-btn" href="'+url+'">サクメモを見る →</a></div></div>';
