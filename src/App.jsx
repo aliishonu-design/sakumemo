@@ -1158,89 +1158,64 @@ function Inp({ value, onChange, type="text", placeholder="", style={}, ...props 
     {...props} />;
 }
 
-// 計算機キーボード付き数値入力（PC:テキスト直接入力、スマホ:計算機キーボード）
-// タッチデバイス判定：userAgentも併用して確実に判定
-const isPC = ()=> {
-  if(typeof window==="undefined") return true;
-  const ua = navigator.userAgent||"";
-  const isMobileUA = /Android|iPhone|iPad|iPod|Mobile/i.test(ua);
-  if(isMobileUA) return false;
-  const hasTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints>0);
-  // タッチ対応PCもあるのでUAを優先
-  return !hasTouch || !isMobileUA;
-};
+// 計算機キーボード付き数値入力（PC・スマホ共通：クリックで計算機、PCはキー入力も可）
 function CalcInp({ value, onChange, placeholder="0", style={} }) {
   const [open, setOpen] = useState(false);
-  const [expr, setExpr] = useState(""); // 計算式バッファ
-  const [display, setDisplay] = useState(""); // 表示文字列
+  const [expr, setExpr] = useState("");
+  const [display, setDisplay] = useState("");
+  const inputRef = useRef(null);
 
-  // PCの場合はそのまま入力欄として表示（キーボード・テンキー入力対応）
-  if(isPC()){
-    return <input type="text" inputMode="decimal" pattern="[0-9+\-*/.]*" value={value||""} placeholder={placeholder}
-      onChange={e=>{
-        // 数字・演算子・小数点のみ許可（それ以外は無視）
-        const v=e.target.value.replace(/[^0-9.\-+*/]/g,"");
-        onChange(v);
-      }}
-      onBlur={e=>{
-        const v=e.target.value;
-        try{
-          const safe=v.replace(/×/g,"*").replace(/÷/g,"/").replace(/[^0-9+\-*/.()]/g,"");
-          if(!safe){onChange("");return;}
-          // eslint-disable-next-line no-new-func
-          const result=Function('"use strict";return ('+safe+')')();
-          const rounded=Math.round(result*100)/100;
-          onChange(String(rounded));
-        }catch{}
-      }}
-      style={{...S.inp,...style}}/>;
-  }
+  const evalExpr = (e) => {
+    const safe = e.replace(/×/g,"*").replace(/÷/g,"/").replace(/−/g,"-").replace(/＋/g,"+").replace(/[^0-9+\-*/.()]/g,"");
+    if(!safe) return null;
+    try {
+      // eslint-disable-next-line no-new-func
+      const result = Function('"use strict";return ('+safe+')')();
+      if(!isFinite(result)) return null;
+      return Math.round(result * 100) / 100;
+    } catch { return null; }
+  };
 
   const openCalc = () => {
     setExpr(value ? String(value) : "");
     setDisplay(value ? String(value) : "");
     setOpen(true);
   };
+
   const pressKey = (k) => {
-    if(k === "AC") {
-      // AC: 空欄に戻す（未入力状態）
-      setExpr(""); setDisplay(""); onChange(""); setOpen(false); return;
+    if(k === "AC") { setExpr(""); setDisplay(""); onChange(""); setOpen(false); return; }
+    if(k === "⌫") { const ne=expr.slice(0,-1); setExpr(ne); setDisplay(ne); return; }
+    if(k === "＝") {
+      const r = evalExpr(expr);
+      if(r===null) { setDisplay("エラー"); setExpr(""); return; }
+      const s = String(r); setExpr(s); setDisplay(s); onChange(s); return;
     }
-    if(k === "⌫") {
-      const ne = expr.slice(0,-1);
-      setExpr(ne); setDisplay(ne); return;
-    }
-    if(k === "=" || k === "＝") {
-      try {
-        // 演算子を安全に評価（× → * 、÷ → /）
-        const safe = expr.replace(/×/g,"*").replace(/÷/g,"/").replace(/−/g,"-").replace(/＋/g,"+").replace(/[^0-9+\-*/.()]/g,"");
-        if(!safe) return;
-        // eslint-disable-next-line no-new-func
-        const result = Function('"use strict";return ('+safe+')')();
-        const rounded = Math.round(result * 100) / 100;
-        const str = String(rounded);
-        setExpr(str); setDisplay(str);
-        onChange(str);
-      } catch(e) { setDisplay("エラー"); setExpr(""); }
-      return;
-    }
-    const ne = expr + k;
-    setExpr(ne); setDisplay(ne);
+    const ne = expr + k; setExpr(ne); setDisplay(ne);
   };
+
   const confirm = () => {
-    // =を押さずに閉じた場合、空欄なら空欄のまま確定
-    const safe = expr.replace(/×/g,"*").replace(/÷/g,"/").replace(/−/g,"-").replace(/＋/g,"+").replace(/[^0-9+\-*/.()]/g,"");
-    if(!safe){ onChange(""); setOpen(false); return; }
-    try {
-      // eslint-disable-next-line no-new-func
-      const result = Function('"use strict";return ('+safe+')')();
-      const rounded = Math.round(result * 100) / 100;
-      onChange(String(rounded));
-    } catch(e) {}
+    const r = evalExpr(expr);
+    if(r!==null) onChange(String(r));
+    else if(!expr) onChange("");
     setOpen(false);
   };
 
-  // マネーフォワード標準レイアウト（÷はACの横）
+  // PCキーボード入力ハンドラ（計算機が開いているとき）
+  const handleKeyDown = (e) => {
+    if(!open) return;
+    e.preventDefault();
+    const k = e.key;
+    if(k>="0"&&k<="9") pressKey(k);
+    else if(k===".") pressKey(".");
+    else if(k==="+" ) pressKey("＋");
+    else if(k==="-" ) pressKey("−");
+    else if(k==="*" ) pressKey("×");
+    else if(k==="/" ) pressKey("÷");
+    else if(k==="Enter"||k==="=") confirm();
+    else if(k==="Backspace") pressKey("⌫");
+    else if(k==="Escape") { setOpen(false); }
+  };
+
   const keys = [
     ["7","8","9","×"],
     ["4","5","6","−"],
@@ -1250,49 +1225,60 @@ function CalcInp({ value, onChange, placeholder="0", style={} }) {
 
   return <>
     <input
-      type="text" inputMode="none" readOnly
-      value={value||""} placeholder={placeholder}
+      ref={inputRef}
+      type="text"
+      inputMode="none"
+      readOnly
+      value={value||""}
+      placeholder={placeholder}
       onClick={openCalc}
+      onKeyDown={handleKeyDown}
       style={{...S.inp,...style,cursor:"pointer",background:"#fffdf8"}}
     />
-    {open && <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,zIndex:10000,display:"flex",flexDirection:"column",justifyContent:"flex-end"}}
-      onClick={e=>{if(e.target===e.currentTarget)confirm();}}>
+    {open && <div
+      style={{position:"fixed",top:0,left:0,right:0,bottom:0,zIndex:10000,display:"flex",flexDirection:"column",justifyContent:"flex-end"}}
+      onClick={e=>{if(e.target===e.currentTarget)confirm();}}
+      onKeyDown={handleKeyDown}
+      tabIndex={-1}
+    >
       <div style={{background:"#f8f5ef",borderRadius:"16px 16px 0 0",padding:"12px 16px 0",boxShadow:"0 -4px 24px rgba(0,0,0,.18)",
         paddingBottom:"calc(env(safe-area-inset-bottom, 0px) + 68px)"}}>
-        {/* 計算式ディスプレイ + 完了ボタン */}
-        <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
+        {/* ディスプレイ行 */}
+        <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
           <div style={{flex:1,background:"#fff",borderRadius:10,padding:"8px 12px",fontSize:"1.2rem",fontWeight:700,color:"#5c3d1e",
             minHeight:44,textAlign:"right",border:"1.5px solid #e0d9ce",overflowX:"auto",whiteSpace:"nowrap"}}>
             {display||<span style={{color:"#bbb",fontWeight:400,fontSize:".9rem"}}>{placeholder}</span>}
           </div>
           <button onClick={confirm}
-            style={{padding:"8px 18px",borderRadius:10,border:"none",background:"#2d6a3f",color:"#fff",fontSize:".9rem",fontWeight:700,cursor:"pointer"}}>
+            style={{padding:"8px 18px",borderRadius:10,border:"none",background:"#2d6a3f",color:"#fff",fontSize:".9rem",fontWeight:700,cursor:"pointer",flexShrink:0}}>
             完了
           </button>
         </div>
-        {/* AC（未入力に戻す）＋ ÷ ボタン */}
+        {/* PCキーボード入力ヒント */}
+        <div style={{fontSize:".68rem",color:"#aaa",textAlign:"right",marginBottom:8}}>
+          💡 キーボード入力・演算子(+ - * /)→Enter で確定
+        </div>
+        {/* AC + ÷ */}
         <div style={{display:"grid",gridTemplateColumns:"3fr 1fr",gap:8,marginBottom:8}}>
           <button onClick={()=>pressKey("AC")}
-            style={{padding:"13px 0",borderRadius:12,border:"none",fontSize:"1rem",fontWeight:700,cursor:"pointer",
-              background:"#fde8e8",color:"#c0392b",boxShadow:"0 2px 6px rgba(0,0,0,.08)"}}>
-            クリア（未入力に戻す）
+            style={{padding:"13px 0",borderRadius:12,border:"none",fontSize:"1rem",fontWeight:700,cursor:"pointer",background:"#fde8e8",color:"#c0392b",boxShadow:"0 2px 6px rgba(0,0,0,.08)"}}>
+            クリア
           </button>
           <button onClick={()=>pressKey("÷")}
-            style={{padding:"13px 0",borderRadius:12,border:"none",fontSize:"1.2rem",fontWeight:700,cursor:"pointer",
-              background:"#f5efe0",color:"#8B6914",boxShadow:"0 2px 6px rgba(0,0,0,.08)"}}>
+            style={{padding:"13px 0",borderRadius:12,border:"none",fontSize:"1.2rem",fontWeight:700,cursor:"pointer",background:"#f5efe0",color:"#8B6914",boxShadow:"0 2px 6px rgba(0,0,0,.08)"}}>
             ÷
           </button>
         </div>
         {/* キーパッド 4×4 */}
         <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8}}>
           {keys.flat().map(k=>{
-            const isOp = ["×","−","＋"].includes(k);
-            const isEq = k==="＝";
-            const isDel = k==="⌫";
-            return <button key={k} onClick={()=>pressKey(k)}
+            const isOp=["×","−","＋"].includes(k);
+            const isEq=k==="＝";
+            const isDel=k==="⌫";
+            return <button key={k} onClick={()=>isEq?confirm():pressKey(k)}
               style={{padding:"16px 0",borderRadius:12,border:"none",fontSize:"1.2rem",fontWeight:700,cursor:"pointer",
-                background: isEq?"#2d6a3f": isOp?"#f5efe0": isDel?"#fde8e8":"#fff",
-                color: isEq?"#fff": isOp?"#8B6914": isDel?"#c0392b":"#3c3228",
+                background:isEq?"#2d6a3f":isOp?"#f5efe0":isDel?"#fde8e8":"#fff",
+                color:isEq?"#fff":isOp?"#8B6914":isDel?"#c0392b":"#3c3228",
                 boxShadow:"0 2px 6px rgba(0,0,0,.08)"}}>
               {k}
             </button>;
@@ -1465,7 +1451,7 @@ function LoginScreen() {
       <div style={{background:"#fff",borderRadius:20,padding:"28px 24px",maxWidth:360,width:"100%",textAlign:"center",boxShadow:"0 8px 40px rgba(0,0,0,.3)"}}>
         <div style={{fontSize:"2.2rem",marginBottom:6}}>🌾</div>
         <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:"1.3rem",color:G,marginBottom:4}}>サクメモ</div>
-        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v2.0.4</span></div>
+        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v2.0.5</span></div>
         {linkErr&&<div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:8,padding:"10px 12px",marginBottom:16,fontSize:".78rem",color:"#856404",textAlign:"left"}}>{linkErr}</div>}
 
 
@@ -1525,7 +1511,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v2.0.4</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v2.0.5</div>
       </div>
     </div>
   );
