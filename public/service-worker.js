@@ -1,5 +1,5 @@
-// サクメモ Service Worker v5
-const CACHE = 'sakumemo-v5';
+// サクメモ Service Worker v6（v2.2.0：card-format.js 追加に合わせてキャッシュを更新）
+const CACHE = 'sakumemo-v6';
 
 self.addEventListener('install', e => {
   self.skipWaiting();
