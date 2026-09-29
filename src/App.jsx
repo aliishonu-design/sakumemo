@@ -1451,7 +1451,7 @@ function LoginScreen() {
       <div style={{background:"#fff",borderRadius:20,padding:"28px 24px",maxWidth:360,width:"100%",textAlign:"center",boxShadow:"0 8px 40px rgba(0,0,0,.3)"}}>
         <div style={{fontSize:"2.2rem",marginBottom:6}}>🌾</div>
         <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:"1.3rem",color:G,marginBottom:4}}>サクメモ</div>
-        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v2.0.6</span></div>
+        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v2.0.8</span></div>
         {linkErr&&<div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:8,padding:"10px 12px",marginBottom:16,fontSize:".78rem",color:"#856404",textAlign:"left"}}>{linkErr}</div>}
 
 
@@ -1511,7 +1511,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v2.0.6</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v2.0.8</div>
       </div>
     </div>
   );
@@ -3832,7 +3832,15 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
       ? (noteWithDiscount ? noteWithDiscount + "　[按分"+apportionRate+"%]" : "[按分"+apportionRate+"%]")
       : noteWithDiscount;
     const costId = mCost.id||uid0();
-    const item={...mCost, id:costId, amt:String(realAmt), note:noteWithApportion, discount:undefined, apportionId:undefined, apportionRate:undefined};
+    // 新方式購入記録: _buyQtyをqtyに反映し、masterId/capacityも保存
+    const buyQtyVal = mCost._buyQty ? String(mCost._buyQty) : (mCost.qty||"1");
+    const buyCapVal = mCost.masterId&&(mCost.cat==="fert"||mCost.cat==="pest")
+      ? String((mCost.cat==="fert"?fertMs:pestMs).find(m=>m.id===mCost.masterId)?.capacity||"")
+      : (mCost.capacity||"");
+    const item={...mCost, id:costId, amt:String(realAmt), note:noteWithApportion,
+      qty:buyQtyVal, qunit:mCost.qunit||"個", capacity:buyCapVal,
+      discount:undefined, apportionId:undefined, apportionRate:undefined,
+      _buyQty:undefined, _buyUnitPrice:undefined, _buyOpen:undefined, _histSrch:undefined};
     const n=mCost.id&&costs.find(x=>x.id===mCost.id)?costs.map(x=>x.id===mCost.id?item:x):[...costs,item];
     // 按分率をlocalStorageに保存
     if(!isIncome(mCost.cat)){
@@ -3858,8 +3866,8 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
         showToast("資材マスターに「"+name+"」を自動登録しました");
       }
     }
-    // 肥料費・農薬費で資材マスターと紐付けている場合、在庫を更新
-    if((mCost.cat==="fert"||mCost.cat==="pest")&&mCost.masterLink&&mCost.qty&&!mCost.id){
+    // 肥料費・農薬費で旧方式（masterLink）の在庫更新（後方互換）
+    if((mCost.cat==="fert"||mCost.cat==="pest")&&mCost.masterLink&&mCost.qty&&!mCost.id&&!mCost.masterId){
       const qty = parseFloat(mCost.qty)||0;
       if(mCost.cat==="fert"){
         const idx=fertMs.findIndex(m=>m.name===mCost.masterLink);
@@ -3881,6 +3889,33 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
         }
       }
     }
+    // 肥料費・農薬費：新方式（masterId + _buyQty）で在庫を加算 (v2.0.8)
+    if((mCost.cat==="fert"||mCost.cat==="pest")&&mCost.masterId&&mCost._buyQty&&!mCost.id){
+      const buyQty = parseFloat(mCost._buyQty)||0;
+      if(mCost.cat==="fert"){
+        const idx=fertMs.findIndex(m=>m.id===mCost.masterId);
+        if(idx>=0){
+          const m=fertMs[idx];
+          const cap=parseFloat(m.capacity)||0;
+          const addStock=cap>0?buyQty*cap:buyQty;
+          const updated={...m,stock:String(Math.round(((parseFloat(m.stock)||0)+addStock)*100)/100),price:mCost._buyUnitPrice||m.price};
+          const newFertArr=fertMs.map((x,i)=>i===idx?updated:x);
+          setFertMs(newFertArr,updated);
+          showToast("在庫に+"+Math.round(addStock*100)/100+(m.sunit||m.cunit||"")+"を加算しました");
+        }
+      } else {
+        const idx=pestMs.findIndex(m=>m.id===mCost.masterId);
+        if(idx>=0){
+          const m=pestMs[idx];
+          const cap=parseFloat(m.capacity)||0;
+          const addStock=cap>0?buyQty*cap:buyQty;
+          const updated={...m,stock:String(Math.round(((parseFloat(m.stock)||0)+addStock)*100)/100),price:mCost._buyUnitPrice||m.price};
+          const newPestArr=pestMs.map((x,i)=>i===idx?updated:x);
+          setPestMs(newPestArr,updated);
+          showToast("在庫に+"+Math.round(addStock*100)/100+(m.sunit||m.cunit||"")+"を加算しました");
+        }
+      }
+    }
     // 農具・農機具費：masterIdがあればdepYearsを農機具マスターに反映
     if((mCost.cat==="equip"||mCost.cat==="machine")&&mCost.masterId&&!mCost.id){
       const eqIdx = equips.findIndex(e=>e.id===mCost.masterId);
@@ -3895,7 +3930,7 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
 
   // 帳簿Excelエクスポート（複式簿記・65万円控除対応）
   const exportLedger = () => {
-    const KAIGYO_DATE = "2026-08-18";
+    const KAIGYO_DATE = (()=>{try{return localStorage.getItem("sakumemo_kaigyo_date")||"2026-08-18";}catch{return "2026-08-18";}})();
     const CAT_TO_KAMOKU = {
       seed:"種苗費", fert:"肥料費", pest:"農薬衛生費",
       equip:"諸材料費", labor:"雇人費", other:"その他"
@@ -4714,7 +4749,9 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
           const crName=cr?getCropName(cr):"";
           const isCancelled = c.cancelled;
           const isCard = c.payMethod&&cards&&cards.some&&cards.some(cd=>cd.name===c.payMethod);
-          const bg = isCancelled?"#F5F5F5":i%2===0?"#FFFFFF":"#FAFAFA";
+          const kaigyoDateForList = (()=>{try{return localStorage.getItem("sakumemo_kaigyo_date")||"";}catch{return "";}})();
+          const isKaigyo = !inc && kaigyoDateForList && c.date && c.date < kaigyoDateForList;
+          const bg = isCancelled?"#F5F5F5":isKaigyo?"#FFF8E8":i%2===0?"#FFFFFF":"#FAFAFA";
           return (
             <div key={c.id} onClick={()=>setMCost({...c})}
               style={{display:"grid",gridTemplateColumns:"52px 1fr auto 32px",gap:"0 6px",
@@ -4725,13 +4762,14 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
               <div>
                 <div style={{fontSize:".68rem",color:"#5c3d1e",whiteSpace:"nowrap"}}>{c.date?c.date.slice(5).replace("-","/"):"-"}</div>
                 {isCard&&<div style={{fontSize:".55rem",color:"#1565C0"}}>💳</div>}
+                {isKaigyo&&<div style={{fontSize:".52rem",color:"#7c4d00",fontWeight:700}}>開業費</div>}
               </div>
               {/* 内容 */}
               <div style={{minWidth:0}}>
                 <div style={{display:"flex",gap:3,alignItems:"center",marginBottom:1,flexWrap:"wrap"}}>
-                  <span style={{fontSize:".58rem",background:inc?"#E8F5E9":"#FFF3E0",
-                    color:inc?"#2E7D32":"#E65100",borderRadius:3,padding:"0 4px",fontWeight:700,flexShrink:0}}>
-                    {cat.label.split(" ")[0]}
+                  <span style={{fontSize:".58rem",background:inc?"#E8F5E9":isKaigyo?"#FFF0C0":"#FFF3E0",
+                    color:inc?"#2E7D32":isKaigyo?"#7c4d00":"#E65100",borderRadius:3,padding:"0 4px",fontWeight:700,flexShrink:0}}>
+                    {isKaigyo?"🏪開業費":cat.label.split(" ")[0]}
                   </span>
                   {isCancelled&&<span style={{fontSize:".58rem",background:"#EEE",color:"#999",borderRadius:3,padding:"0 4px"}}>取消</span>}
                 </div>
@@ -4765,7 +4803,7 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
       {/* ── 在庫管理タブ ── */}
       {mainTab==="stock"&&<>
         <div style={{display:"flex",gap:6,marginBottom:10,flexWrap:"wrap",alignItems:"center"}}>
-          <div style={{flex:1,fontSize:".72rem",color:TX3}}>費用欄から自動登録 / 作業記録で自動減算</div>
+          <div style={{flex:1,fontSize:".72rem",color:TX3}}>購入は費用タブから記録 / 作業記録で自動減算</div>
           <button style={{...S.btn,background:G3,color:G,border:"1px solid "+G,borderRadius:999,padding:"6px 12px",fontSize:".75rem",fontWeight:700,width:"auto"}}
             onClick={()=>setMItem({...newFert,_idx:undefined})}>＋ 肥料</button>
           <button style={{...S.btn,background:"#fffde7",color:"#92400e",border:"1px solid #f9e4a0",borderRadius:999,padding:"6px 12px",fontSize:".75rem",fontWeight:700,width:"auto"}}
@@ -4774,9 +4812,12 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
             onClick={()=>setMItem({...newMaterial,_idx:undefined})}>＋ 消耗資材</button>
         </div>
         {/* 在庫一覧 */}
+        <div style={{fontSize:".72rem",color:TX3,background:"#f0f9f0",borderRadius:8,padding:"8px 10px",marginBottom:10,lineHeight:1.6}}>
+          💡 在庫を増やすには<b>費用タブ</b>から購入を記録してください。購入記録で在庫が自動加算されます。作業記録で使用すると在庫が自動減算されます。
+        </div>
         {[...fertMs.map((f,i)=>({...f,_type:"fert",_idx:i})),...pestMs.map((p,i)=>({...p,_type:"pest",_idx:i})),...materialMs.map((m,i)=>({...m,_type:"material",_idx:equips.indexOf(m)}))].length===0
           &&<div style={{color:TX3,fontSize:".82rem",padding:20,textAlign:"center"}}>
-            肥料・農薬・消耗資材がまだ登録されていません<br/>費用欄で肥料費・農薬費を入力すると自動登録されます
+            肥料・農薬・消耗資材がまだ登録されていません<br/>費用タブで肥料費・農薬費を入力すると自動登録されます
           </div>
         }
         {[...fertMs.map((f,i)=>({...f,_type:"fert",_idx:i})),...pestMs.map((p,i)=>({...p,_type:"pest",_idx:i})),...materialMs.map((m)=>({...m,_type:"material",_idx:equips.indexOf(m)}))]
@@ -4829,10 +4870,6 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
                 </div>
               </div>
               <div style={{display:"flex",gap:5,marginTop:9,flexWrap:"wrap"}}>
-                <button style={{...S.btn,background:G,color:"#fff",padding:"5px 10px",fontSize:".73rem",borderRadius:8,width:"auto",fontWeight:700}}
-                  onClick={()=>setMBuy({...item,_item:item,cnt:"",amt:"",date:todayStr(),note:""})}>
-                  🛒 購入
-                </button>
                 {!isOut&&<button
                   style={{...S.btn,background:"#fee2e2",color:"#991b1b",border:"1px solid #fca5a5",padding:"5px 10px",fontSize:".73rem",borderRadius:8,width:"auto",fontWeight:700}}
                   onClick={()=>{
@@ -5131,27 +5168,115 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
             </div>}
           </>}
           <FG label="内容・品名"><Inp value={mCost.name||""} onChange={v=>setMCost({...mCost,name:v})} placeholder="例：トマト苗/肥料/農産物売上"/></FG>
-          {/* 肥料費・農薬費：資材マスター連動で在庫更新 */}
+          {/* 肥料費・農薬費：購入記録＋在庫連動 (v2.0.8 強化) */}
           {(mCost.cat==="fert"||mCost.cat==="pest")&&(()=>{
             const msList = mCost.cat==="fert" ? fertMs : pestMs;
-            const linked = msList.find(m=>m.name===mCost.name);
-            return <div style={{background:"#f0faf0",border:"1px solid #b2dfdb",borderRadius:10,padding:"10px 12px",marginBottom:9}}>
-              <div style={{fontSize:".78rem",fontWeight:700,color:"#2d6a3f",marginBottom:6}}>📦 在庫連動（任意）</div>
-              <FG label="資材マスターと紐付ける">
-                <Sel value={mCost.name||""} onChange={v=>{
-                  const m=msList.find(x=>x.name===v);
-                  setMCost({...mCost,name:v,masterLink:v,qty:mCost.qty||"1",qunit:m?(m.cunit||m.sunit||"個"):"個"});
-                }} options={[{value:"",label:"（なし・直接入力）"},...msList.filter(m=>m.status!=="使い切り（非表示）").map(m=>({value:m.name,label:m.name}))]}/>
-              </FG>
-              {linked&&<div style={{fontSize:".72rem",color:"#555",marginBottom:6}}>
-                現在在庫: {linked.stock||0}{linked.sunit||linked.cunit||""} ／ 単価: {linked.price||"未設定"}円
-              </div>}
-              {linked&&<R2>
-                <FG label="購入数量（個・袋など）"><CalcInp value={mCost.qty||""} onChange={v=>setMCost({...mCost,qty:v})} placeholder="1"/></FG>
-                <FG label="単位"><Inp value={mCost.qunit||linked.cunit||"個"} onChange={v=>setMCost({...mCost,qunit:v})} style={{width:60}}/></FG>
-              </R2>}
-              {linked&&<div style={{fontSize:".68rem",color:"#888"}}>💡 保存時に在庫が自動更新されます（購入数×内容量）</div>}
-            </div>;
+            const costCatLabel = mCost.cat==="fert" ? "肥料" : "農薬";
+            // 過去の購入履歴（masterId付きのもの）
+            const pastBuys = costs.filter(c=>c.cat===mCost.cat&&c.masterId&&!c.cancelled);
+            // 重複排除（masterId毎に最新を1件）
+            const latestByMaster = {};
+            pastBuys.forEach(c=>{
+              if(!latestByMaster[c.masterId]||c.date>latestByMaster[c.masterId].date) latestByMaster[c.masterId]=c;
+            });
+            const historyItems = Object.values(latestByMaster);
+            // 検索フィルタ
+            const histSrch = mCost._histSrch||"";
+            const filteredHistory = histSrch
+              ? historyItems.filter(c=>(c.name||"").includes(histSrch))
+              : historyItems;
+            const selectedMaster = mCost.masterId ? msList.find(m=>m.id===mCost.masterId) : null;
+            const autoTotal = selectedMaster&&mCost._buyQty&&mCost._buyUnitPrice
+              ? String(Math.round(parseFloat(mCost._buyQty)*parseFloat(mCost._buyUnitPrice)))
+              : "";
+            const addStockAmt = selectedMaster&&mCost._buyQty&&parseFloat(selectedMaster.capacity)>0
+              ? parseFloat(mCost._buyQty)*parseFloat(selectedMaster.capacity)
+              : null;
+            const isBuyOpen = mCost._buyOpen !== false; // デフォルトで開く
+            return <>
+              <div style={{background:"#f0faf0",border:"1px solid #b2dfdb",borderRadius:10,padding:"10px 12px",marginBottom:9}}>
+                <div style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",marginBottom:isBuyOpen?8:0}}
+                  onClick={()=>setMCost({...mCost,_buyOpen:!isBuyOpen})}>
+                  <span style={{fontSize:".78rem",fontWeight:700,color:"#2d6a3f"}}>📦 購入を記録する（在庫に加算）</span>
+                  <span style={{marginLeft:"auto",fontSize:".8rem",color:"#888"}}>{isBuyOpen?"▲":"▼"}</span>
+                </div>
+                {isBuyOpen&&<>
+                  {/* 過去の購入履歴（Amazonの「また買う」）*/}
+                  {historyItems.length>0&&<>
+                    <div style={{fontSize:".73rem",fontWeight:700,color:"#2d6a3f",marginBottom:4}}>🔄 また買う（過去の{costCatLabel}購入）</div>
+                    <Inp value={histSrch} onChange={v=>setMCost({...mCost,_histSrch:v})} placeholder={costCatLabel+"名で検索..."} style={{marginBottom:6}}/>
+                    <div style={{maxHeight:160,overflowY:"auto",display:"flex",flexDirection:"column",gap:5,marginBottom:8}}>
+                      {filteredHistory.slice(0,10).map(c=>{
+                        const ms = msList.find(m=>m.id===c.masterId);
+                        return <div key={c.id}
+                          onClick={()=>{
+                            if(ms){
+                              const autoAmt=ms.price&&mCost._buyQty?String(Math.round(parseFloat(ms.price)*parseFloat(mCost._buyQty))):ms.price||"";
+                              setMCost({...mCost,masterId:ms.id,name:ms.name,_buyUnitPrice:ms.price||"",_buyQty:mCost._buyQty||"1",amt:autoAmt||mCost.amt,_histSrch:"",_buyOpen:true});
+                            }
+                          }}
+                          style={{cursor:"pointer",background:mCost.masterId===c.masterId?"#d1fae5":"#fff",border:"1px solid "+(mCost.masterId===c.masterId?"#6ee7b7":"#e0d9ce"),borderRadius:8,padding:"6px 10px",fontSize:".73rem"}}>
+                          <div style={{fontWeight:700,marginBottom:2}}>{ms?ms.name:c.name}</div>
+                          <div style={{color:"#888",display:"flex",gap:8,flexWrap:"wrap"}}>
+                            <span>前回: {c.date||"不明"}</span>
+                            {ms&&ms.price&&<span>単価: {ms.price}円/個</span>}
+                            {ms&&ms.stock!==undefined&&<span>在庫: {ms.stock||0}{ms.sunit||ms.cunit||""}</span>}
+                          </div>
+                        </div>;
+                      })}
+                    </div>
+                  </>}
+                  {/* 資材選択（手動）*/}
+                  {!mCost.masterId&&<>
+                    <div style={{fontSize:".73rem",fontWeight:700,color:"#2d6a3f",marginBottom:4}}>
+                      {historyItems.length>0?"または新しい資材を選択":"資材マスターから選択"}
+                    </div>
+                    <Sel value={mCost.masterId||""} onChange={v=>{
+                      const ms=msList.find(m=>m.id===v);
+                      if(ms) setMCost({...mCost,masterId:ms.id,name:ms.name,_buyUnitPrice:ms.price||"",_buyQty:mCost._buyQty||"1",_buyOpen:true});
+                      else setMCost({...mCost,masterId:"",_buyOpen:true});
+                    }} options={[{value:"",label:"（選択してください）"},...msList.filter(m=>m.status!=="使い切り（非表示）").map(m=>({value:m.id,label:m.name}))]}/>
+                    <div style={{fontSize:".68rem",color:"#888",marginTop:3}}>
+                      💡 資材が未登録の場合は先に在庫タブの「＋{costCatLabel}」で登録してください
+                    </div>
+                  </>}
+                  {/* 選択中資材の購入入力 */}
+                  {selectedMaster&&<div style={{marginTop:8,borderTop:"1px dashed #b2dfdb",paddingTop:8}}>
+                    <div style={{fontSize:".73rem",fontWeight:700,color:"#2d6a3f",marginBottom:6}}>
+                      ✅ {selectedMaster.name}
+                      <button onClick={()=>setMCost({...mCost,masterId:"",_buyQty:"",_buyUnitPrice:""})}
+                        style={{marginLeft:8,fontSize:".65rem",background:"none",border:"1px solid #ccc",borderRadius:6,padding:"1px 6px",cursor:"pointer",color:"#888"}}>変更</button>
+                    </div>
+                    <div style={{fontSize:".72rem",color:"#555",marginBottom:6}}>
+                      現在在庫: <b>{selectedMaster.stock||0}{selectedMaster.sunit||selectedMaster.cunit||""}</b>
+                      {selectedMaster.capacity&&<span> ／ 内容量: {selectedMaster.capacity}{selectedMaster.cunit}/個</span>}
+                    </div>
+                    <R2>
+                      <FG label="購入個数">
+                        <CalcInp value={mCost._buyQty||""} onChange={v=>{
+                          const price=parseFloat(mCost._buyUnitPrice||selectedMaster.price)||0;
+                          const qty=parseFloat(v)||0;
+                          const autoAmt=price&&qty?String(Math.round(price*qty)):"";
+                          setMCost({...mCost,_buyQty:v,amt:autoAmt||mCost.amt});
+                        }} placeholder="1"/>
+                      </FG>
+                      <FG label="単価（円/個）">
+                        <CalcInp value={mCost._buyUnitPrice||selectedMaster.price||""} onChange={v=>{
+                          const qty=parseFloat(mCost._buyQty)||0;
+                          const price=parseFloat(v)||0;
+                          const autoAmt=price&&qty?String(Math.round(price*qty)):"";
+                          setMCost({...mCost,_buyUnitPrice:v,amt:autoAmt||mCost.amt});
+                        }} placeholder={selectedMaster.price||"例：1500"}/>
+                      </FG>
+                    </R2>
+                    {mCost._buyQty&&parseFloat(selectedMaster.capacity)>0&&<div style={{fontSize:".72rem",color:"#2d6a3f",background:"#e6f7ee",borderRadius:6,padding:"5px 8px",marginBottom:6}}>
+                      ✅ 在庫に加算: +{Math.round((parseFloat(mCost._buyQty)||0)*parseFloat(selectedMaster.capacity)*100)/100}{selectedMaster.sunit||selectedMaster.cunit||""}
+                    </div>}
+                    <div style={{fontSize:".68rem",color:"#888"}}>💡 保存時に在庫が自動加算されます（個数×内容量）</div>
+                  </div>}
+                </>}
+              </div>
+            </>;
           })()}
           <R2>
             <FG label="日付"><Inp type="date" value={mCost.date||todayStr()} onChange={v=>{
@@ -5386,11 +5511,17 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
         const LedgerRowInner = LedgerRow; const LedgerSecHdInner = LedgerSecHd;
         const Row = LedgerRowInner; const SecHd = LedgerSecHdInner;
         const yr = selYear;
+        // 開業日をlocalStorageから取得
+        const kaigyoDate = (()=>{try{return localStorage.getItem("sakumemo_kaigyo_date")||"";}catch{return "";}})();
         const yrCosts = costs.filter(c=>c.cat!=="__card_cfg"&&!c.cancelled&&(c.date||"").startsWith(String(yr)));
+        // 開業費（開業日以前 = 繰延資産）を分離
+        const kaigyoCosts = kaigyoDate ? yrCosts.filter(c=>c.date && c.date < kaigyoDate) : [];
+        const agriCosts   = kaigyoDate ? yrCosts.filter(c=>!c.date || c.date >= kaigyoDate) : yrCosts;
+        const kaigyoTotal = kaigyoCosts.filter(c=>!isIncome(c.cat)&&c.cat!=="owner_loan").reduce((s,c)=>s+(Number(c.amt)||0),0);
         // inc_owner_draw は損益計算から除外
-        const incTotal = yrCosts.filter(c=>isIncome(c.cat)&&c.cat!=="inc_owner_draw").reduce((s,c)=>s+(Number(c.amt)||0),0);
+        const incTotal = agriCosts.filter(c=>isIncome(c.cat)&&c.cat!=="inc_owner_draw").reduce((s,c)=>s+(Number(c.amt)||0),0);
         // owner_loan は資金管理なので農業費用合計から除外
-        const expTotal0 = yrCosts.filter(c=>!isIncome(c.cat)&&c.cat!=="owner_loan").reduce((s,c)=>s+getAgriAmt(c),0);
+        const expTotal0 = agriCosts.filter(c=>!isIncome(c.cat)&&c.cat!=="owner_loan").reduce((s,c)=>s+getAgriAmt(c),0);
         // 棚卸資産（期首+・期末-）
         const invData = getInventory(yr);
         const invStart = Number(invData.start||0);
@@ -5454,8 +5585,39 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
               費用への加算：{(invStart-invEnd>=0?"+":"")+Math.round(invStart-invEnd).toLocaleString()}円（期首{invStart.toLocaleString()} - 期末{invEnd.toLocaleString()}）
             </div>}
           </div>
+          {/* 開業費セクション（開業日が設定されていて、開業費がある場合のみ表示） */}
+          {kaigyoDate&&kaigyoTotal>0&&<div style={S.card}>
+            <SecHd label={"🏪 開業費（"+kaigyoDate+"以前の支出）"}/>
+            <div style={{fontSize:".72rem",color:TX3,marginBottom:8,lineHeight:1.5}}>
+              開業準備のための支出（繰延資産）。5年以内に任意のタイミングで経費算入できます。<br/>
+              確定申告書の「繰延資産の償却費」欄に記入してください。
+            </div>
+            {kaigyoCosts.filter(c=>!isIncome(c.cat)&&c.cat!=="owner_loan").map((c,i)=>(
+              <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"5px 0",borderBottom:"1px solid "+BD,fontSize:".78rem"}}>
+                <div>
+                  <span style={{fontWeight:600}}>{c.name||"（品名なし）"}</span>
+                  <span style={{color:TX3,marginLeft:6,fontSize:".7rem"}}>{c.date||""}</span>
+                </div>
+                <span style={{fontWeight:700,color:"#7c4d00"}}>{(Number(c.amt)||0).toLocaleString()}円</span>
+              </div>
+            ))}
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:8,paddingTop:6,borderTop:"2px solid #e0c070"}}>
+              <span style={{fontWeight:700,fontSize:".82rem",color:"#7c4d00"}}>開業費 合計</span>
+              <span style={{fontWeight:700,fontSize:".9rem",color:"#7c4d00"}}>{kaigyoTotal.toLocaleString()}円</span>
+            </div>
+            <div style={{marginTop:8,background:"#fff8e8",borderRadius:6,padding:"7px 10px",fontSize:".72rem",color:"#8a6000",lineHeight:1.5}}>
+              💡 <b>5年均等償却の目安</b>：年間 {Math.round(kaigyoTotal/5).toLocaleString()}円<br/>
+              開業年は月割り計算（開業月以降の月数 / 12 × 年額）が必要です。
+            </div>
+          </div>}
+          {kaigyoDate&&kaigyoTotal===0&&kaigyoCosts.length===0&&<div style={{...S.card,fontSize:".78rem",color:TX3}}>
+            <SecHd label="🏪 開業費"/>
+            {kaigyoDate}より前の費用はありません。
+          </div>}
+
           <div style={S.card}>
-            <SecHd label={"📊 損益計算書（"+yr+"年）"}/>
+            <SecHd label={"📊 損益計算書（"+yr+"年・開業後）"}/>
+            {kaigyoDate&&<div style={{fontSize:".72rem",color:TX3,marginBottom:6}}>開業日（{kaigyoDate}）以降の費用のみ集計しています。</div>}
             <Row label="農業収入合計" val={incTotal} bold/>
             <Row label="農業費用合計（按分後）" val={expTotal0} sub/>
             {(invStart>0||invEnd>0)&&<>
@@ -5518,19 +5680,30 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
           </div>
           {(()=>{
             // 今年度に償却費が発生するもの（少額一括計上は今年購入のもの）のみ表示
+            // ※ 開業日以前購入は「開業費」扱いのため除外
             const depItems = (equips||[]).filter(e=>!MATERIAL_CATS.includes(e.cat)).filter(eq=>{
               const buyDate = eq.purchaseDate||eq.date||eq.buyDate;
               if(!eq.price||!buyDate) return false;
+              // 開業日以前購入は除外（開業費として扱う）
+              if(kaigyoDate && buyDate < kaigyoDate) return false;
               const py = new Date(buyDate).getFullYear();
               const life = parseInt(eq.usefulLife||eq.depYears)||0;
               if(life<=0) return py===thisYear; // 今年購入の一括計上のみ
               const elapsed = thisYear-py;
               return elapsed>=0 && elapsed<life; // 償却期間中のみ
             });
-            if(depItems.length===0) return null;
+            // 開業費に含まれる農機具（参考表示用）
+            const kaigyoEquips = kaigyoDate ? (equips||[]).filter(e=>!MATERIAL_CATS.includes(e.cat)).filter(eq=>{
+              const buyDate = eq.purchaseDate||eq.date||eq.buyDate;
+              return eq.price && buyDate && buyDate < kaigyoDate;
+            }) : [];
+            if(depItems.length===0 && kaigyoEquips.length===0) return null;
             return <div style={S.card}>
               <SecHd label="🚜 農機具明細（今年度償却分）"/>
-              <div style={{fontSize:".72rem",color:TX3,marginBottom:8}}>今年度に減価償却費が発生する農機具のみ表示しています。</div>
+              <div style={{fontSize:".72rem",color:TX3,marginBottom:8}}>
+                今年度に減価償却費が発生する農機具のみ表示しています。
+                {kaigyoDate&&kaigyoEquips.length>0&&<span style={{color:"#7c4d00"}}> 開業日以前購入の {kaigyoEquips.length}件は「開業費」欄に計上。</span>}
+              </div>
               {depItems.map((eq,i)=>{
                 const buyDate = eq.purchaseDate||eq.date||eq.buyDate;
                 const py = new Date(buyDate).getFullYear();
@@ -7494,6 +7667,33 @@ function SettingsScreen({ showToast, user, uid, signOut, fields, crops, logs, fe
 
       {/* 栽培記録の公開設定 */}
       <PublicSettings uid={uid} crops={crops} showToast={showToast}/>
+
+      {/* 開業日設定 */}
+      {(()=>{
+        const [kaigyoDate, setKaigyoDateState] = useState(()=>{try{return localStorage.getItem("sakumemo_kaigyo_date")||"";}catch{return "";}});
+        const setKaigyoDate = v => { setKaigyoDateState(v); try{localStorage.setItem("sakumemo_kaigyo_date",v);}catch{} };
+        return (
+          <div style={S.card}>
+            <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".88rem",color:"#5c3d1e",marginBottom:6}}>🏪 開業日の設定</div>
+            <div style={{fontSize:".72rem",color:TX3,marginBottom:10,lineHeight:1.6}}>
+              開業日を設定すると、<b>それ以前の費用が「開業費（繰延資産）」</b>として申告タブで区別されます。<br/>
+              農機具も開業日以前に購入したものは減価償却明細から除外されます。
+            </div>
+            <div style={{display:"flex",gap:8,alignItems:"center"}}>
+              <input type="date" value={kaigyoDate} onChange={e=>setKaigyoDate(e.target.value)}
+                style={{...S.inp,flex:1,fontSize:".88rem"}}/>
+              {kaigyoDate&&<button onClick={()=>setKaigyoDate("")}
+                style={{background:"none",border:"1px solid #e87",borderRadius:6,color:"#c44",fontSize:".72rem",padding:"6px 10px",cursor:"pointer"}}>クリア</button>}
+            </div>
+            {kaigyoDate&&<div style={{fontSize:".74rem",color:"#2d6a3f",background:"#e6f7ee",borderRadius:6,padding:"6px 10px",marginTop:8}}>
+              ✅ {kaigyoDate} より前の費用を「開業費」として扱います
+            </div>}
+            {!kaigyoDate&&<div style={{fontSize:".72rem",color:"#c07030",marginTop:6}}>
+              ⚠️ 未設定：開業費の区別がされません（すべて農業経費として集計）
+            </div>}
+          </div>
+        );
+      })()}
 
       {/* データ管理 */}
       <div style={S.card}>
