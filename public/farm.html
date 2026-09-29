@@ -200,6 +200,53 @@ function toggleFav(cropId){
 function api(t,p){
   return fetch(SB_URL+'/rest/v1/'+t+'?'+p,{headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY}}).then(function(r){return r.json();});
 }
+// ─── 閲覧数カウント：本人の閲覧は除外・同じブラウザは1日1回 ───
+var FARM_UID=null;
+function viewerUid(){
+  try{
+    for(var i=0;i<localStorage.length;i++){
+      var k=localStorage.key(i);
+      if(/^sb-.*-auth-token$/.test(k)){
+        var v=JSON.parse(localStorage.getItem(k)||'null');
+        var u=v&&(v.user||(v.currentSession&&v.currentSession.user));
+        if(u&&u.id)return u.id;
+      }
+    }
+  }catch(e){}
+  return null;
+}
+function jstDay(){return new Date(Date.now()+9*3600000).toISOString().slice(0,10);}
+function shouldCount(farmUid,target){
+  if(!farmUid||viewerUid()===farmUid)return false;
+  var key='sk_view_'+farmUid+'_'+target+'_'+jstDay();
+  try{
+    if(localStorage.getItem(key))return false;
+    localStorage.setItem(key,'1');
+    // 古い記録を掃除
+    var today='_'+jstDay();
+    for(var i=localStorage.length-1;i>=0;i--){var k=localStorage.key(i);if(k&&k.indexOf('sk_view_')===0&&k.slice(-11)!==today)localStorage.removeItem(k);}
+  }catch(e){}
+  return true;
+}
+function legacyCount(farmUid,cropId){
+  var t=cropId?'crop_views':'farm_views',col=cropId?'crop_id':'user_id',id=cropId||farmUid;
+  return api(t,col+'=eq.'+id+'&select=view_count').then(function(data){
+    var h={apikey:SB_KEY,Authorization:'Bearer '+SB_KEY,'Content-Type':'application/json'};
+    if(data&&data.length>0){
+      return fetch(SB_URL+'/rest/v1/'+t+'?'+col+'=eq.'+id,{method:'PATCH',headers:h,body:JSON.stringify({view_count:(data[0].view_count||0)+1,updated_at:new Date().toISOString()})});
+    }
+    var body={view_count:1};body[col]=id;h.Prefer='return=minimal';
+    return fetch(SB_URL+'/rest/v1/'+t,{method:'POST',headers:h,body:JSON.stringify(body)});
+  }).catch(function(){});
+}
+function recordView(farmUid,cropId){
+  if(!shouldCount(farmUid,cropId||'farm'))return Promise.resolve();
+  return fetch(SB_URL+'/rest/v1/rpc/record_view',{method:'POST',
+      headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY,'Content-Type':'application/json'},
+      body:JSON.stringify({p_farm:farmUid,p_crop:cropId||null})})
+    .then(function(r){if(!r.ok&&r.status===404)return legacyCount(farmUid,cropId);})
+    .catch(function(){});
+}
 function daysSince(d){return d?Math.floor((Date.now()-new Date(d))/86400000):0;}
 function fmtDate(d){if(!d)return'';var dt=new Date(d);return(dt.getMonth()+1)+'/'+dt.getDate();}
 function fmtYMD(d){if(!d)return'';var dt=new Date(d);if(isNaN(dt))return d;return dt.getFullYear()+'/'+(dt.getMonth()+1)+'/'+dt.getDate();}
@@ -611,17 +658,13 @@ function renderCrop(cropId){
     })()
     +logsHtml;
 
-  // ビューカウント
-  fetch(SB_URL+'/rest/v1/crop_views?crop_id=eq.'+cropId+'&select=view_count',{headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY}})
-    .then(function(r){return r.json();}).then(function(data){
-      var e2=document.getElementById('crop-view-count');
-      if(e2)e2.textContent='👁 '+(data&&data.length>0?data[0].view_count||1:1)+'回閲覧';
-      if(data&&data.length>0){
-        fetch(SB_URL+'/rest/v1/crop_views?crop_id=eq.'+cropId,{method:'PATCH',headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY,'Content-Type':'application/json'},body:JSON.stringify({view_count:(data[0].view_count||0)+1,updated_at:new Date().toISOString()})});
-      }else{
-        fetch(SB_URL+'/rest/v1/crop_views',{method:'POST',headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify({crop_id:cropId,view_count:1})});
-      }
-    }).catch(function(){});
+  // ビューカウント（本人・同日の再表示は数えない）→ 最新の回数を表示
+  recordView(FARM_UID,cropId).then(function(){
+    return api('crop_views','crop_id=eq.'+cropId+'&select=view_count');
+  }).then(function(data){
+    var e2=document.getElementById('crop-view-count');
+    if(e2)e2.textContent='👁 '+((data&&data.length>0&&data[0].view_count)||0)+'回閲覧';
+  }).catch(function(){});
 }
 
 // 写真クリックハンドラ
@@ -714,7 +757,7 @@ async function main(){
   try{
     var farms=await api('public_farms',slugParam?'slug=eq.'+slugParam+'&is_public=eq.true&select=*':'user_id=eq.'+uidParam+'&is_public=eq.true&select=*');
     if(!farms||!farms.length){document.getElementById('main').innerHTML='<div class="empty"><div class="empty-icon">🌾</div><p>農場が見つかりません</p></div>';return;}
-    var farm=farms[0],farmUid=farm.user_id;
+    var farm=farms[0],farmUid=farm.user_id;FARM_UID=farmUid;
     document.title=(farm.display_name||'サクメモ')+' - サクメモ';
     document.getElementById('farm-header-wrap').innerHTML=
       '<div class="farm-header"><h1 class="farm-title" onclick="selectTab(\'timeline\')" style="cursor:pointer;">🌾 '+(farm.display_name||'農場')+'</h1>'
@@ -725,7 +768,10 @@ async function main(){
       api('logs','user_id=eq.'+farmUid+'&select=*&order=date.desc,time.desc'),
       api('equipments','user_id=eq.'+farmUid+'&select=id,name,cat&order=created_at')
     ]);
-    allCrops=res[0]||[];allLogs=res[1]||[];allEquips=res[2]||[];
+    allCrops=res[0]||[];allEquips=res[2]||[];
+    // 公開設定した品目の記録だけを表示（非公開の品目・品目なしの記録は出さない）
+    var pubIds={};allCrops.forEach(function(c){pubIds[c.id]=1;});
+    allLogs=(res[1]||[]).filter(function(l){return l.crop_id&&pubIds[l.crop_id];});
 
     if(!allCrops.length){document.getElementById('main').innerHTML='<div class="empty"><div class="empty-icon">🌱</div><p>公開されている品目がありません</p></div>';return;}
 
@@ -741,14 +787,8 @@ async function main(){
       renderTimeline();
     }
 
-    // 農場ビューカウント
-    api('farm_views','user_id=eq.'+farmUid+'&select=view_count').then(function(data){
-      if(data&&data.length>0){
-        fetch(SB_URL+'/rest/v1/farm_views?user_id=eq.'+farmUid,{method:'PATCH',headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY,'Content-Type':'application/json'},body:JSON.stringify({view_count:(data[0].view_count||0)+1,updated_at:new Date().toISOString()})});
-      }else{
-        fetch(SB_URL+'/rest/v1/farm_views',{method:'POST',headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify({user_id:farmUid,view_count:1})});
-      }
-    }).catch(function(){});
+    // 農場ビューカウント（本人・同日の再表示は数えない）
+    recordView(farmUid,null);
   }catch(e){
     console.error(e);
     document.getElementById('main').innerHTML='<div class="empty"><div class="empty-icon">⚠️</div><p>読み込みに失敗しました</p></div>';
