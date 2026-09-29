@@ -1451,7 +1451,7 @@ function LoginScreen() {
       <div style={{background:"#fff",borderRadius:20,padding:"28px 24px",maxWidth:360,width:"100%",textAlign:"center",boxShadow:"0 8px 40px rgba(0,0,0,.3)"}}>
         <div style={{fontSize:"2.2rem",marginBottom:6}}>🌾</div>
         <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:"1.3rem",color:G,marginBottom:4}}>サクメモ</div>
-        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v2.1.1</span></div>
+        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v2.1.2</span></div>
         {linkErr&&<div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:8,padding:"10px 12px",marginBottom:16,fontSize:".78rem",color:"#856404",textAlign:"left"}}>{linkErr}</div>}
 
 
@@ -1511,7 +1511,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v2.1.1</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v2.1.2</div>
       </div>
     </div>
   );
@@ -3833,6 +3833,8 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
       ? (noteWithDiscount ? noteWithDiscount + "　[按分"+apportionRate+"%]" : "[按分"+apportionRate+"%]")
       : noteWithDiscount;
     const costId = mCost.id||uid0();
+    // _newItemの場合は事前にmasterIdを生成して費用レコードと資材マスターを紐付ける
+    const newMasterId = (mCost._newItem && mCost._newName) ? uid0() : null;
     // 新方式購入記録: _buyQtyをqtyに反映し、masterId/capacityも保存
     const buyQtyVal = mCost._buyQty ? String(mCost._buyQty) : (mCost.qty||"1");
     // 資材情報編集時はcapacity/cunitも更新後の値を使う
@@ -3848,7 +3850,9 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
       : (mCost.cunit||"");
     // _editNameがあれば費用レコードの品名も更新
     const finalName = (mCost._editMaster && mCost._editName!==undefined) ? mCost._editName : effName;
+    const finalMasterId = newMasterId || mCost.masterId || null;
     const item={...mCost, id:costId, name:finalName, amt:String(realAmt), note:noteWithApportion,
+      masterId:finalMasterId,
       qty:buyQtyVal, qunit:mCost.qunit||"個", capacity:buyCapVal, cunit:buyCunitVal,
       discount:undefined, apportionId:undefined, apportionRate:undefined,
       _buyQty:undefined, _buyUnitPrice:undefined, _buyOpen:undefined, _histSrch:undefined,
@@ -3978,8 +3982,8 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
       }
     }
     // 新規資材登録（_newItem）：マスター登録 → 在庫加算
-    if(mCost._newItem && mCost._newName && !mCost.id){
-      const newId = uid0();
+    if(mCost._newItem && mCost._newName){
+      const newId = newMasterId; // 費用レコードのmasterIdと同じIDを使う
       const buyQty2 = parseFloat(mCost._buyQty)||0;
       const cap2 = parseFloat(mCost._newCapacity)||0;
       const addStock2 = cap2>0 ? buyQty2*cap2 : buyQty2;
@@ -3997,7 +4001,9 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
         const newM = {
           id:newId, name:mCost._newName, type:mCost._newType||"殺虫剤",
           target:mCost._newTarget||"", capacity:mCost._newCapacity||"",
-          sunit:mCost._newCunit||"ml", price:mCost._newPrice||"", note:"", status:"使用中"
+          cunit:mCost._newCunit||"ml", sunit:mCost._newCunit||"ml",
+          stock:String(Math.round(addStock2*100)/100),
+          price:mCost._newPrice||"", note:"", status:"使用中"
         };
         setPestMs([...pestMs, newM], newM);
         showToast("「"+mCost._newName+"」を資材マスターに登録し、在庫に"+Math.round(addStock2*100)/100+(mCost._newCunit||"ml")+"を加算しました");
@@ -5108,7 +5114,10 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
           <FG label="費目">
             <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
               {(isIncome(mCost.cat)?INCOME_CATS:COST_CATS).map(cat=>(
-                <button key={cat.value} onClick={()=>setMCost({...mCost,cat:cat.value})}
+                <button key={cat.value} onClick={()=>setMCost({...mCost,cat:cat.value,
+                  masterId:"",name:"",_newItem:false,_newName:"",_newType:"",_newCapacity:"",_newCunit:"",_newPrice:"",_newNpk:"",_newTarget:"",
+                  _editMaster:false,_editName:undefined,_editType:undefined,_editCapacity:undefined,_editCunit:undefined,_editPrice:undefined,_editNpk:undefined,_editTarget:undefined,
+                  _buyQty:"",_buyUnitPrice:""})}
                   style={{padding:"5px 9px",border:"1.5px solid",borderRadius:20,fontSize:".72rem",cursor:"pointer",fontFamily:"inherit",fontWeight:mCost.cat===cat.value?700:400,
                     borderColor:mCost.cat===cat.value?(isIncome(cat.value)?"#2D6A3F":"#5c3d1e"):"#ddd",
                     background:mCost.cat===cat.value?(isIncome(cat.value)?"#E8F5E9":"#f5f0e8"):"#fff",
