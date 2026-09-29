@@ -1450,7 +1450,7 @@ function LoginScreen() {
       <div style={{background:"#fff",borderRadius:20,padding:"28px 24px",maxWidth:360,width:"100%",textAlign:"center",boxShadow:"0 8px 40px rgba(0,0,0,.3)"}}>
         <div style={{fontSize:"2.2rem",marginBottom:6}}>🌾</div>
         <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:"1.3rem",color:G,marginBottom:4}}>サクメモ</div>
-        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v1.8.97</span></div>
+        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v1.8.98</span></div>
         {linkErr&&<div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:8,padding:"10px 12px",marginBottom:16,fontSize:".78rem",color:"#856404",textAlign:"left"}}>{linkErr}</div>}
 
 
@@ -1510,7 +1510,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.97</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.98</div>
       </div>
     </div>
   );
@@ -2656,13 +2656,16 @@ useEffect(()=>{
 
     // 施肥1件目 ─ fertNameで名前を復元、マスターIndexも復元
     setFertName(fertLog.fertName||"");
+    setFertDil(fertLog.fertDil||"");
+    setFertSprayAmt(fertLog.fertSprayAmt||"");
+    setFertSprayUnit(fertLog.fertSprayUnit||"L");
     setFertAmt(fertLog.fertAmt||"");
     setFertUnit(fertLog.fertUnit||"kg");
     setFertMeth(fertLog.fertMethod||"追肥");
     setFertCost(fertLog.fertCost||"");
     // 施肥の追加エントリ復元
     const extraFerts = allL.filter(l=>l.work==='fert').slice(1);
-    setFertEntries(extraFerts.map(l=>({name:l.fertName||"",amt:l.fertAmt||"",unit:l.fertUnit||"kg",meth:l.fertMethod||"追肥",cost:l.fertCost||""})));
+    setFertEntries(extraFerts.map(l=>({name:l.fertName||"",dil:l.fertDil||"",sprayAmt:l.fertSprayAmt||"",sprayUnit:l.fertSprayUnit||"L",amt:l.fertAmt||"",unit:l.fertUnit||"kg",meth:l.fertMethod||"追肥",cost:l.fertCost||""})));
 
     // 農薬1件目 ─ pestNameで名前を復元、マスターIndexも復元
     const _pIdx = pestMs.findIndex(p=>p.name===pestLog.pestName);
@@ -2789,13 +2792,13 @@ useEffect(()=>{
         sowQty:'', germinationCnt:'', germinationDate:'',
         transplantQty:'', discardCnt:'', addCnt:'',
         eventType:'', eventNote:'',
-        fertName:'', fertAmt:'', fertUnit:'', fertMethod:'', fertCost:'',
+        fertName:'', fertDil:'', fertSprayAmt:'', fertSprayUnit:'', fertAmt:'', fertUnit:'', fertMethod:'', fertCost:'',
         pestName:'', pestDil:'', pestAmt:'', pestUnit:'', pestTarget:'', pestCost:'',
         hvKg:'', hvCnt:'', hvQ:'秀品', hvPrice:'', hvGradeStr:'',
         equipIds:[], equipAct:'',
       };
       // 作業固有の詳細データ
-      if(w==='fert') Object.assign(e,{fertName,fertAmt,fertUnit,fertMethod:fertMeth,fertCost});
+      if(w==='fert') Object.assign(e,{fertName,fertDil,fertSprayAmt,fertSprayUnit,fertAmt,fertUnit,fertMethod:fertMeth,fertCost});
       if(w==='pest') Object.assign(e,{pestName,pestDil,pestAmt,pestUnit,pestSprayAmt,pestTarget:pestTgt,pestCost});
       if(w==='harvest') Object.assign(e,{
         hvKg:totalHvKg>0?String(totalHvKg):hvKg,
@@ -2848,7 +2851,7 @@ useEffect(()=>{
         if(w==='fert' && fertEntries.length>0){
           fertEntries.forEach((fe,fi)=>{
             const ex=makeEntry('fert',false,editLogIds[workList.length+fi],editGroupId);
-            ex.fertName=fe.name;ex.fertAmt=fe.amt;ex.fertUnit=fe.unit;ex.fertMethod=fe.meth;ex.fertCost=fe.cost;
+            ex.fertName=fe.name;ex.fertDil=fe.dil||'';ex.fertSprayAmt=fe.sprayAmt||'';ex.fertSprayUnit=fe.sprayUnit||'L';ex.fertAmt=fe.amt;ex.fertUnit=fe.unit;ex.fertMethod=fe.meth;ex.fertCost=fe.cost;
             editEntriesAll.push(ex);
           });
         }
@@ -2910,7 +2913,7 @@ useEffect(()=>{
         if(w==='fert' && fertEntries.length>0){
           fertEntries.forEach(fe=>{
             const ex=makeEntry('fert',false,null,newGroupId);
-            ex.fertName=fe.name;ex.fertAmt=fe.amt;ex.fertUnit=fe.unit;ex.fertMethod=fe.meth;ex.fertCost=fe.cost;
+            ex.fertName=fe.name;ex.fertDil=fe.dil||'';ex.fertSprayAmt=fe.sprayAmt||'';ex.fertSprayUnit=fe.sprayUnit||'L';ex.fertAmt=fe.amt;ex.fertUnit=fe.unit;ex.fertMethod=fe.meth;ex.fertCost=fe.cost;
             allEntriesNew.push(ex);
           });
         }
@@ -3490,7 +3493,7 @@ function TimelineScreen({ fields, crops, equips, logs, setLogs, setLogsR, showTo
                           });
                           return sortedByMaster.map((l,li)=>(
                           <div key={li}>
-                            {l.fertName&&<div style={{fontSize:'.75rem',color:'#065f46'}}>🌿 {l.fertName}{l.fertAmt?` ${l.fertAmt}${l.fertUnit||''}`:''}{l.fertMethod?` (${l.fertMethod})`:''}</div>}
+                            {l.fertName&&<div style={{fontSize:'.75rem',color:'#065f46'}}>🌿 {l.fertName}{l.fertDil&&l.fertSprayAmt?` ${l.fertDil}倍希釈 散布${l.fertSprayAmt}${l.fertSprayUnit||'L'}`:l.fertAmt?` ${l.fertAmt}${l.fertUnit||''}`:''}{l.fertMethod?` (${l.fertMethod})`:''}</div>}
                             {l.pestName&&<div style={{fontSize:'.75rem',color:'#92400e'}}>🐛 {l.pestName}{l.pestDil?` ${l.pestDil}倍`:''}{l.pestAmt?` 散布${l.pestAmt}${l.pestUnit||''}`:''}{l.pestTarget?` 対象:${l.pestTarget}`:''}</div>}
                             {(l.hvKg||l.hvCnt)&&<div style={{fontSize:'.75rem',color:'#059669'}}>🧺 {l.hvGradeStr||`${l.hvKg||''}${l.hvKg?'kg':''}${l.hvCnt?` ${l.hvCnt}個`:''}`}</div>}
                             {l.sowQty&&<div style={{fontSize:'.75rem',color:'#5a5040'}}>🌰 播種 {l.sowQty}粒</div>}
@@ -3766,6 +3769,20 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
       } catch {}
     }
     setCosts(n,item);
+    // 肥料費・農薬費：品名が未登録なら資材マスターを自動生成
+    if((mCost.cat==="fert"||mCost.cat==="pest")&&mCost.name&&!mCost.id){
+      const name = mCost.name;
+      if(mCost.cat==="fert"&&!fertMs.find(m=>m.name===name)){
+        const newM={id:uid0(),_type:"fert",name,type:"化成肥料",npk:"",price:"",punit:"円/袋",capacity:"",cunit:"kg",stock:"0",sunit:"kg",note:"",status:"使用中"};
+        setFertMs([...fertMs,newM],newM);
+        showToast("資材マスターに「"+name+"」を自動登録しました");
+      }
+      if(mCost.cat==="pest"&&!pestMs.find(m=>m.name===name)){
+        const newM={id:uid0(),_type:"pest",name,type:"殺虫剤",dil:"",target:"",price:"",punit:"円/本",capacity:"",cunit:"ml",stock:"0",sunit:"ml",note:"",status:"使用中"};
+        setPestMs([...pestMs,newM],newM);
+        showToast("資材マスターに「"+name+"」を自動登録しました");
+      }
+    }
     // 肥料費・農薬費で資材マスターと紐付けている場合、在庫を更新
     if((mCost.cat==="fert"||mCost.cat==="pest")&&mCost.masterLink&&mCost.qty&&!mCost.id){
       const qty = parseFloat(mCost.qty)||0;
@@ -6115,13 +6132,24 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs, equips=[], o
     // 施肥・農薬費用（作業記録のマスター単価×使用量で計算・単位変換あり）
     let fertTotal=0, pestTotal=0;
     cl.forEach(l=>{
-      if(l.fertName && l.fertAmt && parseFloat(l.fertAmt)>0) {
+      if(l.fertName) {
         const fm=fertMs.find(f=>f.name===l.fertName);
         if(fm?.price && fm?.capacity && parseFloat(fm.capacity)>0) {
-          // 使用量をマスターの内容量単位に変換
-          const normalizedAmt = normalizeToMasterUnit(l.fertAmt, l.fertUnit, fm.cunit||fm.sunit);
-          const unitCost = parseFloat(fm.price) / parseFloat(fm.capacity);
-          fertTotal += Math.round(unitCost * normalizedAmt);
+          let useAmt = 0, useUnit = l.fertUnit||"";
+          if(l.fertDil && l.fertSprayAmt && parseFloat(l.fertSprayAmt)>0) {
+            // 液肥希釈：散布量÷希釈倍率=原液使用量
+            const dil = parseFloat(l.fertDil)||1;
+            useAmt = parseFloat(l.fertSprayAmt) / (dil>0?dil:1);
+            useUnit = l.fertSprayUnit||l.fertUnit||"L";
+          } else if(parseFloat(l.fertAmt)>0) {
+            useAmt = parseFloat(l.fertAmt);
+            useUnit = l.fertUnit||"";
+          }
+          if(useAmt>0) {
+            const normalizedAmt = normalizeToMasterUnit(useAmt, useUnit, fm.cunit||fm.sunit);
+            const unitCost = parseFloat(fm.price) / parseFloat(fm.capacity);
+            fertTotal += Math.round(unitCost * normalizedAmt);
+          }
         }
       }
       if(l.pestName && l.pestAmt && parseFloat(l.pestAmt)>0) {
@@ -6896,7 +6924,7 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs, equips=[], o
                   </div>
                   {card.logs.map((l,li)=>(
                     <div key={li}>
-                      {l.fertName&&<div style={{fontSize:'.75rem',color:'#065f46'}}>🌿 {l.fertName}{l.fertAmt?` ${l.fertAmt}${l.fertUnit||''}`:''}{l.fertMethod?` (${l.fertMethod})`:''}</div>}
+                      {l.fertName&&<div style={{fontSize:'.75rem',color:'#065f46'}}>🌿 {l.fertName}{l.fertDil&&l.fertSprayAmt?` ${l.fertDil}倍希釈 散布${l.fertSprayAmt}${l.fertSprayUnit||'L'}`:l.fertAmt?` ${l.fertAmt}${l.fertUnit||''}`:''}{l.fertMethod?` (${l.fertMethod})`:''}</div>}
                       {l.pestName&&<div style={{fontSize:'.75rem',color:'#92400e'}}>🐛 {l.pestName}{l.pestDil?` ${l.pestDil}倍`:''}{l.pestAmt?` 散布${l.pestAmt}${l.pestUnit||''}`:''}{l.pestTarget?` 対象:${l.pestTarget}`:''}</div>}
                       {(l.hvKg||l.hvCnt)&&<div style={{fontSize:'.75rem',color:'#059669'}}>🧺 {l.hvGradeStr||`${l.hvKg||''}${l.hvKg?'kg':''}${l.hvCnt?` ${l.hvCnt}個`:''}`}</div>}
                       {l.sowQty&&<div style={{fontSize:'.75rem',color:'#5a5040'}}>🌰 播種 {l.sowQty}粒</div>}
