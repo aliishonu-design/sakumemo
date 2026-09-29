@@ -1451,7 +1451,7 @@ function LoginScreen() {
       <div style={{background:"#fff",borderRadius:20,padding:"28px 24px",maxWidth:360,width:"100%",textAlign:"center",boxShadow:"0 8px 40px rgba(0,0,0,.3)"}}>
         <div style={{fontSize:"2.2rem",marginBottom:6}}>🌾</div>
         <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:"1.3rem",color:G,marginBottom:4}}>サクメモ</div>
-        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v2.0.5</span></div>
+        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v2.0.6</span></div>
         {linkErr&&<div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:8,padding:"10px 12px",marginBottom:16,fontSize:".78rem",color:"#856404",textAlign:"left"}}>{linkErr}</div>}
 
 
@@ -1511,7 +1511,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v2.0.5</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v2.0.6</div>
       </div>
     </div>
   );
@@ -4402,17 +4402,21 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
         const db2 = CDB[firstCrop.type]||{};
         return (db2.n||firstCrop.type)+(firstCrop.variety?" "+firstCrop.variety:"");
       })();
-      // 防除記録の日付範囲を最優先、なければ定植/播種日〜収穫予定日
-      const pestDates = logs.filter(l=>l.work==="pest"&&(targetCropId?l.cropId===targetCropId:true)&&l.date).map(l=>l.date).sort();
-      const periodStr = pestDates.length>0
-        ? toDateStr8(pestDates[0])+"〜"+toDateStr8(pestDates[pestDates.length-1])
-        : (()=>{
-            const startDate = firstCrop ? (firstCrop.plantDate||firstCrop.sowDate||"") : "";
-            const endDate   = pestExportHarvestDate||"";
-            return (startDate||endDate)
-              ? (toDateStr8(startDate)||"")+(startDate&&endDate?"〜":"")+(toDateStr8(endDate)||"")
-              : String(new Date().getFullYear());
-          })();
+      // ファイル名の期間：播種日または定植日 〜 収穫日（実績 or 予定）
+      const periodStr = (()=>{
+        const startDate = firstCrop ? (firstCrop.sowDate||firstCrop.plantDate||"") : "";
+        const harvestActual = firstCrop ? (firstCrop.harvestDate||"") : "";
+        const harvestEst = pestExportHarvestDate||"";
+        const endDate = harvestActual||harvestEst;
+        if(startDate||endDate){
+          return (toDateStr8(startDate)||"")+(startDate&&endDate?"〜":"")+(toDateStr8(endDate)||"");
+        }
+        // どちらもなければ農薬散布の日付範囲にフォールバック
+        const pestDates = logs.filter(l=>l.work==="pest"&&(targetCropId?l.cropId===targetCropId:true)&&l.date).map(l=>l.date).sort();
+        return pestDates.length>0
+          ? toDateStr8(pestDates[0])+"〜"+toDateStr8(pestDates[pestDates.length-1])
+          : String(new Date().getFullYear());
+      })();
       const fname = (Object.keys(pestByCrop).length===1?firstCropObj:"複数品目")+"_農薬記録_"+periodStr+".xlsx";
 
       // ExcelJSでワークブックを作成（品目ごとにシート）
