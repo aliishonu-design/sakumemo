@@ -1456,7 +1456,7 @@ function LoginScreen() {
       <div style={{background:"#fff",borderRadius:20,padding:"28px 24px",maxWidth:360,width:"100%",textAlign:"center",boxShadow:"0 8px 40px rgba(0,0,0,.3)"}}>
         <div style={{fontSize:"2.2rem",marginBottom:6}}>🌾</div>
         <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:"1.3rem",color:G,marginBottom:4}}>サクメモ</div>
-        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v2.0.2</span></div>
+        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v2.0.3</span></div>
         {linkErr&&<div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:8,padding:"10px 12px",marginBottom:16,fontSize:".78rem",color:"#856404",textAlign:"left"}}>{linkErr}</div>}
 
 
@@ -1516,7 +1516,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v2.0.2</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v2.0.3</div>
       </div>
     </div>
   );
@@ -3886,6 +3886,15 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
         }
       }
     }
+    // 農具・農機具費：masterIdがあればdepYearsを農機具マスターに反映
+    if((mCost.cat==="equip"||mCost.cat==="machine")&&mCost.masterId&&!mCost.id){
+      const eqIdx = equips.findIndex(e=>e.id===mCost.masterId);
+      if(eqIdx>=0){
+        const depVal = mCost.depYears!==undefined ? mCost.depYears : "";
+        const updEq = {...equips[eqIdx], depYears:depVal};
+        setEquips(equips.map((x,i)=>i===eqIdx?updEq:x), updEq);
+      }
+    }
     setMCost(null); showToast("保存しました");
   };
 
@@ -5193,12 +5202,29 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
               <Inp type="date" value={mCost.receivableDate||""} onChange={v=>setMCost({...mCost,receivableDate:v})}/>
             </div>}
           </FG>}
+          {/* 農具・農機具費：耐用年数フィールド */}
+          {(mCost.cat==="equip"||mCost.cat==="machine")&&<div style={{background:"#f5f0e8",border:"1px solid #d4a96a",borderRadius:10,padding:"10px 12px",marginBottom:9}}>
+            <div style={{fontSize:".78rem",fontWeight:700,color:"#5c3d1e",marginBottom:6}}>🚜 農機具管理連動（任意）</div>
+            <FG label="農機具マスターと紐付ける">
+              <Sel value={mCost.masterId||""} onChange={v=>{
+                const eq=equips.find(e=>e.id===v);
+                setMCost({...mCost,masterId:v,depYears:eq?String(eq.depYears||""):"",name:mCost.name||(eq?.name||"")});
+              }} options={[{value:"",label:"（なし・直接入力）"},...(equips||[]).filter(e=>!MATERIAL_CATS.includes(e.cat)).map(e=>({value:e.id,label:e.name}))]}/>
+            </FG>
+            <FG label="耐用年数（年）">
+              <div style={{display:"flex",alignItems:"center",gap:8}}>
+                <CalcInp value={mCost.depYears||""} onChange={v=>setMCost({...mCost,depYears:v})} placeholder="空欄＝少額一括計上"/>
+                <span style={{fontSize:".72rem",color:TX3,whiteSpace:"nowrap"}}>年（空欄で一括計上）</span>
+              </div>
+            </FG>
+            <div style={{fontSize:".68rem",color:"#888"}}>💡 保存時に農機具管理画面の耐用年数が自動更新されます</div>
+          </div>}
           <FG label="メモ"><Inp value={mCost.note||""} onChange={v=>setMCost({...mCost,note:v})} placeholder="購入先・領収書番号など"/></FG>
           {mCost.id&&<div style={{display:"flex",gap:6,marginTop:8}}>
             {!mCost.cancelled
               ? <button onClick={()=>{if(window.confirm("この取引を取り消しますか？（記録は残ります）")){const updated={...mCost,cancelled:true};setCosts(costs.map(x=>x.id===mCost.id?updated:x),updated);if(mCost.masterId&&(mCost.cat==="fert"||mCost.cat==="pest")){const qty=parseFloat(mCost.qty)||0;const costCap=parseFloat(mCost.capacity)||0;const sub=costCap>0?qty*costCap:qty;if(mCost.cat==="fert"){const idx=fertMs.findIndex(m=>m.id===mCost.masterId);if(idx>=0){const m=fertMs[idx];const newStock=Math.max(0,(parseFloat(m.stock)||0)-sub);const upd={...m,stock:String(Math.round(newStock*100)/100)};setFertMs(fertMs.map((x,i)=>i===idx?upd:x),upd);}}else{const idx=pestMs.findIndex(m=>m.id===mCost.masterId);if(idx>=0){const m=pestMs[idx];const newStock=Math.max(0,(parseFloat(m.stock)||0)-sub);const upd={...m,stock:String(Math.round(newStock*100)/100)};setPestMs(pestMs.map((x,i)=>i===idx?upd:x),upd);}}}setMCost(null);showToast("取り消しました");}}} style={{...S.btn,background:"#FFF3E0",color:"#E65100",border:"1px solid #FFCC80",flex:1}}>取消</button>
               : <button onClick={()=>{if(window.confirm("取り消しを復活させますか？")){const updated={...mCost,cancelled:false};setCosts(costs.map(x=>x.id===mCost.id?updated:x),updated);setMCost(null);showToast("復活しました");}}} style={{...S.btn,background:"#E8F5E9",color:"#2E7D32",border:"1px solid #A5D6A7",flex:1}}>復活</button>}
-            <button onClick={()=>{if(window.confirm("削除しますか？")){const n=costs.filter(x=>x.id!==mCost.id);try{const r=getApportionRates();delete r[mCost.id];localStorage.setItem("apportionRates",JSON.stringify(r));}catch{}if(mCost.id){dbDelete("costs",mCost.id);}setCosts(n);setMCost(null);showToast("削除しました");}}} style={{...S.btn,...S.btnR,flex:1}}>削除</button>
+            <button onClick={()=>{if(window.confirm("削除しますか？")){const n=costs.filter(x=>x.id!==mCost.id);try{const r=getApportionRates();delete r[mCost.id];localStorage.setItem("apportionRates",JSON.stringify(r));}catch{}if(mCost.id){dbDelete("costs",mCost.id);}setCosts(n);if(mCost.masterId&&(mCost.cat==="equip"||mCost.cat==="machine")){const eqIdx=equips.findIndex(e=>e.id===mCost.masterId);if(eqIdx>=0){const updEq={...equips[eqIdx],depYears:""};setEquips(equips.map((x,i)=>i===eqIdx?updEq:x),updEq);}}setMCost(null);showToast("削除しました");}}} style={{...S.btn,...S.btnR,flex:1}}>削除</button>
           </div>}
         </>}
       </ModalWithSave>
@@ -5367,14 +5393,20 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
         // 農機具帳簿価額
         const thisYear = new Date().getFullYear();
         let equipBookVal = 0;
-        (equips||[]).forEach(eq=>{
+        (equips||[]).filter(e=>!MATERIAL_CATS.includes(e.cat)).forEach(eq=>{
           const buyDate = eq.purchaseDate||eq.date||eq.buyDate;
           if(!eq.price||!buyDate) return;
           const py = new Date(buyDate).getFullYear();
-          const life = parseInt(eq.usefulLife||eq.depYears)||5;
-          const annual = Math.floor(parseFloat(eq.price) / life);
-          const dep = Math.min(parseFloat(eq.price), annual*(thisYear-py));
-          equipBookVal += Math.max(0, parseFloat(eq.price) - dep);
+          const life = parseInt(eq.usefulLife||eq.depYears)||0;
+          const price = parseFloat(eq.price)||0;
+          if(life<=0){
+            // 減価償却なし（少額一括計上）：購入年のみ帳簿価額あり
+            if(py===thisYear) equipBookVal += price;
+          } else {
+            const annual = Math.floor(price / life);
+            const dep = Math.min(price, annual*(thisYear-py));
+            equipBookVal += Math.max(0, price - dep);
+          }
         });
         const motoire = (()=>{try{return Number(localStorage.getItem("motoire")||"0");}catch{return 0;}})();
         const nextMotoire = motoire + profit;
@@ -5480,14 +5512,25 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
           {(equips||[]).length>0&&(
             <div style={S.card}>
               <SecHd label="🚜 農機具明細"/>
-              {(equips||[]).map((eq,i)=>{
+              {(equips||[]).filter(e=>!MATERIAL_CATS.includes(e.cat)).map((eq,i)=>{
                 const buyDate = eq.purchaseDate||eq.date||eq.buyDate;
                 if(!eq.price||!buyDate) return null;
                 const py = new Date(buyDate).getFullYear();
-                const life = parseInt(eq.usefulLife||eq.depYears)||5;
+                const life = parseInt(eq.usefulLife||eq.depYears)||0;
                 const price = parseFloat(eq.price)||0;
-                const annual = Math.floor(price/life);
                 const elapsed = thisYear-py;
+                if(life<=0){
+                  // 耐用年数なし → 少額一括計上（購入年のみ費用計上）
+                  const isThisYear = py===thisYear;
+                  return <div key={i} style={{padding:"7px 0",borderBottom:"1px solid "+BD,fontSize:".78rem"}}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                      <span style={{fontWeight:700}}>{eq.name||"農機具"}<span style={{fontSize:".65rem",color:"#888",marginLeft:4}}>(少額一括計上)</span></span>
+                      <span style={{fontWeight:700,color:"#aaa"}}>{isThisYear?price.toLocaleString()+"円":"―"}</span>
+                    </div>
+                    <div style={{color:TX3,marginTop:2}}>取得価額 {price.toLocaleString()}円 · {py}年購入 · 耐用年数なし（一括費用計上）</div>
+                  </div>;
+                }
+                const annual = Math.floor(price/life);
                 const dep = Math.min(price, annual*elapsed);
                 const book = Math.max(0, price-dep);
                 const finished = elapsed>=life;
