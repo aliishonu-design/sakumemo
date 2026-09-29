@@ -26,11 +26,17 @@ const dbFetch = async (table, uid) => {
   return all;
 };
 const dbUpsert = async (table, row) => {
-  const { data, error } = await sb.from(table).upsert(row, { onConflict: "id" }).select();
-  if (error) {
+  let r = { ...row };
+  // DBに存在しない列があると保存全体が失敗するため、その列だけ外して再試行（最大5回）
+  for (let i = 0; i < 6; i++) {
+    const { error } = await sb.from(table).upsert(r, { onConflict: "id" });
+    if (!error) return true;
+    const m = error.code === "PGRST204" && /'([^']+)' column/.exec(error.message || "");
+    if (m && m[1] in r) { console.warn("DB列なしのため除外して再保存:", table, m[1]); delete r[m[1]]; continue; }
     console.error("DB保存エラー:", table, error.code, error.message, JSON.stringify(error));
-  } else {
-    }
+    return false;
+  }
+  return false;
 };
 const dbDelete = async (table, id) => {
   const { error } = await sb.from(table).delete().eq("id", id);
@@ -38,21 +44,22 @@ const dbDelete = async (table, id) => {
 };
 
 // Converters
+const safeJson = (v, fb) => { if(v==null||v==='') return fb; if(typeof v!=='string') return v; try{ return JSON.parse(v); }catch{ return fb; } };
 const fieldToDb   = (o, uid) => ({ id:o.id, user_id:uid, name:o.name||"", area:o.area||null, soil:o.soil||null, addr:o.addr||null, memo:o.memo||null, prefecture:o.prefecture||null });
 const fieldFromDb = r => ({ id:r.id, name:r.name||"", area:r.area||"", soil:r.soil||"", addr:r.addr||"", memo:r.memo||"", prefecture:r.prefecture||"" });
-const cropToDb    = (o, uid) => ({ id:o.id, user_id:uid, field_id:o.fieldId||null, type:o.type||null, variety:o.variety||null, germ_rate:o.germRate||null, stocks:o.stocks||null, ridge_w:o.ridgeW||null, ridge_h:o.ridgeH||null, rows:o.rows||null, row_space:o.rowSpace||null, plant_space:o.plantSpace||null, sow_date:o.sowDate||null, plant_date:o.plantDate||null, memo:o.memo||null, cultivation_type:o.cultivationType||null, seed_cost:o.seedCost||null, seed_note:o.seedNote||null, custom_name:o.customName||null, ended:o.ended||false, end_date:o.endDate||null, maturity:o.maturity||null, custom_days:o.customDays||null, custom_water:o.customWater||null, pot_size:o.potSize||null, pot_volume:o.potVolume||null, pot_count:o.potCount||null, grow_env:o.growEnv||null, agri_month_start:o.agriMonthStart||null, ridge_len:o.ridgeLen||null, cultivation_area:o.cultivationArea||null, temp_min:o.tempMin||null, temp_max:o.tempMax||null, fert_skip_date:o.fertSkipDate||null, fert_interval:o.fertInterval||null, reminder_mode:o.reminderMode||null, custom_events:o.customEvents?JSON.stringify(o.customEvents):null, harvest_days:o.harvestDays?parseInt(o.harvestDays):null });
-const cropFromDb  = (r, fields) => { const fi = fields.findIndex(f=>f.id===r.field_id); return { id:r.id, fieldId:r.field_id||"", fieldIdx:fi>=0?fi:0, type:r.type||"", variety:r.variety||"", germRate:r.germ_rate||"", stocks:r.stocks||"", ridgeW:r.ridge_w||"", ridgeH:r.ridge_h||"", rows:r.rows||"", rowSpace:r.row_space||"", plantSpace:r.plant_space||"", sowDate:r.sow_date||"", plantDate:r.plant_date||"", memo:r.memo||"", cultivationType:r.cultivation_type||"transplant", seedCost:r.seed_cost||"", seedNote:r.seed_note||"", customName:r.custom_name||"", ended:r.ended||false, endDate:r.end_date||"", maturity:r.maturity||"mid", customDays:r.custom_days||"", customWater:r.custom_water||"", potSize:r.pot_size||"", potVolume:r.pot_volume||"", potCount:r.pot_count||"", growEnv:r.grow_env||"field", agriMonthStart:r.agri_month_start||"", ridgeLen:r.ridge_len||"", cultivationArea:r.cultivation_area||"", tempMin:r.temp_min||"", tempMax:r.temp_max||"", fertSkipDate:r.fert_skip_date||"", fertInterval:r.fert_interval||"", reminderMode:r.reminder_mode||"auto", customEvents:r.custom_events?(typeof r.custom_events==="string"?JSON.parse(r.custom_events):r.custom_events):[], harvestDays:r.harvest_days||null, fertInterval:r.fert_interval||"" }; };
+const cropToDb    = (o, uid) => ({ id:o.id, user_id:uid, field_id:o.fieldId||null, type:o.type||null, variety:o.variety||null, germ_rate:o.germRate||null, stocks:o.stocks||null, ridge_w:o.ridgeW||null, ridge_h:o.ridgeH||null, rows:o.rows||null, row_space:o.rowSpace||null, plant_space:o.plantSpace||null, sow_date:o.sowDate||null, plant_date:o.plantDate||null, memo:o.memo||null, cultivation_type:o.cultivationType||null, seed_cost:o.seedCost||null, seed_note:o.seedNote||null, custom_name:o.customName||null, ended:o.ended||false, end_date:o.endDate||null, maturity:o.maturity||null, custom_days:o.customDays||null, custom_water:o.customWater||null, pot_size:o.potSize||null, pot_volume:o.potVolume||null, pot_count:o.potCount||null, grow_env:o.growEnv||null, agri_month_start:o.agriMonthStart||null, ridge_len:o.ridgeLen||null, cultivation_area:o.cultivationArea||null, temp_min:o.tempMin||null, temp_max:o.tempMax||null, fert_skip_date:o.fertSkipDate||null, fert_interval:o.fertInterval||null, reminder_mode:o.reminderMode||null, custom_events:o.customEvents?JSON.stringify(o.customEvents):null, harvest_days:o.harvestDays?parseInt(o.harvestDays):null, is_public:!!o.isPublic });
+const cropFromDb  = (r, fields) => { const fi = fields.findIndex(f=>f.id===r.field_id); return { id:r.id, fieldId:r.field_id||"", fieldIdx:fi>=0?fi:0, type:r.type||"", variety:r.variety||"", germRate:r.germ_rate||"", stocks:r.stocks||"", ridgeW:r.ridge_w||"", ridgeH:r.ridge_h||"", rows:r.rows||"", rowSpace:r.row_space||"", plantSpace:r.plant_space||"", sowDate:r.sow_date||"", plantDate:r.plant_date||"", memo:r.memo||"", cultivationType:r.cultivation_type||"transplant", seedCost:r.seed_cost||"", seedNote:r.seed_note||"", customName:r.custom_name||"", ended:r.ended||false, endDate:r.end_date||"", maturity:r.maturity||"mid", customDays:r.custom_days||"", customWater:r.custom_water||"", potSize:r.pot_size||"", potVolume:r.pot_volume||"", potCount:r.pot_count||"", growEnv:r.grow_env||"field", agriMonthStart:r.agri_month_start||"", ridgeLen:r.ridge_len||"", cultivationArea:r.cultivation_area||"", tempMin:r.temp_min||"", tempMax:r.temp_max||"", fertSkipDate:r.fert_skip_date||"", fertInterval:r.fert_interval||"", reminderMode:r.reminder_mode||"auto", customEvents:safeJson(r.custom_events,[]), harvestDays:r.harvest_days||null, isPublic:!!r.is_public }; };
 const logToDb     = (o, uid, fields) => ({ id:o.id, user_id:uid, field_id:fields[o.fieldIdx]?.id||o.fieldId||null, crop_id:o.cropId||null, work:o.work||null, memo:o.memo||null, date:o.date||null, time:o.time||null, duration:o.duration||null, img_src:o.imgSrc||null, img2_src:o.imgSrc2||null, img3_src:o.imgSrc3||null, fert_name:o.fertName||null, fert_amt:o.fertAmt||null, fert_unit:o.fertUnit||null, fert_method:o.fertMethod||null, fert_cost:o.fertCost||null, fert_dil:o.fertDil||null, fert_spray_amt:o.fertSprayAmt||null, fert_spray_unit:o.fertSprayUnit||null, pest_name:o.pestName||null, pest_spray_amt:o.pestSprayAmt||null, pest_dil:o.pestDil||null, pest_amt:o.pestAmt||null, pest_unit:o.pestUnit||null, pest_tgt:o.pestTarget||null, pest_cost:o.pestCost||null, hv_kg:o.hvKg||null, hv_cnt:o.hvCnt||null, hv_q:o.hvQ||null, hv_price:o.hvPrice||null, equip_ids:o.equipIds||null, equip_act:o.equipAct||null, equip_use_amt:o.equipUseAmt||null, equip_use_unit:o.equipUseUnit||null, sow_qty:o.sowQty||null, germination_cnt:o.germinationCnt||null, germ_date:o.germinationDate||null, transplant_qty:o.transplantQty||null, discard_cnt:o.discardCnt||null, add_cnt:o.addCnt||null, event_type:o.eventType||null, event_note:o.eventNote||null, hv_grade_str:o.hvGradeStr||null, other_note:o.otherNote||null, repot_size:o.repotSize||null, repot_vol:o.repotVol||null, group_id:o._groupId||null, weather:o.weather||null });
-const logFromDb   = (r, fields) => { const fi=fields.findIndex(f=>f.id===r.field_id); return { id:r.id, fieldId:r.field_id||"", fieldIdx:fi>=0?fi:0, cropId:r.crop_id||"", work:r.work||"", memo:r.memo||"", date:r.date||"", time:r.time||"", duration:r.duration||"", imgSrc:r.img_src||null, imgSrc2:r.img2_src||null, imgSrc3:r.img3_src||null, aiReply:"", fertName:r.fert_name||"", fertAmt:r.fert_amt||"", fertUnit:r.fert_unit||"", fertMethod:r.fert_method||"", fertCost:r.fert_cost||"", fertDil:r.fert_dil||"", fertSprayAmt:r.fert_spray_amt||"", fertSprayUnit:r.fert_spray_unit||"L", pestName:r.pest_name||"", pestSprayAmt:r.pest_spray_amt||"", pestDil:r.pest_dil||"", pestAmt:r.pest_amt||"", pestUnit:r.pest_unit||"", pestTarget:r.pest_target||"", pestCost:r.pest_cost||"", hvKg:r.hv_kg!=null?String(r.hv_kg):"", hvCnt:r.hv_cnt!=null?String(r.hv_cnt):"", hvQ:r.hv_q||"", hvPrice:r.hv_price||"", hvImgSrc:r.hv_img_src||null, equipIds:Array.isArray(r.equip_ids)?r.equip_ids:(r.equip_ids?JSON.parse(r.equip_ids):[]), equipAct:r.equip_act||"", hvGradeStr:r.hv_grade_str||"", otherNote:r.other_note||"", repotSize:r.repot_size||"", repotVol:r.repot_vol||"", _groupId:r.group_id||null, weather:r.weather||"", equipUseAmt:r.equip_use_amt||null, equipUseUnit:r.equip_use_unit||null, sowQty:r.sow_qty||"", germinationCnt:r.germination_cnt||"", germinationDate:r.germination_date||"", transplantQty:r.transplant_qty||"", discardCnt:r.discard_cnt||"", addCnt:r.add_cnt||"", eventType:r.event_type||"", eventNote:r.event_note||"" }; };
+const logFromDb   = (r, fields) => { const fi=fields.findIndex(f=>f.id===r.field_id); return { id:r.id, fieldId:r.field_id||"", fieldIdx:fi>=0?fi:0, cropId:r.crop_id||"", work:r.work||"", memo:r.memo||"", date:r.date||"", time:r.time||"", duration:r.duration||"", imgSrc:r.img_src||null, imgSrc2:r.img2_src||null, imgSrc3:r.img3_src||null, aiReply:"", fertName:r.fert_name||"", fertAmt:r.fert_amt||"", fertUnit:r.fert_unit||"", fertMethod:r.fert_method||"", fertCost:r.fert_cost||"", fertDil:r.fert_dil||"", fertSprayAmt:r.fert_spray_amt||"", fertSprayUnit:r.fert_spray_unit||"L", pestName:r.pest_name||"", pestSprayAmt:r.pest_spray_amt||"", pestDil:r.pest_dil||"", pestAmt:r.pest_amt||"", pestUnit:r.pest_unit||"", pestTarget:r.pest_tgt||r.pest_target||"", pestCost:r.pest_cost||"", hvKg:r.hv_kg!=null?String(r.hv_kg):"", hvCnt:r.hv_cnt!=null?String(r.hv_cnt):"", hvQ:r.hv_q||"", hvPrice:r.hv_price||"", hvImgSrc:r.hv_img_src||null, equipIds:Array.isArray(r.equip_ids)?r.equip_ids:safeJson(r.equip_ids,[]), equipAct:r.equip_act||"", hvGradeStr:r.hv_grade_str||"", otherNote:r.other_note||"", repotSize:r.repot_size||"", repotVol:r.repot_vol||"", _groupId:r.group_id||null, weather:r.weather||"", equipUseAmt:r.equip_use_amt||null, equipUseUnit:r.equip_use_unit||null, sowQty:r.sow_qty||"", germinationCnt:r.germination_cnt||"", germinationDate:r.germ_date||r.germination_date||"", transplantQty:r.transplant_qty||"", discardCnt:r.discard_cnt||"", addCnt:r.add_cnt||"", eventType:r.event_type||"", eventNote:r.event_note||"" }; };
 const fertMToDb   = (o, uid) => ({ id:o.id||uid0(), user_id:uid, name:o.name||null, type:o.type||null, price:o.price||null, punit:o.punit||null, capacity:o.capacity||null, cunit:o.cunit||null, npk:o.npk||null, stock:o.stock||null, sunit:o.sunit||null, note:o.note||null, status:o.status||null });
 const fertMFromDb = r => ({ id:r.id, name:r.name||"", type:r.type||"", price:r.price||"", punit:r.punit||"", capacity:r.capacity||"", cunit:r.cunit||"", npk:r.npk||"", stock:r.stock||"", sunit:r.sunit||"", note:r.note||"", status:r.status||"使用中" });
 const pestMToDb   = (o, uid) => ({ id:o.id||uid0(), user_id:uid, name:o.name||null, type:o.type||null, target:o.target||null, capacity:o.capacity||null, sunit:o.cunit||o.sunit||null, price:o.price||null, note:o.note||null, status:o.status||null });const pestMFromDb = r => ({ id:r.id, name:r.name||"", type:r.type||"", target:r.target||"", capacity:r.capacity||"", cunit:r.sunit||"ml", sunit:r.sunit||"ml", price:r.price||"", note:r.note||"", status:r.status||"使用中" });
 const equipToDb   = (o, uid) => ({ id:o.id||uid0(), user_id:uid, name:o.name||null, cat:o.cat||null, status:o.status||null, price:o.price||null, date:o.date||null, note:o.note||null, dep_years:o.depYears||null });
 const equipFromDb = r => ({ id:r.id, name:r.name||"", cat:r.cat||"", status:r.status||"", price:r.price||"", date:r.date||"", note:r.note||"", depYears:r.dep_years||"" });
-const costToDb    = (o, uid, fields) => ({ id:o.id, user_id:uid, field_id:(fields&&o.fieldIdx!==undefined&&o.fieldIdx!=="")?fields[o.fieldIdx]?.id||o.fieldId||null:o.fieldId||null, crop_id:o.cropId||null, cat:o.cat||null, name:o.name||null, amt:o.amt||null, date:o.date||null, qty:o.qty||null, qunit:o.qunit||null, note:o.note||null, master_id:o.masterId||null, work:o.work||null, pay_method:o.payMethod||null, pay_date:o.payDate||null, cancelled:o.cancelled||null });
-const costFromDb  = (r, fields) => { const fi=fields.findIndex(f=>f.id===r.field_id); return { id:r.id, fieldId:r.field_id||"", fieldIdx:fi>=0?fi:0, cropId:r.crop_id||"", cat:r.cat||"", name:r.name||"", amt:r.amt||"", date:r.date||"", qty:r.qty||"1", qunit:r.qunit||"個", note:r.note||"", masterId:r.master_id||null, logId:r.work_log_id||null, depYears:r.dep_years||"", payMethod:r.pay_method||"現金", payDate:r.pay_date||"", cancelled:r.cancelled||false }; };
+const costToDb    = (o, uid, fields) => ({ id:o.id, user_id:uid, field_id:(fields&&o.fieldIdx!==undefined&&o.fieldIdx!=="")?fields[o.fieldIdx]?.id||o.fieldId||null:o.fieldId||null, crop_id:o.cropId||null, cat:o.cat||null, name:o.name||null, amt:o.amt||null, date:o.date||null, qty:o.qty||null, qunit:o.qunit||null, note:o.note||null, master_id:o.masterId||null, work:o.work||null, pay_method:o.payMethod||null, pay_date:o.payDate||null, cancelled:o.cancelled||null, is_receivable:!!o.isReceivable, receivable_date:o.receivableDate||null });
+const costFromDb  = (r, fields) => { const fi=fields.findIndex(f=>f.id===r.field_id); return { id:r.id, fieldId:r.field_id||"", fieldIdx:fi>=0?fi:0, cropId:r.crop_id||"", cat:r.cat||"", name:r.name||"", amt:r.amt||"", date:r.date||"", qty:r.qty||"1", qunit:r.qunit||"個", note:r.note||"", masterId:r.master_id||null, work:r.work||"", logId:r.work_log_id||null, depYears:r.dep_years||"", payMethod:r.pay_method||"現金", payDate:r.pay_date||"", cancelled:r.cancelled||false, isReceivable:!!r.is_receivable, receivableDate:r.receivable_date||"" }; };
 const plotToDb    = (o, uid) => ({ id:o.id, user_id:uid, field_id:o.fieldId||null, name:o.name||null, cols:o.cols||20, rows:o.rows||20, cells:o.cells||[], season:o.season||null, cell_size:o.cellSize||30, bg_plot_id:o.bgPlotId||null, plant_date:o.plantDate||null, end_date:o.endDate||null, kind:o.kind||null, beds:o.beds||null, plantings:o.plantings||null });
-const plotFromDb  = r => ({ id:r.id, fieldId:r.field_id||"", name:r.name||"", cols:r.cols||20, rows:r.rows||20, cells:Array.isArray(r.cells)?r.cells:(r.cells?JSON.parse(r.cells):[]), season:r.season||"", cellSize:r.cell_size||30, bgPlotId:r.bg_plot_id||"", plantDate:r.plant_date||"", endDate:r.end_date||"", kind:r.kind||"", beds:Array.isArray(r.beds)?r.beds:(r.beds?JSON.parse(r.beds):[]), plantings:Array.isArray(r.plantings)?r.plantings:(r.plantings?JSON.parse(r.plantings):[]) });
+const plotFromDb  = r => ({ id:r.id, fieldId:r.field_id||"", name:r.name||"", cols:r.cols||20, rows:r.rows||20, cells:Array.isArray(r.cells)?r.cells:safeJson(r.cells,[]), season:r.season||"", cellSize:r.cell_size||30, bgPlotId:r.bg_plot_id||"", plantDate:r.plant_date||"", endDate:r.end_date||"", kind:r.kind||"", beds:Array.isArray(r.beds)?r.beds:safeJson(r.beds,[]), plantings:Array.isArray(r.plantings)?r.plantings:safeJson(r.plantings,[]) });
 
 // ============================================================
 // CONSTANTS
@@ -670,6 +677,10 @@ const INCOME_CATS = [
   { value:"inc_owner_draw", label:"💼 事業主貸（個人口座へ）", group:"資金管理" },
 ];
 const isIncome = (cat) => cat && cat.startsWith("inc_");
+// 元入金：localStorage "motoire" = { "2026": 2027年期首の元入金, ... }（旧形式の数値にも対応）
+const readMotoireMap = () => { try{ const raw=localStorage.getItem("motoire"); if(!raw) return {}; const v=JSON.parse(raw); if(typeof v==="number"&&isFinite(v)) return {_legacy:v}; return (v&&typeof v==="object"&&!Array.isArray(v))?v:{}; }catch{ return {}; } };
+const getOpeningMotoire = (year) => { const m=readMotoireMap(); const k=String(Number(year)-1); if(m[k]!=null&&isFinite(Number(m[k]))) return Number(m[k]); if(m._legacy!=null&&isFinite(Number(m._legacy))) return Number(m._legacy); return 0; };
+const setOpeningMotoire = (year, val) => { try{ const m=readMotoireMap(); delete m._legacy; m[String(Number(year)-1)]=Math.round(Number(val)||0); localStorage.setItem("motoire",JSON.stringify(m)); }catch{} };
 // 品目表示名ヘルパー（カスタム品目対応）
 const getCropDisplayName = (c) => {
   if(!c) return "";
@@ -1451,7 +1462,7 @@ function LoginScreen() {
       <div style={{background:"#fff",borderRadius:20,padding:"28px 24px",maxWidth:360,width:"100%",textAlign:"center",boxShadow:"0 8px 40px rgba(0,0,0,.3)"}}>
         <div style={{fontSize:"2.2rem",marginBottom:6}}>🌾</div>
         <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:"1.3rem",color:G,marginBottom:4}}>サクメモ</div>
-        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v2.1.7</span></div>
+        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v2.1.8</span></div>
         {linkErr&&<div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:8,padding:"10px 12px",marginBottom:16,fontSize:".78rem",color:"#856404",textAlign:"left"}}>{linkErr}</div>}
 
 
@@ -1511,7 +1522,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v2.1.7</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v2.1.8</div>
       </div>
     </div>
   );
@@ -2074,9 +2085,21 @@ function MasterScreen({ fertMs, setFertMs, pestMs, setPestMs, equips, setEquips,
 }
 
 // FIELDS
-function FieldsScreen({ fields, setFields, setFieldsR, crops, setCrops, setCropsR, costs, setCosts, logs, setLogs, setLogsR, plots, setPlots, setPlotsR, showToast, editCrop }) {
+function FieldsScreen({ fields, setFields, setFieldsR, crops, setCrops, setCropsR, costs, setCosts, logs, setLogs, setLogsR, plots, setPlots, setPlotsR, showToast, editCrop, uid }) {
   const [mField, setMField] = useState(null);
   const [mCrop,  setMCrop]  = useState(null);
+  // みんなのサクメモ：公開設定・閲覧数
+  const [pubCropId, setPubCropId] = useState(null);
+  const [pubStats,  setPubStats]  = useState(null);
+  const reloadPubStats = () => { loadPublicStats(uid, crops.map(c=>c.id)).then(setPubStats).catch(()=>{}); };
+  useEffect(()=>{ if(uid) reloadPubStats(); },[uid, crops.length]);
+  const pubCrop = pubCropId ? crops.find(c=>c.id===pubCropId) : null;
+  const pubBtn = (c) => {
+    const n = pubStats?.crops?.[c.id]?.total||0;
+    return c.isPublic
+      ? <button style={{...S.btn,...S.btnSm,background:"#f0f9f0",color:G,border:"1px solid #6ee7b7"}} onClick={()=>setPubCropId(c.id)} title="公開設定・閲覧数">🌐 公開中 👁{n}</button>
+      : <button style={{...S.btn,...S.btnSm,background:"#fff",color:"#888",border:"1px solid "+BD}} onClick={()=>setPubCropId(c.id)} title="みんなのサクメモに公開">🔒 公開設定</button>;
+  };
 
   // 外部から品目編集を開く
   useEffect(()=>{
@@ -2214,6 +2237,11 @@ function FieldsScreen({ fields, setFields, setFieldsR, crops, setCrops, setCrops
         </div>
       ))}
       <div style={S.sec}><span>🌱 栽培中（{crops.filter(c=>!c.ended).length}件）</span><button style={S.secBtn} onClick={()=>setMCrop({...eC,fieldIdx:0})}>＋ 品目追加</button></div>
+      {crops.some(c=>c.isPublic)&&pubStats&&<div style={{display:"flex",alignItems:"center",gap:8,background:"#f0f9f0",border:"1px solid #b7e4c7",borderRadius:10,padding:"8px 12px",marginBottom:8,fontSize:".74rem",color:"#2d6a3f"}}>
+        <span style={{fontSize:"1rem"}}>🌾</span>
+        <span style={{flex:1}}>みんなのサクメモ　農場ページ 👁 累計<b>{pubStats.farmTotal||0}</b>回{pubStats.hasDaily?<>・今日<b>{sumDaily(pubStats.daily?.farm,1)}</b>・7日間<b>{sumDaily(pubStats.daily?.farm,7)}</b></>:null}</span>
+        <button onClick={reloadPubStats} style={{background:"none",border:"none",color:"#2d6a3f",cursor:"pointer",fontSize:".9rem",padding:2}} title="更新">↻</button>
+      </div>}
       {!crops.filter(c=>!c.ended).length&&<div style={{color:TX3,fontSize:".82rem",padding:8,textAlign:"center"}}>栽培中の品目はありません</div>}
       {crops.filter(c=>!c.ended).map((c)=>{ const i=crops.indexOf(c);
         const db=CDB[c.type]||{}; const f=fields[c.fieldIdx]||{};
@@ -2287,10 +2315,11 @@ function FieldsScreen({ fields, setFields, setFieldsR, crops, setCrops, setCrops
             </details>}
             {/* ─── 操作ボタン（右寄せ・統一スタイル）─── */}
             <div style={{display:"flex",gap:5,marginTop:7,paddingTop:7,borderTop:"1px solid #e8e0d5",justifyContent:"flex-end",flexWrap:"wrap"}}>
+              {pubBtn(c)}
               <button style={{...S.btn,...S.btnS,...S.btnSm}}
                 onClick={()=>{const existingSeed=costs.find(co=>co.cropId===c.id&&co.cat==="seed");setMCrop({...c,_idx:i,seedCost:c.seedCost||existingSeed?.amt||""});}}>編集</button>
               <button style={{...S.btn,...S.btnSm,background:"#f59e0b",color:"#fff"}}
-                onClick={()=>{const copy={...c,id:uid0(),_idx:undefined};setMCrop(copy);showToast("複製します。内容を確認して保存してください");}}>コピー</button>
+                onClick={()=>{const copy={...c,id:uid0(),_idx:undefined,isPublic:false};setMCrop(copy);showToast("複製します。内容を確認して保存してください");}}>コピー</button>
               <button style={{...S.btn,...S.btnSm,background:"#fff",color:"#c2410c",border:"1px solid #f0b896"}}
                 onClick={()=>{const ed=window.prompt("栽培終了日を入力してください",todayStr());if(ed===null)return;const u={...c,ended:true,endDate:ed||todayStr()};setCrops(crops.map((x,j)=>j===i?u:x),u);showToast("栽培を終了しました");}}>終了</button>
               <button style={{...S.btn,...S.btnR,...S.btnSm}}
@@ -2336,6 +2365,7 @@ function FieldsScreen({ fields, setFields, setFieldsR, crops, setCrops, setCrops
                       setCrops(crops.map((x,j)=>j===i?u:x),u);
                       showToast("終了日を更新しました");
                     }}>📅 {c.endDate||"日付未設定"}</button>
+                  {pubBtn(c)}
                   <button style={{...S.btn,background:"#aaa",color:"#fff",padding:"4px 10px",fontSize:".7rem",borderRadius:8,width:"auto"}}
                     onClick={()=>{if(!window.confirm("栽培中に戻しますか？"))return;const u={...c,ended:false,endDate:""};setCrops(crops.map((x,j)=>j===i?u:x),u);showToast("栽培中に戻しました");}}>再開</button>
                   <button style={{...S.btn,...S.btnR,...S.btnSm}}
@@ -2353,6 +2383,8 @@ function FieldsScreen({ fields, setFields, setFieldsR, crops, setCrops, setCrops
             </FG>
             <FG label="メモ"><TA value={mField.memo} onChange={v=>setMField({...mField,memo:v})}/></FG></>}
       </ModalWithSave>
+      {pubCrop&&<CropPublicModal crop={pubCrop} crops={crops} setCrops={setCrops} fields={fields} uid={uid} stats={pubStats}
+        onClose={()=>setPubCropId(null)} onSaved={reloadPubStats} showToast={showToast}/>}
       <ModalWithSave open={!!mCrop} onSave={saveCrop} onClose={()=>{setMCrop(null);}} title={mCrop?._idx!==undefined?"品目を編集":"品目を登録"}>
         {mCrop&&<><FG label="圃場"><Sel value={mCrop.fieldIdx} onChange={v=>setMCrop({...mCrop,fieldIdx:parseInt(v)})} options={fields.map((f,i)=>({value:i,label:f.name}))}/></FG>
                 <FG label="作物"><Sel value={mCrop.type} onChange={v=>setMCrop({...mCrop,type:v})} options={[{value:"",label:"選択してください"},...CROP_OPTIONS]} renderOption={o=>o.disabled?<option key={o.value} disabled style={{color:"#aaa",fontWeight:700}}>{o.label}</option>:<option key={o.value} value={o.value}>{o.label}</option>}/></FG>
@@ -4029,72 +4061,153 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
 
   // 帳簿Excelエクスポート（複式簿記・65万円控除対応）
   const exportLedger = () => {
-    const KAIGYO_DATE = (()=>{try{return localStorage.getItem("sakumemo_kaigyo_date")||"2026-08-18";}catch{return "2026-08-18";}})();
+    const KAIGYO_DATE = (()=>{try{return localStorage.getItem("sakumemo_kaigyo_date")||"";}catch{return "";}})();
+    const now = new Date();
+    const defYear = now.getMonth() < 3 ? now.getFullYear()-1 : now.getFullYear(); // 1〜3月は前年分（申告時期）
+    const ans = window.prompt(
+      "何年分の帳簿を書き出しますか？（西暦4桁）\n開業日："+(KAIGYO_DATE||"未設定（設定画面で設定できます）"),
+      String(defYear));
+    if(ans===null) return;
+    const Y = parseInt(String(ans).replace(/[０-９]/g,d=>String.fromCharCode(d.charCodeAt(0)-0xFEE0)),10);
+    if(!(Y>=2000&&Y<=2100)){ showToast("西暦4桁で入力してください（例：2026）"); return; }
+    const YS = String(Y);
+    const WAREKI = "令和"+(Y-2018)+"年";
+    const yearEnd = YS+"-12-31";
+
+    // 勘定科目（青色申告決算書・農業所得用の経費科目）
     const CAT_TO_KAMOKU = {
-      seed:"種苗費", fert:"肥料費", pest:"農薬衛生費",
-      equip:"諸材料費", labor:"雇人費", other:"その他"
+      seed:"種苗費", fert:"肥料費", pest:"農薬衛生費", equip:"諸材料費", machine:"農具費",
+      land:"地代・賃借料", labor:"雇人費", fuel:"動力光熱費", water:"動力光熱費",
+      transport:"荷造運賃手数料", sales:"荷造運賃手数料", research:"その他", comms:"その他",
+      insurance:"農業共済掛金", deprec:"減価償却費", vehicle:"その他", other:"その他", worker:"専従者給与"
     };
-    const KAMOKU_COLS = ["種苗費","素畜費","肥料費","農薬衛生費","諸材料費",
-      "機械装置費","農具費","修繕費","動力光熱費","作業用衣料費",
-      "農業共済掛金","荷造運賃","雇人費","土地改良費","賃借料","租税公課","その他"];
+    const KAMOKU_COLS = ["租税公課","種苗費","素畜費","肥料費","飼料費","農具費","農薬衛生費","諸材料費","修繕費",
+      "動力光熱費","作業用衣料費","農業共済掛金","減価償却費","荷造運賃手数料","雇人費","利子割引料",
+      "地代・賃借料","土地改良費","専従者給与","その他"];
+    const TAX_OF_KAMOKU = {"雇人費":"対象外","専従者給与":"対象外","租税公課":"対象外","減価償却費":"対象外",
+      "農業共済掛金":"非課税","地代・賃借料":"非課税","利子割引料":"非課税"};
+    const kamokuOf = c => CAT_TO_KAMOKU[c.cat]||"その他";
+    const taxOf = k => TAX_OF_KAMOKU[k]||"課仕10%";
+    const incTaxOf = cat => (cat==="inc_crop"||cat==="inc_direct"||cat==="inc_process") ? "課売8%(軽)" : cat==="inc_subsidy" ? "対象外" : "課売10%";
+
+    // 家事按分（農業割合）
+    const apRatesAll = (()=>{ try { return JSON.parse(localStorage.getItem("apportionRates")||"{}"); } catch { return {}; } })();
+    const amtOf  = c => Number(c.amt)||0;
+    const rateOf = c => { const r=apRatesAll[c.id]; return (r!==undefined&&r!==null&&Number(r)<100)?Number(r):100; };
+    const agriOf = c => { const r=rateOf(c); return r<100?Math.round(amtOf(c)*r/100):amtOf(c); };
+
+    // 支払方法
+    const isCardPM = pm => !!pm && !isEmoneyPM(pm) && (pm.startsWith("カード") || (cards||[]).some(cd=>cd.name===pm));
+    const creditOf = pm => isEmoneyPM(pm) ? "事業主借" : isCardPM(pm) ? "未払金" : pm==="振込" ? "普通預金" : "現金";
+    const subOf    = pm => (isCardPM(pm)||isEmoneyPM(pm)) ? pm : "";
+
+    // 固定資産（耐用年数を設定した農機具・設備）と定額法の償却
+    const depEquips = (equips||[]).filter(eq=>!MATERIAL_CATS.includes(eq.cat) && (parseInt(eq.depYears)||0)>0 && (parseFloat(eq.price)||0)>0 && eq.date);
+    const depEquipIds = new Set(depEquips.map(eq=>eq.id));
+    const isAssetPurchase = c => !!c.masterId && depEquipIds.has(c.masterId);
+    const depFor = (eq, year) => { // 購入年は月割り（1ヶ月未満切り上げ）、残存1円
+      const price=parseFloat(eq.price)||0, life=parseInt(eq.depYears)||0;
+      const by=parseInt(String(eq.date).slice(0,4)), bm=parseInt(String(eq.date).slice(5,7))||1;
+      if(!by||year<by) return {annual:0, book:0, owned:false};
+      const full=price/life; let acc=0, annual=0;
+      for(let y=by;y<=year;y++){
+        const m = y===by ? (12-bm+1) : 12;
+        const a = Math.max(0, Math.min(Math.round(full*m/12), price-1-acc));
+        acc += a; if(y===year) annual=a;
+      }
+      return {annual, book:price-acc, owned:true};
+    };
+
+    // 対象データの選別
+    const d2 = dt => (dt||"").replace(/-/g,"/");
+    const valid  = costs.filter(c=>!c.cancelled && !String(c.cat||"").startsWith("__"));
+    const sorted = [...valid].sort((a,b)=>(a.date||"").localeCompare(b.date||""));
+    const isFund = c => c.cat==="owner_loan" || c.cat==="inc_owner_draw";
+    const isExp  = c => !isIncome(c.cat) && !isFund(c);
+    const afterOpen = c => !KAIGYO_DATE || !c.date || c.date >= KAIGYO_DATE;
+    const preOpen = KAIGYO_DATE ? sorted.filter(c=>isExp(c) && !isAssetPurchase(c) && c.date && c.date < KAIGYO_DATE) : [];
+    const yrAll   = sorted.filter(c=>(c.date||"").startsWith(YS) && afterOpen(c));
+    const postOpen= yrAll.filter(c=>isExp(c) && !isAssetPurchase(c));   // 当年の経費
+    const yrAsset = yrAll.filter(c=>isExp(c) && isAssetPurchase(c));    // 当年の固定資産取得
+    const yrInc   = yrAll.filter(c=>isIncome(c.cat) && c.cat!=="inc_owner_draw");
+    const yrLoan  = yrAll.filter(c=>c.cat==="owner_loan");
+    const yrDraw  = yrAll.filter(c=>c.cat==="inc_owner_draw");
+
+    // 開業費（繰延資産）：5年均等・開業年は月割り（任意償却なので金額は調整可）
+    const kaiTotal = preOpen.reduce((s,c)=>s+agriOf(c),0);
+    const kaiY = KAIGYO_DATE ? parseInt(KAIGYO_DATE.slice(0,4)) : 0;
+    const kaiM = KAIGYO_DATE ? (parseInt(KAIGYO_DATE.slice(5,7))||1) : 1;
+    const kaiSchedule = []; // [{year, amt, cum, rest, note}]
+    if(kaiTotal>0 && kaiY){
+      const perYear = kaiTotal/5; let cum=0;
+      for(let y=kaiY; cum<kaiTotal && y<kaiY+7; y++){
+        const m = y===kaiY ? (12-kaiM+1) : 12;
+        const amt = Math.min(Math.round(perYear*m/12), kaiTotal-cum);
+        cum += amt;
+        kaiSchedule.push({year:y, amt, cum, rest:kaiTotal-cum, note:y===kaiY?"開業年（"+m+"ヶ月分）":""});
+      }
+    }
+    const kaiRow = kaiSchedule.find(k=>k.year===Y);
+    const kaiShokyaku = kaiRow ? kaiRow.amt : 0;
+    const kaiCumToY = kaiSchedule.filter(k=>k.year<=Y).reduce((s,k)=>s+k.amt,0);
+
+    // 当年の減価償却
+    const depRows = depEquips.map(eq=>({eq, ...depFor(eq,Y)})).filter(x=>x.owned);
+    const equipDepTotal = depRows.reduce((s,x)=>s+x.annual,0);
 
     const doExport = (XLSX) => {
       const wb = XLSX.utils.book_new();
-      const sorted = [...costs].sort((a,b)=>(a.date||"").localeCompare(b.date||""));
-      const preOpen  = sorted.filter(c=>c.date && c.date < KAIGYO_DATE);
-      const postOpen = sorted.filter(c=>!c.date || c.date >= KAIGYO_DATE);
 
       // ── シート1: 仕訳帳 ──
       const jiHdr = ["日付","借方 勘定科目","借方 補助科目","借方 税区分","借方金額（円）",
                      "貸方 勘定科目","貸方 補助科目","貸方 税区分","貸方金額（円）","摘要"];
+      const entries = []; // [sortKey, row]
+      const J = (date, dr, drSub, drTax, amt, cr, crSub, crTax, memo) => entries.push([date||"", [d2(date), dr, drSub, drTax, amt, cr, crSub, crTax, amt, memo]]);
+      const memoOf = c => { const cr=crops.find(x=>x.id===c.cropId); const cn=cr?getCropName(cr):""; return c.name+(cn?" ("+cn+")":"")+(c.note?" "+c.note:""); };
+      // 開業資金（金額は手入力）
+      if(KAIGYO_DATE && KAIGYO_DATE.startsWith(YS)) entries.push([KAIGYO_DATE, [d2(KAIGYO_DATE),"普通預金","","対象外","","元入金","","対象外","","開業資金（金額を記入）"]]);
+      // 開業費（開業年のみ）
+      if(kaiY===Y) preOpen.forEach(c=>J(c.date,"開業費","","課仕10%",agriOf(c),"事業主借","","対象外","開業費："+memoOf(c)));
+      // 収入
+      yrInc.forEach(c=>{
+        const label = (INCOME_CATS.find(x=>x.value===c.cat)?.label||"農業収入").replace(/^\S+\s/,"");
+        const dr = c.isReceivable ? "売掛金" : (c.payMethod==="振込" ? "普通預金" : "現金");
+        J(c.date, dr, "", "対象外", amtOf(c), label, "", incTaxOf(c.cat), memoOf(c));
+      });
+      // 経費（家事按分は農業分のみ経費、家事分は事業主貸）
+      postOpen.forEach(c=>{
+        const k=kamokuOf(c), pm=c.payMethod||"現金", cr=creditOf(pm), sub=subOf(pm);
+        const agri=agriOf(c), total=amtOf(c);
+        const pre = isCardPM(pm)?"カード購入：":isEmoneyPM(pm)?"電子マネー("+pm+")：":"";
+        J(c.date, k, "", taxOf(k), agri, cr, sub, "対象外", pre+memoOf(c)+(rateOf(c)<100?"（按分"+rateOf(c)+"%）":""));
+        if(total>agri && cr!=="事業主借") J(c.date, "事業主貸", "", "対象外", total-agri, cr, sub, "対象外", "家事分："+memoOf(c));
+      });
+      // 固定資産の取得
+      yrAsset.forEach(c=>{
+        const pm=c.payMethod||"現金";
+        J(c.date, "農機具等（固定資産）", c.name, "課仕10%", amtOf(c), creditOf(pm), subOf(pm), "対象外", "固定資産取得："+memoOf(c));
+      });
+      // 事業主借（個人資金の入金）・事業主貸（生活費等の引出し）
+      yrLoan.forEach(c=>J(c.date, c.payMethod==="振込"?"普通預金":"現金", "", "対象外", amtOf(c), "事業主借", "", "対象外", memoOf(c)));
+      yrDraw.forEach(c=>J(c.date, "事業主貸", "", "対象外", amtOf(c), c.payMethod==="振込"?"普通預金":"現金", "", "対象外", memoOf(c)));
+      // カード引き落とし（当年に引き落とされた分・前年購入分も含む）
+      const cardPaid = {};
+      valid.filter(c=>isExp(c) && isCardPM(c.payMethod) && c.payDate && c.payDate.startsWith(YS)).forEach(c=>{
+        const k=c.payDate+"_"+c.payMethod;
+        if(!cardPaid[k]) cardPaid[k]={date:c.payDate, card:c.payMethod, total:0};
+        cardPaid[k].total += amtOf(c);
+      });
+      Object.values(cardPaid).forEach(g=>J(g.date, "未払金", g.card, "対象外", g.total, "普通預金", "", "対象外", "カード引落："+g.card));
+      // 決算整理（12/31）
+      depRows.filter(x=>x.annual>0).forEach(x=>J(yearEnd, "減価償却費", "", "対象外", x.annual, "農機具等（固定資産）", x.eq.name, "対象外", "減価償却（定額法）："+x.eq.name));
+      if(kaiShokyaku>0) J(yearEnd, "開業費償却", "", "対象外", kaiShokyaku, "開業費", "", "対象外", "開業費償却（任意償却・5年均等）");
+      entries.sort((a,b)=>a[0].localeCompare(b[0]));
       const jiRows = [
-        ["仕　訳　帳（主要簿）　令和8年分　農業所得"],
-        ["カード払い：購入日→借方:経費/貸方:未払金(カード名)　引き落とし日→借方:未払金/貸方:普通預金　／　電子マネー払い：購入日→借方:経費/貸方:事業主借(電子マネー名)"],
+        ["仕　訳　帳（主要簿）　"+WAREKI+"分　農業所得"],
+        ["カード払い：購入日→借方:経費/貸方:未払金　引き落とし日→借方:未払金/貸方:普通預金　／　電子マネー払い：借方:経費/貸方:事業主借　／　家事按分：家事分は事業主貸"],
         jiHdr,
+        ...entries.map(e=>e[1]),
       ];
-      // 開業時仕訳
-      jiRows.push(["2026/8/18","事業主借","","","","普通預金","","","","開業資金入金"]);
-      // 収入の仕訳
-      costs.filter(c=>isIncome(c.cat)).sort((a,b)=>(a.date||"").localeCompare(b.date||"")).forEach(c=>{
-        const incCatLabel = INCOME_CATS.find(x=>x.value===c.cat)?.label||"農業収入";
-        const pm = c.payMethod||"現金";
-        const debit = pm==="振込"?"普通預金":"現金";
-        const cr2 = crops.find(x=>x.id===c.cropId);
-        const crName2 = cr2?getCropName(cr2):"";
-        const memo2 = c.name+(crName2?" ("+crName2+")":"")+(c.note?" "+c.note:"");
-        const amt2 = Number(c.amt)||0;
-        jiRows.push([c.date||"",debit,"","対象外",amt2,incCatLabel,"","課売10%",amt2,memo2]);
-      });
-      // 費用の仕訳
-      sorted.forEach(c=>{
-        const kamoku = CAT_TO_KAMOKU[c.cat]||"その他";
-        const amt = Number(c.amt)||0;
-        const pm = c.payMethod||"現金";
-        const cr = crops.find(x=>x.id===c.cropId);
-        const crName = cr?getCropName(cr):"";
-        const memo = c.name+(crName?" ("+crName+")":"")+(c.note?" "+c.note:"");
-        const isEm = isEmoneyPM(pm);
-        const isCard = !isEm && (pm.startsWith("カード") || (cards&&cards.some&&cards.some(cd=>cd.name===pm)));
-        const isPreOpen = c.date && c.date < KAIGYO_DATE;
-        if(isPreOpen){
-          // 開業費として仕訳
-          jiRows.push([c.date||"","開業費（繰延資産）","","課仕10%",amt,"事業主借","","対象外",amt,"開業費："+memo]);
-        } else if(isEm){
-          // 電子マネー払い（私用と共用のチャージ残高から支払）：購入日に 借方:経費 / 貸方:事業主借
-          jiRows.push([c.date||"",kamoku,"","課仕10%",amt,"事業主借",pm,"対象外",amt,"電子マネー("+pm+")："+memo]);
-        } else if(isCard){
-          // カード払い：購入日
-          jiRows.push([c.date||"",kamoku,"","課仕10%",amt,"未払金",pm,"対象外",amt,"カード購入："+memo]);
-          // カード払い：引き落とし日（payDateがあれば追加）
-          if(c.payDate){
-            jiRows.push([c.payDate,"未払金",pm,"対象外",amt,"普通預金","","対象外",amt,"カード引落："+memo]);
-          }
-        } else {
-          // 現金・振込
-          const credit = pm==="振込"?"普通預金":"現金";
-          jiRows.push([c.date||"",kamoku,"","課仕10%",amt,credit,"","対象外",amt,memo]);
-        }
-      });
       const ws1 = XLSX.utils.aoa_to_sheet(jiRows);
       ws1["!cols"]=[{wch:10},{wch:16},{wch:12},{wch:10},{wch:11},{wch:16},{wch:12},{wch:10},{wch:11},{wch:28}];
       XLSX.utils.book_append_sheet(wb, ws1, "仕訳帳");
@@ -4102,333 +4215,260 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
       // ── シート2: 経費帳 ──
       const keihiHdr = ["月日","支払先","摘要",...KAMOKU_COLS,"合計"];
       const keihiRows = [
-        ["経　費　帳（農業所得者用）　令和8年分"],
-        ["国税庁農業所得者用様式準拠"],
+        ["経　費　帳（農業所得者用）　"+WAREKI+"分"],
+        ["国税庁農業所得者用様式準拠（家事按分は農業分のみ計上）"],
         keihiHdr,
       ];
       const byMonth = {};
-      postOpen.forEach(c=>{
-        const m=(c.date||"").slice(0,7);
-        if(!byMonth[m]) byMonth[m]=[];
-        byMonth[m].push(c);
-      });
+      postOpen.forEach(c=>{ const m=(c.date||"").slice(0,7)||"日付なし"; (byMonth[m]=byMonth[m]||[]).push(c); });
+      const pushKeihi = (date, payee, memo, kamoku, amt) => {
+        const row=Array(keihiHdr.length).fill("");
+        row[0]=date; row[1]=payee; row[2]=memo;
+        const ki=KAMOKU_COLS.indexOf(kamoku); if(ki>=0) row[3+ki]=amt;
+        row[row.length-1]=amt; keihiRows.push(row);
+      };
       Object.keys(byMonth).sort().forEach(m=>{
-        byMonth[m].forEach(c=>{
-          const kamoku=CAT_TO_KAMOKU[c.cat]||"その他";
-          const row=Array(keihiHdr.length).fill("");
-          row[0]=c.date?c.date.slice(5).replace("-","/"):"";
-          row[1]=c.note||"";
-          row[2]=c.name;
-          const ki=KAMOKU_COLS.indexOf(kamoku);
-          if(ki>=0) row[3+ki]=Number(c.amt)||0;
-          row[row.length-1]=Number(c.amt)||0;
-          keihiRows.push(row);
-        });
-        // 月計
+        byMonth[m].forEach(c=>pushKeihi(c.date?c.date.slice(5).replace("-","/"):"", c.note||"", c.name+(rateOf(c)<100?"（按分"+rateOf(c)+"%）":""), kamokuOf(c), agriOf(c)));
         const tot=Array(keihiHdr.length).fill("");
-        tot[2]="【"+parseInt(m.slice(5))+"月計】";
-        KAMOKU_COLS.forEach((k,i)=>{
-          tot[3+i]=byMonth[m].filter(c=>(CAT_TO_KAMOKU[c.cat]||"その他")===k).reduce((s,c)=>s+(Number(c.amt)||0),0);
-        });
-        tot[tot.length-1]=byMonth[m].reduce((s,c)=>s+(Number(c.amt)||0),0);
+        tot[2]="【"+(parseInt(m.slice(5))||"")+"月計】";
+        KAMOKU_COLS.forEach((k,i)=>{ const v=byMonth[m].filter(c=>kamokuOf(c)===k).reduce((s,c)=>s+agriOf(c),0); tot[3+i]=v||""; });
+        tot[tot.length-1]=byMonth[m].reduce((s,c)=>s+agriOf(c),0);
         keihiRows.push(tot);
       });
+      if(equipDepTotal>0) pushKeihi("12/31","","【決算整理】減価償却費（農機具等）","減価償却費",equipDepTotal);
+      if(kaiShokyaku>0) pushKeihi("12/31","","【決算整理】開業費償却","減価償却費",kaiShokyaku);
       const ws2 = XLSX.utils.aoa_to_sheet(keihiRows);
       ws2["!cols"]=[{wch:8},{wch:14},{wch:22},...KAMOKU_COLS.map(()=>({wch:7})),{wch:10}];
       XLSX.utils.book_append_sheet(wb, ws2, "経費帳");
 
-      // ── シート3: 現金出納帳 ──
-      const cashRows=[
-        ["現　金　出　納　帳　令和8年分"],
-        ["月日","摘要","入金（円）","出金（円）","残高（円）"],
-        ["前日繰越","",0,0,0],
-      ];
-      postOpen.filter(c=>!c.payMethod||c.payMethod==="現金").forEach(c=>{
-        cashRows.push([c.date?c.date.slice(5).replace("-","/"):"",c.name+(c.note?" "+c.note:""),"",Number(c.amt)||0,""]);
+      // ── シート3・4: 現金出納帳 / 預金出納帳（残高は数式で自動計算） ──
+      const makeBook = (title, lines) => {
+        const rows=[[title],["月日","摘要","入金（円）","出金（円）","残高（円）"],["","前年より繰越（実際の残高に修正してください）","","",0]];
+        lines.sort((a,b)=>a[0].localeCompare(b[0])).forEach(([dt,memo,inAmt,outAmt])=>{
+          const r=rows.length+1;
+          rows.push([dt?dt.slice(5).replace("-","/"):"", memo, inAmt||"", outAmt||"", {f:`E${r-1}+N(C${r})-N(D${r})`}]);
+        });
+        return rows;
+      };
+      const cashLines=[], bankLines=[];
+      const isCash = c => !c.payMethod || c.payMethod==="現金";
+      yrAll.forEach(c=>{
+        const pm=c.payMethod||"現金";
+        if(isIncome(c.cat) && c.cat!=="inc_owner_draw"){ if(c.isReceivable) return; (pm==="振込"?bankLines:cashLines).push([c.date||"",memoOf(c),amtOf(c),0]); return; }
+        if(c.cat==="owner_loan"){ (pm==="振込"?bankLines:cashLines).push([c.date||"","事業主借："+memoOf(c),amtOf(c),0]); return; }
+        if(c.cat==="inc_owner_draw"){ (pm==="振込"?bankLines:cashLines).push([c.date||"","事業主貸："+memoOf(c),0,amtOf(c)]); return; }
+        if(isCash(c)) cashLines.push([c.date||"",memoOf(c),0,amtOf(c)]);
+        else if(pm==="振込") bankLines.push([c.date||"",memoOf(c),0,amtOf(c)]);
       });
-      const ws3=XLSX.utils.aoa_to_sheet(cashRows);
-      ws3["!cols"]=[{wch:8},{wch:30},{wch:12},{wch:12},{wch:12}];
+      Object.values(cardPaid).forEach(g=>bankLines.push([g.date,(g.card||"カード")+" 引き落とし",0,g.total]));
+      const ws3=XLSX.utils.aoa_to_sheet(makeBook("現　金　出　納　帳　"+WAREKI+"分",cashLines));
+      ws3["!cols"]=[{wch:8},{wch:34},{wch:12},{wch:12},{wch:12}];
       XLSX.utils.book_append_sheet(wb, ws3, "現金出納帳");
-
-      // ── シート4: 預金出納帳 ──
-      const bankRows=[
-        ["預　金　出　納　帳　令和8年分"],
-        ["月日","摘要","入金（円）","出金（円）","残高（円）"],
-        ["前日繰越","",0,0,0],
-      ];
-      postOpen.filter(c=>c.payMethod==="振込").forEach(c=>{
-        bankRows.push([c.date?c.date.slice(5).replace("-","/"):"",c.name+(c.note?" "+c.note:""),"",Number(c.amt)||0,""]);
-      });
-      // カード引き落とし行も追加
-      const cardItems=postOpen.filter(c=>c.payDate&&c.payMethod&&(c.payMethod.startsWith("カード")||(cards&&cards.some&&cards.some(cd=>cd.name===c.payMethod))));
-      const grouped={};
-      cardItems.forEach(c=>{
-        const k=c.payDate+"_"+c.payMethod;
-        if(!grouped[k]) grouped[k]={date:c.payDate,card:c.payMethod,total:0};
-        grouped[k].total+=Number(c.amt)||0;
-      });
-      Object.values(grouped).sort((a,b)=>a.date.localeCompare(b.date)).forEach(g=>{
-        bankRows.push([g.date.slice(5).replace("-","/"),(g.card||"カード")+"引き落とし","",g.total,""]);
-      });
-      const ws4=XLSX.utils.aoa_to_sheet(bankRows);
-      ws4["!cols"]=[{wch:8},{wch:30},{wch:12},{wch:12},{wch:12}];
+      const ws4=XLSX.utils.aoa_to_sheet(makeBook("預　金　出　納　帳　"+WAREKI+"分",bankLines));
+      ws4["!cols"]=[{wch:8},{wch:34},{wch:12},{wch:12},{wch:12}];
       XLSX.utils.book_append_sheet(wb, ws4, "預金出納帳");
 
       // ── シート5: カード未払金管理 ──
       const cardRows=[
-        ["クレジットカード 未払金管理　令和8年分"],
-        ["購入日","カード名","摘要（購入内容）","発生額（円）","消込額（円）","残高","引き落とし予定日","確認"],
+        ["クレジットカード 未払金管理　"+WAREKI+"分"],
+        ["購入日","カード名","摘要（購入内容）","発生額（円）","引き落とし予定日","年末時点"],
       ];
-      postOpen.filter(c=>c.payMethod&&(cards&&cards.some&&cards.some(cd=>cd.name===c.payMethod))).forEach(c=>{
-        cardRows.push([c.date||"",c.payMethod||"",c.name+(c.note?" "+c.note:""),Number(c.amt)||0,"","",c.payDate||"",""]);
+      yrAll.filter(c=>isExp(c) && isCardPM(c.payMethod)).forEach(c=>{
+        const unpaid = !c.payDate || c.payDate > yearEnd;
+        cardRows.push([c.date||"",c.payMethod||"",memoOf(c),amtOf(c),c.payDate||"",unpaid?"未払（翌年引落）":"支払済"]);
       });
       const ws5=XLSX.utils.aoa_to_sheet(cardRows);
-      ws5["!cols"]=[{wch:10},{wch:14},{wch:25},{wch:12},{wch:12},{wch:10},{wch:12},{wch:8}];
+      ws5["!cols"]=[{wch:10},{wch:14},{wch:28},{wch:12},{wch:14},{wch:14}];
       XLSX.utils.book_append_sheet(wb, ws5, "カード未払金管理");
 
       // ── シート5-2: 電子マネー支払明細 ──
-      const emItems = postOpen.filter(c=>isEmoneyPM(c.payMethod)).sort((a,b)=>(a.date||"").localeCompare(b.date||""));
-      const emTotal = emItems.reduce((s,c)=>s+(Number(c.amt)||0),0);
+      const emItems = yrAll.filter(c=>isExp(c) && isEmoneyPM(c.payMethod));
+      const emTotal = emItems.reduce((s,c)=>s+amtOf(c),0);
       const emRows=[
-        ["電子マネー・QR決済 支払明細　令和8年分"],
+        ["電子マネー・QR決済 支払明細　"+WAREKI+"分"],
         ["私用と共用のチャージ残高から事業経費を支払った分。仕訳は 借方:経費 / 貸方:事業主借（チャージ・残高の管理は不要）"],
         ["支払日","電子マネー","摘要（購入内容）","勘定科目","金額（円）"],
-        ...emItems.map(c=>[c.date||"",c.payMethod,c.name+(c.note?" "+c.note:""),CAT_TO_KAMOKU[c.cat]||"その他",Number(c.amt)||0]),
+        ...emItems.map(c=>[c.date||"",c.payMethod,memoOf(c),isAssetPurchase(c)?"農機具等（固定資産）":kamokuOf(c),amtOf(c)]),
         ["","","合計","",emTotal],
       ];
       const emByName={};
-      emItems.forEach(c=>{emByName[c.payMethod]=(emByName[c.payMethod]||0)+(Number(c.amt)||0);});
+      emItems.forEach(c=>{emByName[c.payMethod]=(emByName[c.payMethod]||0)+amtOf(c);});
       if(Object.keys(emByName).length>0){
-        emRows.push([]);
-        emRows.push(["【電子マネー別合計】"]);
+        emRows.push([]); emRows.push(["【電子マネー別合計】"]);
         Object.entries(emByName).forEach(([n,a])=>emRows.push(["",n,"","",a]));
       }
       const ws5b=XLSX.utils.aoa_to_sheet(emRows);
-      ws5b["!cols"]=[{wch:10},{wch:14},{wch:28},{wch:14},{wch:12}];
+      ws5b["!cols"]=[{wch:10},{wch:14},{wch:28},{wch:16},{wch:12}];
       XLSX.utils.book_append_sheet(wb, ws5b, "電子マネー明細");
 
       // ── シート6: 開業費台帳 ──
-      const kaiTotal=preOpen.reduce((s,c)=>s+(Number(c.amt)||0),0);
-      const kaiRows=[
-        ["開　業　費　台　帳（令和8年8月18日以前の支出）"],
-        ["仕訳：開業時→借方:開業費/貸方:事業主借　当年償却→借方:開業費償却/貸方:開業費"],
-        ["支出年月日","費用の内容","金額（円）","勘定科目（参考）","備考"],
-        ...preOpen.map(c=>[c.date||"",c.name+(c.note?" "+c.note:""),Number(c.amt)||0,CAT_TO_KAMOKU[c.cat]||"その他",""]),
-        ["","開業費 合計",kaiTotal,"",""],
-        [],
-        ["【5年均等償却スケジュール】"],
-        ["年度","当年償却額","償却累計","未償却残高","備考"],
-      ];
-      let cum=0;
-      [["令和8年（開業年）",Math.round(kaiTotal/5*4.5/12),"月割り（4.5ヶ月）"],
-       ["令和9年",Math.round(kaiTotal/5),""],["令和10年",Math.round(kaiTotal/5),""],
-       ["令和11年",Math.round(kaiTotal/5),""],["令和12年",Math.round(kaiTotal/5),""]
-      ].forEach(([yr,amt,note])=>{ cum+=amt; kaiRows.push([yr,amt,cum,Math.max(0,kaiTotal-cum),note]); });
-      const ws6=XLSX.utils.aoa_to_sheet(kaiRows);
-      ws6["!cols"]=[{wch:12},{wch:35},{wch:12},{wch:16},{wch:20}];
-      XLSX.utils.book_append_sheet(wb, ws6, "開業費台帳");
+      if(kaiTotal>0){
+        const kaiRows=[
+          ["開　業　費　台　帳（"+KAIGYO_DATE+" 開業・それ以前の支出）"],
+          ["仕訳：開業時→借方:開業費/貸方:事業主借　各年→借方:開業費償却/貸方:開業費（任意償却のため金額は調整可）"],
+          ["支出年月日","費用の内容","金額（円）","勘定科目（参考）","備考"],
+          ...preOpen.map(c=>[c.date||"",memoOf(c),agriOf(c),kamokuOf(c),rateOf(c)<100?"按分"+rateOf(c)+"%":""]),
+          ["","開業費 合計",kaiTotal,"",""],
+          [],
+          ["【償却スケジュール（5年均等・開業年は月割り）】"],
+          ["年度","当年償却額","償却累計","未償却残高","備考"],
+          ...kaiSchedule.map(k=>["令和"+(k.year-2018)+"年"+(k.year===Y?"（今回）":""),k.amt,k.cum,k.rest,k.note]),
+        ];
+        const ws6=XLSX.utils.aoa_to_sheet(kaiRows);
+        ws6["!cols"]=[{wch:14},{wch:35},{wch:12},{wch:16},{wch:20}];
+        XLSX.utils.book_append_sheet(wb, ws6, "開業費台帳");
+      }
 
       // ── シート7: 科目別集計 ──
-      const sumRows=[["科目別集計（令和8年分）"],["勘定科目","金額（円）","件数","うちカード払い","うち電子マネー"]];
+      const kamokuAmt = {};
+      KAMOKU_COLS.forEach(k=>{ kamokuAmt[k]=postOpen.filter(c=>kamokuOf(c)===k).reduce((s,c)=>s+agriOf(c),0); });
+      kamokuAmt["減価償却費"] += equipDepTotal;
+      const sumRows=[["科目別集計（"+WAREKI+"分）"],["勘定科目","金額（円）","件数","うちカード払い","うち電子マネー"]];
       KAMOKU_COLS.forEach(k=>{
-        const items=postOpen.filter(c=>(CAT_TO_KAMOKU[c.cat]||"その他")===k);
-        if(items.length>0){
-          const cardAmt=items.filter(c=>cards&&cards.some&&cards.some(cd=>cd.name===c.payMethod)).reduce((s,c)=>s+(Number(c.amt)||0),0);
-          const emAmt=items.filter(c=>isEmoneyPM(c.payMethod)).reduce((s,c)=>s+(Number(c.amt)||0),0);
-          sumRows.push([k,items.reduce((s,c)=>s+(Number(c.amt)||0),0),items.length,cardAmt,emAmt]);
+        const items=postOpen.filter(c=>kamokuOf(c)===k);
+        if(items.length>0 || (k==="減価償却費"&&equipDepTotal>0)){
+          const cardAmt=items.filter(c=>isCardPM(c.payMethod)).reduce((s,c)=>s+agriOf(c),0);
+          const emAmt=items.filter(c=>isEmoneyPM(c.payMethod)).reduce((s,c)=>s+agriOf(c),0);
+          sumRows.push([k+(k==="減価償却費"&&equipDepTotal>0?"（農機具等を含む）":""),kamokuAmt[k],items.length,cardAmt,emAmt]);
         }
       });
-      sumRows.push(["経費合計（開業後）",postOpen.reduce((s,c)=>s+(Number(c.amt)||0),0),postOpen.length,"",emTotal]);
-      sumRows.push([]);
-      sumRows.push(["開業費合計（開業前）",kaiTotal,preOpen.length,""]);
+      const expTotal = KAMOKU_COLS.reduce((s,k)=>s+(kamokuAmt[k]||0),0);
+      sumRows.push(["経費合計",expTotal,postOpen.length,"",""]);
+      if(kaiShokyaku>0) sumRows.push(["開業費償却（当年分）",kaiShokyaku,"","",""]);
       const ws7=XLSX.utils.aoa_to_sheet(sumRows);
-      ws7["!cols"]=[{wch:20},{wch:14},{wch:8},{wch:16},{wch:16}];
+      ws7["!cols"]=[{wch:24},{wch:14},{wch:8},{wch:16},{wch:16}];
       XLSX.utils.book_append_sheet(wb, ws7, "科目別集計");
 
       // ── シート8: 損益計算書 ──
-      const expTotal = postOpen.reduce((s,c)=>s+(Number(c.amt)||0),0);
-      const kaiShokyaku = Math.round(kaiTotal/5*4.5/12); // 開業年の開業費償却額
-      const totalExp = expTotal + kaiShokyaku;
-      // 科目別金額
-      const kamokuAmt = {};
-      KAMOKU_COLS.forEach(k=>{ kamokuAmt[k]=postOpen.filter(c=>(CAT_TO_KAMOKU[c.cat]||"その他")===k).reduce((s,c)=>s+(Number(c.amt)||0),0); });
-      // 収入データを集計
-      const incomeItems = costs.filter(c=>isIncome(c.cat));
-      const incCrop    = incomeItems.filter(c=>c.cat==="inc_crop").reduce((s,c)=>s+(Number(c.amt)||0),0);
-      const incMisc    = incomeItems.filter(c=>c.cat==="inc_misc").reduce((s,c)=>s+(Number(c.amt)||0),0);
-      const incSubsidy = incomeItems.filter(c=>c.cat==="inc_subsidy").reduce((s,c)=>s+(Number(c.amt)||0),0);
-      const incOther   = incomeItems.filter(c=>c.cat==="inc_other").reduce((s,c)=>s+(Number(c.amt)||0),0);
+      const sumInc = cats => yrInc.filter(c=>cats.includes(c.cat)).reduce((s,c)=>s+amtOf(c),0);
+      const incCrop    = sumInc(["inc_crop","inc_direct","inc_process"]);
+      const incMisc    = sumInc(["inc_misc"]);
+      const incSubsidy = sumInc(["inc_subsidy"]);
+      const incOther   = sumInc(["inc_other"]);
       const incTotal   = incCrop+incMisc+incSubsidy+incOther;
+      const totalExp   = expTotal + kaiShokyaku;
+      const agriIncome = incTotal - totalExp;
 
       const plRows = [
-        ["損　益　計　算　書　令和8年分　農業所得"],
-        ["農業所得 = 農業収入 - 農業経費（開業費償却を含む）"],
+        ["損　益　計　算　書　"+WAREKI+"分　農業所得"],
+        ["農業所得 = 農業収入 - 農業経費（減価償却費・開業費償却を含む）"],
         [],
         ["【農業収入の部】","","（円）"],
-        ["　農産物売上高（サクメモ自動集計）","",incCrop],
-        ["　農業雑収入（サクメモ自動集計）","",incMisc],
-        ["　補助金・交付金（サクメモ自動集計）","",incSubsidy],
-        ["　その他収入（サクメモ自動集計）","",incOther],
-        ["　農業収入合計","",{f:"=C5+C6+C7+C8"}],
+        ["　農産物売上高（直売・加工品を含む）","",incCrop],
+        ["　農業雑収入","",incMisc],
+        ["　補助金・交付金","",incSubsidy],
+        ["　その他収入","",incOther],
+        ["　農業収入合計","",{f:"C5+C6+C7+C8"}],
         [],
         ["【農業費用の部】","","（円）"],
       ];
+      const expStartRow = plRows.length + 1;
       KAMOKU_COLS.forEach(k=>{ plRows.push(["　"+k,"",kamokuAmt[k]||0]); });
-      const expStartRow = 10;
-      const expEndRow = expStartRow + KAMOKU_COLS.length - 1;
-      plRows.push(["　開業費償却（当年分）","",kaiShokyaku]);
-      const plExpSumRow = plRows.length + 1;
-      plRows.push(["　農業費用合計","",{f:`=SUM(C${expStartRow}:C${plExpSumRow-1})`}]);
+      plRows.push(["　開業費償却（決算書では減価償却費に含めて記入）","",kaiShokyaku]);
+      const plExpRow = plRows.length + 1;
+      plRows.push(["　農業費用合計","",{f:`SUM(C${expStartRow}:C${plExpRow-1})`}]);
       plRows.push([]);
-      const plIncomeRow = 9; // 農業収入合計の行
-      const plExpRow = plExpSumRow;
-      plRows.push(["農　業　所　得（税引前）","",{f:`=C${plIncomeRow}-C${plExpRow}`}]);
-      plRows.push(["青色申告特別控除","",650000]);
-      const plNiRow = plRows.length;
-      plRows.push(["控除後農業所得","",{f:`=MAX(0,C${plNiRow-1}-C${plNiRow})`}]);
+      const plIncomeRow = 9;
+      const plNetRow = plRows.length + 1;
+      plRows.push(["農　業　所　得（青色申告特別控除前）","",{f:`C${plIncomeRow}-C${plExpRow}`}]);
+      const plDedRow = plRows.length + 1;
+      plRows.push(["青色申告特別控除（e-Tax提出は65万円・紙提出は55万円）","",{f:`MIN(650000,MAX(0,C${plNetRow}))`}]);
+      plRows.push(["控除後農業所得","",{f:`MAX(0,C${plNetRow}-C${plDedRow})`}]);
       plRows.push([]);
-      plRows.push(["【参考】サクメモ費用データ集計"]);
-      plRows.push(["開業後経費合計（サクメモ）","",expTotal]);
-      plRows.push(["開業費合計（サクメモ）","",kaiTotal]);
-      plRows.push(["開業年償却額（5年均等・月割り）","",kaiShokyaku]);
-
+      plRows.push(["【参考】"]);
+      plRows.push(["当年の経費（家事按分後）","",expTotal]);
+      plRows.push(["うち減価償却費（農機具等）","",equipDepTotal]);
+      plRows.push(["開業費合計（開業前支出）","",kaiTotal]);
+      plRows.push(["※棚卸（期首・期末）がある場合は収支管理の「帳簿」タブで確認し、決算書に記入してください"]);
       const ws8 = XLSX.utils.aoa_to_sheet(plRows);
-      ws8["!cols"]=[{wch:28},{wch:6},{wch:14}];
+      ws8["!cols"]=[{wch:40},{wch:4},{wch:14}];
       XLSX.utils.book_append_sheet(wb, ws8, "損益計算書");
 
-      // ── シート9: 貸借対照表 ──
-      // カード未払金残高を計算（引き落とし済みを除く）
+      // ── シート9: 貸借対照表（年末時点・推計含む） ──
+      const upToYE = sorted.filter(c=>afterOpen(c) && c.date && c.date<=yearEnd);
+      // カード未払金：年末までの購入で、引き落としが翌年以降（または未設定）
       const cardPayable = {};
-      postOpen.filter(c=>c.payMethod&&cards&&cards.some&&cards.some(cd=>cd.name===c.payMethod)).forEach(c=>{
-        // payDateが過去なら引き落とし済み → 未払金から除外
-        const isPaid = c.payDate && c.payDate <= new Date().toISOString().slice(0,10);
-        if(!isPaid) cardPayable[c.payMethod] = (cardPayable[c.payMethod]||0) + (Number(c.amt)||0);
+      upToYE.filter(c=>isExp(c) && isCardPM(c.payMethod) && (!c.payDate || c.payDate>yearEnd)).forEach(c=>{
+        cardPayable[c.payMethod]=(cardPayable[c.payMethod]||0)+amtOf(c);
       });
       const totalCardPayable = Object.values(cardPayable).reduce((s,v)=>s+v,0);
-
-      // 農機具・設備の帳簿価額を自動計算
-      // equips: [{id, name, cat, price, date, depYears, ...}]
-      const exportYear = new Date().getFullYear();
-      let equipBookValue = 0;
-      const equipDetails = [];
-      equips.forEach(eq=>{
-        const price = parseFloat(eq.price)||0;
-        const depYrs = parseInt(eq.depYears)||0;
-        const buyYear = eq.date ? new Date(eq.date).getFullYear() : exportYear;
-        if(price <= 0) return;
-        if(depYrs <= 0){
-          // 少額資産（減価償却なし）：購入年のみ費用として計上 → 帳簿価額0（経過済み）
-          // ただし当年購入なら帳簿価額あり（年度内）
-          if(buyYear === exportYear) equipBookValue += price;
-          equipDetails.push([eq.name, price, 0, buyYear, "(少額一括計上)", buyYear===exportYear?price:0]);
-        } else {
-          // 定額法：取得価額 ÷ 耐用年数 × 経過年数
-          const elapsed = exportYear - buyYear; // 経過年数（0年目=購入年）
-          const annual = Math.round(price / depYrs);
-          const accumulated = Math.min(price - 1, annual * elapsed); // 残存価額1円
-          const bookVal = Math.max(1, price - accumulated);
-          const isFullyDep = elapsed >= depYrs;
-          const bv = isFullyDep ? 1 : bookVal;
-          equipBookValue += bv;
-          equipDetails.push([eq.name, price, depYrs, buyYear, elapsed+"年経過", bv]);
-        }
-      });
-
-      // 現金残高推計（現金収入 − 現金支出）
-      // 開業時資金は元入金に含まれるため、開業後の収支のみで推計
-      const cashIncome = costs.filter(c=>isIncome(c.cat)&&(!c.payMethod||c.payMethod==="現金")).reduce((s,c)=>s+(Number(c.amt)||0),0);
-      const cashOut = postOpen.filter(c=>!isIncome(c.cat)&&(!c.payMethod||c.payMethod==="現金")).reduce((s,c)=>s+(Number(c.amt)||0),0);
-      const cashEst = Math.max(0, cashIncome - cashOut);
-
-      // 普通預金残高推計（振込収入 − 振込支出 − カード引き落とし）
-      const bankIncome = costs.filter(c=>isIncome(c.cat)&&c.payMethod==="振込").reduce((s,c)=>s+(Number(c.amt)||0),0);
-      const bankOut = postOpen.filter(c=>!isIncome(c.cat)&&c.payMethod==="振込").reduce((s,c)=>s+(Number(c.amt)||0),0);
-      const cardPaidTotal = postOpen.filter(c=>c.payDate&&c.payDate<=new Date().toISOString().slice(0,10)&&cards&&cards.some&&cards.some(cd=>cd.name===c.payMethod)).reduce((s,c)=>s+(Number(c.amt)||0),0);
-      const bankEst = Math.max(0, bankIncome - bankOut - cardPaidTotal);
-
-      // 元入金（前年からの引き継ぎ）
-      let motoire = 0;
-      try {
-        const stored = JSON.parse(localStorage.getItem("motoire")||"{}");
-        const prevYear = String(exportYear - 1);
-        motoire = stored[prevYear] || 0;
-      } catch {}
-
-      // 農業所得（損益計算書より）
-      const agriIncome = incTotal - totalExp - kaiShokyaku;
-      // 翌年の元入金 = 元入金 + 農業所得 − 生活費引き出し（事業主貸は手入力なので今は所得のみ）
-      const nextMotoire = motoire + Math.max(0, agriIncome);
-
-      // 開業費未償却残高
-      const kaimiShokyaku = Math.max(0, kaiTotal - kaiShokyaku);
-
-      // 資産合計・負債資本合計
-      const totalAsset = cashEst + bankEst + equipBookValue + kaimiShokyaku;
-      const totalLiabCap = totalCardPayable + motoire + emTotal + Math.max(0, agriIncome);
+      // 固定資産の帳簿価額
+      const equipDetails = depRows.map(x=>[x.eq.name, parseFloat(x.eq.price)||0, parseInt(x.eq.depYears)||0, String(x.eq.date).slice(0,10), x.annual, x.book]);
+      const equipBookValue = depRows.reduce((s,x)=>s+x.book,0);
+      // 現金・預金（開業後の記録から推計）
+      const flow = (pred) => upToYE.filter(pred);
+      const sumA = arr => arr.reduce((s,c)=>s+amtOf(c),0);
+      const cashIn  = sumA(flow(c=>(isIncome(c.cat)&&c.cat!=="inc_owner_draw"&&!c.isReceivable || c.cat==="owner_loan") && isCash(c)));
+      const cashOut = sumA(flow(c=>(isExp(c) || c.cat==="inc_owner_draw") && isCash(c)));
+      const bankIn  = sumA(flow(c=>(isIncome(c.cat)&&c.cat!=="inc_owner_draw"&&!c.isReceivable || c.cat==="owner_loan") && c.payMethod==="振込"));
+      const bankOut = sumA(flow(c=>(isExp(c) || c.cat==="inc_owner_draw") && c.payMethod==="振込"));
+      const cardPaidToYE = sumA(valid.filter(c=>isExp(c) && isCardPM(c.payMethod) && c.payDate && c.payDate<=yearEnd && afterOpen(c)));
+      const cashEst = cashIn - cashOut;
+      const bankEst = bankIn - bankOut - cardPaidToYE;
+      const receivable = sumA(flow(c=>isIncome(c.cat) && c.isReceivable));
+      const kaimiShokyaku = Math.max(0, kaiTotal - kaiCumToY);
+      // 資本
+      const motoire = getOpeningMotoire(Y);
+      const householdPart = postOpen.filter(c=>creditOf(c.payMethod||"現金")!=="事業主借").reduce((s,c)=>s+(amtOf(c)-agriOf(c)),0);
+      const jigyonushiKari = sumA(yrLoan) + emTotal + (kaiY===Y?kaiTotal:0);
+      const jigyonushiKashi = sumA(yrDraw) + householdPart;
+      const nextMotoire = motoire + agriIncome + jigyonushiKari - jigyonushiKashi;
+      const totalAsset = cashEst + bankEst + receivable + equipBookValue + kaimiShokyaku;
+      const totalLiabCap = totalCardPayable + motoire + jigyonushiKari - jigyonushiKashi + agriIncome;
 
       const bsRows = [
-        ["貸　借　対　照　表　令和"+String(exportYear-2018+6)+"年12月31日現在"],
-        ["（個人事業主・農業所得用）　★印は自動計算、※印は推計値（実際の残高を確認してください）"],
+        ["貸　借　対　照　表　"+WAREKI+"12月31日現在"],
+        ["（個人事業主・農業所得用）　★印は自動計算、※印は推計値（通帳・現金の実際の残高を確認してください）"],
         [],
         ["【資産の部】","金額（円）","","【負債・資本の部】","金額（円）"],
         ["〈流動資産〉","","","〈流動負債〉",""],
         ["　現金（※推計）",cashEst,"","　未払金（カード・★自動）",totalCardPayable],
         ["　普通預金（※推計）",bankEst,"","　買掛金","0　←手入力"],
-        ["　売掛金","0　←手入力","","　前受金","0　←手入力"],
+        ["　売掛金（未収金・★自動）",receivable,"","　前受金","0　←手入力"],
         ["　棚卸資産（農産物等）","0　←手入力","","〈固定負債〉",""],
         ["〈固定資産〉","","","　長期借入金","0　←手入力"],
-        ["　農機具・設備（帳簿価額★自動）",equipBookValue,"","",""],
+        ["　農機具等（帳簿価額★自動）",equipBookValue,"","",""],
         ["　開業費（未償却残高★自動）",kaimiShokyaku,"","〈資本の部〉",""],
-        ["","","","　元入金（★前年繰越）",motoire],
-        ["","","","　事業主借（電子マネー払い★自動＋手入力分）",emTotal],
-        ["","","","　事業主貸（マイナス）","0　←手入力（生活費引き出し）"],
-        ["","","","　当期農業所得（★自動）",Math.max(0,agriIncome)],
+        ["","","","　元入金（★期首）",motoire],
+        ["","","","　事業主借（★電子マネー払い・個人資金の入金等）",jigyonushiKari],
+        ["","","","　事業主貸（★引出し・家事按分の家事分）",-jigyonushiKashi],
+        ["","","","　青色申告特別控除前の所得（★自動）",agriIncome],
         [],
         ["資産合計（※参考値）",totalAsset,"","負債・資本合計（※参考値）",totalLiabCap],
         [],
         ["【注意事項・確認手順】"],
-        ["①現金・普通預金は推計値です。実際の残高（通帳・現金）と照合してください"],
-        ["②農機具帳簿価額は定額法で自動計算（資材・設備の購入価格・耐用年数から）"],
-        ["③カード未払金は未引き落とし分を自動集計（引き落とし日入力済みのもの）"],
-        ["④開業費未償却残高は5年均等償却で自動計算"],
-        ["⑤元入金は前年の農業所得を自動引き継ぎ（帳簿Excel出力時に来年用を保存）"],
-        ["⑥借入金・売掛金・事業主貸等は実績に応じて手入力してください"],
-        ["⑦資産合計と負債・資本合計が一致すれば正しく記帳できています"],
-        ["⑧電子マネー（PayPay・メルペイ等）で払った経費は事業主借として自動集計（私用と共用のため残高は資産に計上しません）"],
+        ["①現金・普通預金は開業後の記録からの推計です。実際の残高（通帳・現金）と照合してください"],
+        ["②農機具等は耐用年数を設定したものを定額法（購入年は月割り）で自動計算しています"],
+        ["③カード未払金は年末までの購入で、引き落とし日が翌年以降のものを集計しています"],
+        ["④開業費は5年均等（開業年は月割り）で計算。開業費は任意償却なので金額は調整できます"],
+        ["⑤元入金（翌年期首）＝期首元入金＋所得＋事業主借－事業主貸 を自動で保存します"],
+        ["⑥借入金・買掛金・棚卸資産などは実績に応じて手入力してください"],
+        ["⑦資産合計と負債・資本合計の差は、推計できない残高（手持ち現金・預金の期首残高など）です"],
       ];
-      // 農機具明細を追加
       if(equipDetails.length > 0){
         bsRows.push([]);
-        bsRows.push(["【農機具・設備　帳簿価額明細（★自動計算）】"]);
-        bsRows.push(["名称","取得価額","耐用年数","購入年","経過","帳簿価額"]);
+        bsRows.push(["【農機具等　減価償却明細（★自動計算）】"]);
+        bsRows.push(["名称","取得価額","耐用年数","取得日","当年償却額","年末帳簿価額"]);
         equipDetails.forEach(r=>bsRows.push(r));
-        bsRows.push(["合計","","","","",equipBookValue]);
+        bsRows.push(["合計","","","",equipDepTotal,equipBookValue]);
       }
-      // カード別の未払金明細を追加
       if(Object.keys(cardPayable).length > 0){
         bsRows.push([]);
         bsRows.push(["【カード別未払金内訳（★自動）】"]);
-        Object.entries(cardPayable).forEach(([card,amt])=>{
-          bsRows.push(["　"+card, amt]);
-        });
+        Object.entries(cardPayable).forEach(([card,amt])=>bsRows.push(["　"+card, amt]));
       }
-      // 来年用の元入金をlocalStorageに保存
-      try {
-        const stored = JSON.parse(localStorage.getItem("motoire")||"{}");
-        stored[String(exportYear)] = nextMotoire;
-        localStorage.setItem("motoire", JSON.stringify(stored));
-      } catch {}
+      setOpeningMotoire(Y+1, nextMotoire);
 
       const ws9 = XLSX.utils.aoa_to_sheet(bsRows);
-      ws9["!cols"]=[{wch:28},{wch:14},{wch:3},{wch:26},{wch:16}];
+      ws9["!cols"]=[{wch:28},{wch:14},{wch:3},{wch:34},{wch:16}];
       XLSX.utils.book_append_sheet(wb, ws9, "貸借対照表");
 
       // ── シート10: 家事按分明細 ──
       const apRates = (()=>{ try { return JSON.parse(localStorage.getItem("apportionRates")||"{}"); } catch { return {}; } })();
       const apMasters = (()=>{ try { return JSON.parse(localStorage.getItem("apportionMasters")||"[]"); } catch { return []; } })();
-      const apItems = sorted.filter(c=>!isIncome(c.cat) && apRates[c.id] !== undefined && apRates[c.id] < 100);
+      const apItems = postOpen.filter(c=>apRates[c.id] !== undefined && apRates[c.id] < 100);
       const apRows = [
-        ["家事按分明細（令和8年分）"],
+        ["家事按分明細（"+WAREKI+"分）"],
         ["農業と家事で共用する支出の按分内訳"],
         ["日付","内容","支払総額（円）","農業割合（%）","農業費用額（円）","家事費用額（円）","按分理由"],
         ...apItems.map(c=>{
@@ -4504,7 +4544,7 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
         XLSX.utils.book_append_sheet(wb, wsEmpty, "農薬記録（未登録）");
       }
 
-      const fname="サクメモ_青色申告帳簿_複式簿記_"+new Date().getFullYear()+".xlsx";
+      const fname="サクメモ_青色申告帳簿_"+YS+"年分.xlsx";
       XLSX.writeFile(wb, fname);
       showToast("複式簿記帳簿Excelを書き出しました（"+fname+"）");
     };
@@ -5758,7 +5798,7 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
         const expTotal = expTotal0 + invStart - invEnd;
         const profit = incTotal - expTotal;
         // 農機具帳簿価額
-        const thisYear = new Date().getFullYear();
+        const thisYear = Number(yr)||new Date().getFullYear(); // 選択中の年の年末時点
         let equipBookVal = 0;
         (equips||[]).filter(e=>!MATERIAL_CATS.includes(e.cat)).forEach(eq=>{
           const buyDate = eq.purchaseDate||eq.date||eq.buyDate;
@@ -5767,15 +5807,14 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
           const life = parseInt(eq.usefulLife||eq.depYears)||0;
           const price = parseFloat(eq.price)||0;
           if(life<=0){
-            // 減価償却なし（少額一括計上）：購入年のみ帳簿価額あり
-            if(py===thisYear) equipBookVal += price;
+            // 減価償却なし（少額一括計上）：購入年に全額経費のため帳簿価額は0
           } else {
             const annual = Math.floor(price / life);
             const dep = Math.min(price, annual*(thisYear-py));
             equipBookVal += Math.max(0, price - dep);
           }
         });
-        const motoire = (()=>{try{return Number(localStorage.getItem("motoire")||"0");}catch{return 0;}})();
+        const motoire = getOpeningMotoire(yr);
         const nextMotoire = motoire + profit;
         return (<>
           {/* 棚卸資産入力 */}
@@ -5857,7 +5896,7 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
             <div style={{marginTop:8}}>
               <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
                 <button style={{...S.btn,...S.btnS}} onClick={()=>{
-                  try{localStorage.setItem("motoire",String(nextMotoire));showToast("来年の元入金を保存しました（"+nextMotoire.toLocaleString()+"円）");}catch{}
+                  setOpeningMotoire(Number(yr)+1,nextMotoire);showToast((Number(yr)+1)+"年の期首元入金として保存しました（"+nextMotoire.toLocaleString()+"円）");
                 }}>来年の元入金として保存</button>
                 <button style={{...S.btn,background:"#f3f0ea",color:"#666",border:"1px solid #e0d9ce",borderRadius:8,padding:"7px 12px",fontSize:".8rem",cursor:"pointer",fontFamily:"inherit"}}
                   onClick={()=>{setMotoireEditOpen(p=>!p);setMotoireInput(String(motoire));}}>✏️ 手動で修正</button>
@@ -5875,13 +5914,13 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
                   <div style={{display:"flex",gap:6,marginTop:8}}>
                     <button style={{...S.btn,...S.btnG,flex:1}} onClick={()=>{
                       const v=parseInt(motoireInput)||0;
-                      try{localStorage.setItem("motoire",String(v));showToast("元入金を "+v.toLocaleString()+" 円に更新しました");}catch{}
+                      setOpeningMotoire(yr,v);showToast(yr+"年の期首元入金を "+v.toLocaleString()+" 円に更新しました");
                       setMotoireEditOpen(false);
                     }}>この金額で保存</button>
                     <button style={{...S.btn,background:"#fee2e2",color:"#dc2626",borderRadius:8,padding:"7px 14px",border:"none",cursor:"pointer",flex:1,fontFamily:"inherit",fontSize:".8rem"}}
                       onClick={()=>{
                         if(window.confirm("元入金を0円にリセットしますか？")){
-                          try{localStorage.setItem("motoire","0");showToast("元入金を0円にリセットしました");}catch{}
+                          setOpeningMotoire(yr,0);showToast("元入金を0円にリセットしました");
                           setMotoireEditOpen(false);
                         }
                       }}>0円にリセット</button>
@@ -5986,7 +6025,7 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
       {/* 資金繰り表タブ */}
       {mainTab==="cashflow"&&(()=>{
         const today2 = new Date();
-        const motoire2 = (()=>{try{return Number(localStorage.getItem("motoire")||"0");}catch{return 0;}})();
+        const motoire2 = getOpeningMotoire(new Date(today2.getFullYear(), today2.getMonth()-6, 1).getFullYear()); // 表示開始月の年の期首元入金
         // 過去6ヶ月〜今後3ヶ月
         const months9 = [];
         for(let i=-6;i<=2;i++){
@@ -7679,110 +7718,123 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs, equips=[], o
   );
 }
 
-// SETTINGS
-function PublicSettings({ uid, crops, showToast }) {
-  const [isPublic,   setIsPublic]   = useState(false);
-  const [name,       setName]       = useState("");
-  const [desc,       setDesc]       = useState("");
-  const [publicCrops,setPublicCrops]= useState({});
-  const [loading,    setLoading]    = useState(true);
-  const [saving,     setSaving]     = useState(false);
+// ─── みんなのサクメモ：閲覧数の取得 ───
+// farm_views / crop_views = 累計、view_daily = 日別（sakumemo-views.sql 実行後に有効）
+const loadPublicStats = async (uid, cropIds) => {
+  const out = { farm:null, farmTotal:0, crops:{}, daily:{} };
+  if(!uid) return out;
+  const since = (()=>{ const d=new Date(); d.setDate(d.getDate()-30); return d.toISOString().slice(0,10); })();
+  const ids = (cropIds||[]).filter(id=>/^[0-9a-f-]{36}$/i.test(String(id)));
+  const [farmR, fvR, cvR, vdR] = await Promise.all([
+    sb.from("public_farms").select("*").eq("user_id",uid).maybeSingle(),
+    sb.from("farm_views").select("view_count,updated_at").eq("user_id",uid).maybeSingle(),
+    ids.length ? sb.from("crop_views").select("crop_id,view_count,updated_at").in("crop_id",ids) : Promise.resolve({data:[]}),
+    sb.from("view_daily").select("target,day,view_count").eq("farm_user_id",uid).gte("day",since),
+  ].map(p=>Promise.resolve(p).catch(e=>({data:null,error:e}))));
+  out.farm = farmR?.data || null;
+  out.farmTotal = fvR?.data?.view_count || 0;
+  out.farmUpdated = fvR?.data?.updated_at || "";
+  (cvR?.data||[]).forEach(r=>{ out.crops[r.crop_id] = { total:r.view_count||0, updated:r.updated_at||"" }; });
+  (vdR?.data||[]).forEach(r=>{ (out.daily[r.target] = out.daily[r.target]||[]).push({day:r.day, n:r.view_count||0}); });
+  out.hasDaily = !vdR?.error;
+  return out;
+};
+const sumDaily = (arr, days) => {
+  if(!arr) return 0;
+  const d=new Date(); d.setDate(d.getDate()-(days-1));
+  const from = d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+  return arr.filter(x=>x.day>=from).reduce((s,x)=>s+x.n,0);
+};
+const fmtAgo = iso => {
+  if(!iso) return "";
+  const m = Math.floor((Date.now()-new Date(iso).getTime())/60000);
+  if(isNaN(m)) return "";
+  if(m<1) return "たった今"; if(m<60) return m+"分前"; if(m<1440) return Math.floor(m/60)+"時間前";
+  return Math.floor(m/1440)+"日前";
+};
 
-
-  useEffect(()=>{
-    if(!uid) return;
-    Promise.all([
-      sb.from("public_farms").select("").eq("user_id",uid).maybeSingle(),
-      sb.from("crops").select("id,is_public").eq("user_id",uid)
-    ]).then(([{data:farm},{data:cropRows}])=>{
-      if(farm){ setIsPublic(farm.is_public||false); setName(farm.display_name||""); setDesc(farm.description||""); }
-      if(cropRows){ const m={}; cropRows.forEach(c=>{ m[c.id]=c.is_public||false; }); setPublicCrops(m); }
-      setLoading(false);
-    });
-  },[uid]);
-
-  const toggleCrop = (id) => setPublicCrops(p=>({...p,[id]:!p[id]}));
-
-  const save = async() => {
-    if(!uid) return;
+// ─── 品目ごとの公開設定モーダル ───
+function CropPublicModal({ crop, crops, setCrops, fields, uid, stats, onClose, onSaved, showToast }) {
+  const farm = stats?.farm || {};
+  const [pub,  setPub]  = useState(!!crop.isPublic);
+  const [name, setName] = useState(farm.display_name||"");
+  const [desc, setDesc] = useState(farm.description||"");
+  const [saving, setSaving] = useState(false);
+  const cs = stats?.crops?.[crop.id] || {};
+  const daily = stats?.daily?.[crop.id];
+  const pageUrl = (typeof location!=="undefined"?location.origin:"")+"/farm.html?"+(farm.slug?"u="+farm.slug:"uid="+uid)+"&crop="+crop.id;
+  const save = async () => {
+    if(pub && !name.trim()){ showToast("農場名を入力してください（公開ページに表示されます）"); return; }
     setSaving(true);
-    await sb.from("public_farms").upsert({
-      user_id:uid, is_public:isPublic, display_name:name, description:desc, updated_at:new Date().toISOString()
-    },{onConflict:"user_id"});
-    for(const [cropId, pub] of Object.entries(publicCrops)){
-      await sb.from("crops").update({is_public:pub}).eq("id",cropId).eq("user_id",uid);
-    }
-    showToast("公開設定を保存しました");
+    try{
+      const u = {...crop, isPublic:pub};
+      const list = crops.map(x=>x.id===u.id?u:x);
+      setCrops(list, u, fields);
+      const anyPublic = list.some(x=>x.isPublic);
+      const { error } = await sb.from("public_farms").upsert({
+        user_id:uid, is_public:anyPublic, display_name:name.trim(), description:desc.trim(), updated_at:new Date().toISOString()
+      },{onConflict:"user_id"});
+      if(error){ console.error("public_farms", error); showToast("公開情報の保存に失敗しました"); setSaving(false); return; }
+      showToast(pub ? "「"+getCropName(crop)+"」を公開しました" : "「"+getCropName(crop)+"」を非公開にしました");
+      onSaved && onSaved();
+      onClose();
+    }catch(e){ console.error(e); showToast("保存に失敗しました"); }
     setSaving(false);
   };
-
-  if(loading) return (
-    <div style={{...S.card,minHeight:200}}>
-      <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".86rem",color:"#5c3d1e",marginBottom:12}}>🌐 栽培記録を公開</div>
-      <div style={{color:TX3,fontSize:".8rem",padding:"40px 0",textAlign:"center"}}>読み込み中…</div>
+  const Stat = ({label, val}) => (
+    <div style={{flex:1,textAlign:"center",background:"#fff",borderRadius:8,padding:"8px 4px",border:"1px solid #e8e0d5"}}>
+      <div style={{fontSize:"1.05rem",fontWeight:700,color:G}}>{val}</div>
+      <div style={{fontSize:".62rem",color:TX3,marginTop:1}}>{label}</div>
     </div>
   );
-  const activeCrops = crops.filter(c=>!c.ended);
-  const endedCrops  = crops.filter(c=>c.ended);
-
   return (
-    <div style={{...S.card,minHeight:200}}>
-      <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".86rem",color:"#5c3d1e",marginBottom:12}}>🌐 栽培記録を公開</div>
-      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14,padding:"10px 12px",background:"#f5f5f0",borderRadius:10}}>
+    <ModalWithSave open={true} title={"🌐 公開設定："+getCropName(crop)+(crop.variety?"（"+crop.variety+"）":"")} onClose={onClose} onSave={save} saveLabel={saving?"保存中…":"保存"}>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12,padding:"10px 12px",background:pub?"#f0f9f0":"#f5f5f0",borderRadius:10,border:"1px solid "+(pub?"#6ee7b7":BD)}}>
         <div>
-          <div style={{fontWeight:700,fontSize:".86rem"}}>公開する</div>
-          <div style={{fontSize:".72rem",color:TX3}}>みんなのサクメモに掲載されます</div>
+          <div style={{fontWeight:700,fontSize:".86rem"}}>{pub?"公開中":"非公開"}</div>
+          <div style={{fontSize:".7rem",color:TX3}}>この品目の栽培記録を「みんなのサクメモ」に掲載</div>
         </div>
-        <button onClick={()=>setIsPublic(!isPublic)}
-          style={{width:44,height:26,borderRadius:999,border:"none",cursor:"pointer",
-            background:isPublic?G:"#ccc",position:"relative",transition:"background .2s",flexShrink:0}}>
-          <span style={{position:"absolute",top:3,left:isPublic?21:3,width:20,height:20,borderRadius:"50%",background:"#fff",transition:"left .2s",boxShadow:"0 1px 3px rgba(0,0,0,.2)"}}/>
+        <button type="button" onClick={()=>setPub(!pub)} aria-label="公開切り替え"
+          style={{width:44,height:26,borderRadius:999,border:"none",cursor:"pointer",background:pub?G:"#ccc",position:"relative",transition:"background .2s",flexShrink:0}}>
+          <span style={{position:"absolute",top:3,left:pub?21:3,width:20,height:20,borderRadius:"50%",background:"#fff",transition:"left .2s",boxShadow:"0 1px 3px rgba(0,0,0,.2)"}}/>
         </button>
       </div>
-      {isPublic&&<>
-        <FG label="農場名"><Inp value={name} onChange={setName} placeholder="例：〇〇農園"/></FG>
-        <FG label="一言説明（任意）"><Inp value={desc} onChange={setDesc} placeholder="例：静岡県で有機野菜を栽培しています"/></FG>
-
-        <div style={{marginBottom:12}}>
-          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
-            <span style={{fontSize:".78rem",fontWeight:700,color:"#5c3d1e"}}>公開する品目を選ぶ</span>
-            <button onClick={save} disabled={saving} style={{background:saving?"#ccc":G,color:"#fff",border:"none",borderRadius:8,padding:"5px 14px",fontSize:".74rem",fontWeight:700,cursor:"pointer"}}>{saving?"保存中…":"保存 ✓"}</button>
-          </div>
-          {activeCrops.length===0&&<div style={{fontSize:".76rem",color:TX3}}>栽培中の品目がありません</div>}
-          {activeCrops.map(c=>{ const db=CDB[c.type]||{}; const n=getCropName(c); return (
-            <div key={c.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 10px",background:publicCrops[c.id]?"#f0f9f0":"#fafafa",borderRadius:9,marginBottom:5,border:"1px solid "+(publicCrops[c.id]?"#6ee7b7":BD)}}>
-              <span style={{fontSize:".84rem"}}>{db.e||"🌱"} {n}{c.variety?" ("+c.variety+")":""}</span>
-              <button onClick={()=>toggleCrop(c.id)}
-                style={{width:40,height:22,borderRadius:999,border:"none",cursor:"pointer",
-                  background:publicCrops[c.id]?G:"#ccc",position:"relative",transition:"background .2s",flexShrink:0}}>
-                <span style={{position:"absolute",top:2,left:publicCrops[c.id]?19:2,width:18,height:18,borderRadius:"50%",background:"#fff",transition:"left .2s",boxShadow:"0 1px 3px rgba(0,0,0,.2)"}}/>
-              </button>
-            </div>
-          );})}
-          {endedCrops.map(c=>{ const db=CDB[c.type]||{}; const n=getCropName(c); return (
-            <div key={c.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 10px",background:publicCrops[c.id]?"#f0f9f0":"#fafafa",borderRadius:9,marginBottom:5,border:"1px solid "+(publicCrops[c.id]?"#6ee7b7":BD),opacity:.75}}>
-              <span style={{fontSize:".84rem"}}>{db.e||"🌱"} {n}{c.variety?" ("+c.variety+")":""} <span style={{fontSize:".65rem",color:"#e67e22"}}>終了</span></span>
-              <button onClick={()=>toggleCrop(c.id)}
-                style={{width:40,height:22,borderRadius:999,border:"none",cursor:"pointer",
-                  background:publicCrops[c.id]?G:"#ccc",position:"relative",transition:"background .2s",flexShrink:0}}>
-                <span style={{position:"absolute",top:2,left:publicCrops[c.id]?19:2,width:18,height:18,borderRadius:"50%",background:"#fff",transition:"left .2s",boxShadow:"0 1px 3px rgba(0,0,0,.2)"}}/>
-              </button>
-            </div>
-          );})}
+      {pub&&<>
+        <FG label="農場名（全品目共通）"><Inp value={name} onChange={setName} placeholder="例：〇〇農園"/></FG>
+        <FG label="一言説明（任意・全品目共通）"><Inp value={desc} onChange={setDesc} placeholder="例：静岡県で有機野菜を栽培しています"/></FG>
+        <div style={{fontSize:".68rem",color:TX3,marginTop:-4,marginBottom:10,lineHeight:1.5}}>
+          公開されるのは作業記録・写真・栽培情報です。費用・売上・在庫は公開されません。
         </div>
-
       </>}
-      
-      {isPublic&&(
-        <a href={"/farm.html?uid="+uid} target="_blank" rel="noopener noreferrer"
-          style={{display:"flex",alignItems:"center",justifyContent:"center",gap:6,background:"#f0f9f0",border:"1.5px solid #6ee7b7",borderRadius:10,padding:"10px",marginTop:8,textDecoration:"none",color:G,fontWeight:700,fontSize:".82rem"}}>
-          🌾 自分のサクメモページを見る →
+      <div style={{background:"#f7f5f0",borderRadius:10,padding:"10px 10px 8px",marginBottom:10}}>
+        <div style={{fontSize:".76rem",fontWeight:700,color:"#5c3d1e",marginBottom:6}}>👁 この品目の閲覧数（他の人からのアクセス）</div>
+        <div style={{display:"flex",gap:6}}>
+          <Stat label="累計" val={cs.total||0}/>
+          {stats?.hasDaily&&<Stat label="今日" val={sumDaily(daily,1)}/>}
+          {stats?.hasDaily&&<Stat label="7日間" val={sumDaily(daily,7)}/>}
+          {stats?.hasDaily&&<Stat label="30日間" val={sumDaily(daily,30)}/>}
+        </div>
+        <div style={{fontSize:".66rem",color:TX3,marginTop:6,lineHeight:1.5}}>
+          {cs.updated?"最終閲覧："+fmtAgo(cs.updated)+"　":""}農場ページ全体：累計{stats?.farmTotal||0}回
+          {stats?.hasDaily&&"（7日間 "+sumDaily(stats?.daily?.farm,7)+"回）"}<br/>
+          ※自分での閲覧は数えません。同じ人の同じ日の再表示は1回として数えます。
+        </div>
+      </div>
+      {crop.isPublic&&farm.is_public&&<div style={{display:"flex",gap:6}}>
+        <a href={pageUrl} target="_blank" rel="noopener noreferrer"
+          style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:4,background:"#f0f9f0",border:"1.5px solid #6ee7b7",borderRadius:10,padding:"9px",textDecoration:"none",color:G,fontWeight:700,fontSize:".78rem"}}>
+          🌾 公開ページを見る
         </a>
-      )}
-    </div>
+        <button type="button" onClick={()=>{ try{ navigator.clipboard.writeText(pageUrl).then(()=>showToast("URLをコピーしました")); }catch{ window.prompt("このURLをコピーしてください",pageUrl); } }}
+          style={{flex:"0 0 auto",background:"#fff",border:"1.5px solid "+BD,borderRadius:10,padding:"9px 12px",fontSize:".78rem",cursor:"pointer",fontFamily:"inherit",color:"#5a5040"}}>
+          🔗 URLコピー
+        </button>
+      </div>}
+    </ModalWithSave>
   );
 }
 
+// SETTINGS
 function PwChangeSection() {
   const [newPw,   setNewPw]   = useState("");
   const [confirm, setConfirm] = useState("");
@@ -7841,19 +7893,22 @@ function SettingsScreen({ showToast, user, uid, signOut, fields, crops, logs, fe
     try{ localStorage.setItem("deletedHolidays", JSON.stringify(arr)); }catch{}
   };
   const [delInput, setDelInput] = useState("");
+  const [kaigyoDate, setKaigyoDateState] = useState(()=>{try{return localStorage.getItem("sakumemo_kaigyo_date")||"";}catch{return "";}});
+  const setKaigyoDate = v => { setKaigyoDateState(v); try{localStorage.setItem("sakumemo_kaigyo_date",v);}catch{} };
   const doExport=()=>{ const d=JSON.stringify({fields,crops,logs,fertMs,pestMs,equips,costs},null,2);const a=document.createElement("a");a.href="data:application/json;charset=utf-8,"+encodeURIComponent(d);a.download="farm-ai-export-"+todayStr()+".json";a.click(); };
   const csvEsc=v=>{const s=String(v==null?"":v);return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;};
   const downloadCsv=(rows,name)=>{const bom="\uFEFF";const csv=bom+rows.map(r=>r.map(csvEsc).join(",")).join("\r\n");const a=document.createElement("a");a.href="data:text/csv;charset=utf-8,"+encodeURIComponent(csv);a.download=name+"-"+todayStr()+".csv";a.click();};
+  const cropName=id=>{if(!id)return"共通";const c=crops.find(x=>x.id===id);if(!c)return"共通";return getCropName(c)+(c.variety?"("+c.variety+")":"");};
+  const workLabel=w=>(WORK_TYPES.find(x=>x.value===w)?.label)||({end:"栽培終了"}[w])||w||"";
   const exportCostCsv=()=>{
-    const cropName=id=>{if(!id)return"共通";const c=crops.find(x=>x.id===id);if(!c)return"共通";const db=CDB[c.type]||{};return(db.n||c.type)+(c.variety?"("+c.variety+")":"");};
-    const catLabel=cat=>({seed:"種苗費",fert:"肥料費",pest:"農薬費",equip:"資材・設備費",labor:"人件費",other:"その他"}[cat]||cat);
-    const rows=[["日付","種別","品名","品目","金額","数量","単位","メモ"]];
-    [...costs].sort((a,b)=>(a.date||"").localeCompare(b.date||"")).forEach(c=>rows.push([c.date||"",catLabel(c.cat),c.name||"",cropName(c.cropId),c.amt||"",c.qty||"",c.qunit||"",c.note||""]));
+    const catLabel=cat=>([...COST_CATS,...INCOME_CATS].find(x=>x.value===cat)?.label||cat||"").replace(/^\S+\s/,"");
+    const rows=[["日付","種別","品名","品目","金額","数量","単位","支払方法","メモ"]];
+    [...costs].filter(c=>!String(c.cat||"").startsWith("__")).sort((a,b)=>(a.date||"").localeCompare(b.date||"")).forEach(c=>rows.push([c.date||"",catLabel(c.cat)+(c.cancelled?"（取消）":""),c.name||"",cropName(c.cropId),c.amt||"",c.qty||"",c.qunit||"",c.payMethod||"",c.note||""]));
     downloadCsv(rows,"費用一覧");
   };
   const exportLogCsv=()=>{
     const rows=[["日付","時刻","品目","作業","作業時間(分)","天気","メモ"]];
-    [...logs].sort((a,b)=>(a.date||"").localeCompare(b.date||"")).forEach(l=>rows.push([l.date||"",l.time||"",cropName(l.cropId),WORK_LABELS[l.work]||l.work||"",l.duration||"",({sunny:"晴れ",cloudy:"曇り",rainy:"雨",snowy:"雪",windy:"強風"}[l.weather]||""),l.memo||""]));
+    [...logs].sort((a,b)=>(a.date||"").localeCompare(b.date||"")).forEach(l=>rows.push([l.date||"",l.time||"",cropName(l.cropId),workLabel(l.work),l.duration||"",({sunny:"晴れ",cloudy:"曇り",rainy:"雨",snowy:"雪",windy:"強風"}[l.weather]||""),l.memo||""]));
     downloadCsv(rows,"作業記録");
   };
   return (
@@ -7879,13 +7934,12 @@ function SettingsScreen({ showToast, user, uid, signOut, fields, crops, logs, fe
         </div>
       )}
 
-      {/* 栽培記録の公開設定 */}
-      <PublicSettings uid={uid} crops={crops} showToast={showToast}/>
+      <div style={{...S.card,fontSize:".76rem",color:TX3,lineHeight:1.6}}>
+        🌐 「みんなのサクメモ」への公開設定は、<b>圃場・品目</b>ページの各品目にある「公開設定」ボタンから行えます。
+      </div>
 
       {/* 開業日設定 */}
       {(()=>{
-        const [kaigyoDate, setKaigyoDateState] = useState(()=>{try{return localStorage.getItem("sakumemo_kaigyo_date")||"";}catch{return "";}});
-        const setKaigyoDate = v => { setKaigyoDateState(v); try{localStorage.setItem("sakumemo_kaigyo_date",v);}catch{} };
         return (
           <div style={S.card}>
             <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".88rem",color:"#5c3d1e",marginBottom:6}}>🏪 開業日の設定</div>
@@ -8384,7 +8438,7 @@ export default function App() {
       const rawL=l.map(r=>logFromDb(r,rawF));
       setFieldsR(rawF);setCropsR(rawC);setLogsR(rawL);
       setFertMsR(fm.map(fertMFromDb));setPestMsR(pm.map(pestMFromDb));
-      setEquipsR(eq.map(equipFromDb));setCostsR(co.map(r=>costFromDb(r,rawF)));setPlotsR((pl||[]).map(plotFromDb));
+      setEquipsR(eq.map(equipFromDb));setCostsR(co.filter(r=>!String(r.cat||"").startsWith("__")).map(r=>costFromDb(r,rawF)));setPlotsR((pl||[]).map(plotFromDb));
       setDbLoad(false);
     }).catch(e=>console.error("LOAD ERROR:", e));
   },[user]);
@@ -8467,7 +8521,7 @@ export default function App() {
         </div>
       </div>
       <div id="main-scroll" style={S.main}>
-        {scr==="fields"  &&<FieldsScreen  fields={fields} setFields={setFields} setFieldsR={setFieldsR} crops={crops} setCrops={setCrops} setCropsR={setCropsR} costs={costs} setCosts={setCosts} logs={logs} setLogs={setLogs} setLogsR={setLogsR} plots={plots} setPlots={setPlots} setPlotsR={setPlotsR} showToast={showToast} editCrop={pendingEditCrop}/>}
+        {scr==="fields"  &&<FieldsScreen  fields={fields} setFields={setFields} setFieldsR={setFieldsR} crops={crops} setCrops={setCrops} setCropsR={setCropsR} costs={costs} setCosts={setCosts} logs={logs} setLogs={setLogs} setLogsR={setLogsR} plots={plots} setPlots={setPlots} setPlotsR={setPlotsR} showToast={showToast} editCrop={pendingEditCrop} uid={uid}/>}
         {(scr==="log"||scr==="home") && <><HomeScreen fields={fields} crops={crops} setCrops={setCrops} logs={logs} costs={costs} showToast={showToast} setScr={setScr} dbLoad={dbLoad} onEditCrop={c=>{setPendingEditCrop(c);setScr("fields");}} onNew={()=>{setInitLog(null);setLogModal(true);}} setLogs={setLogs} dbSaveLog={dbSaveLog} dbDelete={dbDelete}/><TimelineScreen fields={fields} crops={crops} equips={equips} logs={logs} setLogs={setLogs} setLogsR={setLogsR} showToast={showToast} openLb={openLb} pestMs={pestMs} fertMs={fertMs}
         onEdit={ls=>{const _ls=Array.isArray(ls)?ls:[ls];const _sorted=[..._ls].sort((a,b)=>(a.imgSrc?-1:0)-(b.imgSrc?-1:0));setInitLogs(_ls);setInitLog(_sorted[0]);setLogModal(true);}}
         onNew={()=>{setInitLog(null);setLogModal(true);}}
