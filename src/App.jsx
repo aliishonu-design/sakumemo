@@ -1447,7 +1447,7 @@ function LoginScreen() {
       <div style={{background:"#fff",borderRadius:20,padding:"28px 24px",maxWidth:360,width:"100%",textAlign:"center",boxShadow:"0 8px 40px rgba(0,0,0,.3)"}}>
         <div style={{fontSize:"2.2rem",marginBottom:6}}>🌾</div>
         <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:"1.3rem",color:G,marginBottom:4}}>サクメモ</div>
-        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v1.8.89</span></div>
+        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v1.8.90</span></div>
         {linkErr&&<div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:8,padding:"10px 12px",marginBottom:16,fontSize:".78rem",color:"#856404",textAlign:"left"}}>{linkErr}</div>}
 
 
@@ -1507,7 +1507,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.89</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.90</div>
       </div>
     </div>
   );
@@ -5141,7 +5141,7 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
                     {[card.closingDay&&`締め${card.closingDay}日`, card.payDay&&`引落${card.payDay}日`, card.bank].filter(Boolean).join(" · ")||"詳細未登録"}
                   </div>
                 </div>
-                <button style={{...S.btn,...S.btnS,fontSize:".72rem",flexShrink:0}} onClick={()=>setMCard({...card,_idx:ci})}>編集</button>
+                <button style={{...S.btn,...S.btnS,fontSize:".72rem",flexShrink:0,width:"auto",padding:"6px 14px"}} onClick={()=>setMCard({...card,_idx:ci})}>編集</button>
               </div>
             ))}
             <button style={{...S.btn,...S.btnG,marginTop:4}} onClick={()=>setMCard({name:"",number:"",holder:"",expiry:"",closingDay:"",payDay:"",bank:"",note:""})}>＋ カードを追加</button>
