@@ -1451,7 +1451,7 @@ function LoginScreen() {
       <div style={{background:"#fff",borderRadius:20,padding:"28px 24px",maxWidth:360,width:"100%",textAlign:"center",boxShadow:"0 8px 40px rgba(0,0,0,.3)"}}>
         <div style={{fontSize:"2.2rem",marginBottom:6}}>🌾</div>
         <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:"1.3rem",color:G,marginBottom:4}}>サクメモ</div>
-        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v2.1.3</span></div>
+        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v2.1.4</span></div>
         {linkErr&&<div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:8,padding:"10px 12px",marginBottom:16,fontSize:".78rem",color:"#856404",textAlign:"left"}}>{linkErr}</div>}
 
 
@@ -1511,7 +1511,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v2.1.3</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v2.1.4</div>
       </div>
     </div>
   );
@@ -3922,7 +3922,7 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
           const editedCap = mCost._editCapacity!==undefined ? mCost._editCapacity : m.capacity;
           const editedCunit = mCost._editCunit!==undefined ? mCost._editCunit : m.cunit;
           const cap=parseFloat(editedCap)||0;
-          const addStock=!mCost.id&&buyQty>0?(cap>0?buyQty*cap:buyQty):0;
+          const addStock=buyQty>0?(cap>0?buyQty*cap:buyQty):0;
           const updated={
             ...m,
             ...(mCost._editMaster?{
@@ -3947,7 +3947,7 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
           const editedCap = mCost._editCapacity!==undefined ? mCost._editCapacity : m.capacity;
           const editedCunit = mCost._editCunit!==undefined ? mCost._editCunit : m.cunit||"ml";
           const cap=parseFloat(editedCap)||0;
-          const addStock=!mCost.id&&buyQty>0?(cap>0?buyQty*cap:buyQty):0;
+          const addStock=buyQty>0?(cap>0?buyQty*cap:buyQty):0;
           const updated={
             ...m,
             ...(mCost._editMaster?{
@@ -4849,7 +4849,7 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
           const isKaigyo = !inc && kaigyoDateForList && c.date && c.date < kaigyoDateForList;
           const bg = isCancelled?"#F5F5F5":isKaigyo?"#FFF8E8":i%2===0?"#FFFFFF":"#FAFAFA";
           return (
-            <div key={c.id} onClick={()=>setMCost({...c})}
+            <div key={c.id} onClick={()=>setMCost({...c, _buyQty:"", _buyUnitPrice:undefined, _buyOpen:!!c.masterId})}
               style={{display:"grid",gridTemplateColumns:"52px 1fr auto 32px",gap:"0 6px",
                 padding:"7px 8px",borderBottom:"1px solid #f0ebe3",
                 background:bg,cursor:"pointer",alignItems:"center",
@@ -5362,9 +5362,16 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
                         }} placeholder={selectedMaster.price||"例：1500"}/>
                       </FG>
                     </R2>
-                    {mCost._buyQty&&parseFloat(mCost._editCapacity!==undefined?mCost._editCapacity:selectedMaster.capacity)>0&&<div style={{fontSize:".72rem",color:"#2d6a3f",background:"#e6f7ee",borderRadius:6,padding:"5px 8px",marginBottom:6}}>
-                      ✅ 在庫に加算: +{Math.round((parseFloat(mCost._buyQty)||0)*parseFloat(mCost._editCapacity!==undefined?mCost._editCapacity:selectedMaster.capacity)*100)/100}{mCost._editCunit!==undefined?mCost._editCunit:selectedMaster.sunit||selectedMaster.cunit||""}
-                    </div>}
+                    {mCost._buyQty&&(()=>{
+                      const bq=parseFloat(mCost._buyQty)||0;
+                      const cap=parseFloat(mCost._editCapacity!==undefined?mCost._editCapacity:selectedMaster.capacity)||0;
+                      const addAmt=cap>0?bq*cap:bq;
+                      const addUnit=mCost._editCunit!==undefined?mCost._editCunit:selectedMaster.cunit||selectedMaster.sunit||"";
+                      return bq>0&&<div style={{fontSize:".72rem",color:"#2d6a3f",background:"#e6f7ee",borderRadius:6,padding:"5px 8px",marginBottom:6}}>
+                        ✅ 在庫に加算: +{Math.round(addAmt*100)/100}{cap>0?addUnit:"個"}
+                        {!cap&&<span style={{color:"#888"}}>（内容量未設定のため個数で加算）</span>}
+                      </div>;
+                    })()}
                     <div style={{fontSize:".68rem",color:"#888"}}>💡 保存時に在庫が自動加算されます（個数×内容量）</div>
                   </div>}
                 </>}
