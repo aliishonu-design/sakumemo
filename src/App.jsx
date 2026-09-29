@@ -1451,7 +1451,7 @@ function LoginScreen() {
       <div style={{background:"#fff",borderRadius:20,padding:"28px 24px",maxWidth:360,width:"100%",textAlign:"center",boxShadow:"0 8px 40px rgba(0,0,0,.3)"}}>
         <div style={{fontSize:"2.2rem",marginBottom:6}}>🌾</div>
         <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:"1.3rem",color:G,marginBottom:4}}>サクメモ</div>
-        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v2.1.6</span></div>
+        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v2.1.7</span></div>
         {linkErr&&<div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:8,padding:"10px 12px",marginBottom:16,fontSize:".78rem",color:"#856404",textAlign:"left"}}>{linkErr}</div>}
 
 
@@ -1511,7 +1511,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v2.1.6</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v2.1.7</div>
       </div>
     </div>
   );
@@ -3614,7 +3614,7 @@ function TimelineScreen({ fields, crops, equips, logs, setLogs, setLogsR, showTo
   );
 }
 
-function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equips, setEquips, costs, setCosts, logs, showToast, cards=[], setCards, calcPayDate, user }) {
+function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equips, setEquips, costs, setCosts, logs, showToast, cards=[], setCards, emoney=[], setEmoney, calcPayDate, user }) {
   const today = new Date();
   const curYear  = String(today.getFullYear());
   const curMonth = today.toISOString().slice(0,7);
@@ -3650,6 +3650,8 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
   const creditCards = cards;
   const setCreditCards = setCards || (()=>{});
   const [mCard, setMCard] = useState(null); // 編集中カード（null=閉じ）
+  const [mEmoney, setMEmoney] = useState(null); // 編集中電子マネー（null=閉じ）
+  const isEmoneyPM = (pm) => !!pm && (emoney||[]).some(e=>e.name===pm);
   // 元入金手動修正用state
   const [motoireEditOpen, setMotoireEditOpen] = useState(false);
   const [motoireInput, setMotoireInput] = useState("");
@@ -3804,6 +3806,7 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
     if(costTab==="income") return all.filter(c=>isIncome(c.cat));
     if(costTab==="expense") return all.filter(c=>!isIncome(c.cat));
     if(costTab==="card") return all.filter(c=>c.payMethod&&cards&&cards.some&&cards.some(cd=>cd.name===c.payMethod));
+    if(costTab==="emoney") return all.filter(c=>isEmoneyPM(c.payMethod));
     if(costTab==="receivable") return costs.filter(c=>c.isReceivable&&!c.cancelled); // 全期間の未収金
     return all; // "all"
   })();
@@ -4046,7 +4049,7 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
                      "貸方 勘定科目","貸方 補助科目","貸方 税区分","貸方金額（円）","摘要"];
       const jiRows = [
         ["仕　訳　帳（主要簿）　令和8年分　農業所得"],
-        ["カード払い：購入日→借方:経費/貸方:未払金(カード名)　引き落とし日→借方:未払金/貸方:普通預金"],
+        ["カード払い：購入日→借方:経費/貸方:未払金(カード名)　引き落とし日→借方:未払金/貸方:普通預金　／　電子マネー払い：購入日→借方:経費/貸方:事業主借(電子マネー名)"],
         jiHdr,
       ];
       // 開業時仕訳
@@ -4070,11 +4073,15 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
         const cr = crops.find(x=>x.id===c.cropId);
         const crName = cr?getCropName(cr):"";
         const memo = c.name+(crName?" ("+crName+")":"")+(c.note?" "+c.note:"");
-        const isCard = pm.startsWith("カード") || (cards&&cards.some&&cards.some(cd=>cd.name===pm));
+        const isEm = isEmoneyPM(pm);
+        const isCard = !isEm && (pm.startsWith("カード") || (cards&&cards.some&&cards.some(cd=>cd.name===pm)));
         const isPreOpen = c.date && c.date < KAIGYO_DATE;
         if(isPreOpen){
           // 開業費として仕訳
           jiRows.push([c.date||"","開業費（繰延資産）","","課仕10%",amt,"事業主借","","対象外",amt,"開業費："+memo]);
+        } else if(isEm){
+          // 電子マネー払い（私用と共用のチャージ残高から支払）：購入日に 借方:経費 / 貸方:事業主借
+          jiRows.push([c.date||"",kamoku,"","課仕10%",amt,"事業主借",pm,"対象外",amt,"電子マネー("+pm+")："+memo]);
         } else if(isCard){
           // カード払い：購入日
           jiRows.push([c.date||"",kamoku,"","課仕10%",amt,"未払金",pm,"対象外",amt,"カード購入："+memo]);
@@ -4179,6 +4186,27 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
       ws5["!cols"]=[{wch:10},{wch:14},{wch:25},{wch:12},{wch:12},{wch:10},{wch:12},{wch:8}];
       XLSX.utils.book_append_sheet(wb, ws5, "カード未払金管理");
 
+      // ── シート5-2: 電子マネー支払明細 ──
+      const emItems = postOpen.filter(c=>isEmoneyPM(c.payMethod)).sort((a,b)=>(a.date||"").localeCompare(b.date||""));
+      const emTotal = emItems.reduce((s,c)=>s+(Number(c.amt)||0),0);
+      const emRows=[
+        ["電子マネー・QR決済 支払明細　令和8年分"],
+        ["私用と共用のチャージ残高から事業経費を支払った分。仕訳は 借方:経費 / 貸方:事業主借（チャージ・残高の管理は不要）"],
+        ["支払日","電子マネー","摘要（購入内容）","勘定科目","金額（円）"],
+        ...emItems.map(c=>[c.date||"",c.payMethod,c.name+(c.note?" "+c.note:""),CAT_TO_KAMOKU[c.cat]||"その他",Number(c.amt)||0]),
+        ["","","合計","",emTotal],
+      ];
+      const emByName={};
+      emItems.forEach(c=>{emByName[c.payMethod]=(emByName[c.payMethod]||0)+(Number(c.amt)||0);});
+      if(Object.keys(emByName).length>0){
+        emRows.push([]);
+        emRows.push(["【電子マネー別合計】"]);
+        Object.entries(emByName).forEach(([n,a])=>emRows.push(["",n,"","",a]));
+      }
+      const ws5b=XLSX.utils.aoa_to_sheet(emRows);
+      ws5b["!cols"]=[{wch:10},{wch:14},{wch:28},{wch:14},{wch:12}];
+      XLSX.utils.book_append_sheet(wb, ws5b, "電子マネー明細");
+
       // ── シート6: 開業費台帳 ──
       const kaiTotal=preOpen.reduce((s,c)=>s+(Number(c.amt)||0),0);
       const kaiRows=[
@@ -4201,19 +4229,20 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
       XLSX.utils.book_append_sheet(wb, ws6, "開業費台帳");
 
       // ── シート7: 科目別集計 ──
-      const sumRows=[["科目別集計（令和8年分）"],["勘定科目","金額（円）","件数","うちカード払い"]];
+      const sumRows=[["科目別集計（令和8年分）"],["勘定科目","金額（円）","件数","うちカード払い","うち電子マネー"]];
       KAMOKU_COLS.forEach(k=>{
         const items=postOpen.filter(c=>(CAT_TO_KAMOKU[c.cat]||"その他")===k);
         if(items.length>0){
           const cardAmt=items.filter(c=>cards&&cards.some&&cards.some(cd=>cd.name===c.payMethod)).reduce((s,c)=>s+(Number(c.amt)||0),0);
-          sumRows.push([k,items.reduce((s,c)=>s+(Number(c.amt)||0),0),items.length,cardAmt]);
+          const emAmt=items.filter(c=>isEmoneyPM(c.payMethod)).reduce((s,c)=>s+(Number(c.amt)||0),0);
+          sumRows.push([k,items.reduce((s,c)=>s+(Number(c.amt)||0),0),items.length,cardAmt,emAmt]);
         }
       });
-      sumRows.push(["経費合計（開業後）",postOpen.reduce((s,c)=>s+(Number(c.amt)||0),0),postOpen.length,""]);
+      sumRows.push(["経費合計（開業後）",postOpen.reduce((s,c)=>s+(Number(c.amt)||0),0),postOpen.length,"",emTotal]);
       sumRows.push([]);
       sumRows.push(["開業費合計（開業前）",kaiTotal,preOpen.length,""]);
       const ws7=XLSX.utils.aoa_to_sheet(sumRows);
-      ws7["!cols"]=[{wch:20},{wch:14},{wch:8},{wch:16}];
+      ws7["!cols"]=[{wch:20},{wch:14},{wch:8},{wch:16},{wch:16}];
       XLSX.utils.book_append_sheet(wb, ws7, "科目別集計");
 
       // ── シート8: 損益計算書 ──
@@ -4335,7 +4364,7 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
 
       // 資産合計・負債資本合計
       const totalAsset = cashEst + bankEst + equipBookValue + kaimiShokyaku;
-      const totalLiabCap = totalCardPayable + motoire + Math.max(0, agriIncome);
+      const totalLiabCap = totalCardPayable + motoire + emTotal + Math.max(0, agriIncome);
 
       const bsRows = [
         ["貸　借　対　照　表　令和"+String(exportYear-2018+6)+"年12月31日現在"],
@@ -4351,7 +4380,7 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
         ["　農機具・設備（帳簿価額★自動）",equipBookValue,"","",""],
         ["　開業費（未償却残高★自動）",kaimiShokyaku,"","〈資本の部〉",""],
         ["","","","　元入金（★前年繰越）",motoire],
-        ["","","","　事業主借","0　←手入力"],
+        ["","","","　事業主借（電子マネー払い★自動＋手入力分）",emTotal],
         ["","","","　事業主貸（マイナス）","0　←手入力（生活費引き出し）"],
         ["","","","　当期農業所得（★自動）",Math.max(0,agriIncome)],
         [],
@@ -4365,6 +4394,7 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
         ["⑤元入金は前年の農業所得を自動引き継ぎ（帳簿Excel出力時に来年用を保存）"],
         ["⑥借入金・売掛金・事業主貸等は実績に応じて手入力してください"],
         ["⑦資産合計と負債・資本合計が一致すれば正しく記帳できています"],
+        ["⑧電子マネー（PayPay・メルペイ等）で払った経費は事業主借として自動集計（私用と共用のため残高は資産に計上しません）"],
       ];
       // 農機具明細を追加
       if(equipDetails.length > 0){
@@ -4807,7 +4837,7 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
       {mainTab==="cost"&&<>
       {/* フィルタータブ */}
       <div style={{display:"flex",gap:0,marginBottom:8,borderRadius:8,overflow:"hidden",border:"1px solid #e0d9ce"}}>
-        {[["all","すべて"],["income","収入のみ"],["expense","費用のみ"],["card","カード払い"],["receivable","未収金"]].map(([v,l])=>(
+        {[["all","すべて"],["income","収入"],["expense","費用"],["card","カード"],["emoney","電子マネー"],["receivable","未収金"]].map(([v,l])=>(
           <button key={v} onClick={()=>setCostTab(v)}
             style={{flex:1,padding:"5px 0",border:"none",background:costTab===v?G:"#fff",
               color:costTab===v?"#fff":"#888",fontWeight:costTab===v?700:400,
@@ -4858,6 +4888,7 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
               <div>
                 <div style={{fontSize:".68rem",color:"#5c3d1e",whiteSpace:"nowrap"}}>{c.date?c.date.slice(5).replace("-","/"):"-"}</div>
                 {isCard&&<div style={{fontSize:".55rem",color:"#1565C0"}}>💳</div>}
+                {isEmoneyPM(c.payMethod)&&<div style={{fontSize:".55rem",color:"#7B1FA2"}}>📱</div>}
                 {isKaigyo&&<div style={{fontSize:".52rem",color:"#7c4d00",fontWeight:700}}>開業費</div>}
               </div>
               {/* 内容 */}
@@ -5395,7 +5426,7 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
                 const cd=cards.find(c=>c.name===v);
                 const pd=cd?calcPayDate&&calcPayDate(mCost.date,cd):"";
                 setMCost({...mCost,payMethod:v,payDate:pd||""});
-              }} options={[{value:"現金",label:"💴 現金"},{value:"振込",label:"🏦 銀行振込"},...(cards||[]).map(c=>({value:c.name,label:"💳 "+c.name}))]}/>
+              }} options={[{value:"現金",label:"💴 現金"},{value:"振込",label:"🏦 銀行振込"},...(emoney||[]).map(e=>({value:e.name,label:"📱 "+e.name})),...(cards||[]).map(c=>({value:c.name,label:"💳 "+c.name}))]}/>
             </FG>
             {(mCost.payMethod&&(cards||[]).some(c=>c.name===mCost.payMethod))&&<>
               <FG label="引き落とし予定日">
@@ -5600,6 +5631,33 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
           <FG label="引き落とし口座"><Inp value={mCard.bank||""} onChange={v=>setMCard({...mCard,bank:v})} placeholder="例：JAバンク 普通口座"/></FG>
           <FG label="メモ"><Inp value={mCard.note||""} onChange={v=>setMCard({...mCard,note:v})} placeholder="ポイント・特典など"/></FG>
           {mCard._idx!==undefined&&<button onClick={()=>{if(window.confirm("削除しますか？")){setCreditCards(creditCards.filter((_,i)=>i!==mCard._idx));setMCard(null);showToast("削除しました");}}} style={{...S.btn,...S.btnR,marginTop:8}}>削除</button>}
+        </>}
+      </ModalWithSave>
+
+      {/* 電子マネー編集モーダル */}
+      <ModalWithSave open={!!mEmoney} title={mEmoney?._idx!==undefined?"電子マネーを編集":"電子マネーを追加"} onClose={()=>setMEmoney(null)}
+        onSave={()=>{
+          const nm=(mEmoney.name||"").trim();
+          if(!nm){showToast("名前を入力してください");return;}
+          if(nm==="現金"||nm==="振込"||(cards||[]).some(c=>c.name===nm)||(emoney||[]).some((e,i)=>e.name===nm&&i!==mEmoney._idx)){showToast("同じ名前の支払方法が既にあります");return;}
+          const {_idx,...item}={...mEmoney,name:nm};
+          const list = _idx!==undefined
+            ? emoney.map((e,i)=>i===_idx?{...item,id:item.id||uid0()}:e)
+            : [...(emoney||[]),{...item,id:uid0()}];
+          setEmoney&&setEmoney(list);
+          setMEmoney(null);
+          showToast("保存しました");
+        }}>
+        {mEmoney&&<>
+          <FG label="名前"><Inp value={mEmoney.name||""} onChange={v=>setMEmoney({...mEmoney,name:v})} placeholder="例：PayPay・メルペイ"/></FG>
+          <FG label="チャージ元"><Inp value={mEmoney.source||""} onChange={v=>setMEmoney({...mEmoney,source:v})} placeholder="例：JAバンク 普通口座・現金"/></FG>
+          <FG label="メモ"><Inp value={mEmoney.note||""} onChange={v=>setMEmoney({...mEmoney,note:v})} placeholder="ポイント還元など"/></FG>
+          <div style={{fontSize:".7rem",color:TX3,background:"#f5f5f5",borderRadius:8,padding:"8px 10px",marginTop:4,lineHeight:1.6}}>
+            📱 電子マネー払いは<b>支払日＝購入日</b>で計上されます（締め日・引き落としなし）。<br/>
+            申告用の出納帳では「電子マネー」欄として現金・預金とは別に集計されます。<br/>
+            ポイント払い分は費用の「割引・ポイント」欄で差し引いてください。
+          </div>
+          {mEmoney._idx!==undefined&&<button onClick={()=>{if(window.confirm("削除しますか？")){setEmoney&&setEmoney(emoney.filter((_,i)=>i!==mEmoney._idx));setMEmoney(null);showToast("削除しました");}}} style={{...S.btn,...S.btnR,marginTop:8}}>削除</button>}
         </>}
       </ModalWithSave>
 
@@ -5906,6 +5964,21 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
               </div>
             ))}
             <button style={{...S.btn,...S.btnG,marginTop:4}} onClick={()=>setMCard({name:"",number:"",holder:"",expiry:"",closingDay:"",payDay:"",bank:"",note:""})}>＋ カードを追加</button>
+          </div>
+          {/* 電子マネー情報 */}
+          <div style={S.card}>
+            <SecHd label="📱 電子マネー・QR決済"/>
+            <div style={{fontSize:".72rem",color:TX3,marginBottom:8}}>PayPay・メルペイなどチャージして使う支払方法。締め日・引き落としはなく、購入日に支払済みとして扱います。</div>
+            {(emoney||[]).map((em,ei)=>(
+              <div key={em.id||ei} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 0",borderBottom:"1px solid "+BD}}>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:".84rem",fontWeight:700}}>📱 {em.name}</div>
+                  <div style={{fontSize:".7rem",color:TX3}}>{[em.source&&`チャージ元：${em.source}`,em.note].filter(Boolean).join(" · ")||"詳細未登録"}</div>
+                </div>
+                <button style={{...S.btn,...S.btnS,fontSize:".72rem",flexShrink:0,width:"auto",padding:"6px 14px"}} onClick={()=>setMEmoney({...em,_idx:ei})}>編集</button>
+              </div>
+            ))}
+            <button style={{...S.btn,...S.btnG,marginTop:4}} onClick={()=>setMEmoney({name:"",source:"",note:""})}>＋ 電子マネーを追加</button>
           </div>
         </>);
       })()}
@@ -7748,7 +7821,7 @@ function PwChangeSection() {
   );
 }
 
-function SettingsScreen({ showToast, user, uid, signOut, fields, crops, logs, fertMs, pestMs, equips, costs, setScr, cards=[], setCards }) {
+function SettingsScreen({ showToast, user, uid, signOut, fields, crops, logs, fertMs, pestMs, equips, costs, setScr, cards=[], setCards, emoney=[], setEmoney }) {
   // ── 祝日カスタマイズ管理 ──
   const [customHolidays, setCustomHolidaysState] = useState(()=>{
     try{ return JSON.parse(localStorage.getItem("customHolidays")||"[]"); }catch{ return []; }
@@ -8023,6 +8096,18 @@ export default function App() {
     try{ localStorage.setItem('sakumemo_cards', JSON.stringify(arr)); }catch{}
     try{ localStorage.setItem('creditCards', JSON.stringify(arr)); }catch{}
   };
+  // 電子マネー設定（localStorage + Supabase同期）
+  const [emoney, setEmoneyState] = useState(()=>{
+    try{
+      const v = localStorage.getItem('sakumemo_emoney');
+      if(v) return JSON.parse(v);
+      return [];
+    }catch{ return []; }
+  });
+  const setEmoney = (arr) => {
+    setEmoneyState(arr);
+    try{ localStorage.setItem('sakumemo_emoney', JSON.stringify(arr)); }catch{}
+  };
   // Supabaseからクレカ設定をロード
   useEffect(()=>{
     if(!user?.id) return;
@@ -8039,6 +8124,19 @@ export default function App() {
           }catch{}
         }
       });
+    // 電子マネー設定をロード
+    sb.from("costs").select("*").eq("user_id", user.id).eq("cat","__emoney_cfg").maybeSingle()
+      .then(({data})=>{
+        if(data?.note){
+          try{
+            const arr = JSON.parse(data.note);
+            if(Array.isArray(arr) && arr.length > 0){
+              setEmoneyState(arr);
+              try{ localStorage.setItem('sakumemo_emoney', JSON.stringify(arr)); }catch{}
+            }
+          }catch{}
+        }
+      });
   },[user?.id]);
   const saveCardsToSupabase = (arr, uid) => {
     if(!uid) return;
@@ -8051,9 +8149,24 @@ export default function App() {
       pay_method: null, pay_date: null, cancelled: false
     });
   };
+  const saveEmoneyToSupabase = (arr, uid) => {
+    if(!uid) return;
+    const id = "emoney_settings_" + uid;
+    dbUpsert("costs", {
+      id, user_id: uid, cat: "__emoney_cfg",
+      name: "__emoney_settings", note: JSON.stringify(arr),
+      amt: "0", date: null, field_id: null, crop_id: null,
+      qty: null, qunit: null, master_id: null, work: null,
+      pay_method: null, pay_date: null, cancelled: false
+    });
+  };
   const setCardsAndSync = (arr) => {
     setCards(arr);
     saveCardsToSupabase(arr, user?.id);
+  };
+  const setEmoneyAndSync = (arr) => {
+    setEmoney(arr);
+    saveEmoneyToSupabase(arr, user?.id);
   };
   // ── 日本の祝日をアルゴリズムで計算（年限なし・2028年以降も対応） ──
   const dateToStr = (d) => {
@@ -8372,10 +8485,10 @@ export default function App() {
       /></>}
         
         {scr==="plot"    &&<PlanScreen    fields={fields} crops={crops} setCrops={setCrops} plots={plots} setPlots={setPlots} setPlotsR={setPlotsR} showToast={showToast} setScr={setScr}/>}
-        {scr==="cost"    &&<CostScreen    fields={fields} crops={crops} fertMs={fertMs} setFertMs={setFertMs} pestMs={pestMs} setPestMs={setPestMs} equips={equips} setEquips={setEquips} costs={costs} setCosts={setCosts} logs={logs} showToast={showToast} cards={cards} setCards={setCardsAndSync} calcPayDate={calcPayDate} user={user}/>}
+        {scr==="cost"    &&<CostScreen    fields={fields} crops={crops} fertMs={fertMs} setFertMs={setFertMs} pestMs={pestMs} setPestMs={setPestMs} equips={equips} setEquips={setEquips} costs={costs} setCosts={setCosts} logs={logs} showToast={showToast} cards={cards} setCards={setCardsAndSync} emoney={emoney} setEmoney={setEmoneyAndSync} calcPayDate={calcPayDate} user={user}/>}
 
         {scr==="report"  &&<ReportScreen  fields={fields} crops={crops} logs={logs} costs={costs} fertMs={fertMs} pestMs={pestMs} equips={equips} openLb={openLb}/>}
-        {scr==="settings"&&<SettingsScreen showToast={showToast} user={user} uid={uid} signOut={signOut} fields={fields} crops={crops} logs={logs} fertMs={fertMs} cards={cards} setCards={setCardsAndSync} pestMs={pestMs} equips={equips} costs={costs} setScr={setScr}/>}
+        {scr==="settings"&&<SettingsScreen showToast={showToast} user={user} uid={uid} signOut={signOut} fields={fields} crops={crops} logs={logs} fertMs={fertMs} cards={cards} setCards={setCardsAndSync} emoney={emoney} setEmoney={setEmoneyAndSync} pestMs={pestMs} equips={equips} costs={costs} setScr={setScr}/>}
       </div>
       {/* ライトボックス */}
       {lb&&<div onClick={closeLb} style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,.92)',zIndex:9999,display:'flex',alignItems:'center',justifyContent:'center',touchAction:'pinch-zoom',overflow:'hidden'}}>
