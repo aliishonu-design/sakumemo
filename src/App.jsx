@@ -1450,7 +1450,7 @@ function LoginScreen() {
       <div style={{background:"#fff",borderRadius:20,padding:"28px 24px",maxWidth:360,width:"100%",textAlign:"center",boxShadow:"0 8px 40px rgba(0,0,0,.3)"}}>
         <div style={{fontSize:"2.2rem",marginBottom:6}}>🌾</div>
         <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:"1.3rem",color:G,marginBottom:4}}>サクメモ</div>
-        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v1.8.96</span></div>
+        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v1.8.97</span></div>
         {linkErr&&<div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:8,padding:"10px 12px",marginBottom:16,fontSize:".78rem",color:"#856404",textAlign:"left"}}>{linkErr}</div>}
 
 
@@ -1510,7 +1510,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.96</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.97</div>
       </div>
     </div>
   );
@@ -2553,12 +2553,15 @@ function LogScreen({ fields, crops, setCrops, fertMs, pestMs, equips, costs, set
   const [transpQty,setTranspQty]= useState("");
   const [fertIdx,  setFertIdx]  = useState("");
   const [fertName, setFertName] = useState("");
+  const [fertDil,  setFertDil]  = useState("");
+  const [fertSprayAmt, setFertSprayAmt] = useState("");
+  const [fertSprayUnit,setFertSprayUnit]= useState("L");
   const [fertAmt,  setFertAmt]  = useState("");
   const [fertUnit, setFertUnit] = useState("kg");
   const [fertMeth, setFertMeth] = useState("追肥");
   const [fertCost, setFertCost] = useState("");
   // 施肥複数登録用
-  const emptyFert = () => ({name:"",amt:"",unit:"kg",meth:"追肥",cost:""});
+  const emptyFert = () => ({name:"",dil:"",sprayAmt:"",sprayUnit:"L",amt:"",unit:"kg",meth:"追肥",cost:""});
   const emptyPest = () => ({name:"",dil:"",sprayAmt:"",sprayUnit:"L",tgt:"",cost:""});
   const emptyEquip = () => ({_id:null,idx:"",act:"設置",useAmt:"",useUnit:"L"});
   const [fertEntries, setFertEntries] = useState([]);
@@ -3100,13 +3103,17 @@ useEffect(()=>{
               <Sel value={fertName} onChange={v=>{
                 setFertName(v);
                 const fm=fertMs.find(f=>f.name===v);
-                if(fm){if(fm.cunit||fm.sunit)setFertUnit(fm.cunit||fm.sunit);}
+                if(fm){if(fm.cunit||fm.sunit)setFertUnit(fm.cunit||fm.sunit);if(fm.dil)setFertDil(fm.dil);}
               }} options={[{value:"",label:"（選択）"},...fertMs.filter(f=>f.status!=="使い切り（非表示）").map(f=>({value:f.name,label:f.name}))]}/>
             </FG>
             <R2>
-              <FG label="施用量"><div style={{display:"flex",gap:4}}><CalcInp value={fertAmt} onChange={setFertAmt} style={{flex:1}}/><Sel value={fertUnit} onChange={setFertUnit} options={["kg","g","L","ml","袋"].map(v=>({value:v,label:v}))} style={{width:60,flex:"none"}}/></div></FG>
-              <FG label="施用方法"><Sel value={fertMeth} onChange={setFertMeth} options={["元肥","追肥","葉面散布","かん注"].map(v=>({value:v,label:v}))}/></FG>
+              <FG label="施用方法"><Sel value={fertMeth} onChange={setFertMeth} options={["元肥","追肥","葉面散布","かん注","液肥希釈"].map(v=>({value:v,label:v}))}/></FG>
+              <FG label="施用量（原液）"><div style={{display:"flex",gap:4}}><CalcInp value={fertAmt} onChange={setFertAmt} style={{flex:1}}/><Sel value={fertUnit} onChange={setFertUnit} options={["kg","g","L","ml","袋"].map(v=>({value:v,label:v}))} style={{width:60,flex:"none"}}/></div></FG>
             </R2>
+            {(fertMeth==="液肥希釈"||fertMeth==="葉面散布"||fertMeth==="かん注")&&<R2>
+              <FG label="希釈倍数"><CalcInp value={fertDil} onChange={setFertDil} placeholder="500"/></FG>
+              <FG label="散布量（希釈後）"><div style={{display:"flex",gap:4}}><CalcInp value={fertSprayAmt} onChange={setFertSprayAmt} style={{flex:1}}/><Sel value={fertSprayUnit} onChange={setFertSprayUnit} options={["L","ml"].map(v=>({value:v,label:v}))} style={{width:60,flex:"none"}}/></div></FG>
+            </R2>}
           </div>          {fertEntries.map((fe,fi)=>(
             <div key={fi} style={{background:"#fffdf5",border:"1px solid #b2dfdb",borderRadius:8,padding:"8px 10px",marginTop:6}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5}}>
@@ -3118,13 +3125,17 @@ useEffect(()=>{
                 <Sel value={fe.name} onChange={v=>{
                   setFertEntries(p=>p.map((x,i)=>i===fi?{...x,name:v}:x));
                   const fm2=fertMs.find(f=>f.name===v);
-                  if(fm2)setFertEntries(p=>p.map((x,i)=>i===fi?{...x,unit:fm2.cunit||fm2.sunit||x.unit}:x));
+                  if(fm2)setFertEntries(p=>p.map((x,i)=>i===fi?{...x,unit:fm2.cunit||fm2.sunit||x.unit,dil:fm2.dil||x.dil}:x));
                 }} options={[{value:"",label:"（選択）"},...fertMs.filter(f=>f.status!=="使い切り（非表示）").map(f=>({value:f.name,label:f.name}))]}/>
               </FG>
               <R2>
-                <FG label="施用量"><div style={{display:"flex",gap:4}}><CalcInp value={fe.amt} onChange={v=>setFertEntries(p=>p.map((x,i)=>i===fi?{...x,amt:v}:x))} style={{flex:1}}/><Sel value={fe.unit} onChange={v=>setFertEntries(p=>p.map((x,i)=>i===fi?{...x,unit:v}:x))} options={["kg","g","L","ml","袋"].map(v=>({value:v,label:v}))} style={{width:60,flex:"none"}}/></div></FG>
-                <FG label="施用方法"><Sel value={fe.meth} onChange={v=>setFertEntries(p=>p.map((x,i)=>i===fi?{...x,meth:v}:x))} options={["元肥","追肥","葉面散布","かん注"].map(v=>({value:v,label:v}))}/></FG>
+                <FG label="施用方法"><Sel value={fe.meth} onChange={v=>setFertEntries(p=>p.map((x,i)=>i===fi?{...x,meth:v}:x))} options={["元肥","追肥","葉面散布","かん注","液肥希釈"].map(v=>({value:v,label:v}))}/></FG>
+                <FG label="施用量（原液）"><div style={{display:"flex",gap:4}}><CalcInp value={fe.amt} onChange={v=>setFertEntries(p=>p.map((x,i)=>i===fi?{...x,amt:v}:x))} style={{flex:1}}/><Sel value={fe.unit} onChange={v=>setFertEntries(p=>p.map((x,i)=>i===fi?{...x,unit:v}:x))} options={["kg","g","L","ml","袋"].map(v=>({value:v,label:v}))} style={{width:60,flex:"none"}}/></div></FG>
               </R2>
+              {(fe.meth==="液肥希釈"||fe.meth==="葉面散布"||fe.meth==="かん注")&&<R2>
+                <FG label="希釈倍数"><CalcInp value={fe.dil} onChange={v=>setFertEntries(p=>p.map((x,i)=>i===fi?{...x,dil:v}:x))} placeholder="500"/></FG>
+                <FG label="散布量（希釈後）"><div style={{display:"flex",gap:4}}><CalcInp value={fe.sprayAmt} onChange={v=>setFertEntries(p=>p.map((x,i)=>i===fi?{...x,sprayAmt:v}:x))} style={{flex:1}}/><Sel value={fe.sprayUnit||"L"} onChange={v=>setFertEntries(p=>p.map((x,i)=>i===fi?{...x,sprayUnit:v}:x))} options={["L","ml"].map(v=>({value:v,label:v}))} style={{width:60,flex:"none"}}/></div></FG>
+              </R2>}
             </div>
           ))}
         </div>}
@@ -3140,14 +3151,13 @@ useEffect(()=>{
           <div style={{background:"#fffaf0",border:"1px solid #f9e4a0",borderRadius:8,padding:"8px 10px",marginBottom:6}}>
             <div style={{fontSize:".72rem",fontWeight:700,color:"#92400e",marginBottom:5}}>農薬 1</div>
             <FG label="農薬を選ぶ">
-              <Sel value={pestMs.findIndex(p=>p.name===pestName)} onChange={v=>{if(v===""){setPestName("");}else{const pm=pestMs[parseInt(v)];if(pm){setPestName(pm.name);setPestDil(pm.dil||"");}}}}
+              <Sel value={pestMs.findIndex(p=>p.name===pestName)} onChange={v=>{if(v===""){setPestName("");}else{const pm=pestMs[parseInt(v)];if(pm){setPestName(pm.name);}}}}
                 options={[{value:"",label:"（選択）"},...pestMs.map((p,i)=>({value:i,label:p.name})).filter((_,i)=>pestMs[i]?.status!=="使い切り（非表示）")]}/>
             </FG>
             <R2>
-              <FG label="希釈倍数"><CalcInp value={pestDil} onChange={setPestDil} placeholder="1000"/></FG>
-              <FG label="散布量（希釈後）"><div style={{display:"flex",gap:4}}><CalcInp value={pestAmt} onChange={setPestAmt} style={{flex:1}}/><Sel value={pestUnit} onChange={setPestUnit} options={["L","g","kg"].map(v=>({value:v,label:v}))} style={{width:60,flex:"none"}}/></div></FG>
+              <FG label="散布量"><div style={{display:"flex",gap:4}}><CalcInp value={pestAmt} onChange={setPestAmt} style={{flex:1}}/><Sel value={pestUnit} onChange={setPestUnit} options={["L","ml","g","kg"].map(v=>({value:v,label:v}))} style={{width:60,flex:"none"}}/></div></FG>
+              <FG label="対象病害虫"><Inp value={pestTgt} onChange={setPestTgt} placeholder="アブラムシ等"/></FG>
             </R2>
-            <FG label="対象病害虫"><Inp value={pestTgt} onChange={setPestTgt} placeholder="アブラムシ等"/></FG>
           </div>
           {pestEntries.map((pe,pi)=>(
             <div key={pi} style={{background:"#fffaf0",border:"1px solid #f9e4a0",borderRadius:8,padding:"8px 10px",marginTop:6}}>
@@ -3159,14 +3169,13 @@ useEffect(()=>{
               <FG label="農薬を選ぶ">
                 <Sel value={pe.name?pestMs.findIndex(p=>p.name===pe.name):""} onChange={v=>{
                   if(v===""){setPestEntries(p=>p.map((x,i)=>i===pi?{...x,name:""}:x));}
-                  else{const pm=pestMs[parseInt(v)];setPestEntries(p=>p.map((x,i)=>i===pi?{...x,name:pm.name,dil:pm.dil||x.dil}:x));}
+                  else{const pm=pestMs[parseInt(v)];setPestEntries(p=>p.map((x,i)=>i===pi?{...x,name:pm.name}:x));}
                 }} options={[{value:"",label:"（選択）"},...pestMs.map((p,i)=>({value:i,label:p.name})).filter((_,i)=>pestMs[i]?.status!=="使い切り（非表示）")]}/>
               </FG>
               <R2>
-                <FG label="希釈倍数"><CalcInp value={pe.dil} onChange={v=>setPestEntries(p=>p.map((x,i)=>i===pi?{...x,dil:v}:x))} placeholder="1000"/></FG>
-                <FG label="散布量（希釈後）"><div style={{display:"flex",gap:4}}><CalcInp value={pe.sprayAmt} onChange={v=>setPestEntries(p=>p.map((x,i)=>i===pi?{...x,sprayAmt:v}:x))} style={{flex:1}}/><Sel value={pe.sprayUnit} onChange={v=>setPestEntries(p=>p.map((x,i)=>i===pi?{...x,sprayUnit:v}:x))} options={["L","g","kg"].map(v=>({value:v,label:v}))} style={{width:60,flex:"none"}}/></div></FG>
+                <FG label="散布量"><div style={{display:"flex",gap:4}}><CalcInp value={pe.sprayAmt} onChange={v=>setPestEntries(p=>p.map((x,i)=>i===pi?{...x,sprayAmt:v}:x))} style={{flex:1}}/><Sel value={pe.sprayUnit||"L"} onChange={v=>setPestEntries(p=>p.map((x,i)=>i===pi?{...x,sprayUnit:v}:x))} options={["L","ml","g","kg"].map(v=>({value:v,label:v}))} style={{width:60,flex:"none"}}/></div></FG>
+                <FG label="対象病害虫"><Inp value={pe.tgt} onChange={v=>setPestEntries(p=>p.map((x,i)=>i===pi?{...x,tgt:v}:x))} placeholder="アブラムシ等"/></FG>
               </R2>
-              <FG label="対象病害虫"><Inp value={pe.tgt} onChange={v=>setPestEntries(p=>p.map((x,i)=>i===pi?{...x,tgt:v}:x))} placeholder="アブラムシ等"/></FG>
             </div>
           ))}
         </div>}
@@ -3756,7 +3765,31 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
         localStorage.setItem("apportionRates", JSON.stringify(rates));
       } catch {}
     }
-    setCosts(n,item); setMCost(null); showToast("保存しました");
+    setCosts(n,item);
+    // 肥料費・農薬費で資材マスターと紐付けている場合、在庫を更新
+    if((mCost.cat==="fert"||mCost.cat==="pest")&&mCost.masterLink&&mCost.qty&&!mCost.id){
+      const qty = parseFloat(mCost.qty)||0;
+      if(mCost.cat==="fert"){
+        const idx=fertMs.findIndex(m=>m.name===mCost.masterLink);
+        if(idx>=0){
+          const m=fertMs[idx];
+          const cap=parseFloat(m.capacity)||1;
+          const addStock=qty*cap;
+          const updated={...m,stock:String((parseFloat(m.stock)||0)+addStock)};
+          setFertMs(fertMs.map((x,i)=>i===idx?updated:x),updated);
+        }
+      } else {
+        const idx=pestMs.findIndex(m=>m.name===mCost.masterLink);
+        if(idx>=0){
+          const m=pestMs[idx];
+          const cap=parseFloat(m.capacity)||1;
+          const addStock=qty*cap;
+          const updated={...m,stock:String((parseFloat(m.stock)||0)+addStock)};
+          setPestMs(pestMs.map((x,i)=>i===idx?updated:x),updated);
+        }
+      }
+    }
+    setMCost(null); showToast("保存しました");
   };
 
   // 帳簿Excelエクスポート（複式簿記・65万円控除対応）
@@ -4800,6 +4833,28 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
             </div>}
           </>}
           <FG label="内容・品名"><Inp value={mCost.name||""} onChange={v=>setMCost({...mCost,name:v})} placeholder="例：トマト苗/肥料/農産物売上"/></FG>
+          {/* 肥料費・農薬費：資材マスター連動で在庫更新 */}
+          {(mCost.cat==="fert"||mCost.cat==="pest")&&(()=>{
+            const msList = mCost.cat==="fert" ? fertMs : pestMs;
+            const linked = msList.find(m=>m.name===mCost.name);
+            return <div style={{background:"#f0faf0",border:"1px solid #b2dfdb",borderRadius:10,padding:"10px 12px",marginBottom:9}}>
+              <div style={{fontSize:".78rem",fontWeight:700,color:"#2d6a3f",marginBottom:6}}>📦 在庫連動（任意）</div>
+              <FG label="資材マスターと紐付ける">
+                <Sel value={mCost.name||""} onChange={v=>{
+                  const m=msList.find(x=>x.name===v);
+                  setMCost({...mCost,name:v,masterLink:v,qty:mCost.qty||"1",qunit:m?(m.cunit||m.sunit||"個"):"個"});
+                }} options={[{value:"",label:"（なし・直接入力）"},...msList.filter(m=>m.status!=="使い切り（非表示）").map(m=>({value:m.name,label:m.name}))]}/>
+              </FG>
+              {linked&&<div style={{fontSize:".72rem",color:"#555",marginBottom:6}}>
+                現在在庫: {linked.stock||0}{linked.sunit||linked.cunit||""} ／ 単価: {linked.price||"未設定"}円
+              </div>}
+              {linked&&<R2>
+                <FG label="購入数量（個・袋など）"><CalcInp value={mCost.qty||""} onChange={v=>setMCost({...mCost,qty:v})} placeholder="1"/></FG>
+                <FG label="単位"><Inp value={mCost.qunit||linked.cunit||"個"} onChange={v=>setMCost({...mCost,qunit:v})} style={{width:60}}/></FG>
+              </R2>}
+              {linked&&<div style={{fontSize:".68rem",color:"#888"}}>💡 保存時に在庫が自動更新されます（購入数×内容量）</div>}
+            </div>;
+          })()}
           <R2>
             <FG label="日付"><Inp type="date" value={mCost.date||todayStr()} onChange={v=>{
               const cd=cards.find(c=>c.name===mCost.payMethod);
@@ -4861,7 +4916,7 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
             {!mCost.cancelled
               ? <button onClick={()=>{if(window.confirm("この取引を取り消しますか？（記録は残ります）")){const updated={...mCost,cancelled:true};setCosts(costs.map(x=>x.id===mCost.id?updated:x),updated);setMCost(null);showToast("取り消しました");}}} style={{...S.btn,background:"#FFF3E0",color:"#E65100",border:"1px solid #FFCC80",flex:1}}>取消</button>
               : <button onClick={()=>{if(window.confirm("取り消しを復活させますか？")){const updated={...mCost,cancelled:false};setCosts(costs.map(x=>x.id===mCost.id?updated:x),updated);setMCost(null);showToast("復活しました");}}} style={{...S.btn,background:"#E8F5E9",color:"#2E7D32",border:"1px solid #A5D6A7",flex:1}}>復活</button>}
-            <button onClick={()=>{if(window.confirm("削除しますか？")){const n=costs.filter(x=>x.id!==mCost.id);try{const r=getApportionRates();delete r[mCost.id];localStorage.setItem("apportionRates",JSON.stringify(r));}catch{}setCosts(n);setMCost(null);showToast("削除しました");}}} style={{...S.btn,...S.btnR,flex:1}}>削除</button>
+            <button onClick={()=>{if(window.confirm("削除しますか？")){const n=costs.filter(x=>x.id!==mCost.id);try{const r=getApportionRates();delete r[mCost.id];localStorage.setItem("apportionRates",JSON.stringify(r));}catch{}if(mCost.id){dbDelete("costs",mCost.id);}setCosts(n);setMCost(null);showToast("削除しました");}}} style={{...S.btn,...S.btnR,flex:1}}>削除</button>
           </div>}
         </>}
       </ModalWithSave>
