@@ -1450,7 +1450,7 @@ function LoginScreen() {
       <div style={{background:"#fff",borderRadius:20,padding:"28px 24px",maxWidth:360,width:"100%",textAlign:"center",boxShadow:"0 8px 40px rgba(0,0,0,.3)"}}>
         <div style={{fontSize:"2.2rem",marginBottom:6}}>🌾</div>
         <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:"1.3rem",color:G,marginBottom:4}}>サクメモ</div>
-        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v1.8.98</span></div>
+        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v1.8.99</span></div>
         {linkErr&&<div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:8,padding:"10px 12px",marginBottom:16,fontSize:".78rem",color:"#856404",textAlign:"left"}}>{linkErr}</div>}
 
 
@@ -1510,7 +1510,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.98</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.99</div>
       </div>
     </div>
   );
@@ -2524,7 +2524,7 @@ function FieldsScreen({ fields, setFields, setFieldsR, crops, setCrops, setCrops
 }
 
 // LOG
-function LogScreen({ fields, crops, setCrops, fertMs, pestMs, equips, costs, setCosts, logs, setLogs, dbSaveLog, setLogsR, showToast, initialWork, editLog, editLogs=[], uid, saveRef, onDone }) {
+function LogScreen({ fields, crops, setCrops, fertMs, setFertMs, pestMs, setPestMs, equips, costs, setCosts, logs, setLogs, dbSaveLog, setLogsR, showToast, initialWork, editLog, editLogs=[], uid, saveRef, onDone }) {
   const [fieldIdx, setFieldIdx] = useState(0);
   const [cropId,   setCropId]   = useState("");
   const [works,    setWorks]    = useState(initialWork?new Set([initialWork]):new Set()); // 複数作業
@@ -2963,6 +2963,67 @@ useEffect(()=>{
         if(JSON.stringify(updatedCrops)!==JSON.stringify(crops)){
           const changed=updatedCrops.find(c=>c.id===cropId);
           setCrops(updatedCrops,changed);
+        }
+      }
+      // 在庫自動減算（新規保存時のみ）
+      if(!editLog && setFertMs && setFertMs) {
+        // 施肥の在庫減算
+        const allFertLogs = [
+          {name:fertName, dil:fertDil, sprayAmt:fertSprayAmt, sprayUnit:fertSprayUnit, amt:fertAmt, unit:fertUnit},
+          ...fertEntries.map(fe=>({name:fe.name,dil:fe.dil,sprayAmt:fe.sprayAmt,sprayUnit:fe.sprayUnit||'L',amt:fe.amt,unit:fe.unit||''}))
+        ];
+        let updFertMs = [...fertMs];
+        allFertLogs.forEach(f=>{
+          if(!f.name) return;
+          const idx = updFertMs.findIndex(m=>m.name===f.name);
+          if(idx<0) return;
+          const m = updFertMs[idx];
+          let useAmt=0, useUnit='';
+          if(f.dil && f.sprayAmt && parseFloat(f.sprayAmt)>0){
+            useAmt = parseFloat(f.sprayAmt)/(parseFloat(f.dil)||1);
+            useUnit = f.sprayUnit||f.unit||'';
+          } else if(parseFloat(f.amt)>0){
+            useAmt = parseFloat(f.amt); useUnit = f.unit||'';
+          }
+          if(useAmt<=0) return;
+          const normalized = normalizeToMasterUnit(useAmt, useUnit, m.sunit||m.cunit||'');
+          const newStock = Math.max(0, (parseFloat(m.stock)||0) - normalized);
+          const newStatus = newStock<=0 ? '使い切り（非表示）' : (m.status||'使用中');
+          const updated = {...m, stock:String(Math.round(newStock*100)/100), status:newStatus};
+          updFertMs = updFertMs.map((x,i)=>i===idx?updated:x);
+          if(newStatus==='使い切り（非表示）' && m.status!=='使い切り（非表示）') showToast(f.name+'の在庫がなくなりました');
+        });
+        if(JSON.stringify(updFertMs)!==JSON.stringify(fertMs)){
+          updFertMs.forEach((m,i)=>{ if(JSON.stringify(m)!==JSON.stringify(fertMs[i])) setFertMs(updFertMs, m); });
+        }
+        // 農薬の在庫減算
+        const allPestLogs = [
+          {name:pestName, dil:pestDil, sprayAmt:pestAmt, sprayUnit:pestUnit||'L', amt:pestAmt, unit:pestUnit||'L'},
+          ...pestEntries.map(pe=>({name:pe.name,dil:pe.dil,sprayAmt:pe.amt,sprayUnit:pe.unit||'L',amt:pe.amt,unit:pe.unit||'L'}))
+        ];
+        let updPestMs = [...pestMs];
+        allPestLogs.forEach(p=>{
+          if(!p.name) return;
+          const idx = updPestMs.findIndex(m=>m.name===p.name);
+          if(idx<0) return;
+          const m = updPestMs[idx];
+          let useAmt=0, useUnit='';
+          if(p.dil && p.sprayAmt && parseFloat(p.sprayAmt)>0){
+            useAmt = parseFloat(p.sprayAmt)/(parseFloat(p.dil)||1);
+            useUnit = p.sprayUnit||p.unit||'';
+          } else if(parseFloat(p.amt)>0){
+            useAmt = parseFloat(p.amt); useUnit = p.unit||'';
+          }
+          if(useAmt<=0) return;
+          const normalized = normalizeToMasterUnit(useAmt, useUnit, m.sunit||m.cunit||'');
+          const newStock = Math.max(0, (parseFloat(m.stock)||0) - normalized);
+          const newStatus = newStock<=0 ? '使い切り（非表示）' : (m.status||'使用中');
+          const updated = {...m, stock:String(Math.round(newStock*100)/100), status:newStatus};
+          updPestMs = updPestMs.map((x,i)=>i===idx?updated:x);
+          if(newStatus==='使い切り（非表示）' && m.status!=='使い切り（非表示）') showToast(p.name+'の在庫がなくなりました');
+        });
+        if(JSON.stringify(updPestMs)!==JSON.stringify(pestMs)){
+          updPestMs.forEach((m,i)=>{ if(JSON.stringify(m)!==JSON.stringify(pestMs[i])) setPestMs(updPestMs, m); });
         }
       }
       showToast('記録しました！');
@@ -7734,7 +7795,7 @@ export default function App() {
             </div>
           </div>
           <div style={{flex:1,overflowY:"auto",WebkitOverflowScrolling:"touch"}}>
-            <LogScreen key={(initLog?._isCopy?"copy-"+(initLog?.cropId||""):initLog?.id||"new")+String(logModal)} saveRef={logScreenSaveRef} uid={uid} fields={fields} crops={crops} setCrops={setCrops} fertMs={fertMs} pestMs={pestMs} equips={equips} costs={costs} setCosts={setCosts} logs={logs} setLogs={setLogs} dbSaveLog={dbSaveLog} setLogsR={setLogsR} showToast={showToast} initialWork={initWork} editLog={initLog} editLogs={initLogs} onDone={()=>{setLogModal(false);}}/>
+            <LogScreen key={(initLog?._isCopy?"copy-"+(initLog?.cropId||""):initLog?.id||"new")+String(logModal)} saveRef={logScreenSaveRef} uid={uid} fields={fields} crops={crops} setCrops={setCrops} fertMs={fertMs} setFertMs={setFertMs} pestMs={pestMs} setPestMs={setPestMs} equips={equips} costs={costs} setCosts={setCosts} logs={logs} setLogs={setLogs} dbSaveLog={dbSaveLog} setLogsR={setLogsR} showToast={showToast} initialWork={initWork} editLog={initLog} editLogs={initLogs} onDone={()=>{setLogModal(false);}}/>
           </div>
         </div>}
       {dbLoad && (
