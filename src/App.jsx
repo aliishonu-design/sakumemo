@@ -3600,6 +3600,9 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
     }
   };
   const [mCard, setMCard] = useState(null); // 編集中カード（null=閉じ）
+  // 元入金手動修正用state
+  const [motoireEditOpen, setMotoireEditOpen] = useState(false);
+  const [motoireInput, setMotoireInput] = useState("");
 
   // 按分率を取得（localStorageから）
   const getApportionRates = () => {
@@ -5027,49 +5030,6 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
         });
         const motoire = (()=>{try{return Number(localStorage.getItem("motoire")||"0");}catch{return 0;}})();
         const nextMotoire = motoire + profit;
-        const MoToireEdit = ()=>{
-          const [open, setOpen] = React.useState(false);
-          const [val, setVal] = React.useState(String(motoire));
-          return (
-            <div style={{marginTop:8}}>
-              <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-                <button style={{...S.btn,...S.btnS}} onClick={()=>{
-                  try{localStorage.setItem("motoire",String(nextMotoire));showToast("来年の元入金を保存しました（"+nextMotoire.toLocaleString()+"円）");}catch{}
-                }}>来年の元入金として保存</button>
-                <button style={{...S.btn,background:"#f3f0ea",color:"#666",border:"1px solid #e0d9ce",borderRadius:8,padding:"7px 12px",fontSize:".8rem",cursor:"pointer",fontFamily:"inherit"}}
-                  onClick={()=>{setOpen(p=>!p);setVal(String(motoire));}}>✏️ 手動で修正</button>
-              </div>
-              {open&&(
-                <div style={{marginTop:10,background:"#fef9f0",border:"1px solid #f0c060",borderRadius:8,padding:10}}>
-                  <div style={{fontSize:".76rem",color:"#8a6000",marginBottom:6}}>⚠️ 元入金（期首）を手動で上書きします</div>
-                  <div style={{display:"flex",gap:6,alignItems:"center"}}>
-                    <input type="text" inputMode="decimal" value={val}
-                      onChange={e=>setVal(e.target.value.replace(/[^0-9\-]/g,""))}
-                      placeholder="例：500000"
-                      style={{...S.inp,flex:1,fontSize:".9rem"}}/>
-                    <span style={{fontSize:".8rem",color:TX3}}>円</span>
-                  </div>
-                  <div style={{display:"flex",gap:6,marginTop:8}}>
-                    <button style={{...S.btn,...S.btnG,flex:1}} onClick={()=>{
-                      const v=parseInt(val)||0;
-                      try{localStorage.setItem("motoire",String(v));showToast("元入金を "+v.toLocaleString()+" 円に更新しました");}catch{}
-                      setOpen(false);
-                    }}>この金額で保存</button>
-                    <button style={{...S.btn,background:"#fee2e2",color:"#dc2626",borderRadius:8,padding:"7px 14px",border:"none",cursor:"pointer",flex:1,fontFamily:"inherit",fontSize:".8rem"}}
-                      onClick={()=>{
-                        if(window.confirm("元入金を0円にリセットしますか？")){
-                          try{localStorage.setItem("motoire","0");showToast("元入金を0円にリセットしました");}catch{}
-                          setOpen(false);
-                        }
-                      }}>0円にリセット</button>
-                  </div>
-                  <button style={{...S.btn,background:"#eee",color:"#666",borderRadius:8,padding:"6px",border:"none",cursor:"pointer",width:"100%",marginTop:6,fontFamily:"inherit",fontSize:".78rem"}}
-                    onClick={()=>setOpen(false)}>キャンセル</button>
-                </div>
-              )}
-            </div>
-          );
-        };
         return (<>
           <div style={S.card}>
             <SecHd label={"📊 損益計算書（"+yr+"年）"}/>
@@ -5089,7 +5049,43 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
             <Row label="元入金（期首）" val={motoire} sub/>
             <Row label="農業所得（当期）" val={profit} sub/>
             <Row label="元入金（期末・来年への繰越）" val={nextMotoire} bold/>
-            <MoToireEdit/>
+            <div style={{marginTop:8}}>
+              <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                <button style={{...S.btn,...S.btnS}} onClick={()=>{
+                  try{localStorage.setItem("motoire",String(nextMotoire));showToast("来年の元入金を保存しました（"+nextMotoire.toLocaleString()+"円）");}catch{}
+                }}>来年の元入金として保存</button>
+                <button style={{...S.btn,background:"#f3f0ea",color:"#666",border:"1px solid #e0d9ce",borderRadius:8,padding:"7px 12px",fontSize:".8rem",cursor:"pointer",fontFamily:"inherit"}}
+                  onClick={()=>{setMotoireEditOpen(p=>!p);setMotoireInput(String(motoire));}}>✏️ 手動で修正</button>
+              </div>
+              {motoireEditOpen&&(
+                <div style={{marginTop:10,background:"#fef9f0",border:"1px solid #f0c060",borderRadius:8,padding:10}}>
+                  <div style={{fontSize:".76rem",color:"#8a6000",marginBottom:6}}>⚠️ 元入金（期首）を手動で上書きします</div>
+                  <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                    <input type="text" inputMode="decimal" value={motoireInput}
+                      onChange={e=>setMotoireInput(e.target.value.replace(/[^0-9\-]/g,""))}
+                      placeholder="例：500000"
+                      style={{...S.inp,flex:1,fontSize:".9rem"}}/>
+                    <span style={{fontSize:".8rem",color:TX3}}>円</span>
+                  </div>
+                  <div style={{display:"flex",gap:6,marginTop:8}}>
+                    <button style={{...S.btn,...S.btnG,flex:1}} onClick={()=>{
+                      const v=parseInt(motoireInput)||0;
+                      try{localStorage.setItem("motoire",String(v));showToast("元入金を "+v.toLocaleString()+" 円に更新しました");}catch{}
+                      setMotoireEditOpen(false);
+                    }}>この金額で保存</button>
+                    <button style={{...S.btn,background:"#fee2e2",color:"#dc2626",borderRadius:8,padding:"7px 14px",border:"none",cursor:"pointer",flex:1,fontFamily:"inherit",fontSize:".8rem"}}
+                      onClick={()=>{
+                        if(window.confirm("元入金を0円にリセットしますか？")){
+                          try{localStorage.setItem("motoire","0");showToast("元入金を0円にリセットしました");}catch{}
+                          setMotoireEditOpen(false);
+                        }
+                      }}>0円にリセット</button>
+                  </div>
+                  <button style={{...S.btn,background:"#eee",color:"#666",borderRadius:8,padding:"6px",border:"none",cursor:"pointer",width:"100%",marginTop:6,fontFamily:"inherit",fontSize:".78rem"}}
+                    onClick={()=>setMotoireEditOpen(false)}>キャンセル</button>
+                </div>
+              )}
+            </div>
           </div>
           {(equips||[]).length>0&&(
             <div style={S.card}>
