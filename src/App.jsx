@@ -1447,7 +1447,7 @@ function LoginScreen() {
       <div style={{background:"#fff",borderRadius:20,padding:"28px 24px",maxWidth:360,width:"100%",textAlign:"center",boxShadow:"0 8px 40px rgba(0,0,0,.3)"}}>
         <div style={{fontSize:"2.2rem",marginBottom:6}}>🌾</div>
         <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:"1.3rem",color:G,marginBottom:4}}>サクメモ</div>
-        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v1.8.91</span></div>
+        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v1.8.94</span></div>
         {linkErr&&<div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:8,padding:"10px 12px",marginBottom:16,fontSize:".78rem",color:"#856404",textAlign:"left"}}>{linkErr}</div>}
 
 
@@ -1507,7 +1507,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.91</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.94</div>
       </div>
     </div>
   );
@@ -4797,33 +4797,20 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
               </div>}
             </>}
           </>}
-          {!isIncome(mCost.cat)&&mCost.cat==="vehicle"&&(
-            <FG label="家事按分（農業割合）">
-              <div style={{display:"flex",alignItems:"center",gap:8}}>
-                <input type="range" min={0} max={100} step={5}
-                  value={mCost.apportionRate!==undefined?mCost.apportionRate:100}
-                  onChange={e=>setMCost({...mCost,apportionRate:Number(e.target.value)})}
-                  style={{flex:1}}/>
-                <span style={{minWidth:36,textAlign:"right",fontWeight:700,color:G}}>
-                  {mCost.apportionRate!==undefined?mCost.apportionRate:100}%
-                </span>
-              </div>
-              <div style={{fontSize:".7rem",color:TX3,marginTop:2}}>
-                農業利用割合。100%=全額農業費用、50%=半分を農業費用として計上
-              </div>
-            </FG>
-          )}
-          {!isIncome(mCost.cat)&&mCost.cat!=="vehicle"&&(()=>{
-            const am = apportionMasters.find(a=>a.cat===mCost.cat);
-            if(!am) return null;
-            const rate = mCost.apportionRate!==undefined?mCost.apportionRate:am.defaultRate||100;
-            return <FG label={"家事按分（農業割合）- "+am.name}>
+          {!isIncome(mCost.cat)&&(()=>{
+            const rate = mCost.apportionRate!==undefined ? mCost.apportionRate : 100;
+            return <FG label="家事按分（農業割合）">
               <div style={{display:"flex",alignItems:"center",gap:8}}>
                 <input type="range" min={0} max={100} step={5}
                   value={rate}
                   onChange={e=>setMCost({...mCost,apportionRate:Number(e.target.value)})}
                   style={{flex:1}}/>
-                <span style={{minWidth:36,textAlign:"right",fontWeight:700,color:G}}>{rate}%</span>
+                <span style={{minWidth:36,textAlign:"right",fontWeight:700,color:rate<100?"#e07020":G}}>{rate}%</span>
+              </div>
+              <div style={{fontSize:".7rem",color:TX3,marginTop:2}}>
+                {rate===100
+                  ? "100%＝全額農業費用として計上"
+                  : `農業${rate}%・家事${100-rate}%で按分。農業費用：${Math.round((Number(mCost.amt)||0)*rate/100).toLocaleString()}円`}
               </div>
             </FG>;
           })()}
@@ -4891,6 +4878,16 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
           <R2>
             <FG label="締め日"><Inp type="number" value={mCard.closingDay||""} onChange={v=>setMCard({...mCard,closingDay:v})} placeholder="15"/></FG>
             <FG label="引き落とし日"><Inp type="number" value={mCard.payDay||""} onChange={v=>setMCard({...mCard,payDay:v})} placeholder="10"/></FG>
+          </R2>
+          <R2>
+            <FG label="翌月 or 翌々月払い">
+              <Sel value={String(mCard.payNext||"1")} onChange={v=>setMCard({...mCard,payNext:v})}
+                options={[{value:"1",label:"翌月払い"},{value:"2",label:"翌々月払い"}]}/>
+            </FG>
+            <FG label="休日の場合">
+              <Sel value={mCard.holidayMode||"next"} onChange={v=>setMCard({...mCard,holidayMode:v})}
+                options={[{value:"next",label:"翌営業日"},{value:"prev",label:"前営業日"},{value:"none",label:"そのまま"}]}/>
+            </FG>
           </R2>
           <FG label="引き落とし口座"><Inp value={mCard.bank||""} onChange={v=>setMCard({...mCard,bank:v})} placeholder="例：JAバンク 普通口座"/></FG>
           <FG label="メモ"><Inp value={mCard.note||""} onChange={v=>setMCard({...mCard,note:v})} placeholder="ポイント・特典など"/></FG>
@@ -6727,6 +6724,25 @@ function PwChangeSection() {
 }
 
 function SettingsScreen({ showToast, user, uid, signOut, fields, crops, logs, fertMs, pestMs, equips, costs, setScr, cards=[], setCards }) {
+  // ── 祝日カスタマイズ管理 ──
+  const [customHolidays, setCustomHolidaysState] = useState(()=>{
+    try{ return JSON.parse(localStorage.getItem("customHolidays")||"[]"); }catch{ return []; }
+  });
+  const setCustomHolidays = (arr) => {
+    setCustomHolidaysState(arr);
+    try{ localStorage.setItem("customHolidays", JSON.stringify(arr)); }catch{}
+  };
+  const [holidayInput, setHolidayInput] = useState("");   // "YYYY-MM-DD"
+  const [holidayNameInput, setHolidayNameInput] = useState(""); // 祝日名
+  const [holidayTab, setHolidayTab] = useState("add");    // "add"|"del"
+  const [deletedHolidays, setDeletedHolidaysState] = useState(()=>{
+    try{ return JSON.parse(localStorage.getItem("deletedHolidays")||"[]"); }catch{ return []; }
+  });
+  const setDeletedHolidays = (arr) => {
+    setDeletedHolidaysState(arr);
+    try{ localStorage.setItem("deletedHolidays", JSON.stringify(arr)); }catch{}
+  };
+  const [delInput, setDelInput] = useState("");
   const doExport=()=>{ const d=JSON.stringify({fields,crops,logs,fertMs,pestMs,equips,costs},null,2);const a=document.createElement("a");a.href="data:application/json;charset=utf-8,"+encodeURIComponent(d);a.download="farm-ai-export-"+todayStr()+".json";a.click(); };
   const csvEsc=v=>{const s=String(v==null?"":v);return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;};
   const downloadCsv=(rows,name)=>{const bom="\uFEFF";const csv=bom+rows.map(r=>r.map(csvEsc).join(",")).join("\r\n");const a=document.createElement("a");a.href="data:text/csv;charset=utf-8,"+encodeURIComponent(csv);a.download=name+"-"+todayStr()+".csv";a.click();};
@@ -6779,6 +6795,77 @@ function SettingsScreen({ showToast, user, uid, signOut, fields, crops, logs, fe
         </div>
       </div>
 
+
+      {/* 祝日カスタマイズ */}
+      <div style={S.card}>
+        <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".86rem",color:G,marginBottom:4}}>🗓️ 祝日カスタマイズ</div>
+        <div style={{fontSize:".72rem",color:TX3,marginBottom:10,lineHeight:1.5}}>
+          法律改正で祝日が変わった時に対応できます。毎年2月頃に内閣府が翌年分を発表したら、ここで追加・削除してください。
+        </div>
+        {/* タブ */}
+        <div style={{display:"flex",gap:6,marginBottom:12}}>
+          {[["add","📅 追加"],["del","🗑️ 削除"]].map(([k,l])=>(
+            <button key={k} onClick={()=>setHolidayTab(k)}
+              style={{flex:1,padding:"7px 0",border:"none",borderRadius:8,fontWeight:700,fontSize:".8rem",cursor:"pointer",
+                background:holidayTab===k?G:"#f0ede6",color:holidayTab===k?"#fff":TX3}}>
+              {l}
+            </button>
+          ))}
+        </div>
+        {holidayTab==="add"&&<>
+          <div style={{fontSize:".76rem",color:TX3,marginBottom:6}}>新しく祝日として追加する日付</div>
+          <div style={{display:"flex",gap:6,marginBottom:6}}>
+            <input type="date" value={holidayInput} onChange={e=>setHolidayInput(e.target.value)}
+              style={{...S.inp,flex:1}}/>
+            <input type="text" value={holidayNameInput} onChange={e=>setHolidayNameInput(e.target.value)}
+              placeholder="祝日名（例：振替休日）"
+              style={{...S.inp,flex:2}}/>
+          </div>
+          <button style={{...S.btn,...S.btnG}} onClick={()=>{
+            if(!holidayInput){showToast("日付を入力してください");return;}
+            if(customHolidays.some(h=>h.date===holidayInput)){showToast("すでに登録済みです");return;}
+            setCustomHolidays([...customHolidays,{date:holidayInput,name:holidayNameInput||"祝日"}]);
+            setHolidayInput(""); setHolidayNameInput("");
+            showToast("追加しました");
+          }}>＋ 追加</button>
+          {customHolidays.length>0&&<>
+            <div style={{fontSize:".74rem",color:TX3,marginTop:10,marginBottom:4}}>追加済み祝日</div>
+            {[...customHolidays].sort((a,b)=>a.date.localeCompare(b.date)).map((h,i)=>(
+              <div key={h.date} style={{display:"flex",alignItems:"center",gap:8,padding:"5px 0",borderBottom:"1px solid "+BD}}>
+                <div style={{flex:1,fontSize:".8rem"}}>{h.date}<span style={{color:TX3,marginLeft:8}}>{h.name}</span></div>
+                <button onClick={()=>{setCustomHolidays(customHolidays.filter(x=>x.date!==h.date));showToast("削除しました");}}
+                  style={{background:"none",border:"1px solid #e87",borderRadius:6,color:"#c44",fontSize:".72rem",padding:"2px 8px",cursor:"pointer"}}>削除</button>
+              </div>
+            ))}
+          </>}
+        </>}
+        {holidayTab==="del"&&<>
+          <div style={{fontSize:".76rem",color:TX3,marginBottom:6}}>アルゴリズムで祝日と判定される日を除外する</div>
+          <div style={{display:"flex",gap:6,marginBottom:6}}>
+            <input type="date" value={delInput} onChange={e=>setDelInput(e.target.value)}
+              style={{...S.inp,flex:1}}/>
+            <button style={{...S.btn,...S.btnR,width:"auto",padding:"8px 14px"}} onClick={()=>{
+              if(!delInput){showToast("日付を入力してください");return;}
+              if(deletedHolidays.includes(delInput)){showToast("すでに登録済みです");return;}
+              setDeletedHolidays([...deletedHolidays,delInput]);
+              setDelInput(""); showToast("除外しました");
+            }}>除外</button>
+          </div>
+          <div style={{fontSize:".72rem",color:"#c07030",marginBottom:8}}>
+            ※ 廃止・移動された祝日をここに入れると、その日を平日として扱います
+          </div>
+          {deletedHolidays.length>0&&<>
+            <div style={{fontSize:".74rem",color:TX3,marginBottom:4}}>除外済み日付</div>
+            {[...deletedHolidays].sort().map(ds=>(
+              <div key={ds} style={{display:"flex",alignItems:"center",gap:8,padding:"5px 0",borderBottom:"1px solid "+BD}}>
+                <div style={{flex:1,fontSize:".8rem"}}>{ds}</div>
+                <button onClick={()=>{setDeletedHolidays(deletedHolidays.filter(x=>x!==ds));showToast("復元しました");}}
+                  style={{background:"none",border:"1px solid #8a8",borderRadius:6,color:"#2d6a3f",fontSize:".72rem",padding:"2px 8px",cursor:"pointer"}}>復元</button>
+              </div>
+            ))}
+          </>}
+        </>}
+      </div>
 
       {/* ログアウト */}
       <div style={S.card}>
@@ -6916,50 +7003,123 @@ export default function App() {
     setCards(arr);
     saveCardsToSupabase(arr, user?.id);
   };
-  // 日本の祝日リスト（2024-2027年）
-  const JP_HOLIDAYS = new Set([
-    "2024-01-01","2024-01-08","2024-02-11","2024-02-12","2024-02-23","2024-03-20","2024-04-29","2024-05-03","2024-05-04","2024-05-05","2024-05-06","2024-07-15","2024-08-11","2024-08-12","2024-09-16","2024-09-22","2024-09-23","2024-10-14","2024-11-03","2024-11-04","2024-11-23",
-    "2025-01-01","2025-01-13","2025-02-11","2025-02-23","2025-02-24","2025-03-20","2025-04-29","2025-05-03","2025-05-04","2025-05-05","2025-05-06","2025-07-21","2025-08-11","2025-09-15","2025-09-23","2025-10-13","2025-11-03","2025-11-23","2025-11-24",
-    "2026-01-01","2026-01-12","2026-02-11","2026-02-23","2026-03-20","2026-04-29","2026-05-03","2026-05-04","2026-05-05","2026-05-06","2026-07-20","2026-08-11","2026-09-21","2026-09-22","2026-09-23","2026-10-12","2026-11-03","2026-11-23",
-    "2027-01-01","2027-01-11","2027-02-11","2027-02-23","2027-03-21","2027-03-22","2027-04-29","2027-05-03","2027-05-04","2027-05-05","2027-07-19","2027-08-11","2027-09-20","2027-09-23","2027-10-11","2027-11-03","2027-11-23",
-  ]);
-  // Dateオブジェクト → "YYYY-MM-DD"（ローカル日付、toISOStringのUTCずれなし）
+  // ── 日本の祝日をアルゴリズムで計算（年限なし・2028年以降も対応） ──
   const dateToStr = (d) => {
     const y = d.getFullYear();
     const m = String(d.getMonth()+1).padStart(2,"0");
     const day = String(d.getDate()).padStart(2,"0");
     return `${y}-${m}-${day}`;
   };
-  const nextBusinessDay = (d) => {
+  // 春分日・秋分日の概算（天文計算式）
+  const shunbun = (y) => {
+    if(y<=1979) return Math.floor(20.8357 + 0.242194*(y-1980) - Math.floor((y-1980)/4));
+    if(y<=2099) return Math.floor(20.8431 + 0.242194*(y-1980) - Math.floor((y-1980)/4));
+    return Math.floor(21.851 + 0.242194*(y-1980) - Math.floor((y-1980)/4));
+  };
+  const shubun = (y) => {
+    if(y<=1979) return Math.floor(23.2588 + 0.242194*(y-1980) - Math.floor((y-1980)/4));
+    if(y<=2099) return Math.floor(23.2488 + 0.242194*(y-1980) - Math.floor((y-1980)/4));
+    return Math.floor(24.2488 + 0.242194*(y-1980) - Math.floor((y-1980)/4));
+  };
+  // 第n月曜（ハッピーマンデー）
+  const nthMon = (y, m, n) => {
+    const first = new Date(y, m-1, 1);
+    const dow = first.getDay(); // 0=日
+    const delta = (1 - dow + 7) % 7; // 最初の月曜までの日数
+    return 1 + delta + (n-1)*7;
+  };
+  // 年ごとの祝日セットを生成
+  const buildHolidays = (y) => {
+    const h = new Set();
+    const add = (m, d) => { if(d>=1&&d<=31) h.add(`${y}-${String(m).padStart(2,"0")}-${String(d).padStart(2,"0")}`); };
+    add(1,1);              // 元日
+    add(1, nthMon(y,1,2)); // 成人の日
+    add(2,11);             // 建国記念の日
+    add(2,23);             // 天皇誕生日（2020〜）
+    const sp = shunbun(y);
+    add(3, sp);            // 春分の日
+    add(4,29);             // 昭和の日
+    add(5,3);add(5,4);add(5,5); // 憲法・みどり・こどもの日
+    add(7, nthMon(y,7,3)); // 海の日
+    add(8,11);             // 山の日
+    add(9, nthMon(y,9,3)); // 敬老の日
+    const au = shubun(y);
+    add(9, au);            // 秋分の日
+    add(10, nthMon(y,10,2)); // スポーツの日
+    add(11,3);             // 文化の日
+    add(11,23);            // 勤労感謝の日
+    // 振替休日（日曜の翌月曜）と国民の休日（祝日に挟まれた平日）
+    const dates = [...h].sort();
+    const extra = new Set();
+    dates.forEach(ds => {
+      const d2 = new Date(ds);
+      if(d2.getDay()===0){ // 日曜→翌月曜
+        const next = new Date(d2); next.setDate(next.getDate()+1);
+        while(h.has(dateToStr(next))||extra.has(dateToStr(next))){ next.setDate(next.getDate()+1); }
+        extra.add(dateToStr(next));
+      }
+    });
+    // 国民の休日（祝日と祝日に挟まれた平日）
+    [...dates,...[...extra]].sort().forEach((ds,i,arr)=>{
+      if(i===0) return;
+      const prev = new Date(arr[i-1]); const curr = new Date(ds);
+      const diff = (curr-prev)/86400000;
+      if(diff===2){
+        const mid = new Date(prev); mid.setDate(mid.getDate()+1);
+        if(mid.getDay()!==0&&mid.getDay()!==6) extra.add(dateToStr(mid));
+      }
+    });
+    extra.forEach(ds=>h.add(ds));
+    return h;
+  };
+  // カスタム祝日データ（SettingsScreenで編集 → localStorage経由で参照）
+  const getCustomHolidays = () => { try{ return JSON.parse(localStorage.getItem("customHolidays")||"[]"); }catch{ return []; } };
+  const getDeletedHolidays = () => { try{ return JSON.parse(localStorage.getItem("deletedHolidays")||"[]"); }catch{ return []; } };
+  // 祝日判定キャッシュ（カスタムデータを反映）
+  const _holidayCache = {};
+  const isJpHoliday = (d) => {
+    const ds = dateToStr(d);
+    // 除外リストに入っていれば祝日ではない
+    if(getDeletedHolidays().includes(ds)) return false;
+    // カスタム追加リストに入っていれば祝日
+    if(getCustomHolidays().some(h=>h.date===ds)) return true;
+    // アルゴリズム判定
+    const y = d.getFullYear();
+    if(!_holidayCache[y]) _holidayCache[y] = buildHolidays(y);
+    return _holidayCache[y].has(ds);
+  };
+  const isNonBiz = (d) => d.getDay()===0 || d.getDay()===6 || isJpHoliday(d);
+  const nextBizDay = (d) => {
     let r = new Date(d);
-    while(r.getDay()===0 || r.getDay()===6 || JP_HOLIDAYS.has(dateToStr(r))) {
-      r.setDate(r.getDate()+1);
-    }
+    while(isNonBiz(r)) r.setDate(r.getDate()+1);
+    return r;
+  };
+  const prevBizDay = (d) => {
+    let r = new Date(d);
+    while(isNonBiz(r)) r.setDate(r.getDate()-1);
     return r;
   };
   // カードの引き落とし予定日を計算
   const calcPayDate = (purchaseDate, card) => {
     if(!purchaseDate||!card) return "";
-    // "YYYY-MM-DD" を年月日に分解（Dateコンストラクタのタイムゾーン変換を回避）
     const [py, pm, pd2] = purchaseDate.split("-").map(Number);
-    const closeDay = parseInt(card.closeDay)||31;
+    const closeDay = parseInt(card.closingDay)||31;
     const payDay   = parseInt(card.payDay)||27;
     const payNext  = parseInt(card.payNext)||1; // 翌月=1, 翌々月=2
-    const avoidWeekend = card.avoidWeekend !== false;
-    // 購入月の締め日（月末締めは closeDay>=28 なら月末日）
-    const lastDayOfBuyMonth = new Date(py, pm, 0).getDate(); // pm=1起算なのでpm月の末日
+    // 休日処理モード: "next"=翌営業日(デフォ), "prev"=前営業日, "none"=そのまま
+    const holidayMode = card.holidayMode || "next";
+    const lastDayOfBuyMonth = new Date(py, pm, 0).getDate();
     const closeActual = closeDay >= 28 ? lastDayOfBuyMonth : Math.min(closeDay, lastDayOfBuyMonth);
-    // 締め日を超えていれば1サイクル後ろにずれる
     let payMonthOffset = payNext;
     if(pd2 > closeActual) payMonthOffset = payNext + 1;
-    // 支払月（new Dateが年またぎを自動補正）
     const payMonthDate = new Date(py, pm - 1 + payMonthOffset, 1);
     const payY = payMonthDate.getFullYear();
-    const payM = payMonthDate.getMonth(); // 0起算
+    const payM = payMonthDate.getMonth();
     const lastDayOfPayMonth = new Date(payY, payM+1, 0).getDate();
     const payActual = payDay >= 28 ? lastDayOfPayMonth : Math.min(payDay, lastDayOfPayMonth);
     let result = new Date(payY, payM, payActual);
-    if(avoidWeekend) result = nextBusinessDay(result);
+    if(holidayMode==="next" && isNonBiz(result)) result = nextBizDay(result);
+    else if(holidayMode==="prev" && isNonBiz(result)) result = prevBizDay(result);
     return dateToStr(result);
   };
   const [lb, setLb] = useState(null); // ライトボックス {photos:[], idx:0}
