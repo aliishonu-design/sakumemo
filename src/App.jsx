@@ -1447,7 +1447,7 @@ function LoginScreen() {
       <div style={{background:"#fff",borderRadius:20,padding:"28px 24px",maxWidth:360,width:"100%",textAlign:"center",boxShadow:"0 8px 40px rgba(0,0,0,.3)"}}>
         <div style={{fontSize:"2.2rem",marginBottom:6}}>🌾</div>
         <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:"1.3rem",color:G,marginBottom:4}}>サクメモ</div>
-        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v1.8.87</span></div>
+        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v1.8.89</span></div>
         {linkErr&&<div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:8,padding:"10px 12px",marginBottom:16,fontSize:".78rem",color:"#856404",textAlign:"left"}}>{linkErr}</div>}
 
 
@@ -1507,7 +1507,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.87</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v1.8.89</div>
       </div>
     </div>
   );
@@ -5017,15 +5017,59 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
         const thisYear = new Date().getFullYear();
         let equipBookVal = 0;
         (equips||[]).forEach(eq=>{
-          if(!eq.price||!eq.purchaseDate) return;
-          const py = new Date(eq.purchaseDate).getFullYear();
-          const life = eq.usefulLife||5;
-          const annual = Math.floor(eq.price / life);
-          const dep = Math.min(eq.price, annual*(thisYear-py));
-          equipBookVal += Math.max(0, eq.price - dep);
+          const buyDate = eq.purchaseDate||eq.date||eq.buyDate;
+          if(!eq.price||!buyDate) return;
+          const py = new Date(buyDate).getFullYear();
+          const life = parseInt(eq.usefulLife||eq.depYears)||5;
+          const annual = Math.floor(parseFloat(eq.price) / life);
+          const dep = Math.min(parseFloat(eq.price), annual*(thisYear-py));
+          equipBookVal += Math.max(0, parseFloat(eq.price) - dep);
         });
         const motoire = (()=>{try{return Number(localStorage.getItem("motoire")||"0");}catch{return 0;}})();
         const nextMotoire = motoire + profit;
+        const MoToireEdit = ()=>{
+          const [open, setOpen] = React.useState(false);
+          const [val, setVal] = React.useState(String(motoire));
+          return (
+            <div style={{marginTop:8}}>
+              <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                <button style={{...S.btn,...S.btnS}} onClick={()=>{
+                  try{localStorage.setItem("motoire",String(nextMotoire));showToast("来年の元入金を保存しました（"+nextMotoire.toLocaleString()+"円）");}catch{}
+                }}>来年の元入金として保存</button>
+                <button style={{...S.btn,background:"#f3f0ea",color:"#666",border:"1px solid #e0d9ce",borderRadius:8,padding:"7px 12px",fontSize:".8rem",cursor:"pointer",fontFamily:"inherit"}}
+                  onClick={()=>{setOpen(p=>!p);setVal(String(motoire));}}>✏️ 手動で修正</button>
+              </div>
+              {open&&(
+                <div style={{marginTop:10,background:"#fef9f0",border:"1px solid #f0c060",borderRadius:8,padding:10}}>
+                  <div style={{fontSize:".76rem",color:"#8a6000",marginBottom:6}}>⚠️ 元入金（期首）を手動で上書きします</div>
+                  <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                    <input type="text" inputMode="decimal" value={val}
+                      onChange={e=>setVal(e.target.value.replace(/[^0-9\-]/g,""))}
+                      placeholder="例：500000"
+                      style={{...S.inp,flex:1,fontSize:".9rem"}}/>
+                    <span style={{fontSize:".8rem",color:TX3}}>円</span>
+                  </div>
+                  <div style={{display:"flex",gap:6,marginTop:8}}>
+                    <button style={{...S.btn,...S.btnG,flex:1}} onClick={()=>{
+                      const v=parseInt(val)||0;
+                      try{localStorage.setItem("motoire",String(v));showToast("元入金を "+v.toLocaleString()+" 円に更新しました");}catch{}
+                      setOpen(false);
+                    }}>この金額で保存</button>
+                    <button style={{...S.btn,background:"#fee2e2",color:"#dc2626",borderRadius:8,padding:"7px 14px",border:"none",cursor:"pointer",flex:1,fontFamily:"inherit",fontSize:".8rem"}}
+                      onClick={()=>{
+                        if(window.confirm("元入金を0円にリセットしますか？")){
+                          try{localStorage.setItem("motoire","0");showToast("元入金を0円にリセットしました");}catch{}
+                          setOpen(false);
+                        }
+                      }}>0円にリセット</button>
+                  </div>
+                  <button style={{...S.btn,background:"#eee",color:"#666",borderRadius:8,padding:"6px",border:"none",cursor:"pointer",width:"100%",marginTop:6,fontFamily:"inherit",fontSize:".78rem"}}
+                    onClick={()=>setOpen(false)}>キャンセル</button>
+                </div>
+              )}
+            </div>
+          );
+        };
         return (<>
           <div style={S.card}>
             <SecHd label={"📊 損益計算書（"+yr+"年）"}/>
@@ -5045,25 +5089,33 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
             <Row label="元入金（期首）" val={motoire} sub/>
             <Row label="農業所得（当期）" val={profit} sub/>
             <Row label="元入金（期末・来年への繰越）" val={nextMotoire} bold/>
-            <button style={{...S.btn,...S.btnS,marginTop:8}} onClick={()=>{
-              try{localStorage.setItem("motoire",String(nextMotoire));showToast("来年の元入金を保存しました（"+nextMotoire.toLocaleString()+"円）");}catch{}
-            }}>来年の元入金として保存</button>
+            <MoToireEdit/>
           </div>
           {(equips||[]).length>0&&(
             <div style={S.card}>
               <SecHd label="🚜 農機具明細"/>
               {(equips||[]).map((eq,i)=>{
-                if(!eq.price||!eq.purchaseDate) return null;
-                const py = new Date(eq.purchaseDate).getFullYear();
-                const life = eq.usefulLife||5;
-                const annual = Math.floor(eq.price/life);
-                const dep = Math.min(eq.price, annual*(thisYear-py));
-                const book = Math.max(0, eq.price-dep);
-                return <div key={i} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid "+BD,fontSize:".78rem"}}>
-                  <span>{eq.name||"農機具"}</span>
-                  <span>{book.toLocaleString()}円（取得価額{(eq.price||0).toLocaleString()}円・{thisYear-py}年経過）</span>
+                const buyDate = eq.purchaseDate||eq.date||eq.buyDate;
+                if(!eq.price||!buyDate) return null;
+                const py = new Date(buyDate).getFullYear();
+                const life = parseInt(eq.usefulLife||eq.depYears)||5;
+                const price = parseFloat(eq.price)||0;
+                const annual = Math.floor(price/life);
+                const elapsed = thisYear-py;
+                const dep = Math.min(price, annual*elapsed);
+                const book = Math.max(0, price-dep);
+                const finished = elapsed>=life;
+                return <div key={i} style={{padding:"7px 0",borderBottom:"1px solid "+BD,fontSize:".78rem"}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                    <span style={{fontWeight:700}}>{eq.name||"農機具"}{finished&&<span style={{fontSize:".65rem",color:"#999",marginLeft:4}}>(償却済)</span>}</span>
+                    <span style={{fontWeight:700,color:finished?"#aaa":INFO}}>{book.toLocaleString()}円</span>
+                  </div>
+                  <div style={{color:TX3,marginTop:2}}>取得価額 {price.toLocaleString()}円 · {buyDate.slice(0,4)}年購入 · 耐用{life}年 · {elapsed}年経過</div>
                 </div>;
               })}
+              {(equips||[]).every(eq=>!eq.price||(!(eq.purchaseDate||eq.date||eq.buyDate)))&&(
+                <div style={{fontSize:".78rem",color:TX3}}>購入日・価格が登録された農機具がありません。<br/>資材登録で「設備・資材」に購入日と価格を登録すると表示されます。</div>
+              )}
             </div>
           )}
           <div style={S.card}>
