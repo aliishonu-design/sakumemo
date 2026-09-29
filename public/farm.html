@@ -140,6 +140,7 @@ body{font-family:'Hiragino Sans','BIZ UDGothic',sans-serif;background:#f8f5ef;co
 
 
 
+<script src="card-format.js?v=2.2.0"></script>
 <script>
 var SB_URL='https://nlamtphkwdoxtjktkjzo.supabase.co';
 var SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5sYW10cGhrd2RveHRqa3RranpvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3ODI3NzYsImV4cCI6MjA5MzM1ODc3Nn0.8gba30xxu0s132vg_xOA6-Y3XWjR1YhaprIgUYHZO0o';
@@ -250,7 +251,7 @@ function recordView(farmUid,cropId){
 function daysSince(d){return d?Math.floor((Date.now()-new Date(d))/86400000):0;}
 function fmtDate(d){if(!d)return'';var dt=new Date(d);return(dt.getMonth()+1)+'/'+dt.getDate();}
 function fmtYMD(d){if(!d)return'';var dt=new Date(d);if(isNaN(dt))return d;return dt.getFullYear()+'/'+(dt.getMonth()+1)+'/'+dt.getDate();}
-function cropName(c){var db=CDB[c.type]||{};return c.type==='custom'?(c.custom_name||'その他'):(db.n||c.type);}
+function cropName(c){var db=CDB[c.type]||{};return skEsc(c.type==='custom'?(c.custom_name||'その他'):(db.n||c.type));}
 function cropEmoji(c){return(CDB[c.type]||{}).e||'🌱';}
 
 // タブ構築
@@ -274,7 +275,7 @@ function buildTabs(){
   var typeGroups={};
   allCrops.forEach(function(c){
     var db=CDB[c.type]||{};
-    var key=c.type==='custom'?(c.custom_name||'その他'):(db.n||c.type);
+    var key=skEsc(c.type==='custom'?(c.custom_name||'その他'):(db.n||c.type));
     if(!typeGroups[key])typeGroups[key]={key:key,emoji:db.e||'🌱',crops:[]};
     typeGroups[key].crops.push(c);
   });
@@ -301,7 +302,7 @@ function buildTabs(){
       currentDDKey=g.key;
       // ドロップダウン内容を作成
       ddContainer.innerHTML=g.crops.map(function(c){
-        var label=c.variety?c.variety:cropName(c);
+        var label=c.variety?skEsc(c.variety):cropName(c);
         return '<div style="padding:11px 16px;cursor:pointer;font-size:.84rem;display:flex;align-items:center;gap:8px;border-bottom:1px solid #f0ebe3;background:#fff;" data-id="'+c.id+'">'
           +cropEmoji(c)+' '+label
           +(c.ended?'<span style="font-size:.62rem;color:#e67e22;margin-left:4px">終了</span>':'')
@@ -364,7 +365,7 @@ function selectCrop(cropId){
     var key=b.getAttribute('data-key');
     var crop=allCrops.find(function(c){return c.id===cropId;});
     var db=CDB[crop&&crop.type]||{};
-    var cropKey=crop&&crop.type==='custom'?(crop.custom_name||'その他'):(db.n||crop.type);
+    var cropKey=skEsc(crop&&crop.type==='custom'?(crop.custom_name||'その他'):(db.n||crop.type));
     b.className='crop-tab-btn'+(key===cropKey?' active':'');
   });
   renderCrop(cropId);
@@ -386,172 +387,61 @@ function groupByDate(logs){
 function groupLogs(logs){
   var map={},order=[];
   logs.forEach(function(l){
-    var key=(l.crop_id||'')+'_'+(l.field_id||'')+'_'+(l.date||'')+'_'+(l.time||'');
+    var key=l.group_id||((l.crop_id||'')+'_'+(l.field_id||'')+'_'+(l.date||'')+'_'+(l.time||''));
     if(!map[key]){map[key]={key:key,date:l.date,logs:[]};order.push(key);}
     map[key].logs.push(l);
   });
   return order.map(function(k){return map[k];});
 }
 
-var WORK_ORDER=['sow','germinated','transplant','water','fert','pest','pruning','thinning','sideshot','repot','event','harvest','discard','equip','check','other'];
-
+// 作業カード：アプリと同じ順番・書式（card-format.js の skCardWorks / skCardLines / skCardMeta）
 function makeGroupCard(card,showCropTag){
   var l0=card.logs[0];
   var crop=allCrops.find(function(c){return c.id===l0.crop_id;})||{};
   var db=CDB[crop.type]||{};
-
-  // 写真（全ログから収集）
+  // 写真（全ログから最大3枚）
   var photos=[];
   card.logs.forEach(function(l){[l.img_src,l.img2_src,l.img3_src].forEach(function(s){if(s&&photos.length<3)photos.push(s);});});
-
-  // 品目名
+  // 品目名（タイムラインのみ）
   var cropLabel='';
   if(showCropTag&&crop.type){
-    var cname=crop.type==='custom'?(crop.custom_name||'その他'):(db.n||crop.type);
-    if(crop.variety)cname+=' ('+crop.variety+')';
-    cropLabel='<span class="log-crop-name" onclick="selectCrop(this.dataset.cid)" data-cid="'+crop.id+'" style="cursor:pointer;font-size:.84rem;font-weight:700;color:#1c1a14;">'+( db.e||'🌱')+' '+cname+'</span>';
+    var cname=cropName(crop)+(crop.variety?' ('+skEsc(crop.variety)+')':'');
+    cropLabel='<div style="margin-bottom:4px"><span class="log-crop-name" onclick="selectCrop(this.dataset.cid)" data-cid="'+skEsc(crop.id)+'" style="cursor:pointer;font-size:.84rem;font-weight:700;color:#1c1a14;">'+(db.e||'🌱')+' '+cname+'</span></div>';
   }
-
-  // 作業タグ（WORK_ORDER順・重複排除）
-  var seenWorks={};
-  var sortedLogs=[].concat(card.logs).sort(function(a,b){
-    var oa=WORK_ORDER.indexOf(a.work),ob=WORK_ORDER.indexOf(b.work);
-    return (oa<0?99:oa)-(ob<0?99:ob);
-  });
-  var tagHtml=sortedLogs.filter(function(l){
-    if(seenWorks[l.work])return false; seenWorks[l.work]=true; return true;
-  }).map(function(l){
-    var w=WORK[l.work]||{l:l.work||'',cls:'other'};
-    return '<span class="wt '+w.cls+'">'+w.l+'</span>';
-  }).join(' ');
-
-  // 詳細（メモより前）
-  var detailParts=[];
-  var detailLogs=[].concat(card.logs).sort(function(a,b){
-    var oa=WORK_ORDER.indexOf(a.work),ob=WORK_ORDER.indexOf(b.work);
-    return (oa<0?99:oa)-(ob<0?99:ob);
-  });
-  detailLogs.forEach(function(l){
-    // 施肥（App.jsxと同じ: fert_name → fertName対応）
-    var fn=l.fert_name||l.fertName;
-    var fa=l.fert_amt||l.fertAmt;
-    var fu=l.fert_unit||l.fertUnit||'';
-    var fm=l.fert_method||l.fertMethod||'';
-    if(fn) detailParts.push('<div style="font-size:.75rem;color:#065f46">🌿 '+fn+(fa?' '+fa+fu:'')+(fm?' ('+fm+')':'')+'</div>');
-    // 農薬
-    var pn=l.pest_name||l.pestName;
-    var pd=l.pest_dil||l.pestDil;
-    var ps=l.pest_spray_amt||l.pestSprayAmt;
-    var pu=l.pest_unit||l.pestUnit||'';
-    var pt=l.pest_target||l.pestTarget||'';
-    if(pn) detailParts.push('<div style="font-size:.75rem;color:#92400e">🐛 '+pn+(pd?' '+pd+'倍':'')+(ps?' 散布'+ps+pu:'')+(pt?' 対象:'+pt:'')+'</div>');
-    // 収穫
-    var hg=l.hv_grade_str||l.hvGradeStr;
-    var hk=l.hv_kg||l.hvKg;
-    var hc=l.hv_cnt||l.hvCnt;
-    if(hg) detailParts.push('<div style="font-size:.75rem;color:#059669">🧺 '+hg+'</div>');
-    else if(hk||hc) detailParts.push('<div style="font-size:.75rem;color:#059669">🧺 '+(hk?hk+'kg ':''+(hc?hc+'個':''))+'</div>');
-    // 播種
-    var sq=l.sow_qty||l.sowQty;
-    if(sq) detailParts.push('<div style="font-size:.75rem;color:#5a5040">🌰 播種 '+sq+'粒</div>');
-    // 発芽
-    var gc=l.germination_cnt||l.germinationCnt;
-    var gd=l.germination_date||l.germinationDate||'';
-    if(gc) detailParts.push('<div style="font-size:.75rem;color:#065f46">🌱 発芽 '+gc+'粒'+(gd?' ('+gd+')':'')+'</div>');
-    // 定植（重複防止）
-    var tq=l.transplant_qty||l.transplantQty;
-    if(tq&&detailParts.indexOf('<div style="font-size:.75rem;color:#5a5040">🪴 定植 '+tq+'株</div>')<0)
-      detailParts.push('<div style="font-size:.75rem;color:#5a5040">🪴 定植 '+tq+'株</div>');
-    // 生育イベント
-    var et=l.event_type||l.eventType;
-    var en=l.event_note||l.eventNote||'';
-    if(et) detailParts.push('<div style="font-size:.75rem;color:#5a5040">📋 '+et+(en?' · '+en:'')+'</div>');
-    // 株数調整
-    var dc=l.discard_cnt||l.discardCnt;
-    var ac=l.add_cnt||l.addCnt;
-    if(dc||ac) detailParts.push('<div style="font-size:.75rem;color:#5a5040">📊 株数調整'+(ac?' +'+ac+'株':'')+(dc?' -'+dc+'株（廃棄）':'')+'</div>');
-    // 資材作業（equip_idsから名前取得）
-    if(l.work==='equip'){
-      // equip_actに「資材名 作業種別」が保存されている
-      var ea=l.equip_act||l.equipAct||'';
-      if(ea) detailParts.push('<div style="font-size:.75rem;color:#5b21b6">'+ea+'</div>');
-    }
-    // その他メモ
-    var on=l.other_note||l.otherNote||'';
-    if(on&&on.trim()) detailParts.push('<div style="font-size:.75rem;color:#5a5040">✏️ '+on+'</div>');
-  });;
-
-  // メモ（後方・1件目のみ）
+  // 時刻・作業時間
+  var meta=skCardMeta(card.logs);
+  var metaHtml=(meta.time||meta.duration)?'<div style="font-size:.7rem;color:#888;margin-bottom:5px;display:flex;gap:8px;flex-wrap:wrap">'
+    +(meta.time?'<span>🕐'+skEsc(meta.time)+'</span>':'')+(meta.duration?'<span>⏱'+skEsc(meta.duration)+'</span>':'')+'</div>':'';
+  // 作業タグ（決まった順番）
+  var tagHtml=skCardWorks(card.logs).map(function(w){
+    var i=skWorkInfo(w);
+    return '<span class="wt" style="background:'+i.bg+';color:'+i.fg+'">'+i.icon+' '+skEsc(i.label)+'</span>';
+  }).join('');
+  // 詳細（作業の順番 → 同じ作業は名前順）
+  var detailHtml=skCardLines(card.logs).map(function(ln){
+    return '<div style="font-size:.75rem;color:'+ln.color+'">'+skEsc(ln.text)+'</div>';
+  }).join('');
+  // メモ
   var memoLog=card.logs.find(function(l){return l.memo;});
-  var memoHtml=memoLog?'<div style="font-size:.78rem;color:#5a5040;margin-top:4px;line-height:1.5">'+memoLog.memo+'</div>':'';
-
+  var memoHtml=memoLog?'<div style="font-size:.78rem;color:#5a5040;margin-top:4px;line-height:1.5;white-space:pre-wrap">'+skEsc(memoLog.memo)+'</div>':'';
   // 写真
   var photoHtml='';
   if(photos.length){
     var pc='p'+Math.min(photos.length,3);
-    var photosJson=JSON.stringify(photos).replace(/"/g,"'");
+    var photosJson=skEsc(JSON.stringify(photos).replace(/"/g,"'"));
     photoHtml='<div class="log-photos-wrap '+pc+'">'+photos.slice(0,3).map(function(src,i){
-      return '<img src="'+src+'" alt="" loading="lazy" class="photo-img" onclick="openLightbox('+photosJson+','+i+')">';
+      return '<img src="'+skEsc(src)+'" alt="" loading="lazy" class="photo-img" onclick="openLightbox('+photosJson+','+i+')">';
     }).join('')+'</div>';
   }
-
-  return '<div class="log-card" data-date="'+(card.date||'')+'">'    +'<div class="log-body">'    +(cropLabel?'<div style="margin-bottom:5px">'+cropLabel+'</div>':'')    +'<div class="log-meta" style="margin-bottom:5px">'+tagHtml+'</div>'    +detailParts.join('')    +memoHtml    +'</div>'    +photoHtml    +'</div>';
-}
-
-
-function makeLogCard(l,showCropTag){
-  var w=WORK[l.work]||{l:l.work||'',cls:'other'};
-  var detail='';
-  if(l.fert_name)detail=l.fert_name+(l.fert_amt?' '+l.fert_amt+(l.fert_unit||''):'')+(l.fert_method?' · '+l.fert_method:'');
-  if(l.pest_name)detail=l.pest_name+(l.pest_dil?' '+l.pest_dil+'倍':'')+(l.pest_amt?' · '+l.pest_amt+(l.pest_unit||''):'');
-  if(l.transplant_qty)detail='定植 '+l.transplant_qty+'株';
-  if(l.sow_qty)detail='播種 '+l.sow_qty+'粒';
-  if(l.event_type)detail=l.event_type+(l.event_note?' · '+l.event_note:'');
-
-  var hvHtml='';
-  if(l.hv_kg||l.hv_cnt){
-    hvHtml='<div class="hv-box">';
-    if(l.hv_kg)hvHtml+='<div><div class="hv-n">'+l.hv_kg+'kg</div><div class="hv-l">収穫量</div></div>';
-    if(l.hv_cnt)hvHtml+='<div><div class="hv-n">'+l.hv_cnt+'個</div><div class="hv-l">個数</div></div>';
-    if(l.hv_q)hvHtml+='<div><div class="hv-n">'+l.hv_q+'</div><div class="hv-l">品質</div></div>';
-    hvHtml+='</div>';
-  }
-
-  // 写真
-  var photos=[l.img_src,l.img2_src,l.img3_src].filter(Boolean);
-  var photoHtml='';
-  if(photos.length){
-    var pc='p'+Math.min(photos.length,3);
-    var photosJson=JSON.stringify(photos).replace(/"/g,"'");
-    var crop2=allCrops.find(function(c){return c.id===l.crop_id;});
-    photoHtml='<div class="log-photos-wrap '+pc+'">'
-      +photos.slice(0,3).map(function(src,i){
-        return '<img src="'+src+'" class="photo-img" alt="" loading="lazy" onclick="openLightbox('+photosJson+','+i+')">';
-      }).join('')
-      +'</div>';
-  }
-
-  // 品目タグ（タイムライン時）
-  var cropTagHtml='';
-  if(showCropTag){
-    var crop=allCrops.find(function(c){return c.id===l.crop_id;})||{};
-    if(crop.type){
-      var cname=cropName(crop)+(crop.variety?' ('+crop.variety+')':'');
-      cropTagHtml='<span class="log-crop-tag" onclick="selectCrop(\''+crop.id+'\')">'+cropEmoji(crop)+' '+cname+'</span>';
-    }
-  }
-
-  return '<div class="log-card">'
-    +'<div class="log-work">'
-    +'<span class="wt '+w.cls+'">'+w.l+'</span>'
-    +cropTagHtml
-    +'<span style="font-size:.68rem;color:#aaa;margin-left:auto">'+fmtDate(l.date)+'</span>'
+  return '<div class="log-card" data-date="'+skEsc(card.date||'')+'">'
+    +'<div class="log-body">'
+    +cropLabel
+    +metaHtml
+    +'<div class="log-meta" style="margin-bottom:5px;display:flex;gap:4px;flex-wrap:wrap">'+tagHtml+'</div>'
+    +detailHtml
+    +memoHtml
     +'</div>'
-    +(detail?'<div class="log-detail">'+detail+'</div>':'')
-    +(l.memo?'<div class="log-memo">'+l.memo+'</div>':'')
-    +hvHtml
     +photoHtml
-    
     +'</div>';
 }
 
@@ -615,7 +505,7 @@ function renderCrop(cropId){
     +'<div class="crop-hero-top">'
     +'<span class="crop-emoji">'+emoji+'</span>'
     +'<div style="flex:1;min-width:0">'
-    +'<div class="crop-title">'+name+(crop.variety?' <span style="font-weight:400;font-size:.82rem;color:#888">('+crop.variety+')</span>':'')+' </div>'
+    +'<div class="crop-title">'+name+(crop.variety?' <span style="font-weight:400;font-size:.82rem;color:#888">('+skEsc(crop.variety)+')</span>':'')+' </div>'
     +(subText?'<div class="crop-sub">'+subText+'</div>':'')
     +'</div>'
     +'</div>'
@@ -652,7 +542,7 @@ function renderCrop(cropId){
         +'<table style="width:100%;border-collapse:collapse">'
         +rows.map(function(r){
           return '<tr><td style="padding:7px 14px;font-size:.75rem;color:#888;width:40%;border-bottom:1px solid #f8f5ef">'+r[0]+'</td>'
-            +'<td style="padding:7px 14px;font-size:.78rem;color:#1c1a14;border-bottom:1px solid #f8f5ef">'+r[1]+'</td></tr>';
+            +'<td style="padding:7px 14px;font-size:.78rem;color:#1c1a14;border-bottom:1px solid #f8f5ef">'+skEsc(r[1])+'</td></tr>';
         }).join('')
         +'</table></div>';
     })()
@@ -758,10 +648,10 @@ async function main(){
     var farms=await api('public_farms',slugParam?'slug=eq.'+slugParam+'&is_public=eq.true&select=*':'user_id=eq.'+uidParam+'&is_public=eq.true&select=*');
     if(!farms||!farms.length){document.getElementById('main').innerHTML='<div class="empty"><div class="empty-icon">🌾</div><p>農場が見つかりません</p></div>';return;}
     var farm=farms[0],farmUid=farm.user_id;FARM_UID=farmUid;
-    document.title=(farm.display_name||'サクメモ')+' - サクメモ';
+    document.title=(farm.display_name||'サクメモ')+' - サクメモ'; // titleはテキストなのでエスケープ不要
     document.getElementById('farm-header-wrap').innerHTML=
-      '<div class="farm-header"><h1 class="farm-title" onclick="selectTab(\'timeline\')" style="cursor:pointer;">🌾 '+(farm.display_name||'農場')+'</h1>'
-      +(farm.description?'<p class="farm-desc">'+farm.description+'</p>':'')+'</div>';
+      '<div class="farm-header"><h1 class="farm-title" onclick="selectTab(\'timeline\')" style="cursor:pointer;">🌾 '+skEsc(farm.display_name||'農場')+'</h1>'
+      +(farm.description?'<p class="farm-desc">'+skEsc(farm.description)+'</p>':'')+'</div>';
 
     var res=await Promise.all([
       api('crops','user_id=eq.'+farmUid+'&select=*&order=created_at'),
