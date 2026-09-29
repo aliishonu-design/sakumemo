@@ -1451,7 +1451,7 @@ function LoginScreen() {
       <div style={{background:"#fff",borderRadius:20,padding:"28px 24px",maxWidth:360,width:"100%",textAlign:"center",boxShadow:"0 8px 40px rgba(0,0,0,.3)"}}>
         <div style={{fontSize:"2.2rem",marginBottom:6}}>🌾</div>
         <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:"1.3rem",color:G,marginBottom:4}}>サクメモ</div>
-        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v2.1.2</span></div>
+        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v2.1.3</span></div>
         {linkErr&&<div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:8,padding:"10px 12px",marginBottom:16,fontSize:".78rem",color:"#856404",textAlign:"left"}}>{linkErr}</div>}
 
 
@@ -1511,7 +1511,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v2.1.2</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v2.1.3</div>
       </div>
     </div>
   );
@@ -3219,9 +3219,10 @@ useEffect(()=>{
                 options={[{value:"",label:"（選択）"},...pestMs.map((p,i)=>({value:i,label:p.name})).filter((_,i)=>pestMs[i]?.status!=="使い切り（非表示）")]}/>
             </FG>
             <R2>
+              <FG label="希釈倍数"><CalcInp value={pestDil} onChange={setPestDil} placeholder="1000"/></FG>
               <FG label="散布量"><div style={{display:"flex",gap:4}}><CalcInp value={pestAmt} onChange={setPestAmt} style={{flex:1}}/><Sel value={pestUnit} onChange={setPestUnit} options={["L","ml","g","kg"].map(v=>({value:v,label:v}))} style={{width:60,flex:"none"}}/></div></FG>
-              <FG label="対象病害虫"><Inp value={pestTgt} onChange={setPestTgt} placeholder="アブラムシ等"/></FG>
             </R2>
+            <FG label="対象病害虫"><Inp value={pestTgt} onChange={setPestTgt} placeholder="アブラムシ等"/></FG>
           </div>
           {pestEntries.map((pe,pi)=>(
             <div key={pi} style={{background:"#fffaf0",border:"1px solid #f9e4a0",borderRadius:8,padding:"8px 10px",marginTop:6}}>
@@ -3237,9 +3238,10 @@ useEffect(()=>{
                 }} options={[{value:"",label:"（選択）"},...pestMs.map((p,i)=>({value:i,label:p.name})).filter((_,i)=>pestMs[i]?.status!=="使い切り（非表示）")]}/>
               </FG>
               <R2>
+                <FG label="希釈倍数"><CalcInp value={pe.dil} onChange={v=>setPestEntries(p=>p.map((x,i)=>i===pi?{...x,dil:v}:x))} placeholder="1000"/></FG>
                 <FG label="散布量"><div style={{display:"flex",gap:4}}><CalcInp value={pe.sprayAmt} onChange={v=>setPestEntries(p=>p.map((x,i)=>i===pi?{...x,sprayAmt:v}:x))} style={{flex:1}}/><Sel value={pe.sprayUnit||"L"} onChange={v=>setPestEntries(p=>p.map((x,i)=>i===pi?{...x,sprayUnit:v}:x))} options={["L","ml","g","kg"].map(v=>({value:v,label:v}))} style={{width:60,flex:"none"}}/></div></FG>
-                <FG label="対象病害虫"><Inp value={pe.tgt} onChange={v=>setPestEntries(p=>p.map((x,i)=>i===pi?{...x,tgt:v}:x))} placeholder="アブラムシ等"/></FG>
               </R2>
+              <FG label="対象病害虫"><Inp value={pe.tgt} onChange={v=>setPestEntries(p=>p.map((x,i)=>i===pi?{...x,tgt:v}:x))} placeholder="アブラムシ等"/></FG>
             </div>
           ))}
         </div>}
