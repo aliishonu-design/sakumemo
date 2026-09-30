@@ -866,6 +866,18 @@ function normalizeToMasterUnit(value, valueUnit, masterUnit) {
   // 変換できない場合はそのまま（単位が一致しないケース）
   return v;
 }
+// ─── 希釈計算ヘルパー ───
+const isDilMeth = m => m==="液肥希釈"||m==="葉面散布"||m==="かん注";
+const calcConcentrate = (sprayAmt, dil, sprayUnit) => {
+  const s=parseFloat(sprayAmt), d=parseFloat(dil);
+  if(!(s>0) || !(d>0)) return null;
+  const raw=s/d;
+  if((sprayUnit||"L")==="L"){
+    if(raw<0.1) return {amt:Math.round(raw*1000*10)/10, unit:"ml"};
+    return {amt:Math.round(raw*1000)/1000, unit:"L"};
+  }
+  return {amt:Math.round(raw*100)/100, unit:"ml"};
+};
 // ─── 作業記録（施肥・防除）から資材の使用量を計算し、在庫に反映する ───
 const PACK_UNITS = ["袋","個","本","箱","缶","瓶","ボトル","パック"];
 const logUsageOf = (l, m) => {
@@ -1610,7 +1622,7 @@ function LoginScreen() {
       <div style={{background:"#fff",borderRadius:20,padding:"28px 24px",maxWidth:360,width:"100%",textAlign:"center",boxShadow:"0 8px 40px rgba(0,0,0,.3)"}}>
         <div style={{fontSize:"2.2rem",marginBottom:6}}>🌾</div>
         <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:"1.3rem",color:G,marginBottom:4}}>サクメモ</div>
-        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v2.2.0</span></div>
+        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v2.2.1</span></div>
         {linkErr&&<div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:8,padding:"10px 12px",marginBottom:16,fontSize:".78rem",color:"#856404",textAlign:"left"}}>{linkErr}</div>}
 
 
@@ -1670,7 +1682,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v2.2.0</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v2.2.1</div>
       </div>
     </div>
   );
@@ -3001,16 +3013,24 @@ useEffect(()=>{
               <Sel value={fertName} onChange={v=>{
                 setFertName(v);
                 const fm=fertMs.find(f=>f.name===v);
-                if(fm){if(fm.cunit||fm.sunit)setFertUnit(fm.cunit||fm.sunit);if(fm.dil)setFertDil(fm.dil);}
+                if(fm){if(fm.cunit||fm.sunit)setFertUnit(fm.cunit||fm.sunit);if(fm.dil){setFertDil(fm.dil);if(isDilMeth(fertMeth)&&fertSprayAmt){const c=calcConcentrate(fertSprayAmt,fm.dil,fertSprayUnit);if(c){setFertAmt(String(c.amt));setFertUnit(c.unit);}}}}
               }} options={[{value:"",label:"（選択）"},...fertMs.filter(f=>f.status!=="使い切り（非表示）").map(f=>({value:f.name,label:f.name}))]}/>
             </FG>
             <R2>
               <FG label="施用方法"><Sel value={fertMeth} onChange={setFertMeth} options={["元肥","追肥","葉面散布","かん注","液肥希釈"].map(v=>({value:v,label:v}))}/></FG>
-              <FG label="施用量（原液）"><div style={{display:"flex",gap:4}}><CalcInp value={fertAmt} onChange={setFertAmt} style={{flex:1}}/><Sel value={fertUnit} onChange={setFertUnit} options={["kg","g","L","ml","袋"].map(v=>({value:v,label:v}))} style={{width:60,flex:"none"}}/></div></FG>
+              <FG label={isDilMeth(fertMeth)&&fertDil&&fertSprayAmt?"原液量（自動計算）":"施用量（原液）"}>
+                <div style={{display:"flex",gap:4}}>
+                  {isDilMeth(fertMeth)&&fertDil&&fertSprayAmt
+                    ? <div style={{...S.inp,flex:1,background:"#f0fdf4",color:"#065f46",cursor:"default",fontWeight:600}}>{fertAmt||"—"}</div>
+                    : <CalcInp value={fertAmt} onChange={setFertAmt} style={{flex:1}}/>}
+                  <Sel value={fertUnit} onChange={isDilMeth(fertMeth)&&fertDil&&fertSprayAmt?()=>{}:setFertUnit} options={["kg","g","L","ml","袋"].map(v=>({value:v,label:v}))} style={{width:60,flex:"none"}}/>
+                </div>
+                {isDilMeth(fertMeth)&&fertDil&&fertSprayAmt&&fertName&&<div style={{fontSize:".68rem",color:"#059669",marginTop:2}}>💧 原液 {fertAmt}{fertUnit} → 在庫から差し引きます</div>}
+              </FG>
             </R2>
-            {(fertMeth==="液肥希釈"||fertMeth==="葉面散布"||fertMeth==="かん注")&&<R2>
-              <FG label="希釈倍数"><CalcInp value={fertDil} onChange={setFertDil} placeholder="500"/></FG>
-              <FG label="散布量（希釈後）"><div style={{display:"flex",gap:4}}><CalcInp value={fertSprayAmt} onChange={setFertSprayAmt} style={{flex:1}}/><Sel value={fertSprayUnit} onChange={setFertSprayUnit} options={["L","ml"].map(v=>({value:v,label:v}))} style={{width:60,flex:"none"}}/></div></FG>
+            {isDilMeth(fertMeth)&&<R2>
+              <FG label="希釈倍数"><CalcInp value={fertDil} onChange={v=>{setFertDil(v);const c=calcConcentrate(fertSprayAmt,v,fertSprayUnit);if(c){setFertAmt(String(c.amt));setFertUnit(c.unit);}}} placeholder="500"/></FG>
+              <FG label="散布量（希釈後）"><div style={{display:"flex",gap:4}}><CalcInp value={fertSprayAmt} onChange={v=>{setFertSprayAmt(v);const c=calcConcentrate(v,fertDil,fertSprayUnit);if(c){setFertAmt(String(c.amt));setFertUnit(c.unit);}}} style={{flex:1}}/><Sel value={fertSprayUnit} onChange={v=>{setFertSprayUnit(v);const c=calcConcentrate(fertSprayAmt,fertDil,v);if(c){setFertAmt(String(c.amt));setFertUnit(c.unit);}}} options={["L","ml"].map(v=>({value:v,label:v}))} style={{width:60,flex:"none"}}/></div></FG>
             </R2>}
           </div>          {fertEntries.map((fe,fi)=>(
             <div key={fi} style={{background:"#fffdf5",border:"1px solid #b2dfdb",borderRadius:8,padding:"8px 10px",marginTop:6}}>
@@ -3028,11 +3048,19 @@ useEffect(()=>{
               </FG>
               <R2>
                 <FG label="施用方法"><Sel value={fe.meth} onChange={v=>setFertEntries(p=>p.map((x,i)=>i===fi?{...x,meth:v}:x))} options={["元肥","追肥","葉面散布","かん注","液肥希釈"].map(v=>({value:v,label:v}))}/></FG>
-                <FG label="施用量（原液）"><div style={{display:"flex",gap:4}}><CalcInp value={fe.amt} onChange={v=>setFertEntries(p=>p.map((x,i)=>i===fi?{...x,amt:v}:x))} style={{flex:1}}/><Sel value={fe.unit} onChange={v=>setFertEntries(p=>p.map((x,i)=>i===fi?{...x,unit:v}:x))} options={["kg","g","L","ml","袋"].map(v=>({value:v,label:v}))} style={{width:60,flex:"none"}}/></div></FG>
+                <FG label={isDilMeth(fe.meth)&&fe.dil&&fe.sprayAmt?"原液量（自動計算）":"施用量（原液）"}>
+                  <div style={{display:"flex",gap:4}}>
+                    {isDilMeth(fe.meth)&&fe.dil&&fe.sprayAmt
+                      ? <div style={{...S.inp,flex:1,background:"#f0fdf4",color:"#065f46",cursor:"default",fontWeight:600}}>{fe.amt||"—"}</div>
+                      : <CalcInp value={fe.amt} onChange={v=>setFertEntries(p=>p.map((x,i)=>i===fi?{...x,amt:v}:x))} style={{flex:1}}/>}
+                    <Sel value={fe.unit} onChange={isDilMeth(fe.meth)&&fe.dil&&fe.sprayAmt?()=>{}:v=>setFertEntries(p=>p.map((x,i)=>i===fi?{...x,unit:v}:x))} options={["kg","g","L","ml","袋"].map(v=>({value:v,label:v}))} style={{width:60,flex:"none"}}/>
+                  </div>
+                  {isDilMeth(fe.meth)&&fe.dil&&fe.sprayAmt&&fe.name&&<div style={{fontSize:".68rem",color:"#059669",marginTop:2}}>💧 原液 {fe.amt}{fe.unit} → 在庫から差し引きます</div>}
+                </FG>
               </R2>
-              {(fe.meth==="液肥希釈"||fe.meth==="葉面散布"||fe.meth==="かん注")&&<R2>
-                <FG label="希釈倍数"><CalcInp value={fe.dil} onChange={v=>setFertEntries(p=>p.map((x,i)=>i===fi?{...x,dil:v}:x))} placeholder="500"/></FG>
-                <FG label="散布量（希釈後）"><div style={{display:"flex",gap:4}}><CalcInp value={fe.sprayAmt} onChange={v=>setFertEntries(p=>p.map((x,i)=>i===fi?{...x,sprayAmt:v}:x))} style={{flex:1}}/><Sel value={fe.sprayUnit||"L"} onChange={v=>setFertEntries(p=>p.map((x,i)=>i===fi?{...x,sprayUnit:v}:x))} options={["L","ml"].map(v=>({value:v,label:v}))} style={{width:60,flex:"none"}}/></div></FG>
+              {isDilMeth(fe.meth)&&<R2>
+                <FG label="希釈倍数"><CalcInp value={fe.dil} onChange={v=>{const c=calcConcentrate(fe.sprayAmt,v,fe.sprayUnit||"L");setFertEntries(p=>p.map((x,i)=>i===fi?{...x,dil:v,...(c?{amt:String(c.amt),unit:c.unit}:{})}:x));}} placeholder="500"/></FG>
+                <FG label="散布量（希釈後）"><div style={{display:"flex",gap:4}}><CalcInp value={fe.sprayAmt} onChange={v=>{const c=calcConcentrate(v,fe.dil,fe.sprayUnit||"L");setFertEntries(p=>p.map((x,i)=>i===fi?{...x,sprayAmt:v,...(c?{amt:String(c.amt),unit:c.unit}:{})}:x));}} style={{flex:1}}/><Sel value={fe.sprayUnit||"L"} onChange={v=>{const c=calcConcentrate(fe.sprayAmt,fe.dil,v);setFertEntries(p=>p.map((x,i)=>i===fi?{...x,sprayUnit:v,...(c?{amt:String(c.amt),unit:c.unit}:{})}:x));}} options={["L","ml"].map(v=>({value:v,label:v}))} style={{width:60,flex:"none"}}/></div></FG>
               </R2>}
             </div>
           ))}
