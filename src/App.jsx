@@ -1622,7 +1622,7 @@ function LoginScreen() {
       <div style={{background:"#fff",borderRadius:20,padding:"28px 24px",maxWidth:360,width:"100%",textAlign:"center",boxShadow:"0 8px 40px rgba(0,0,0,.3)"}}>
         <div style={{fontSize:"2.2rem",marginBottom:6}}>🌾</div>
         <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:"1.3rem",color:G,marginBottom:4}}>サクメモ</div>
-        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v2.2.1</span></div>
+        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v2.2.2</span></div>
         {linkErr&&<div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:8,padding:"10px 12px",marginBottom:16,fontSize:".78rem",color:"#856404",textAlign:"left"}}>{linkErr}</div>}
 
 
@@ -1682,7 +1682,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v2.2.1</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v2.2.2</div>
       </div>
     </div>
   );
@@ -4825,10 +4825,10 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
           const borderColor = isFert?"#6ee7b7":isMaterial?"#a78bfa":"#fcd34d";
           const bgColor = isFert?"#d1fae5":isMaterial?"#ede9fe":"#fef3c7";
           const tcColor = isFert?"#065f46":isMaterial?"#5b21b6":"#92400e";
-          // 在庫バー（内容量1個分を満タン基準）
-          const maxStock = cap>0 ? cap*5 : (stock>0?stock*2:100);
+          // 在庫バー（内容量1個分＝100%基準、容量未設定なら現在の在庫＝100%）
+          const maxStock = cap>0 ? cap : (stock>0?stock:1);
           const barPct = stock>0 ? Math.min(100, stock/maxStock*100) : 0;
-          const barColor = stock<=0?"#ef4444":stock/maxStock<0.2?"#f97316":stock/maxStock<0.5?"#eab308":"#22c55e";
+          const barColor = stock<=0?"#ef4444":barPct<20?"#f97316":barPct<50?"#eab308":"#22c55e";
           return (
             <div key={item.id||item._idx} style={{...S.card,borderLeft:"4px solid "+borderColor,opacity:isOut?0.55:1}}>
               <div style={{display:"flex",alignItems:"flex-start",gap:10}}>
@@ -7875,7 +7875,7 @@ const SCREENS = [
   { key:"home",    label:"ホーム",     icon:"🏡" },
   { key:"fields",  label:"圃場・品目", icon:"🌾" },
   { key:"plot",    label:"栽培計画",   icon:"📅" },
-  { key:"cost",    label:"費用・資材", icon:"💰" },
+  { key:"cost",    label:"管理", icon:"📋" },
   { key:"report",  label:"レポート",   icon:"📊" },
 ];
 
@@ -8254,7 +8254,7 @@ export default function App() {
 
   const signOut=async()=>{ await sb.auth.signOut(); setUser(null);setFieldsR([]);setCropsR([]);setLogsR([]);setFertMsR([]);setPestMsR([]);setEquipsR([]);setCostsR([]);setPlotsR([]); };
 
-  const TITLES={home:"作物の記録アプリ",fields:"圃場・品目管理",plot:"栽培計画",log:"作業記録",cost:"費用・資材管理",report:"分析レポート",settings:"設定"};
+  const TITLES={home:"作物の記録アプリ",fields:"圃場・品目管理",plot:"栽培計画",log:"作業記録",cost:"管理",report:"分析レポート",settings:"設定"};
 
   const loading_screen = bg => <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100svh",background:"linear-gradient(135deg,"+GD+","+G+")"}}><style>{globalCss}</style><div style={{color:"#fff",textAlign:"center"}}><div style={{fontSize:"2rem",marginBottom:10}}>🌾</div><div>{bg}</div></div></div>;
 
