@@ -1622,7 +1622,7 @@ function LoginScreen() {
       <div style={{background:"#fff",borderRadius:20,padding:"28px 24px",maxWidth:360,width:"100%",textAlign:"center",boxShadow:"0 8px 40px rgba(0,0,0,.3)"}}>
         <div style={{fontSize:"2.2rem",marginBottom:6}}>🌾</div>
         <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:"1.3rem",color:G,marginBottom:4}}>サクメモ</div>
-        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v2.2.2</span></div>
+        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v2.2.3</span></div>
         {linkErr&&<div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:8,padding:"10px 12px",marginBottom:16,fontSize:".78rem",color:"#856404",textAlign:"left"}}>{linkErr}</div>}
 
 
@@ -1682,7 +1682,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v2.2.2</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v2.2.3</div>
       </div>
     </div>
   );
@@ -3480,7 +3480,8 @@ const depreciationFor = (eq, year, kaigyoDate) => {
   const start = (kaigyoDate && bought < kaigyoDate) ? kaigyoDate : bought;
   const by=parseInt(start.slice(0,4)), bm=parseInt(start.slice(5,7))||1;
   if(year<by) return {annual:0, book:price, owned:true};
-  const full = Math.floor(price*depRateOf(life));
+  // 償却率は1/1000単位の整数で掛けてから割る（0.143等の小数を掛けると1円ずれることがあるため）
+  const full = Math.floor(price*Math.ceil(1000/life)/1000);
   let acc=0, annual=0;
   for(let y=by;y<=year;y++){
     const m = y===by ? (12-bm+1) : 12;
@@ -3488,6 +3489,13 @@ const depreciationFor = (eq, year, kaigyoDate) => {
     acc += a; if(y===year) annual=a;
   }
   return {annual, book:price-acc, owned:true};
+};
+// 資材（肥料・農薬・消耗資材）の在庫評価額：在庫÷内容量×購入価格（内容量か価格が未設定なら0＝在庫タブと同じ）
+const stockValueOf = (m) => {
+  const cap=parseFloat(m.capacity)||0, price=parseFloat(m.price)||0, stock=parseFloat(m.stock)||0;
+  if(!(cap>0 && price>0 && stock>0)) return 0;
+  const cu=m.cunit||m.sunit||"", su=m.sunit||m.cunit||"";
+  return Math.round(price/cap*normalizeToMasterUnit(stock, su, cu));
 };
 const readLS = (k, fb) => { try{ const v=localStorage.getItem(k); return v==null?fb:v; }catch{ return fb; } };
 const readLSJson = (k, fb) => { try{ const v=localStorage.getItem(k); return v?JSON.parse(v):fb; }catch{ return fb; } };
@@ -3498,7 +3506,7 @@ const cfgRowId = (uid, n) => String(uid).slice(0,24) + "c0f1a000000" + n;
 let APP_SETTINGS_UID = null;
 let _appSettingsTimer = null;
 const collectAppSettings = () => {
-  const out = { kaigyoDate: readLS("sakumemo_kaigyo_date",""), motoire: readMotoireMap(), inventory:{} };
+  const out = { kaigyoDate: readLS("sakumemo_kaigyo_date",""), blueDed: readLS("sakumemo_blue_ded",""), motoire: readMotoireMap(), inventory:{} };
   try{ for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(k&&k.startsWith("inventoryValue_")) out.inventory[k.slice(15)] = readLSJson(k,{}); } }catch{}
   return out;
 };
@@ -3516,6 +3524,7 @@ const applyAppSettings = (cloud) => {
   try{
     if(cloud && typeof cloud==="object"){
       if(cloud.kaigyoDate) localStorage.setItem("sakumemo_kaigyo_date", cloud.kaigyoDate);
+      if(cloud.blueDed) localStorage.setItem("sakumemo_blue_ded", cloud.blueDed);
       if(cloud.motoire && typeof cloud.motoire==="object"){ const m={...readMotoireMap(), ...cloud.motoire}; delete m._legacy; localStorage.setItem("motoire", JSON.stringify(m)); }
       if(cloud.inventory && typeof cloud.inventory==="object") Object.entries(cloud.inventory).forEach(([y,v])=>{ if(v&&typeof v==="object") localStorage.setItem("inventoryValue_"+y, JSON.stringify(v)); });
     }
@@ -3530,7 +3539,12 @@ function buildLedger(Y, { costs=[], equips=[], cards=[], emoney=[] }) {
   const KAIGYO_DATE = readLS("sakumemo_kaigyo_date","");
   const apRatesAll = readLSJson("apportionRates",{});
   const inv = readLSJson("inventoryValue_"+YS,{});
-  const invStart = Number(inv.start||0), invEnd = Number(inv.end||0);
+  // 期首棚卸は、入力がなければ前年の期末棚卸を引き継ぐ（0円と明示した場合は0円）
+  const invPrev = readLSJson("inventoryValue_"+(Y-1),{});
+  const invStartAuto = (inv.start===undefined || inv.start===null || inv.start==="");
+  const invStart = invStartAuto ? Number(invPrev.end||0) : Number(inv.start||0), invEnd = Number(inv.end||0);
+  // 青色申告特別控除の上限（65万＝e-Tax/電子帳簿保存、55万＝紙提出、10万＝簡易簿記）
+  const blueMax = [650000,550000,100000].includes(Number(readLS("sakumemo_blue_ded","650000"))) ? Number(readLS("sakumemo_blue_ded","650000")) : 650000;
 
   const kamokuOf = c => LEDGER_CAT_TO_KAMOKU[c.cat]||"その他";
   const amtOf  = c => Number(c.amt)||0;
@@ -3555,6 +3569,9 @@ function buildLedger(Y, { costs=[], equips=[], cards=[], emoney=[] }) {
   const yrInc   = yrAll.filter(c=>isIncome(c.cat) && c.cat!=="inc_owner_draw");
   const yrLoan  = yrAll.filter(c=>c.cat==="owner_loan");
   const yrDraw  = yrAll.filter(c=>c.cat==="inc_owner_draw");
+  // 確認用：開業日より前の収入（集計に含まれない）／手入力の減価償却費（農機具の自動計算と二重になる恐れ）
+  const preOpenInc = KAIGYO_DATE ? sorted.filter(c=>isIncome(c.cat) && c.cat!=="inc_owner_draw" && c.date && c.date<KAIGYO_DATE && c.date.startsWith(YS)) : [];
+  const manualDepAmt = yrAll.filter(c=>c.cat==="deprec").reduce((s,c)=>s+agriOf(c),0);
 
   // 開業費（繰延資産）：5年均等・開業年は月割り（任意償却なので金額は調整可）
   const kaiTotal = preOpen.reduce((s,c)=>s+agriOf(c),0);
@@ -3592,7 +3609,7 @@ function buildLedger(Y, { costs=[], equips=[], cards=[], emoney=[] }) {
   const incTotal   = incCrop+incMisc+incSubsidy+incOther;
   const totalExp   = expTotal + kaiShokyaku + invStart - invEnd;
   const agriIncome = incTotal - totalExp;
-  const blueDeduction = Math.min(650000, Math.max(0, agriIncome));
+  const blueDeduction = Math.min(blueMax, Math.max(0, agriIncome));
 
   // 貸借対照表（年末時点・推計含む）
   const upToYE = sorted.filter(c=>afterOpen(c) && c.date && c.date<=yearEnd);
@@ -3617,7 +3634,7 @@ function buildLedger(Y, { costs=[], equips=[], cards=[], emoney=[] }) {
   const totalAsset = cashEst + bankEst + receivable + invEnd + equipBookValue + kaimiShokyaku;
   const totalLiabCap = totalCardPayable + motoire + jigyonushiKari - jigyonushiKashi + agriIncome;
 
-  return { Y, YS, WAREKI, yearEnd, KAIGYO_DATE, invStart, invEnd,
+  return { Y, YS, WAREKI, yearEnd, KAIGYO_DATE, invStart, invEnd, invStartAuto, blueMax, preOpenInc, manualDepAmt,
     kamokuOf, amtOf, rateOf, agriOf, isEmoneyPM, isCardPM, creditOf, subOf, isCash, isAssetPurchase, isFund, isExp, afterOpen,
     valid, sorted, preOpen, yrAll, postOpen, yrAsset, yrInc, yrLoan, yrDraw,
     kaiTotal, kaiY, kaiSchedule, kaiShokyaku, kaiCumToY, kaimiShokyaku,
@@ -4115,7 +4132,7 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
       yrDraw.forEach(c=>J(c.date, "事業主貸", "", "対象外", amtOf(c), c.payMethod==="振込"?"普通預金":"現金", "", "対象外", memoOf(c)));
       // カード引き落とし（当年に引き落とされた分・前年購入分も含む）
       const cardPaid = {};
-      valid.filter(c=>isExp(c) && isCardPM(c.payMethod) && c.payDate && c.payDate.startsWith(YS)).forEach(c=>{
+      valid.filter(c=>isExp(c) && isCardPM(c.payMethod) && c.payDate && c.payDate.startsWith(YS) && Lg.afterOpen(c)).forEach(c=>{
         const k=c.payDate+"_"+c.payMethod;
         if(!cardPaid[k]) cardPaid[k]={date:c.payDate, card:c.payMethod, total:0};
         cardPaid[k].total += amtOf(c);
@@ -4289,7 +4306,7 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
       const plNetRow = plRows.length + 1;
       plRows.push(["農　業　所　得（青色申告特別控除前）","",{f:`C${plIncomeRow}-C${plExpRow}`}]);
       const plDedRow = plRows.length + 1;
-      plRows.push(["青色申告特別控除（e-Tax提出は65万円・紙提出は55万円）","",{f:`MIN(650000,MAX(0,C${plNetRow}))`}]);
+      plRows.push(["青色申告特別控除（"+(Lg.blueMax/10000)+"万円・申告タブで変更可）","",{f:`MIN(${Lg.blueMax},MAX(0,C${plNetRow}))`}]);
       plRows.push(["控除後農業所得","",{f:`MAX(0,C${plNetRow}-C${plDedRow})`}]);
       plRows.push([]);
       plRows.push(["【参考】"]);
@@ -4817,8 +4834,7 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
           const stock = parseFloat(item.stock)||0;
           const su = item.sunit||item.cunit||"";
           const cap = parseFloat(item.capacity)||0;
-          const unitPricePerSu = (cap>0 && parseFloat(item.price)>0) ? parseFloat(item.price)/cap : 0;
-          const stockVal = unitPricePerSu>0 ? Math.round(unitPricePerSu*stock) : 0;
+          const stockVal = stockValueOf(item);
           const isOut = item.status==="使い切り（非表示）";
           const isFert = item._type==="fert";
           const isMaterial = item._type==="material";
@@ -5636,10 +5652,10 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
           {/* 棚卸資産入力 */}
           <div style={S.card}>
             <SecHd label={"📦 棚卸資産（"+yr+"年）"}/>
-            <div style={{fontSize:".72rem",color:TX3,marginBottom:8}}>期首・期末の在庫（種苗・肥料等）を入力すると損益計算に反映されます。</div>
+            <div style={{fontSize:".72rem",color:TX3,marginBottom:8}}>期首・期末の在庫（種苗・肥料等）を入力すると損益計算に反映されます。期首は未入力なら前年の期末棚卸を自動で使います{Lg.invStartAuto&&Lg.invStart>0?"（今回："+Lg.invStart.toLocaleString()+"円）":""}。</div>
             <R2>
               <FG label="期首棚卸（円）">
-                <input type="number" inputMode="numeric" value={invData.start||""} placeholder="例：50000"
+                <input type="number" inputMode="numeric" value={invData.start||""} placeholder={Lg.invStartAuto&&Lg.invStart>0?Lg.invStart+"（前年の期末）":"例：50000"}
                   style={{...S.inp,width:"100%",boxSizing:"border-box"}}
                   onChange={e=>{const v=e.target.value;const obj={...getInventory(yr),start:v};setInventory(yr,obj);}}/>
               </FG>
@@ -5651,20 +5667,14 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
             </R2>
             <button style={{...S.btn,background:"#e8f5e9",color:"#2d6a3f",border:"1px solid #b2dfdb",width:"100%",marginTop:8,padding:"8px 0",fontSize:".8rem",fontWeight:700,borderRadius:8}}
               onClick={()=>{
-                const total = [...fertMs,...pestMs].filter(f=>f.status!=="使い切り（非表示）").reduce((sum,f)=>{
-                  const stock = parseFloat(f.stock)||0;
-                  const cap   = parseFloat(f.capacity)||1;
-                  const price = parseFloat(f.price)||0;
-                  if(!price) return sum;
-                  return sum + Math.round(stock/cap*price);
-                },0);
+                const total = [...fertMs,...pestMs,...materialMs].filter(f=>f.status!=="使い切り（非表示）").reduce((sum,f)=>sum+stockValueOf(f),0);
                 const obj={...getInventory(yr),end:String(total)};
                 setInventory(yr,obj);
                 showToast("在庫から期末棚卸を自動計算しました："+total.toLocaleString()+"円");
               }}>
               📦 在庫から期末棚卸を自動計算
             </button>
-            <div style={{fontSize:".68rem",color:TX3,marginTop:4}}>※ 資材マスターの「在庫÷内容量×単価」で集計します（使い切り済みは除外）</div>
+            <div style={{fontSize:".68rem",color:TX3,marginTop:4}}>※ 肥料・農薬・消耗資材の「在庫÷内容量×購入価格」で集計します（内容量か価格が未設定のものは0円・使い切り済みは除外。在庫タブの評価額と同じ）</div>
             {(invStart>0||invEnd>0)&&<div style={{fontSize:".78rem",color:G,background:G3,borderRadius:8,padding:"6px 10px",marginTop:6}}>
               費用への加算：{(invStart-invEnd>=0?"+":"")+Math.round(invStart-invEnd).toLocaleString()}円（期首{invStart.toLocaleString()} - 期末{invEnd.toLocaleString()}）
             </div>}
@@ -5686,7 +5696,13 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
 
           <div style={S.card}>
             <SecHd label={"📊 損益計算書（"+yr+"年・開業後）"}/>
-            {kaigyoDate&&<div style={{fontSize:".72rem",color:TX3,marginBottom:6}}>開業日（{kaigyoDate}）以降の費用のみ集計しています。</div>}
+            {kaigyoDate&&<div style={{fontSize:".72rem",color:TX3,marginBottom:6}}>開業日（{kaigyoDate}）以降の収入・費用のみ集計しています。</div>}
+            {Lg.preOpenInc.length>0&&<div style={{fontSize:".72rem",color:"#b45309",background:"#fffbeb",border:"1px solid #fcd34d",borderRadius:8,padding:"6px 10px",marginBottom:6,lineHeight:1.6}}>
+              ⚠️ 開業日より前の収入が{Lg.preOpenInc.length}件（{Lg.preOpenInc.reduce((s,c)=>s+(Number(c.amt)||0),0).toLocaleString()}円）あり、集計に含まれていません。開業日が正しいか確認してください。
+            </div>}
+            {Lg.manualDepAmt>0&&Lg.equipDepTotal>0&&<div style={{fontSize:".72rem",color:"#b45309",background:"#fffbeb",border:"1px solid #fcd34d",borderRadius:8,padding:"6px 10px",marginBottom:6,lineHeight:1.6}}>
+              ⚠️ 費用に手入力の「減価償却費」（{Lg.manualDepAmt.toLocaleString()}円）があり、農機具の自動計算（{Lg.equipDepTotal.toLocaleString()}円）と二重になっている可能性があります。どちらか一方にしてください。
+            </div>}
             <Row label="農業収入合計" val={incTotal} bold/>
             <Row label="経費（家事按分後）" val={expTotal0} sub/>
             {Lg.equipDepTotal>0&&<Row label="＋減価償却費（農機具等）" val={Lg.equipDepTotal} sub/>}
@@ -5698,9 +5714,18 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
             <Row label="農業費用合計" val={expTotal}/>
             <Row label={profit>=0?"農業所得（利益）":"農業損失"} val={profit} bold/>
             {profit>0&&<>
-              <Row label="青色申告特別控除（65万円）" val={-Math.min(650000,profit)} sub/>
-              <Row label="課税農業所得（概算）" val={Math.max(0,profit-650000)} bold/>
+              <Row label={"青色申告特別控除（"+(Lg.blueMax/10000)+"万円）"} val={-Lg.blueDeduction} sub/>
+              <Row label="控除後の農業所得（概算）" val={Math.max(0,profit-Lg.blueDeduction)} bold/>
             </>}
+            <div style={{display:"flex",alignItems:"center",gap:6,marginTop:8,flexWrap:"wrap"}}>
+              <span style={{fontSize:".72rem",color:TX3}}>青色申告特別控除：</span>
+              <select value={String(Lg.blueMax)} onChange={e=>{try{localStorage.setItem("sakumemo_blue_ded",e.target.value);}catch{} syncAppSettings(); setInvTick(t=>t+1);}}
+                style={{...S.inp,width:"auto",padding:"4px 8px",fontSize:".78rem"}}>
+                <option value="650000">65万円（e-Tax申告・電子帳簿保存）</option>
+                <option value="550000">55万円（紙で提出）</option>
+                <option value="100000">10万円（簡易簿記）</option>
+              </select>
+            </div>
           </div>
           <div style={S.card}>
             <SecHd label="📋 貸借対照表（簡易）"/>
@@ -5851,7 +5876,7 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
                 </thead>
                 <tbody>
                   {rows.map((r,i)=>{
-                    const isCur = r.ym===today2.toISOString().slice(0,7);
+                    const isCur = r.ym===ymOf(today2);
                     return (
                       <tr key={r.ym} style={{background:isCur?"#fffde7":i%2===0?"#fff":"#fafafa"}}>
                         <td style={{padding:"5px 6px",fontWeight:isCur?700:400,whiteSpace:"nowrap"}}>{r.ym.slice(0,4)}/{r.ym.slice(5,7)}{isCur?" ★":""}</td>
