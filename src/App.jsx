@@ -52,11 +52,11 @@ const cropFromDb  = (r, fields) => { const fi = fields.findIndex(f=>f.id===r.fie
 const logToDb     = (o, uid, fields) => ({ id:o.id, user_id:uid, field_id:fields[o.fieldIdx]?.id||o.fieldId||null, crop_id:o.cropId||null, work:o.work||null, memo:o.memo||null, date:o.date||null, time:o.time||null, duration:o.duration||null, img_src:o.imgSrc||null, img2_src:o.imgSrc2||null, img3_src:o.imgSrc3||null, fert_name:o.fertName||null, fert_amt:o.fertAmt||null, fert_unit:o.fertUnit||null, fert_method:o.fertMethod||null, fert_cost:o.fertCost||null, fert_dil:o.fertDil||null, fert_spray_amt:o.fertSprayAmt||null, fert_spray_unit:o.fertSprayUnit||null, pest_name:o.pestName||null, pest_spray_amt:o.pestSprayAmt||null, pest_dil:o.pestDil||null, pest_amt:o.pestAmt||null, pest_unit:o.pestUnit||null, pest_tgt:o.pestTarget||null, pest_cost:o.pestCost||null, hv_kg:o.hvKg||null, hv_cnt:o.hvCnt||null, hv_q:o.hvQ||null, hv_price:o.hvPrice||null, equip_ids:o.equipIds||null, equip_act:o.equipAct||null, equip_use_amt:o.equipUseAmt||null, equip_use_unit:o.equipUseUnit||null, sow_qty:o.sowQty||null, germination_cnt:o.germinationCnt||null, germ_date:o.germinationDate||null, transplant_qty:o.transplantQty||null, discard_cnt:o.discardCnt||null, add_cnt:o.addCnt||null, event_type:o.eventType||null, event_note:o.eventNote||null, hv_grade_str:o.hvGradeStr||null, other_note:o.otherNote||null, repot_size:o.repotSize||null, repot_vol:o.repotVol||null, group_id:o._groupId||null, weather:o.weather||null });
 const logFromDb   = (r, fields) => { const fi=fields.findIndex(f=>f.id===r.field_id); return { id:r.id, fieldId:r.field_id||"", fieldIdx:fi>=0?fi:0, cropId:r.crop_id||"", work:r.work||"", memo:r.memo||"", date:r.date||"", time:r.time||"", duration:r.duration||"", imgSrc:r.img_src||null, imgSrc2:r.img2_src||null, imgSrc3:r.img3_src||null, aiReply:"", fertName:r.fert_name||"", fertAmt:r.fert_amt||"", fertUnit:r.fert_unit||"", fertMethod:r.fert_method||"", fertCost:r.fert_cost||"", fertDil:r.fert_dil||"", fertSprayAmt:r.fert_spray_amt||"", fertSprayUnit:r.fert_spray_unit||"L", pestName:r.pest_name||"", pestSprayAmt:r.pest_spray_amt||"", pestDil:r.pest_dil||"", pestAmt:r.pest_amt||"", pestUnit:r.pest_unit||"", pestTarget:r.pest_tgt||r.pest_target||"", pestCost:r.pest_cost||"", hvKg:r.hv_kg!=null?String(r.hv_kg):"", hvCnt:r.hv_cnt!=null?String(r.hv_cnt):"", hvQ:r.hv_q||"", hvPrice:r.hv_price||"", hvImgSrc:r.hv_img_src||null, equipIds:Array.isArray(r.equip_ids)?r.equip_ids:safeJson(r.equip_ids,[]), equipAct:r.equip_act||"", hvGradeStr:r.hv_grade_str||"", otherNote:r.other_note||"", repotSize:r.repot_size||"", repotVol:r.repot_vol||"", _groupId:r.group_id||null, weather:r.weather||"", equipUseAmt:r.equip_use_amt||null, equipUseUnit:r.equip_use_unit||null, sowQty:r.sow_qty||"", germinationCnt:r.germination_cnt||"", germinationDate:r.germ_date||r.germination_date||"", transplantQty:r.transplant_qty||"", discardCnt:r.discard_cnt||"", addCnt:r.add_cnt||"", eventType:r.event_type||"", eventNote:r.event_note||"" }; };
 const fertMToDb   = (o, uid) => ({ id:o.id||uid0(), user_id:uid, name:o.name||null, type:o.type||null, price:o.price||null, punit:o.punit||null, capacity:o.capacity||null, cunit:o.cunit||null, npk:o.npk||null, stock:o.stock||null, sunit:o.sunit||null, dil:o.dil||null, note:o.note||null, status:o.status||null });
-const fertMFromDb = r => ({ id:r.id, name:r.name||"", type:r.type||"", price:r.price||"", punit:r.punit||"", capacity:r.capacity||"", cunit:r.cunit||"", npk:r.npk||"", stock:r.stock||"", sunit:r.sunit||"", dil:r.dil||"", note:r.note||"", status:r.status||"使用中" });
+const fertMFromDb = r => alignStockUnit({ id:r.id, name:r.name||"", type:r.type||"", price:r.price||"", punit:r.punit||"", capacity:r.capacity||"", cunit:r.cunit||"", npk:r.npk||"", stock:r.stock||"", sunit:r.sunit||"", dil:r.dil||"", note:r.note||"", status:r.status||"使用中" });
 const pestMToDb   = (o, uid) => ({ id:o.id||uid0(), user_id:uid, name:o.name||null, type:o.type||null, target:o.target||null, capacity:o.capacity||null, sunit:o.cunit||o.sunit||null, stock:(o.stock===0||o.stock)?String(o.stock):null, dil:o.dil||null, form_type:o.formType||null, price:o.price||null, note:o.note||null, status:o.status||null });
 const pestMFromDb = r => ({ id:r.id, name:r.name||"", type:r.type||"", target:r.target||"", capacity:r.capacity||"", cunit:r.sunit||"ml", sunit:r.sunit||"ml", stock:r.stock!=null?String(r.stock):"", dil:r.dil||"", formType:r.form_type||"", price:r.price||"", note:r.note||"", status:r.status||"使用中" });
 const equipToDb   = (o, uid) => ({ id:o.id||uid0(), user_id:uid, name:o.name||null, cat:o.cat||null, status:o.status||null, price:o.price||null, date:o.date||null, note:o.note||null, dep_years:o.depYears||null, stock:(o.stock===0||o.stock)?String(o.stock):null, capacity:o.capacity||null, cunit:o.cunit||null, sunit:o.sunit||null });
-const equipFromDb = r => ({ id:r.id, name:r.name||"", cat:r.cat||"", status:r.status||"", price:r.price||"", date:r.date||"", note:r.note||"", depYears:r.dep_years||"", stock:r.stock!=null?String(r.stock):"", capacity:r.capacity||"", cunit:r.cunit||"", sunit:r.sunit||"" });
+const equipFromDb = r => alignStockUnit({ id:r.id, name:r.name||"", cat:r.cat||"", status:r.status||"", price:r.price||"", date:r.date||"", note:r.note||"", depYears:r.dep_years||"", stock:r.stock!=null?String(r.stock):"", capacity:r.capacity||"", cunit:r.cunit||"", sunit:r.sunit||"" });
 const costToDb    = (o, uid, fields) => ({ id:o.id, user_id:uid, field_id:(fields&&o.fieldIdx!==undefined&&o.fieldIdx!=="")?fields[o.fieldIdx]?.id||o.fieldId||null:o.fieldId||null, crop_id:o.cropId||null, cat:o.cat||null, name:o.name||null, amt:o.amt||null, date:o.date||null, qty:o.qty||null, qunit:o.qunit||null, note:o.note||null, master_id:o.masterId||null, work:o.work||null, pay_method:o.payMethod||null, pay_date:o.payDate||null, cancelled:o.cancelled||null, is_receivable:!!o.isReceivable, receivable_date:o.receivableDate||null, capacity:o.capacity||null, cunit:o.cunit||null, apportion_rate:(o.apportionRate!=null&&o.apportionRate!==""&&Number(o.apportionRate)<100)?Number(o.apportionRate):null, work_log_id:o.logId||null, stock_qty:o.stockQty||null });
 const costFromDb  = (r, fields) => { const fi=fields.findIndex(f=>f.id===r.field_id); return { id:r.id, fieldId:r.field_id||"", fieldIdx:fi>=0?fi:0, cropId:r.crop_id||"", cat:r.cat||"", name:r.name||"", amt:r.amt||"", date:r.date||"", qty:r.qty||"1", qunit:r.qunit||"個", note:r.note||"", masterId:r.master_id||null, work:r.work||"", logId:r.work_log_id||null, capacity:r.capacity||"", cunit:r.cunit||"", stockQty:r.stock_qty!=null?String(r.stock_qty):"", apportionRate:(r.apportion_rate!=null&&Number(r.apportion_rate)<100)?Number(r.apportion_rate):undefined, payMethod:r.pay_method||"現金", payDate:r.pay_date||"", cancelled:r.cancelled||false, isReceivable:!!r.is_receivable, receivableDate:r.receivable_date||"" }; };
 const plotToDb    = (o, uid) => ({ id:o.id, user_id:uid, field_id:o.fieldId||null, name:o.name||null, cols:o.cols||20, rows:o.rows||20, cells:o.cells||[], season:o.season||null, cell_size:o.cellSize||30, bg_plot_id:o.bgPlotId||null, plant_date:o.plantDate||null, end_date:o.endDate||null, kind:o.kind||null, beds:o.beds||null, plantings:o.plantings||null });
@@ -866,30 +866,75 @@ function normalizeToMasterUnit(value, valueUnit, masterUnit) {
   // 変換できない場合はそのまま（単位が一致しないケース）
   return v;
 }
+// ─── 単位ヘルパー（資材の「内容量の単位」＝在庫の単位にそろえる） ───
+const UNIT_BASE = {ml:1, g:1, l:1000, kg:1000};
+const unitKey = u => String(u||"").toLowerCase().trim();
+// 資材の単位：購入時に記録する内容量の単位（在庫もこの単位で管理）
+const masterUnitOf = m => (m && (m.cunit||m.sunit)) || "";
+// 同じ種類どうし（容量：L・ml／重さ：kg・g）だけ換算。換算できなければ null
+const convertUnitStrict = (v, from, to) => {
+  const f=unitKey(from), t=unitKey(to);
+  if(f===t) return v;
+  const vol=["ml","l"], wt=["g","kg"];
+  if((vol.includes(f)&&vol.includes(t)) || (wt.includes(f)&&wt.includes(t))) return v*UNIT_BASE[f]/UNIT_BASE[t];
+  return null;
+};
+// 希釈液（L・ml）から割り出した原液量は、原液が重さ（kg・g）で管理されていても水1L≒1kgとして換算
+const convertDilUnit = (v, from, to) => {
+  const f=unitKey(from), t=unitKey(to);
+  if(UNIT_BASE[f]!=null && UNIT_BASE[t]!=null) return v*UNIT_BASE[f]/UNIT_BASE[t];
+  return null;
+};
+// 単位に合わせた丸め：L・kgは小数4桁（0.1ml・0.1g刻み）、ml・gなどは小数2桁
+const roundByUnit = (v, unit) => { const p = ["l","kg"].includes(unitKey(unit)) ? 10000 : 100; return Math.round(v*p)/p; };
+// 在庫の単位を内容量の単位にそろえる（古いデータで在庫単位と内容量の単位が違うときだけ換算）
+const alignStockUnit = (m) => {
+  const cu=m.cunit||"", su=m.sunit||"";
+  if(!cu) return m;
+  if(!su) return {...m, sunit:cu};
+  if(cu===su) return m;
+  const v=parseFloat(m.stock);
+  if(m.stock===""||m.stock==null||!isFinite(v)) return {...m, sunit:cu};
+  let nv = convertUnitStrict(v, su, cu);
+  if(nv==null && PACK_UNITS.includes(su) && parseFloat(m.capacity)>0 && !PACK_UNITS.includes(cu)) nv = v*parseFloat(m.capacity);
+  if(nv==null) return m;
+  return {...m, stock:String(roundByUnit(nv, cu)), sunit:cu};
+};
 // ─── 希釈計算ヘルパー ───
 const isDilMeth = m => m==="液肥希釈"||m==="葉面散布"||m==="かん注";
-const calcConcentrate = (sprayAmt, dil, sprayUnit) => {
+// 散布量÷希釈倍数＝原液量。資材（masterUnit）が分かればその単位で（Lなら小数も使ってLで）返す
+const calcConcentrate = (sprayAmt, dil, sprayUnit, masterUnit) => {
   const s=parseFloat(sprayAmt), d=parseFloat(dil);
   if(!(s>0) || !(d>0)) return null;
-  const raw=s/d;
-  if((sprayUnit||"L")==="L"){
-    if(raw<0.1) return {amt:Math.round(raw*1000*10)/10, unit:"ml"};
-    return {amt:Math.round(raw*1000)/1000, unit:"L"};
+  const raw=s/d, su=sprayUnit||"L";
+  if(masterUnit){
+    const c=convertDilUnit(raw, su, masterUnit);
+    if(c!=null) return {amt:roundByUnit(c, masterUnit), unit:masterUnit};
   }
-  return {amt:Math.round(raw*100)/100, unit:"ml"};
+  // 資材が未選択・換算できない単位のとき：読みやすい単位に自動で切り替え
+  const u=unitKey(su);
+  if(u==="l")  return raw<0.1 ? {amt:Math.round(raw*1000*10)/10, unit:"ml"} : {amt:Math.round(raw*1000)/1000, unit:"L"};
+  if(u==="kg") return raw<0.1 ? {amt:Math.round(raw*1000*10)/10, unit:"g"}  : {amt:Math.round(raw*1000)/1000, unit:"kg"};
+  return {amt:Math.round(raw*100)/100, unit:su};
 };
 // ─── 作業記録（施肥・防除）から資材の使用量を計算し、在庫に反映する ───
 const PACK_UNITS = ["袋","個","本","箱","缶","瓶","ボトル","パック"];
+// 使用量は資材の単位（内容量の単位）で返す。希釈する場合は 散布量÷希釈倍数＝原液量
 const logUsageOf = (l, m) => {
-  let amt=0, unit="";
+  let amt=0, unit="", viaDil=false;
   if(l.work==="fert"){
-    if(l.fertDil && parseFloat(l.fertSprayAmt)>0){ amt=parseFloat(l.fertSprayAmt)/(parseFloat(l.fertDil)||1); unit=l.fertSprayUnit||l.fertUnit||""; }
+    // 希釈の入力欄が出るのは「液肥希釈・葉面散布・かん注」のときだけ（それ以外に残った希釈の値は使わない）
+    if((!l.fertMethod || isDilMeth(l.fertMethod)) && parseFloat(l.fertDil)>0 && parseFloat(l.fertSprayAmt)>0){ amt=parseFloat(l.fertSprayAmt)/parseFloat(l.fertDil); unit=l.fertSprayUnit||"L"; viaDil=true; }
     else if(parseFloat(l.fertAmt)>0){ amt=parseFloat(l.fertAmt); unit=l.fertUnit||""; }
   } else if(l.work==="pest"){
-    if(parseFloat(l.pestAmt)>0){ amt = l.pestDil ? parseFloat(l.pestAmt)/(parseFloat(l.pestDil)||1) : parseFloat(l.pestAmt); unit=l.pestUnit||"L"; }
+    if(parseFloat(l.pestAmt)>0){
+      if(parseFloat(l.pestDil)>0){ amt=parseFloat(l.pestAmt)/parseFloat(l.pestDil); viaDil=true; } else amt=parseFloat(l.pestAmt);
+      unit=l.pestUnit||"L";
+    }
   }
   if(!(amt>0)) return 0;
-  const mu = m.sunit||m.cunit||"";
+  const mu = masterUnitOf(m);
+  if(viaDil){ const c=convertDilUnit(amt, unit, mu); if(c!=null) return c; }
   if(PACK_UNITS.includes(unit) && parseFloat(m.capacity)>0 && !PACK_UNITS.includes(mu)) return amt*parseFloat(m.capacity); // 1袋＝内容量
   return normalizeToMasterUnit(amt, unit, mu);
 };
@@ -916,7 +961,7 @@ const applyStockDelta = (delta, { fertMs, setFertMs, pestMs, setPestMs, showToas
     const m=list[i]; const cur=parseFloat(m.stock);
     if(m.stock===""||m.stock==null||isNaN(cur)) return;
     if(d>0 && cur<=0) return; // 在庫0（未購入）のまま使った場合は減らさない
-    const next=Math.max(0, Math.round((cur-d)*100)/100);
+    const next=Math.max(0, roundByUnit(cur-d, masterUnitOf(m))); // Lは小数4桁まで（少量の使用も在庫に反映）
     let status=m.status||"使用中";
     if(next<=0 && cur>0){ status="使い切り（非表示）"; showToast&&showToast(m.name+"の在庫がなくなりました"); }
     else if(next>0 && status==="使い切り（非表示）") status="使用中";
@@ -1622,7 +1667,7 @@ function LoginScreen() {
       <div style={{background:"#fff",borderRadius:20,padding:"28px 24px",maxWidth:360,width:"100%",textAlign:"center",boxShadow:"0 8px 40px rgba(0,0,0,.3)"}}>
         <div style={{fontSize:"2.2rem",marginBottom:6}}>🌾</div>
         <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:"1.3rem",color:G,marginBottom:4}}>サクメモ</div>
-        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v2.2.3</span></div>
+        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v2.2.4</span></div>
         {linkErr&&<div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:8,padding:"10px 12px",marginBottom:16,fontSize:".78rem",color:"#856404",textAlign:"left"}}>{linkErr}</div>}
 
 
@@ -1682,7 +1727,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v2.2.3</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v2.2.4</div>
       </div>
     </div>
   );
@@ -2470,6 +2515,27 @@ function LogScreen({ fields, crops, setCrops, fertMs, setFertMs, pestMs, setPest
   const [pestUnit, setPestUnit] = useState("L");
   const [pestTgt,  setPestTgt]  = useState("");
   const [pestCost, setPestCost] = useState("");
+  // ─── 原液量の自動計算：資材の内容量の単位（在庫の単位）にそろえる。Lなら小数も使ってLで表示 ───
+  const masterUnitByName = (list, name) => { const m=list.find(x=>x.name===name); return m?masterUnitOf(m):""; };
+  const fertAutoOf = (meth,dil,spray,su,name) => isDilMeth(meth) ? calcConcentrate(spray,dil,su||"L",masterUnitByName(fertMs,name)) : null;
+  const pestConcOf = (name,dil,amt,unit) => parseFloat(dil)>0 ? calcConcentrate(amt,dil,unit||"L",masterUnitByName(pestMs,name)) : null;
+  useEffect(()=>{
+    const c=fertAutoOf(fertMeth,fertDil,fertSprayAmt,fertSprayUnit,fertName);
+    if(!c) return;
+    if(String(c.amt)!==String(fertAmt)) setFertAmt(String(c.amt));
+    if(c.unit!==fertUnit) setFertUnit(c.unit);
+  },[fertMeth,fertDil,fertSprayAmt,fertSprayUnit,fertName,fertMs]);
+  useEffect(()=>{
+    setFertEntries(prev=>{
+      let changed=false;
+      const next=prev.map(fe=>{
+        const c=fertAutoOf(fe.meth,fe.dil,fe.sprayAmt,fe.sprayUnit,fe.name);
+        if(!c || (String(c.amt)===String(fe.amt) && c.unit===fe.unit)) return fe;
+        changed=true; return {...fe, amt:String(c.amt), unit:c.unit};
+      });
+      return changed?next:prev;
+    });
+  },[fertEntries,fertMs]);
   const [eventType,setEventType]= useState("");
   const [eventNote,setEventNote]= useState("");
   const [otherNote,setOtherNote]= useState("");
@@ -3013,24 +3079,26 @@ useEffect(()=>{
               <Sel value={fertName} onChange={v=>{
                 setFertName(v);
                 const fm=fertMs.find(f=>f.name===v);
-                if(fm){if(fm.cunit||fm.sunit)setFertUnit(fm.cunit||fm.sunit);if(fm.dil){setFertDil(fm.dil);if(isDilMeth(fertMeth)&&fertSprayAmt){const c=calcConcentrate(fertSprayAmt,fm.dil,fertSprayUnit);if(c){setFertAmt(String(c.amt));setFertUnit(c.unit);}}}}
+                if(fm){if(masterUnitOf(fm))setFertUnit(masterUnitOf(fm));if(fm.dil)setFertDil(fm.dil);}
               }} options={[{value:"",label:"（選択）"},...fertMs.filter(f=>f.status!=="使い切り（非表示）").map(f=>({value:f.name,label:f.name}))]}/>
             </FG>
             <R2>
               <FG label="施用方法"><Sel value={fertMeth} onChange={setFertMeth} options={["元肥","追肥","葉面散布","かん注","液肥希釈"].map(v=>({value:v,label:v}))}/></FG>
-              <FG label={isDilMeth(fertMeth)&&fertDil&&fertSprayAmt?"原液量（自動計算）":"施用量（原液）"}>
+              {(()=>{ const fa=fertAutoOf(fertMeth,fertDil,fertSprayAmt,fertSprayUnit,fertName); return (
+              <FG label={fa?"原液量（自動計算）":"施用量（原液）"}>
                 <div style={{display:"flex",gap:4}}>
-                  {isDilMeth(fertMeth)&&fertDil&&fertSprayAmt
-                    ? <div style={{...S.inp,flex:1,background:"#f0fdf4",color:"#065f46",cursor:"default",fontWeight:600}}>{fertAmt||"—"}</div>
-                    : <CalcInp value={fertAmt} onChange={setFertAmt} style={{flex:1}}/>}
-                  <Sel value={fertUnit} onChange={isDilMeth(fertMeth)&&fertDil&&fertSprayAmt?()=>{}:setFertUnit} options={["kg","g","L","ml","袋"].map(v=>({value:v,label:v}))} style={{width:60,flex:"none"}}/>
+                  {fa
+                    ? <><div style={{...S.inp,flex:1,background:"#f0fdf4",color:"#065f46",cursor:"default",fontWeight:600}}>{fa.amt}</div>
+                        <div style={{...S.inp,width:60,flex:"none",background:"#f0fdf4",color:"#065f46",cursor:"default",textAlign:"center"}}>{fa.unit}</div></>
+                    : <><CalcInp value={fertAmt} onChange={setFertAmt} style={{flex:1}}/>
+                        <Sel value={fertUnit} onChange={setFertUnit} options={[...new Set(["kg","g","L","ml","袋",fertUnit].filter(Boolean))].map(v=>({value:v,label:v}))} style={{width:60,flex:"none"}}/></>}
                 </div>
-                {isDilMeth(fertMeth)&&fertDil&&fertSprayAmt&&fertName&&<div style={{fontSize:".68rem",color:"#059669",marginTop:2}}>💧 原液 {fertAmt}{fertUnit} → 在庫から差し引きます</div>}
-              </FG>
+                {fa&&fertName&&<div style={{fontSize:".68rem",color:"#059669",marginTop:2}}>💧 原液 {fa.amt}{fa.unit} → 在庫から差し引きます</div>}
+              </FG>); })()}
             </R2>
             {isDilMeth(fertMeth)&&<R2>
-              <FG label="希釈倍数"><CalcInp value={fertDil} onChange={v=>{setFertDil(v);const c=calcConcentrate(fertSprayAmt,v,fertSprayUnit);if(c){setFertAmt(String(c.amt));setFertUnit(c.unit);}}} placeholder="500"/></FG>
-              <FG label="散布量（希釈後）"><div style={{display:"flex",gap:4}}><CalcInp value={fertSprayAmt} onChange={v=>{setFertSprayAmt(v);const c=calcConcentrate(v,fertDil,fertSprayUnit);if(c){setFertAmt(String(c.amt));setFertUnit(c.unit);}}} style={{flex:1}}/><Sel value={fertSprayUnit} onChange={v=>{setFertSprayUnit(v);const c=calcConcentrate(fertSprayAmt,fertDil,v);if(c){setFertAmt(String(c.amt));setFertUnit(c.unit);}}} options={["L","ml"].map(v=>({value:v,label:v}))} style={{width:60,flex:"none"}}/></div></FG>
+              <FG label="希釈倍数"><CalcInp value={fertDil} onChange={setFertDil} placeholder="500"/></FG>
+              <FG label="散布量（希釈後）"><div style={{display:"flex",gap:4}}><CalcInp value={fertSprayAmt} onChange={setFertSprayAmt} style={{flex:1}}/><Sel value={fertSprayUnit} onChange={setFertSprayUnit} options={["L","ml"].map(v=>({value:v,label:v}))} style={{width:60,flex:"none"}}/></div></FG>
             </R2>}
           </div>          {fertEntries.map((fe,fi)=>(
             <div key={fi} style={{background:"#fffdf5",border:"1px solid #b2dfdb",borderRadius:8,padding:"8px 10px",marginTop:6}}>
@@ -3043,24 +3111,26 @@ useEffect(()=>{
                 <Sel value={fe.name} onChange={v=>{
                   setFertEntries(p=>p.map((x,i)=>i===fi?{...x,name:v}:x));
                   const fm2=fertMs.find(f=>f.name===v);
-                  if(fm2)setFertEntries(p=>p.map((x,i)=>i===fi?{...x,unit:fm2.cunit||fm2.sunit||x.unit,dil:fm2.dil||x.dil}:x));
+                  if(fm2)setFertEntries(p=>p.map((x,i)=>i===fi?{...x,unit:masterUnitOf(fm2)||x.unit,dil:fm2.dil||x.dil}:x));
                 }} options={[{value:"",label:"（選択）"},...fertMs.filter(f=>f.status!=="使い切り（非表示）").map(f=>({value:f.name,label:f.name}))]}/>
               </FG>
               <R2>
                 <FG label="施用方法"><Sel value={fe.meth} onChange={v=>setFertEntries(p=>p.map((x,i)=>i===fi?{...x,meth:v}:x))} options={["元肥","追肥","葉面散布","かん注","液肥希釈"].map(v=>({value:v,label:v}))}/></FG>
-                <FG label={isDilMeth(fe.meth)&&fe.dil&&fe.sprayAmt?"原液量（自動計算）":"施用量（原液）"}>
+                {(()=>{ const fa=fertAutoOf(fe.meth,fe.dil,fe.sprayAmt,fe.sprayUnit,fe.name); return (
+                <FG label={fa?"原液量（自動計算）":"施用量（原液）"}>
                   <div style={{display:"flex",gap:4}}>
-                    {isDilMeth(fe.meth)&&fe.dil&&fe.sprayAmt
-                      ? <div style={{...S.inp,flex:1,background:"#f0fdf4",color:"#065f46",cursor:"default",fontWeight:600}}>{fe.amt||"—"}</div>
-                      : <CalcInp value={fe.amt} onChange={v=>setFertEntries(p=>p.map((x,i)=>i===fi?{...x,amt:v}:x))} style={{flex:1}}/>}
-                    <Sel value={fe.unit} onChange={isDilMeth(fe.meth)&&fe.dil&&fe.sprayAmt?()=>{}:v=>setFertEntries(p=>p.map((x,i)=>i===fi?{...x,unit:v}:x))} options={["kg","g","L","ml","袋"].map(v=>({value:v,label:v}))} style={{width:60,flex:"none"}}/>
+                    {fa
+                      ? <><div style={{...S.inp,flex:1,background:"#f0fdf4",color:"#065f46",cursor:"default",fontWeight:600}}>{fa.amt}</div>
+                          <div style={{...S.inp,width:60,flex:"none",background:"#f0fdf4",color:"#065f46",cursor:"default",textAlign:"center"}}>{fa.unit}</div></>
+                      : <><CalcInp value={fe.amt} onChange={v=>setFertEntries(p=>p.map((x,i)=>i===fi?{...x,amt:v}:x))} style={{flex:1}}/>
+                          <Sel value={fe.unit} onChange={v=>setFertEntries(p=>p.map((x,i)=>i===fi?{...x,unit:v}:x))} options={[...new Set(["kg","g","L","ml","袋",fe.unit].filter(Boolean))].map(v=>({value:v,label:v}))} style={{width:60,flex:"none"}}/></>}
                   </div>
-                  {isDilMeth(fe.meth)&&fe.dil&&fe.sprayAmt&&fe.name&&<div style={{fontSize:".68rem",color:"#059669",marginTop:2}}>💧 原液 {fe.amt}{fe.unit} → 在庫から差し引きます</div>}
-                </FG>
+                  {fa&&fe.name&&<div style={{fontSize:".68rem",color:"#059669",marginTop:2}}>💧 原液 {fa.amt}{fa.unit} → 在庫から差し引きます</div>}
+                </FG>); })()}
               </R2>
               {isDilMeth(fe.meth)&&<R2>
-                <FG label="希釈倍数"><CalcInp value={fe.dil} onChange={v=>{const c=calcConcentrate(fe.sprayAmt,v,fe.sprayUnit||"L");setFertEntries(p=>p.map((x,i)=>i===fi?{...x,dil:v,...(c?{amt:String(c.amt),unit:c.unit}:{})}:x));}} placeholder="500"/></FG>
-                <FG label="散布量（希釈後）"><div style={{display:"flex",gap:4}}><CalcInp value={fe.sprayAmt} onChange={v=>{const c=calcConcentrate(v,fe.dil,fe.sprayUnit||"L");setFertEntries(p=>p.map((x,i)=>i===fi?{...x,sprayAmt:v,...(c?{amt:String(c.amt),unit:c.unit}:{})}:x));}} style={{flex:1}}/><Sel value={fe.sprayUnit||"L"} onChange={v=>{const c=calcConcentrate(fe.sprayAmt,fe.dil,v);setFertEntries(p=>p.map((x,i)=>i===fi?{...x,sprayUnit:v,...(c?{amt:String(c.amt),unit:c.unit}:{})}:x));}} options={["L","ml"].map(v=>({value:v,label:v}))} style={{width:60,flex:"none"}}/></div></FG>
+                <FG label="希釈倍数"><CalcInp value={fe.dil} onChange={v=>setFertEntries(p=>p.map((x,i)=>i===fi?{...x,dil:v}:x))} placeholder="500"/></FG>
+                <FG label="散布量（希釈後）"><div style={{display:"flex",gap:4}}><CalcInp value={fe.sprayAmt} onChange={v=>setFertEntries(p=>p.map((x,i)=>i===fi?{...x,sprayAmt:v}:x))} style={{flex:1}}/><Sel value={fe.sprayUnit||"L"} onChange={v=>setFertEntries(p=>p.map((x,i)=>i===fi?{...x,sprayUnit:v}:x))} options={["L","ml"].map(v=>({value:v,label:v}))} style={{width:60,flex:"none"}}/></div></FG>
               </R2>}
             </div>
           ))}
@@ -3077,13 +3147,21 @@ useEffect(()=>{
           <div style={{background:"#fffaf0",border:"1px solid #f9e4a0",borderRadius:8,padding:"8px 10px",marginBottom:6}}>
             <div style={{fontSize:".72rem",fontWeight:700,color:"#92400e",marginBottom:5}}>農薬 1</div>
             <FG label="農薬を選ぶ">
-              <Sel value={pestMs.findIndex(p=>p.name===pestName)} onChange={v=>{if(v===""){setPestName("");}else{const pm=pestMs[parseInt(v)];if(pm){setPestName(pm.name);}}}}
+              <Sel value={pestMs.findIndex(p=>p.name===pestName)} onChange={v=>{if(v===""){setPestName("");}else{const pm=pestMs[parseInt(v)];if(pm){setPestName(pm.name);if(pm.dil)setPestDil(pm.dil);}}}}
                 options={[{value:"",label:"（選択）"},...pestMs.map((p,i)=>({value:i,label:p.name})).filter((_,i)=>pestMs[i]?.status!=="使い切り（非表示）")]}/>
             </FG>
             <R2>
               <FG label="希釈倍数"><CalcInp value={pestDil} onChange={setPestDil} placeholder="1000"/></FG>
               <FG label="散布量"><div style={{display:"flex",gap:4}}><CalcInp value={pestAmt} onChange={setPestAmt} style={{flex:1}}/><Sel value={pestUnit} onChange={setPestUnit} options={["L","ml","g","kg"].map(v=>({value:v,label:v}))} style={{width:60,flex:"none"}}/></div></FG>
             </R2>
+            {(()=>{ const pc=pestConcOf(pestName,pestDil,pestAmt,pestUnit); return pc?(
+              <FG label="原液量（自動計算）">
+                <div style={{display:"flex",gap:4}}>
+                  <div style={{...S.inp,flex:1,background:"#f0fdf4",color:"#065f46",cursor:"default",fontWeight:600}}>{pc.amt}</div>
+                  <div style={{...S.inp,width:60,flex:"none",background:"#f0fdf4",color:"#065f46",cursor:"default",textAlign:"center"}}>{pc.unit}</div>
+                </div>
+                {pestName&&<div style={{fontSize:".68rem",color:"#059669",marginTop:2}}>💧 原液 {pc.amt}{pc.unit} → 在庫から差し引きます</div>}
+              </FG>):null; })()}
             <FG label="対象病害虫"><Inp value={pestTgt} onChange={setPestTgt} placeholder="アブラムシ等"/></FG>
           </div>
           {pestEntries.map((pe,pi)=>(
@@ -3096,13 +3174,21 @@ useEffect(()=>{
               <FG label="農薬を選ぶ">
                 <Sel value={pe.name?pestMs.findIndex(p=>p.name===pe.name):""} onChange={v=>{
                   if(v===""){setPestEntries(p=>p.map((x,i)=>i===pi?{...x,name:""}:x));}
-                  else{const pm=pestMs[parseInt(v)];setPestEntries(p=>p.map((x,i)=>i===pi?{...x,name:pm.name}:x));}
+                  else{const pm=pestMs[parseInt(v)];setPestEntries(p=>p.map((x,i)=>i===pi?{...x,name:pm.name,dil:pm.dil||x.dil}:x));}
                 }} options={[{value:"",label:"（選択）"},...pestMs.map((p,i)=>({value:i,label:p.name})).filter((_,i)=>pestMs[i]?.status!=="使い切り（非表示）")]}/>
               </FG>
               <R2>
                 <FG label="希釈倍数"><CalcInp value={pe.dil} onChange={v=>setPestEntries(p=>p.map((x,i)=>i===pi?{...x,dil:v}:x))} placeholder="1000"/></FG>
                 <FG label="散布量"><div style={{display:"flex",gap:4}}><CalcInp value={pe.sprayAmt} onChange={v=>setPestEntries(p=>p.map((x,i)=>i===pi?{...x,sprayAmt:v}:x))} style={{flex:1}}/><Sel value={pe.sprayUnit||"L"} onChange={v=>setPestEntries(p=>p.map((x,i)=>i===pi?{...x,sprayUnit:v}:x))} options={["L","ml","g","kg"].map(v=>({value:v,label:v}))} style={{width:60,flex:"none"}}/></div></FG>
               </R2>
+              {(()=>{ const pc=pestConcOf(pe.name,pe.dil,pe.sprayAmt,pe.sprayUnit); return pc?(
+                <FG label="原液量（自動計算）">
+                  <div style={{display:"flex",gap:4}}>
+                    <div style={{...S.inp,flex:1,background:"#f0fdf4",color:"#065f46",cursor:"default",fontWeight:600}}>{pc.amt}</div>
+                    <div style={{...S.inp,width:60,flex:"none",background:"#f0fdf4",color:"#065f46",cursor:"default",textAlign:"center"}}>{pc.unit}</div>
+                  </div>
+                  {pe.name&&<div style={{fontSize:".68rem",color:"#059669",marginTop:2}}>💧 原液 {pc.amt}{pc.unit} → 在庫から差し引きます</div>}
+                </FG>):null; })()}
               <FG label="対象病害虫"><Inp value={pe.tgt} onChange={v=>setPestEntries(p=>p.map((x,i)=>i===pi?{...x,tgt:v}:x))} placeholder="アブラムシ等"/></FG>
             </div>
           ))}
@@ -4832,7 +4918,7 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
           })
           .map((item)=>{
           const stock = parseFloat(item.stock)||0;
-          const su = item.sunit||item.cunit||"";
+          const su = masterUnitOf(item); // 在庫は購入時に記録した内容量の単位で表示
           const cap = parseFloat(item.capacity)||0;
           const stockVal = stockValueOf(item);
           const isOut = item.status==="使い切り（非表示）";
@@ -6701,36 +6787,19 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs, equips=[], o
     // 施肥・農薬費用（作業記録のマスター単価×使用量で計算・単位変換あり）
     let fertTotal=0, pestTotal=0;
     cl.forEach(l=>{
+      // 使用量（在庫を減らす量と同じ計算＝logUsageOf）× 資材の単価（購入価格÷内容量）
       if(l.fertName) {
         const fm=fertMs.find(f=>f.name===l.fertName);
-        if(fm?.price && fm?.capacity && parseFloat(fm.capacity)>0) {
-          let useAmt = 0, useUnit = l.fertUnit||"";
-          if(l.fertDil && l.fertSprayAmt && parseFloat(l.fertSprayAmt)>0) {
-            // 液肥希釈：散布量÷希釈倍率=原液使用量
-            const dil = parseFloat(l.fertDil)||1;
-            useAmt = parseFloat(l.fertSprayAmt) / (dil>0?dil:1);
-            useUnit = l.fertSprayUnit||l.fertUnit||"L";
-          } else if(parseFloat(l.fertAmt)>0) {
-            useAmt = parseFloat(l.fertAmt);
-            useUnit = l.fertUnit||"";
-          }
-          if(useAmt>0) {
-            const normalizedAmt = normalizeToMasterUnit(useAmt, useUnit, fm.cunit||fm.sunit);
-            const unitCost = parseFloat(fm.price) / parseFloat(fm.capacity);
-            fertTotal += Math.round(unitCost * normalizedAmt);
-          }
+        if(fm?.price && parseFloat(fm.capacity)>0) {
+          const u = logUsageOf({...l, work:"fert"}, fm);
+          if(u>0) fertTotal += Math.round(parseFloat(fm.price)/parseFloat(fm.capacity) * u);
         }
       }
       if(l.pestName && l.pestAmt && parseFloat(l.pestAmt)>0) {
         const pm=pestMs.find(p=>p.name===l.pestName);
-        if(pm?.price && pm?.capacity && parseFloat(pm.capacity)>0) {
-          // 散布量（希釈後）を希釈倍数で割って原液使用量を算出
-          const dil = parseFloat(l.pestDil)||1;
-          const concAmt = parseFloat(l.pestAmt) / (dil>0?dil:1);
-          // 原液使用量をマスターの内容量単位に変換
-          const normalizedAmt = normalizeToMasterUnit(concAmt, l.pestUnit, pm.cunit||pm.sunit);
-          const unitCost = parseFloat(pm.price) / parseFloat(pm.capacity);
-          pestTotal += Math.round(unitCost * normalizedAmt);
+        if(pm?.price && parseFloat(pm.capacity)>0) {
+          const u = logUsageOf({...l, work:"pest"}, pm);
+          if(u>0) pestTotal += Math.round(parseFloat(pm.price)/parseFloat(pm.capacity) * u);
         }
       }
     });
