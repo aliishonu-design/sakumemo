@@ -34,6 +34,7 @@
   .work-tag{padding:2px 8px;border-radius:999px;font-size:.68rem;font-weight:700;}
   .tag-fert{background:#d1fae5;color:#065f46;}
   .tag-pest{background:#fef3c7;color:#92400e;}
+  .tag-hormone{background:#fae8ff;color:#86198f;}
   .tag-harvest{background:#dbeafe;color:#1e40af;}
   .tag-transplant{background:#ede9fe;color:#5b21b6;}
   .tag-sow{background:#dcfce7;color:#166534;}
@@ -65,7 +66,7 @@
 <div class="container" id="main-container"><div class="loading">🌱 読み込み中…</div></div>
 <div class="container" id="fav-container" style="display:none"></div>
 
-<script src="card-format.js?v=2.2.0"></script>
+<script src="card-format.js?v=2.2.5"></script>
 <script>
 var SB_URL='https://nlamtphkwdoxtjktkjzo.supabase.co';
 var SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5sYW10cGhrd2RveHRqa3RranpvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3ODI3NzYsImV4cCI6MjA5MzM1ODc3Nn0.8gba30xxu0s132vg_xOA6-Y3XWjR1YhaprIgUYHZO0o';
@@ -97,7 +98,7 @@ var CDB={
 var WORK={
   sow:{l:'播種',cls:'sow'},germinated:{l:'発芽確認',cls:'sow'},
   transplant:{l:'定植',cls:'transplant'},water:{l:'水やり',cls:'other'},
-  fert:{l:'施肥',cls:'fert'},pest:{l:'防除',cls:'pest'},
+  fert:{l:'施肥',cls:'fert'},pest:{l:'防除',cls:'pest'},hormone:{l:'ホルモン処理',cls:'hormone'},
   pruning:{l:'剪定',cls:'other'},thinning:{l:'摘果・摘花',cls:'other'},
   sideshot:{l:'脇芽かき',cls:'other'},repot:{l:'植え替え',cls:'transplant'},
   event:{l:'生育記録',cls:'other'},harvest:{l:'収穫',cls:'harvest'},
