@@ -9,6 +9,7 @@ var SK_WORKS = [
   ["water",      "水やり",       "💧", "#e0f2fe", "#075985"],
   ["fert",       "施肥",         "🌿", "#d1fae5", "#065f46"],
   ["pest",       "防除",         "🐛", "#fef3c7", "#92400e"],
+  ["hormone",    "ホルモン処理", "🧪", "#fae8ff", "#86198f"],
   ["pruning",    "剪定",         "✂️", "#f3f4f6", "#374151"],
   ["thinning",   "摘果・摘花",   "🌸", "#fce7f3", "#831843"],
   ["sideshot",   "脇芽かき",     "🌱", "#f3f4f6", "#374151"],
@@ -62,7 +63,7 @@ function skCardLines(logs) {
     if (pn) {
       var pd = skVal(l, "pestDil", "pest_dil"), pa = skVal(l, "pestAmt", "pest_amt"), pu = skVal(l, "pestUnit", "pest_unit");
       var pt = skVal(l, "pestTarget", "pest_tgt");
-      add("pest", pn, pn + (pd ? " " + pd + "倍" : "") + (pa ? " 散布" + pa + pu : "") + (pt ? " 対象:" + pt : ""), "#92400e");
+      var hz = l.work === "hormone"; add(hz ? "hormone" : "pest", pn, pn + (pd ? " " + pd + "倍" : "") + (pa ? (hz ? " 使用" : " 散布") + pa + pu : "") + (pt ? (hz ? " 目的:" : " 対象:") + pt : ""), hz ? "#86198f" : "#92400e");
     }
     if (l.work === "repot") {
       var rs = skVal(l, "repotSize", "repot_size"), rv = skVal(l, "repotVol", "repot_vol");
