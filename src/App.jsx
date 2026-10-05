@@ -607,24 +607,36 @@ const CROP_OPTIONS = [
 // 消耗資材カテゴリ（在庫管理あり）
 const MATERIAL_CATS = ["マルチ","トンネル資材","防虫ネット","支柱・杭","プランター・育苗ポット","消耗品","その他資材"];
 
+// ホルモン剤・生育調整剤（トマトトーン等）：農薬マスターの「種類」で区別し、作業は「ホルモン処理」として防除とは別に記録
+const HORMONE_TYPE = "ホルモン剤・生育調整剤";
+const isHormoneMaster = m => !!m && /ホルモン|生育調整|成長調整/.test(m.type||"");
+// 農薬取締法の対象（植物成長調整剤も農薬）：農薬使用記録簿には防除とホルモン処理の両方を載せる
+const isPestWork = w => w==="pest" || w==="hormone";
+const isFertWork = w => w==="fert" || w==="amend"; // 土壌改良は肥料マスター（堆肥・石灰など）から在庫を引く
+
 // 農機具カテゴリ（償却管理あり）
 const EQUIP_CATS = ["手工具（鍬・スコップ等）","動力機械","ハウス設備","かん水設備","軽トラ・農用車","農機具","その他機械"];
 
 const WORK_TYPES = [
   { value:"sow",        label:"播種",         tag:"green",  icon:"🌰" },
-  { value:"germinated", label:"発芽確認",     tag:"green",  icon:"🌱" },
+  { value:"germinated", label:"発芽確認",     tag:"green",  icon:"🌱", hidden:true },
   { value:"transplant", label:"定植",         tag:"purple", icon:"🪴" },
   { value:"water",      label:"水やり",       tag:"blue",   icon:"💧" },
   { value:"fert",       label:"施肥",         tag:"green",  icon:"🌿" },
   { value:"pest",       label:"防除",         tag:"yellow", icon:"🐛" },
-  { value:"pruning",    label:"剪定",         tag:"green",  icon:"✂️" },
+  { value:"hormone",    label:"ホルモン処理", tag:"pink",   icon:"🧪" },
+  { value:"soil",       label:"土づくり",     tag:"gray",   icon:"🚜" },
+  { value:"amend",      label:"土壌改良",     tag:"green",  icon:"🧱" },
+  { value:"weed",       label:"除草",         tag:"green",  icon:"🌾" },
+  { value:"pruning",    label:"整枝・誘引",   tag:"green",  icon:"✂️" },
   { value:"thinning",   label:"摘果・摘花",   tag:"pink",   icon:"🌸" },
-  { value:"sideshot",   label:"脇芽かき",     tag:"green",  icon:"🌱" },
+  { value:"sideshot",   label:"脇芽かき",     tag:"green",  icon:"🌱", hidden:true },
   { value:"repot",      label:"植え替え",     tag:"purple", icon:"🪣" },
   { value:"event",      label:"生育記録",     tag:"pink",   icon:"📋" },
   { value:"harvest",    label:"収穫",         tag:"pink",   icon:"🧺" },
   { value:"discard",    label:"廃棄・株調整", tag:"gray",   icon:"♻️" },
-  { value:"equip",      label:"資材作業",     tag:"gray",   icon:"🏗️" },  { value:"check",      label:"見回り",       tag:"gray",   icon:"👀" },
+  { value:"equip",      label:"資材作業",     tag:"gray",   icon:"🏗️" },
+  { value:"check",      label:"見回り",       tag:"gray",   icon:"👀", hidden:true },
   { value:"other",      label:"その他",       tag:"gray",   icon:"✏️" },
 ];
 
@@ -635,7 +647,11 @@ const WORK = {
     water:{label:'水やり',tag:'blue',icon:'💧'},
     fert:{label:'施肥',tag:'teal',icon:'🌿'},
     pest:{label:'防除',tag:'yellow',icon:'🐛'},
-    pruning:{label:'剪定',tag:'gray',icon:'✂️'},
+    hormone:{label:'ホルモン処理',tag:'pink',icon:'🧪'},
+    soil:{label:'土づくり',tag:'gray',icon:'🚜'},
+    amend:{label:'土壌改良',tag:'teal',icon:'🧱'},
+    weed:{label:'除草',tag:'teal',icon:'🌾'},
+    pruning:{label:'整枝・誘引',tag:'gray',icon:'✂️'},
     thinning:{label:'摘果・摘花',tag:'gray',icon:'🌸'},
     sideshot:{label:'脇芽かき',tag:'gray',icon:'🌿'},
     repot:{label:'植え替え',tag:'purple',icon:'🪴'},
@@ -657,7 +673,11 @@ var SK_WORKS = [
   ["water",      "水やり",       "💧", "#e0f2fe", "#075985"],
   ["fert",       "施肥",         "🌿", "#d1fae5", "#065f46"],
   ["pest",       "防除",         "🐛", "#fef3c7", "#92400e"],
-  ["pruning",    "剪定",         "✂️", "#f3f4f6", "#374151"],
+  ["hormone",    "ホルモン処理", "🧪", "#fae8ff", "#86198f"],
+  ["soil",       "土づくり",     "🚜", "#f3f4f6", "#374151"],
+  ["amend",      "土壌改良",     "🧱", "#ccfbf1", "#115e59"],
+  ["weed",       "除草",         "🌾", "#dcfce7", "#166534"],
+  ["pruning",    "整枝・誘引",         "✂️", "#f3f4f6", "#374151"],
   ["thinning",   "摘果・摘花",   "🌸", "#fce7f3", "#831843"],
   ["sideshot",   "脇芽かき",     "🌱", "#f3f4f6", "#374151"],
   ["repot",      "植え替え",     "🪣", "#ede9fe", "#5b21b6"],
@@ -704,13 +724,14 @@ function skCardLines(logs) {
     if (fn) {
       var fd = skVal(l, "fertDil", "fert_dil"), fs = skVal(l, "fertSprayAmt", "fert_spray_amt"), fsu = skVal(l, "fertSprayUnit", "fert_spray_unit") || "L";
       var fa = skVal(l, "fertAmt", "fert_amt"), fu = skVal(l, "fertUnit", "fert_unit"), fm = skVal(l, "fertMethod", "fert_method");
-      add("fert", fn, fn + (fd && fs ? " " + fd + "倍希釈 散布" + fs + fsu : (fa ? " " + fa + fu : "")) + (fm ? "（" + fm + "）" : ""), "#065f46");
+      add(l.work === "amend" ? "amend" : "fert", fn, fn + (fd && fs ? " " + fd + "倍希釈 散布" + fs + fsu : (fa ? " " + fa + fu : "")) + (fm ? "（" + fm + "）" : ""), "#065f46");
     }
     var pn = skVal(l, "pestName", "pest_name");
     if (pn) {
       var pd = skVal(l, "pestDil", "pest_dil"), pa = skVal(l, "pestAmt", "pest_amt"), pu = skVal(l, "pestUnit", "pest_unit");
       var pt = skVal(l, "pestTarget", "pest_tgt");
-      add("pest", pn, pn + (pd ? " " + pd + "倍" : "") + (pa ? " 散布" + pa + pu : "") + (pt ? " 対象:" + pt : ""), "#92400e");
+      var hz = l.work === "hormone"; // ホルモン処理は防除とは別の作業として表示
+      add(hz ? "hormone" : "pest", pn, pn + (pd ? " " + pd + "倍" : "") + (pa ? (hz ? " 使用" : " 散布") + pa + pu : "") + (pt ? (hz ? " 目的:" : " 対象:") + pt : ""), hz ? "#86198f" : "#92400e");
     }
     if (l.work === "repot") {
       var rs = skVal(l, "repotSize", "repot_size"), rv = skVal(l, "repotVol", "repot_vol");
@@ -922,11 +943,11 @@ const PACK_UNITS = ["袋","個","本","箱","缶","瓶","ボトル","パック"]
 // 使用量は資材の単位（内容量の単位）で返す。希釈する場合は 散布量÷希釈倍数＝原液量
 const logUsageOf = (l, m) => {
   let amt=0, unit="", viaDil=false;
-  if(l.work==="fert"){
+  if(isFertWork(l.work)){
     // 希釈の入力欄が出るのは「液肥希釈・葉面散布・かん注」のときだけ（それ以外に残った希釈の値は使わない）
     if((!l.fertMethod || isDilMeth(l.fertMethod)) && parseFloat(l.fertDil)>0 && parseFloat(l.fertSprayAmt)>0){ amt=parseFloat(l.fertSprayAmt)/parseFloat(l.fertDil); unit=l.fertSprayUnit||"L"; viaDil=true; }
     else if(parseFloat(l.fertAmt)>0){ amt=parseFloat(l.fertAmt); unit=l.fertUnit||""; }
-  } else if(l.work==="pest"){
+  } else if(isPestWork(l.work)){
     if(parseFloat(l.pestAmt)>0){
       if(parseFloat(l.pestDil)>0){ amt=parseFloat(l.pestAmt)/parseFloat(l.pestDil); viaDil=true; } else amt=parseFloat(l.pestAmt);
       unit=l.pestUnit||"L";
@@ -942,7 +963,7 @@ const logUsageOf = (l, m) => {
 const stockUsageMap = (entries, fertMs, pestMs) => {
   const map = {};
   (entries||[]).forEach(l=>{
-    const kind = l.work==="fert"?"fert":l.work==="pest"?"pest":null; if(!kind) return;
+    const kind = isFertWork(l.work)?"fert":isPestWork(l.work)?"pest":null; if(!kind) return;
     const name = kind==="fert"?l.fertName:l.pestName; if(!name) return;
     const m = (kind==="fert"?fertMs:pestMs).find(x=>x.name===name); if(!m) return;
     const u = logUsageOf(l, m); if(!(u>0)) return;
@@ -1667,7 +1688,7 @@ function LoginScreen() {
       <div style={{background:"#fff",borderRadius:20,padding:"28px 24px",maxWidth:360,width:"100%",textAlign:"center",boxShadow:"0 8px 40px rgba(0,0,0,.3)"}}>
         <div style={{fontSize:"2.2rem",marginBottom:6}}>🌾</div>
         <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:"1.3rem",color:G,marginBottom:4}}>サクメモ</div>
-        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v2.2.4</span></div>
+        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v2.2.6</span></div>
         {linkErr&&<div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:8,padding:"10px 12px",marginBottom:16,fontSize:".78rem",color:"#856404",textAlign:"left"}}>{linkErr}</div>}
 
 
@@ -1727,7 +1748,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v2.2.4</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v2.2.6</div>
       </div>
     </div>
   );
@@ -2515,10 +2536,27 @@ function LogScreen({ fields, crops, setCrops, fertMs, setFertMs, pestMs, setPest
   const [pestUnit, setPestUnit] = useState("L");
   const [pestTgt,  setPestTgt]  = useState("");
   const [pestCost, setPestCost] = useState("");
+  // ホルモン処理（トマトトーン等）：保存先は防除と同じ列（農薬名・希釈倍数・使用量…）、作業の種類だけ "hormone"
+  const emptyHorm = () => ({name:"",dil:"",sprayAmt:"",sprayUnit:"L",tgt:""});
+  const [hormEntries, setHormEntries] = useState([]);
+  const [hormName, setHormName] = useState("");
+  const [hormDil,  setHormDil]  = useState("");
+  const [hormAmt,  setHormAmt]  = useState("");
+  const [hormUnit, setHormUnit] = useState("L");
+  const [hormTgt,  setHormTgt]  = useState("");
+  // 土壌改良（堆肥・石灰など）：保存先は施肥と同じ列（資材名・使用量・単位）、作業の種類だけ "amend"。在庫は肥料マスターから引く
+  const emptyAmend = () => ({name:"",amt:"",unit:"kg"});
+  const [amendEntries, setAmendEntries] = useState([]);
+  const [amendName, setAmendName] = useState("");
+  const [amendAmt,  setAmendAmt]  = useState("");
+  const [amendUnit, setAmendUnit] = useState("kg");
+  const amendOptions = [{value:"",label:"（選択）"},...fertMs.map((f,i)=>({value:i,label:f.name})).filter((_,i)=>fertMs[i]?.status!=="使い切り（非表示）")];
   // ─── 原液量の自動計算：資材の内容量の単位（在庫の単位）にそろえる。Lなら小数も使ってLで表示 ───
   const masterUnitByName = (list, name) => { const m=list.find(x=>x.name===name); return m?masterUnitOf(m):""; };
   const fertAutoOf = (meth,dil,spray,su,name) => isDilMeth(meth) ? calcConcentrate(spray,dil,su||"L",masterUnitByName(fertMs,name)) : null;
   const pestConcOf = (name,dil,amt,unit) => parseFloat(dil)>0 ? calcConcentrate(amt,dil,unit||"L",masterUnitByName(pestMs,name)) : null;
+  // ホルモン処理で選べる資材（農薬マスターのうち種類がホルモン剤・生育調整剤のもの）
+  const hormOptions = [{value:"",label:"（選択）"},...pestMs.map((p,i)=>({value:i,label:p.name})).filter((_,i)=>isHormoneMaster(pestMs[i]) && pestMs[i]?.status!=="使い切り（非表示）")];
   useEffect(()=>{
     const c=fertAutoOf(fertMeth,fertDil,fertSprayAmt,fertSprayUnit,fertName);
     if(!c) return;
@@ -2572,6 +2610,8 @@ useEffect(()=>{
       setSowQty("");setGermCnt("");setGermDate(todayStr());setTranspQty("");
       setFertIdx("");setFertName("");setFertAmt("");setFertUnit("kg");setFertMeth("追肥");setFertCost("");setFertEntries([]);
       setPestIdx("");setPestName("");setPestDil("");setPestAmt("");setPestUnit("L");setPestTgt("");setPestCost("");setPestEntries([]);setPestSprayAmt("");
+      setHormName("");setHormDil("");setHormAmt("");setHormUnit("L");setHormTgt("");setHormEntries([]);
+      setAmendName("");setAmendAmt("");setAmendUnit("kg");setAmendEntries([]);
       setEventType("");setEventNote("");setOtherNote("");
       setHvKg("");setHvCnt("");setHvQ("秀品");setHvPrice("");
       setDiscardCnt("");setAddCnt("");setEquipSel([]);setEquipAct("設置");setEquipUseAmt("");setEquipUseUnit("L");setEquipEntries([]);setRepotSize("");setRepotVol("");  return;
@@ -2595,8 +2635,10 @@ useEffect(()=>{
     // editLogsから各作業タイプのlogを取得
     const allL    = editLogs&&editLogs.length>0 ? editLogs : [editLog];
     const hvLog   = allL.find(l=>l.work==='harvest')    || editLog;
-    const fertLog = allL.find(l=>l.work==='fert')       || editLog;
-    const pestLog = allL.find(l=>l.work==='pest')       || editLog;
+    const fertLog = allL.find(l=>l.work==='fert')       || (editLog.work==='amend' ? {} : editLog);
+    const pestLog = allL.find(l=>l.work==='pest')       || (editLog.work==='hormone' ? {} : editLog);
+    const hormLog = allL.find(l=>l.work==='hormone')    || {};
+    const amendLog = allL.find(l=>l.work==='amend')     || {};
     const discLog = allL.find(l=>l.work==='discard')    || editLog;
     const equipLog= allL.find(l=>l.work==='equip')      || editLog;
     const sowLog  = allL.find(l=>l.work==='sow'||l.work==='germinated') || editLog;
@@ -2646,6 +2688,17 @@ useEffect(()=>{
     // 農薬の追加エントリ復元
     const extraPests = allL.filter(l=>l.work==='pest').slice(1);
     setPestEntries(extraPests.map(l=>({name:l.pestName||"",dil:l.pestDil||"",sprayAmt:l.pestAmt||"",sprayUnit:l.pestUnit||"L",tgt:l.pestTarget||"",cost:l.pestCost||""})));
+    // ホルモン処理の復元（1件目＋追加分）
+    setHormName(hormLog.pestName||"");
+    setHormDil(hormLog.pestDil||"");
+    setHormAmt(hormLog.pestAmt||"");
+    setHormUnit(hormLog.pestUnit||"L");
+    setHormTgt(hormLog.pestTarget||"");
+    setAmendName(amendLog.fertName||"");
+    setAmendAmt(amendLog.fertAmt||"");
+    setAmendUnit(amendLog.fertUnit||"kg");
+    setAmendEntries(allL.filter(l=>l.work==='amend').slice(1).map(l=>({name:l.fertName||"",amt:l.fertAmt||"",unit:l.fertUnit||"kg"})));
+    setHormEntries(allL.filter(l=>l.work==='hormone').slice(1).map(l=>({name:l.pestName||"",dil:l.pestDil||"",sprayAmt:l.pestAmt||"",sprayUnit:l.pestUnit||"L",tgt:l.pestTarget||""})));
 
     // 収穫
     setHvKg(hvLog.hvKg||"");
@@ -2766,6 +2819,8 @@ useEffect(()=>{
       // 作業固有の詳細データ
       if(w==='fert') Object.assign(e,{fertName,fertDil,fertSprayAmt,fertSprayUnit,fertAmt,fertUnit,fertMethod:fertMeth,fertCost});
       if(w==='pest') Object.assign(e,{pestName,pestDil,pestAmt,pestUnit,pestSprayAmt,pestTarget:pestTgt,pestCost});
+      if(w==='amend') Object.assign(e,{fertName:amendName,fertAmt:amendAmt,fertUnit:amendUnit});
+      if(w==='hormone') Object.assign(e,{pestName:hormName,pestDil:hormDil,pestAmt:hormAmt,pestUnit:hormUnit,pestTarget:hormTgt});
       if(w==='harvest') Object.assign(e,{
         hvKg:hvGradeEntries.length>0?(totalHvKg>0?String(totalHvKg):''):hvKg,
         hvCnt:hvGradeEntries.length>0?(totalHvCnt>0?String(totalHvCnt):''):hvCnt,
@@ -2827,6 +2882,20 @@ useEffect(()=>{
           pestEntries.forEach((pe,pi)=>{
             const ex=makeEntry('pest',false,nextId(),editGroupId);
             ex.pestName=pe.name;ex.pestDil=pe.dil;ex.pestAmt=pe.sprayAmt;ex.pestUnit=pe.sprayUnit;ex.pestTarget=pe.tgt;ex.pestCost=pe.cost;
+            editEntriesAll.push(ex);
+          });
+        }
+        if(w==='amend' && amendEntries.length>0){
+          amendEntries.forEach(ae=>{
+            const ex=makeEntry('amend',false,nextId(),editGroupId);
+            ex.fertName=ae.name;ex.fertAmt=ae.amt;ex.fertUnit=ae.unit;
+            editEntriesAll.push(ex);
+          });
+        }
+        if(w==='hormone' && hormEntries.length>0){
+          hormEntries.forEach(he=>{
+            const ex=makeEntry('hormone',false,nextId(),editGroupId);
+            ex.pestName=he.name;ex.pestDil=he.dil;ex.pestAmt=he.sprayAmt;ex.pestUnit=he.sprayUnit;ex.pestTarget=he.tgt;
             editEntriesAll.push(ex);
           });
         }
@@ -2894,6 +2963,22 @@ useEffect(()=>{
             allEntriesNew.push(ex);
           });
         }
+        // 土壌改良の追加エントリ
+        if(w==='amend' && amendEntries.length>0){
+          amendEntries.forEach(ae=>{
+            const ex=makeEntry('amend',false,null,newGroupId);
+            ex.fertName=ae.name;ex.fertAmt=ae.amt;ex.fertUnit=ae.unit;
+            allEntriesNew.push(ex);
+          });
+        }
+        // ホルモン処理の追加エントリ
+        if(w==='hormone' && hormEntries.length>0){
+          hormEntries.forEach(he=>{
+            const ex=makeEntry('hormone',false,null,newGroupId);
+            ex.pestName=he.name;ex.pestDil=he.dil;ex.pestAmt=he.sprayAmt;ex.pestUnit=he.sprayUnit;ex.pestTarget=he.tgt;
+            allEntriesNew.push(ex);
+          });
+        }
         // 資材の追加エントリ
         if(w==='equip' && equipEntries.length>0){
           equipEntries.forEach(ee=>{
@@ -2946,6 +3031,8 @@ useEffect(()=>{
     setSowQty('');setGermCnt('');setTranspQty('');
     setFertName('');setFertAmt('');setPestName('');setPestDil('');setPestAmt('');
     setFertEntries([]);setPestEntries([]);setEquipEntries([]);setFertDil('');setFertSprayAmt('');setFertCost('');setPestCost('');setPestTgt('');setPestSprayAmt('');
+    setHormName('');setHormDil('');setHormAmt('');setHormUnit('L');setHormTgt('');setHormEntries([]);
+    setAmendName('');setAmendAmt('');setAmendUnit('kg');setAmendEntries([]);
     setGermDate(todayStr());setRepotSize('');setRepotVol('');setOtherNote('');setEquipUseAmt('');
     setDiscardCnt('');setAddCnt('');setEquipSel([]);setEquipAct('設置');
     setEventType('');setEventNote('');setDur('');
@@ -3035,7 +3122,7 @@ useEffect(()=>{
         <FG label="作業内容">
           <div style={{fontSize:".7rem",color:"#888",marginBottom:4}}>💡 複数選択できます</div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:5,marginBottom:8}}>
-            {WORK_TYPES.map(w=>(
+            {WORK_TYPES.filter(w=>!w.hidden||works.has(w.value)).map(w=>(
               <button key={w.value} onClick={()=>toggleWork(w.value)}
                 style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2,padding:"7px 4px",border:"2px solid "+(works.has(w.value)?G2:BD),borderRadius:10,background:works.has(w.value)?G3:"#fff",fontSize:".62rem",fontWeight:700,color:works.has(w.value)?G:"#5a5040",cursor:"pointer"}}>
                 <span style={{fontSize:"1.3rem",lineHeight:1}}>{w.icon}</span><TermTooltip>{w.label}</TermTooltip>
@@ -3148,7 +3235,7 @@ useEffect(()=>{
             <div style={{fontSize:".72rem",fontWeight:700,color:"#92400e",marginBottom:5}}>農薬 1</div>
             <FG label="農薬を選ぶ">
               <Sel value={pestMs.findIndex(p=>p.name===pestName)} onChange={v=>{if(v===""){setPestName("");}else{const pm=pestMs[parseInt(v)];if(pm){setPestName(pm.name);if(pm.dil)setPestDil(pm.dil);}}}}
-                options={[{value:"",label:"（選択）"},...pestMs.map((p,i)=>({value:i,label:p.name})).filter((_,i)=>pestMs[i]?.status!=="使い切り（非表示）")]}/>
+                options={[{value:"",label:"（選択）"},...pestMs.map((p,i)=>({value:i,label:p.name})).filter((_,i)=>pestMs[i]?.status!=="使い切り（非表示）" && !isHormoneMaster(pestMs[i]))]}/>
             </FG>
             <R2>
               <FG label="希釈倍数"><CalcInp value={pestDil} onChange={setPestDil} placeholder="1000"/></FG>
@@ -3175,7 +3262,7 @@ useEffect(()=>{
                 <Sel value={pe.name?pestMs.findIndex(p=>p.name===pe.name):""} onChange={v=>{
                   if(v===""){setPestEntries(p=>p.map((x,i)=>i===pi?{...x,name:""}:x));}
                   else{const pm=pestMs[parseInt(v)];setPestEntries(p=>p.map((x,i)=>i===pi?{...x,name:pm.name,dil:pm.dil||x.dil}:x));}
-                }} options={[{value:"",label:"（選択）"},...pestMs.map((p,i)=>({value:i,label:p.name})).filter((_,i)=>pestMs[i]?.status!=="使い切り（非表示）")]}/>
+                }} options={[{value:"",label:"（選択）"},...pestMs.map((p,i)=>({value:i,label:p.name})).filter((_,i)=>pestMs[i]?.status!=="使い切り（非表示）" && !isHormoneMaster(pestMs[i]))]}/>
               </FG>
               <R2>
                 <FG label="希釈倍数"><CalcInp value={pe.dil} onChange={v=>setPestEntries(p=>p.map((x,i)=>i===pi?{...x,dil:v}:x))} placeholder="1000"/></FG>
@@ -3190,6 +3277,112 @@ useEffect(()=>{
                   {pe.name&&<div style={{fontSize:".68rem",color:"#059669",marginTop:2}}>💧 原液 {pc.amt}{pc.unit} → 在庫から差し引きます</div>}
                 </FG>):null; })()}
               <FG label="対象病害虫"><Inp value={pe.tgt} onChange={v=>setPestEntries(p=>p.map((x,i)=>i===pi?{...x,tgt:v}:x))} placeholder="アブラムシ等"/></FG>
+            </div>
+          ))}
+        </div>}
+        {works.has("soil")&&<div style={panelStyle("#f9fafb","#d1d5db")}>
+          <div style={ctitleStyle}>🚜 土づくり</div>
+          <div style={{fontSize:".72rem",color:"#555",lineHeight:1.6}}>耕うん・畝立て・マルチ張りなど、定植前の畑の準備です。内容はメモに書いておくと後で見返せます。堆肥や石灰を入れたときは「土壌改良」も一緒に選んでください。</div>
+        </div>}
+        {works.has("amend")&&<div style={panelStyle("#f0fdfa","#5eead4")}>
+          <div style={{...ctitleStyle,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+            <span>🧱 土壌改良（堆肥・石灰など）</span>
+            <button onClick={()=>setAmendEntries(prev=>[...prev,emptyAmend()])}
+              style={{...S.btn,...S.btnSm,background:"#0f766e",color:"#fff",fontSize:".72rem"}}>＋ 追加</button>
+          </div>
+          <div style={{background:"#f0fdfa",border:"1px solid #5eead4",borderRadius:8,padding:"8px 10px",marginBottom:6,fontSize:".72rem",color:"#115e59",lineHeight:1.6}}>
+            堆肥・石灰・苦土石灰など、土の状態を整える資材の記録です。肥料の資材から選ぶと在庫が減ります（費用は購入時に記録）。
+          </div>
+          {amendOptions.length<=1&&<div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:8,padding:"8px 10px",marginBottom:6,fontSize:".72rem",color:"#856404",lineHeight:1.6}}>
+            資材がまだ登録されていません。「管理」→「費用」で肥料費として購入を記録すると、ここで選べるようになります。
+          </div>}
+          <div style={{background:"#fff",border:"1px solid #5eead4",borderRadius:8,padding:"8px 10px",marginBottom:6}}>
+            <div style={{fontSize:".72rem",fontWeight:700,color:"#115e59",marginBottom:5}}>資材 1</div>
+            <FG label="資材を選ぶ">
+              <Sel value={fertMs.findIndex(f=>f.name===amendName)} onChange={v=>{if(v===""){setAmendName("");}else{const fm=fertMs[parseInt(v)];if(fm){setAmendName(fm.name);const mu=masterUnitOf(fm);if(mu)setAmendUnit(mu);}}}}
+                options={amendOptions}/>
+            </FG>
+            <FG label="使用量"><div style={{display:"flex",gap:4}}><CalcInp value={amendAmt} onChange={setAmendAmt} style={{flex:1}}/><Sel value={amendUnit} onChange={setAmendUnit} options={["kg","g","袋","L","ml"].map(v=>({value:v,label:v}))}/></div></FG>
+          </div>
+          {amendEntries.map((ae,ai)=>(
+            <div key={ai} style={{background:"#fff",border:"1px solid #5eead4",borderRadius:8,padding:"8px 10px",marginBottom:6}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5}}>
+                <span style={{fontSize:".72rem",fontWeight:700,color:"#115e59"}}>資材 {ai+2}</span>
+                <button onClick={()=>setAmendEntries(prev=>prev.filter((_,i)=>i!==ai))}
+                  style={{...S.btn,...S.btnR,...S.btnSm,fontSize:".65rem",padding:"2px 8px"}}>✕</button>
+              </div>
+              <FG label="資材を選ぶ">
+                <Sel value={ae.name?fertMs.findIndex(f=>f.name===ae.name):""} onChange={v=>{
+                  if(v===""){setAmendEntries(p=>p.map((x,i)=>i===ai?{...x,name:""}:x));}
+                  else{const fm=fertMs[parseInt(v)];setAmendEntries(p=>p.map((x,i)=>i===ai?{...x,name:fm.name,unit:masterUnitOf(fm)||x.unit}:x));}
+                }} options={amendOptions}/>
+              </FG>
+              <FG label="使用量"><div style={{display:"flex",gap:4}}><CalcInp value={ae.amt} onChange={v=>setAmendEntries(p=>p.map((x,i)=>i===ai?{...x,amt:v}:x))} style={{flex:1}}/><Sel value={ae.unit} onChange={v=>setAmendEntries(p=>p.map((x,i)=>i===ai?{...x,unit:v}:x))} options={["kg","g","袋","L","ml"].map(v=>({value:v,label:v}))}/></div></FG>
+            </div>
+          ))}
+        </div>}
+        {works.has("weed")&&<div style={panelStyle("#f0fdf4","#86efac")}>
+          <div style={ctitleStyle}>🌾 除草</div>
+          <div style={{fontSize:".72rem",color:"#166534",lineHeight:1.6}}>手作業・草刈り機などの除草です。方法や場所はメモに書いておけます。<b>除草剤を使った場合は「防除」で記録</b>してください（農薬使用記録簿に出力され、在庫も減ります）。</div>
+        </div>}
+        {works.has("hormone")&&<div style={panelStyle("#fdf4ff","#f0abfc")}>
+          <div style={{...ctitleStyle,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+            <span>🧪 ホルモン処理（植物成長調整剤）</span>
+            <button onClick={()=>setHormEntries(prev=>[...prev,emptyHorm()])}
+              style={{...S.btn,...S.btnSm,background:"#a21caf",color:"#fff",fontSize:".72rem"}}>＋ 追加</button>
+          </div>
+          <div style={{background:"#fdf4ff",border:"1px solid #f0abfc",borderRadius:8,padding:"8px 10px",marginBottom:6,fontSize:".72rem",color:"#86198f",lineHeight:1.6}}>
+            トマトトーンなど、着果促進・生育調整に使う薬剤の記録です（防除・施肥とは別に記録されます）。植物成長調整剤も農薬取締法の対象のため、農薬使用記録簿には防除と一緒に出力されます。
+          </div>
+          {hormOptions.length<=1&&<div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:8,padding:"8px 10px",marginBottom:6,fontSize:".72rem",color:"#856404",lineHeight:1.6}}>
+            ホルモン剤がまだ登録されていません。「管理」→「費用」で農薬費として購入を記録し、種類を「{HORMONE_TYPE}」にすると、ここで選べるようになります。
+          </div>}
+          <div style={{background:"#fffaff",border:"1px solid #f0abfc",borderRadius:8,padding:"8px 10px",marginBottom:6}}>
+            <div style={{fontSize:".72rem",fontWeight:700,color:"#86198f",marginBottom:5}}>ホルモン剤 1</div>
+            <FG label="資材を選ぶ">
+              <Sel value={pestMs.findIndex(p=>p.name===hormName)} onChange={v=>{if(v===""){setHormName("");}else{const pm=pestMs[parseInt(v)];if(pm){setHormName(pm.name);if(pm.dil)setHormDil(pm.dil);}}}}
+                options={hormOptions}/>
+            </FG>
+            <R2>
+              <FG label="希釈倍数"><CalcInp value={hormDil} onChange={setHormDil} placeholder="50"/></FG>
+              <FG label="使用量（希釈後）"><div style={{display:"flex",gap:4}}><CalcInp value={hormAmt} onChange={setHormAmt} style={{flex:1}}/><Sel value={hormUnit} onChange={setHormUnit} options={["L","ml","g","kg"].map(v=>({value:v,label:v}))} style={{width:60,flex:"none"}}/></div></FG>
+            </R2>
+            {(()=>{ const pc=pestConcOf(hormName,hormDil,hormAmt,hormUnit); return pc?(
+              <FG label="原液量（自動計算）">
+                <div style={{display:"flex",gap:4}}>
+                  <div style={{...S.inp,flex:1,background:"#f0fdf4",color:"#065f46",cursor:"default",fontWeight:600}}>{pc.amt}</div>
+                  <div style={{...S.inp,width:60,flex:"none",background:"#f0fdf4",color:"#065f46",cursor:"default",textAlign:"center"}}>{pc.unit}</div>
+                </div>
+                {hormName&&<div style={{fontSize:".68rem",color:"#059669",marginTop:2}}>💧 原液 {pc.amt}{pc.unit} → 在庫から差し引きます</div>}
+              </FG>):null; })()}
+            <FG label="目的・対象"><Inp value={hormTgt} onChange={setHormTgt} placeholder="着果促進（第2花房）等"/></FG>
+          </div>
+          {hormEntries.map((he,hi)=>(
+            <div key={hi} style={{background:"#fffaff",border:"1px solid #f0abfc",borderRadius:8,padding:"8px 10px",marginTop:6}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5}}>
+                <span style={{fontSize:".72rem",fontWeight:700,color:"#86198f"}}>ホルモン剤 {hi+2}</span>
+                <button onClick={()=>setHormEntries(prev=>prev.filter((_,i)=>i!==hi))}
+                  style={{...S.btn,...S.btnR,...S.btnSm,fontSize:".65rem",padding:"2px 8px"}}>✕</button>
+              </div>
+              <FG label="資材を選ぶ">
+                <Sel value={he.name?pestMs.findIndex(p=>p.name===he.name):""} onChange={v=>{
+                  if(v===""){setHormEntries(p=>p.map((x,i)=>i===hi?{...x,name:""}:x));}
+                  else{const pm=pestMs[parseInt(v)];setHormEntries(p=>p.map((x,i)=>i===hi?{...x,name:pm.name,dil:pm.dil||x.dil}:x));}
+                }} options={hormOptions}/>
+              </FG>
+              <R2>
+                <FG label="希釈倍数"><CalcInp value={he.dil} onChange={v=>setHormEntries(p=>p.map((x,i)=>i===hi?{...x,dil:v}:x))} placeholder="50"/></FG>
+                <FG label="使用量（希釈後）"><div style={{display:"flex",gap:4}}><CalcInp value={he.sprayAmt} onChange={v=>setHormEntries(p=>p.map((x,i)=>i===hi?{...x,sprayAmt:v}:x))} style={{flex:1}}/><Sel value={he.sprayUnit||"L"} onChange={v=>setHormEntries(p=>p.map((x,i)=>i===hi?{...x,sprayUnit:v}:x))} options={["L","ml","g","kg"].map(v=>({value:v,label:v}))} style={{width:60,flex:"none"}}/></div></FG>
+              </R2>
+              {(()=>{ const pc=pestConcOf(he.name,he.dil,he.sprayAmt,he.sprayUnit); return pc?(
+                <FG label="原液量（自動計算）">
+                  <div style={{display:"flex",gap:4}}>
+                    <div style={{...S.inp,flex:1,background:"#f0fdf4",color:"#065f46",cursor:"default",fontWeight:600}}>{pc.amt}</div>
+                    <div style={{...S.inp,width:60,flex:"none",background:"#f0fdf4",color:"#065f46",cursor:"default",textAlign:"center"}}>{pc.unit}</div>
+                  </div>
+                  {he.name&&<div style={{fontSize:".68rem",color:"#059669",marginTop:2}}>💧 原液 {pc.amt}{pc.unit} → 在庫から差し引きます</div>}
+                </FG>):null; })()}
+              <FG label="目的・対象"><Inp value={he.tgt} onChange={v=>setHormEntries(p=>p.map((x,i)=>i===hi?{...x,tgt:v}:x))} placeholder="着果促進（第2花房）等"/></FG>
             </div>
           ))}
         </div>}
@@ -3313,7 +3506,7 @@ function TimelineScreen({ fields, crops, equips, logs, setLogs, setLogsR, showTo
     return toHira(t).includes(toHira(w)) || toKata(t).includes(toKata(w)) || t.includes(w);
   };
 
-  const WORK_LABELS = {sow:'播種',germinated:'発芽確認',transplant:'定植',water:'水やり',fert:'施肥',pest:'防除',pruning:'剪定',thinning:'摘果・摘花',sideshot:'脇芽かき',repot:'植え替え',event:'生育記録',harvest:'収穫',discard:'廃棄',equip:'資材作業',check:'見回り',other:'その他',end:'栽培終了'};
+  const WORK_LABELS = {sow:'播種',germinated:'発芽確認',transplant:'定植',water:'水やり',fert:'施肥',pest:'防除',pruning:'整枝・誘引',thinning:'摘果・摘花',sideshot:'脇芽かき',repot:'植え替え',event:'生育記録',harvest:'収穫',discard:'廃棄',equip:'資材作業',check:'見回り',soil:'土づくり',amend:'土壌改良',weed:'除草',hormone:'ホルモン処理',other:'その他',end:'栽培終了'};
 
   // フィルタ済みログ
   const filtered = logs.filter(l=>{
@@ -4490,7 +4683,7 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
       XLSX.utils.book_append_sheet(wb, ws10, "家事按分明細");
 
       // ── 農薬使用記録（参考・当年分・作付けごと）※提出用は「🌿 農薬記録書」から出力 ──
-      const pestLogs = logs.filter(l => l.work === "pest" && l.pestName && (l.date||"").startsWith(YS));
+      const pestLogs = logs.filter(l => isPestWork(l.work) && l.pestName && (l.date||"").startsWith(YS));
       const pestByCrop = {};
       pestLogs.forEach(l => { const k=l.cropId||"__none__"; (pestByCrop[k]=pestByCrop[k]||[]).push(l); });
       const usedPestNames = new Set();
@@ -4558,7 +4751,7 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
       for(let i=0;i<bin.length;i++) arr[i]=bin.charCodeAt(i);
 
       // 対象ログを取得
-      const pestLogs = logs.filter(l => l.work === "pest" && (targetCropId ? l.cropId === targetCropId : true));
+      const pestLogs = logs.filter(l => isPestWork(l.work) && (targetCropId ? l.cropId === targetCropId : true));
       const pestByCrop = {};
       pestLogs.forEach(l => {
         const key = l.cropId || "__unknown__";
@@ -4588,7 +4781,7 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
           return (toDateStr8(startDate)||"")+(startDate&&endDate?"〜":"")+(toDateStr8(endDate)||"");
         }
         // どちらもなければ農薬散布の日付範囲にフォールバック
-        const pestDates = logs.filter(l=>l.work==="pest"&&(targetCropId?l.cropId===targetCropId:true)&&l.date).map(l=>l.date).sort();
+        const pestDates = logs.filter(l=>isPestWork(l.work)&&(targetCropId?l.cropId===targetCropId:true)&&l.date).map(l=>l.date).sort();
         return pestDates.length>0
           ? toDateStr8(pestDates[0])+"〜"+toDateStr8(pestDates[pestDates.length-1])
           : String(new Date().getFullYear());
@@ -5247,7 +5440,7 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
                     {mCost.cat==="pest"&&<>
                       <R2>
                         <FG label="農薬の種類"><Sel value={mCost._newType||"殺虫剤"} onChange={v=>setMCost({...mCost,_newType:v})}
-                          options={["殺虫剤","殺菌剤","除草剤","殺虫殺菌剤","その他"].map(v=>({value:v,label:v}))}/></FG>
+                          options={["殺虫剤","殺菌剤","除草剤","殺虫殺菌剤",HORMONE_TYPE,"その他"].map(v=>({value:v,label:v}))}/></FG>
                       </R2>
                       <FG label="対象作物・病害虫"><Inp value={mCost._newTarget||""} onChange={v=>setMCost({...mCost,_newTarget:v})} placeholder="例：アブラムシ"/></FG>
                     </>}
@@ -5321,7 +5514,7 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
                         <R2>
                           <FG label="農薬の種類">
                             <Sel value={mCost._editType!==undefined?mCost._editType:selectedMaster.type||"殺虫剤"} onChange={v=>setMCost({...mCost,_editType:v})}
-                              options={["殺虫剤","殺菌剤","除草剤","殺虫殺菌剤","その他"].map(v=>({value:v,label:v}))}/>
+                              options={["殺虫剤","殺菌剤","除草剤","殺虫殺菌剤",HORMONE_TYPE,"その他"].map(v=>({value:v,label:v}))}/>
                           </FG>
                           <FG label="対象作物・病害虫">
                             <Inp value={mCost._editTarget!==undefined?mCost._editTarget:selectedMaster.target||""} onChange={v=>setMCost({...mCost,_editTarget:v})} placeholder="例：アブラムシ"/>
@@ -5642,7 +5835,7 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
 
       {/* 農薬記録書出力モーダル */}
       {showPestExportModal&&(()=>{
-        const pestCropIds = [...new Set(logs.filter(l=>l.work==="pest").map(l=>l.cropId).filter(Boolean))];
+        const pestCropIds = [...new Set(logs.filter(l=>isPestWork(l.work)).map(l=>l.cropId).filter(Boolean))];
         const pestCrops = crops.filter(c=>pestCropIds.includes(c.id));
         const close = () => setShowPestExportModal(false);
         return (
