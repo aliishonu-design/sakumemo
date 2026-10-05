@@ -10,7 +10,10 @@ var SK_WORKS = [
   ["fert",       "施肥",         "🌿", "#d1fae5", "#065f46"],
   ["pest",       "防除",         "🐛", "#fef3c7", "#92400e"],
   ["hormone",    "ホルモン処理", "🧪", "#fae8ff", "#86198f"],
-  ["pruning",    "剪定",         "✂️", "#f3f4f6", "#374151"],
+  ["soil",       "土づくり",     "🚜", "#f3f4f6", "#374151"],
+  ["amend",      "土壌改良",     "🧱", "#ccfbf1", "#115e59"],
+  ["weed",       "除草",         "🌾", "#dcfce7", "#166534"],
+  ["pruning",    "整枝・誘引",         "✂️", "#f3f4f6", "#374151"],
   ["thinning",   "摘果・摘花",   "🌸", "#fce7f3", "#831843"],
   ["sideshot",   "脇芽かき",     "🌱", "#f3f4f6", "#374151"],
   ["repot",      "植え替え",     "🪣", "#ede9fe", "#5b21b6"],
@@ -57,7 +60,7 @@ function skCardLines(logs) {
     if (fn) {
       var fd = skVal(l, "fertDil", "fert_dil"), fs = skVal(l, "fertSprayAmt", "fert_spray_amt"), fsu = skVal(l, "fertSprayUnit", "fert_spray_unit") || "L";
       var fa = skVal(l, "fertAmt", "fert_amt"), fu = skVal(l, "fertUnit", "fert_unit"), fm = skVal(l, "fertMethod", "fert_method");
-      add("fert", fn, fn + (fd && fs ? " " + fd + "倍希釈 散布" + fs + fsu : (fa ? " " + fa + fu : "")) + (fm ? "（" + fm + "）" : ""), "#065f46");
+      add(l.work === "amend" ? "amend" : "fert", fn, fn + (fd && fs ? " " + fd + "倍希釈 散布" + fs + fsu : (fa ? " " + fa + fu : "")) + (fm ? "（" + fm + "）" : ""), "#065f46");
     }
     var pn = skVal(l, "pestName", "pest_name");
     if (pn) {
