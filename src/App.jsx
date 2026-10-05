@@ -1688,7 +1688,7 @@ function LoginScreen() {
       <div style={{background:"#fff",borderRadius:20,padding:"28px 24px",maxWidth:360,width:"100%",textAlign:"center",boxShadow:"0 8px 40px rgba(0,0,0,.3)"}}>
         <div style={{fontSize:"2.2rem",marginBottom:6}}>🌾</div>
         <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:"1.3rem",color:G,marginBottom:4}}>サクメモ</div>
-        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v2.2.6</span></div>
+        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v2.2.7</span></div>
         {linkErr&&<div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:8,padding:"10px 12px",marginBottom:16,fontSize:".78rem",color:"#856404",textAlign:"left"}}>{linkErr}</div>}
 
 
@@ -1748,7 +1748,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v2.2.6</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v2.2.7</div>
       </div>
     </div>
   );
@@ -3923,6 +3923,18 @@ function buildLedger(Y, { costs=[], equips=[], cards=[], emoney=[] }) {
     motoire, jigyonushiKari, jigyonushiKashi, nextMotoire, totalAsset, totalLiabCap };
 }
 
+// 検索欄（費用・在庫・農具で共通）
+function SearchBox({ value, onChange, placeholder }) {
+  return (
+    <div style={{position:"relative",marginBottom:8}}>
+      <input type="search" value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder||"🔍 検索"}
+        style={{width:"100%",boxSizing:"border-box",padding:"8px 30px 8px 10px",border:"1px solid #e0d9ce",borderRadius:8,fontSize:".82rem",fontFamily:"inherit",background:"#fff"}}/>
+      {value&&<button onClick={()=>onChange("")} aria-label="検索をクリア"
+        style={{position:"absolute",right:4,top:"50%",transform:"translateY(-50%)",border:"none",background:"transparent",color:"#999",fontSize:"1rem",cursor:"pointer",padding:"4px 8px"}}>✕</button>}
+    </div>
+  );
+}
+
 function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equips, setEquips, costs, setCosts, logs, showToast, cards=[], setCards, emoney=[], setEmoney, calcPayDate, user }) {
   const today = new Date();
   const curYear  = String(today.getFullYear());
@@ -3937,6 +3949,9 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
   const [sortAsc, setSortAsc] = useState(false);
   const [mainTab, setMainTab] = useState("cost"); // "cost" | "stock" | "equip" | "ledger" | "cashflow" | "subsidy"
   const [srchM, setSrchM] = useState("");
+  const [costQ,  setCostQ]  = useState(""); // 費用の検索
+  const [stockQ, setStockQ] = useState(""); // 在庫の検索
+  const [equipQ, setEquipQ] = useState(""); // 農具の検索
   const [mItem,  setMItem]  = useState(null);
   const [mBuy,   setMBuy]   = useState(null);
 
@@ -4033,6 +4048,8 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
   const materialMs = equips.filter(e=>MATERIAL_CATS.includes(e.cat));
   // 農機具タブ用（消耗資材を除外）
   const equipsOnly = equips.filter(e=>!MATERIAL_CATS.includes(e.cat));
+  const equipWords = equipQ.trim().split(/\s+/).filter(Boolean);
+  const equipsShown = equipWords.length ? equipsOnly.filter(e=>{const h=[e.name,e.cat,e.status,e.note];return equipWords.every(k=>h.some(t=>matchM(String(t||""),k)));}) : equipsOnly;
 
   const saveItem = () => {
     if(!mItem) return;
@@ -4145,7 +4162,14 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
     if(costTab==="receivable") return costs.filter(c=>c.isReceivable&&!c.cancelled); // 全期間の未収金
     return all; // "all"
   })();
-  const viewList_unsorted = baseList;
+  // 検索（品名・メモ・カテゴリ・支払方法・品目・金額・日付。空白区切りは「すべて含む」で絞り込み）
+  const costHay = c => {
+    const cr = crops.find(x=>x.id===c.cropId);
+    const catL = (COST_CATS.find(k=>k.value===c.cat)||{}).label||"";
+    return [c.name,c.note,catL,c.payMethod,c.amt,c.date,cr?getCropName(cr):""];
+  };
+  const costWords = costQ.trim().split(/\s+/).filter(Boolean);
+  const viewList_unsorted = costWords.length ? baseList.filter(c=>{ const hay=costHay(c); return costWords.every(w=>hay.some(t=>matchM(String(t==null?"":t),w))); }) : baseList;
   const sorted = [...viewList_unsorted].sort((a,b)=>{
     let va,vb;
     if(sortKey==="date") { va=a.date||""; vb=b.date||""; }
@@ -5010,9 +5034,10 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
         ))}
       </div>
 
+      <SearchBox value={costQ} onChange={setCostQ} placeholder="🔍 品名・メモ・カテゴリ・金額などで検索"/>
       {/* ソート */}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
-        <span style={{fontSize:".7rem",color:TX3}}>{viewList.length}件</span>
+        <span style={{fontSize:".7rem",color:TX3}}>{viewList.length}件{costWords.length>0&&baseList.length!==viewList.length?"（全"+baseList.length+"件中）":""}</span>
         <div style={{display:"flex",gap:4,alignItems:"center"}}>
           <span style={{fontSize:".68rem",color:TX3}}>並び替え</span>
           <select value={sortKey} onChange={e=>setSortKey(e.target.value)} style={{...S.inp,width:"auto",padding:"2px 6px",fontSize:".72rem"}}>
@@ -5103,7 +5128,12 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
             肥料・農薬・消耗資材がまだ登録されていません<br/>費用タブで肥料費・農薬費を入力すると自動登録されます
           </div>
         }
+        <SearchBox value={stockQ} onChange={setStockQ} placeholder="🔍 資材名・種類・メモで検索"/>
+        {(()=>{ const w=stockQ.trim().split(/\s+/).filter(Boolean); if(!w.length) return null;
+          const n=[...fertMs,...pestMs,...materialMs].filter(x=>{const h=[x.name,x.type,x.cat,x.note,x.status];return w.every(k=>h.some(t=>matchM(String(t||""),k)));}).length;
+          return n===0?<div style={{color:TX3,fontSize:".82rem",padding:20,textAlign:"center"}}>「{stockQ}」に合う資材はありません</div>:null; })()}
         {[...fertMs.map((f,i)=>({...f,_type:"fert",_idx:i})),...pestMs.map((p,i)=>({...p,_type:"pest",_idx:i})),...materialMs.map((m)=>({...m,_type:"material",_idx:equips.indexOf(m)}))]
+          .filter(x=>{ const w=stockQ.trim().split(/\s+/).filter(Boolean); if(!w.length) return true; const h=[x.name,x.type,x.cat,x.note,x.status]; return w.every(k=>h.some(t=>matchM(String(t||""),k))); })
           .sort((a,b)=>{
             const aOut = a.status==="使い切り（非表示）"?1:0;
             const bOut = b.status==="使い切り（非表示）"?1:0;
@@ -5188,8 +5218,10 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
           <button style={{...S.btn,background:"#ede9fe",color:"#5b21b6",border:"1px solid #c4b5fd",borderRadius:999,padding:"6px 12px",fontSize:".75rem",fontWeight:700,width:"auto"}}
             onClick={()=>setMItem({...newEquip,_idx:undefined})}>＋ 農具・設備</button>
         </div>
+        <SearchBox value={equipQ} onChange={setEquipQ} placeholder="🔍 名前・種類・状態・メモで検索"/>
         {equipsOnly.length===0&&<div style={{color:TX3,fontSize:".82rem",padding:20,textAlign:"center"}}>農機具・設備がまだ登録されていません</div>}
-        {equipsOnly.map((item)=>{
+        {equipsOnly.length>0&&equipsShown.length===0&&<div style={{color:TX3,fontSize:".82rem",padding:20,textAlign:"center"}}>「{equipQ}」に合う農具はありません</div>}
+        {equipsShown.map((item)=>{
           const realIdx = equips.indexOf(item);
           const statusColor=item.status==="廃棄"?"#ef4444":item.status==="メンテナンス中"?"#f97316":item.status==="保管中"?"#6b7280":"#22c55e";
           return (
