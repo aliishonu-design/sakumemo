@@ -1688,7 +1688,7 @@ function LoginScreen() {
       <div style={{background:"#fff",borderRadius:20,padding:"28px 24px",maxWidth:360,width:"100%",textAlign:"center",boxShadow:"0 8px 40px rgba(0,0,0,.3)"}}>
         <div style={{fontSize:"2.2rem",marginBottom:6}}>🌾</div>
         <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:"1.3rem",color:G,marginBottom:4}}>サクメモ</div>
-        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v2.2.10</span></div>
+        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v2.2.11</span></div>
         {linkErr&&<div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:8,padding:"10px 12px",marginBottom:16,fontSize:".78rem",color:"#856404",textAlign:"left"}}>{linkErr}</div>}
 
 
@@ -1748,7 +1748,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v2.2.10</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v2.2.11</div>
       </div>
     </div>
   );
@@ -4024,7 +4024,14 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
         const linked = c.masterId ? c.masterId===m.id : (c.name===m.name);
         if(!linked) return;
         let a = costStockAmt(c);
-        if(!(a>0)){ const q=parseFloat(c.qty)||0; const cap=parseFloat(c.capacity)||parseFloat(m.capacity)||0; if(q>0&&cap>0) a=q*cap; }
+        if(!(a>0)){
+          // 在庫機能の前の購入：数量が「250 ml」のように量の単位なら、そのまま量として数える（内容量をかけない）。「1 個」「2 本」のような個数だけ 個数×内容量
+          const q=parseFloat(c.qty)||0; const cap=parseFloat(c.capacity)||parseFloat(m.capacity)||0;
+          if(q>0){
+            if(UNIT_BASE[unitKey(c.qunit)]!=null){ const cv=convertUnitStrict(q, c.qunit, masterUnitOf(m)); a = cv!=null ? cv : q; }
+            else if(cap>0) a=q*cap;
+          }
+        }
         if(a>0){ bought+=a; nBuy++; }
       });
       let used = 0, nUse = 0;
