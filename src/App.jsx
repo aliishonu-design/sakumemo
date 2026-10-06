@@ -1712,7 +1712,7 @@ function LoginScreen() {
       <div style={{background:"#fff",borderRadius:20,padding:"28px 24px",maxWidth:360,width:"100%",textAlign:"center",boxShadow:"0 8px 40px rgba(0,0,0,.3)"}}>
         <div style={{fontSize:"2.2rem",marginBottom:6}}>🌾</div>
         <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:"1.3rem",color:G,marginBottom:4}}>サクメモ</div>
-        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v2.2.14</span></div>
+        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v2.2.15</span></div>
         {linkErr&&<div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:8,padding:"10px 12px",marginBottom:16,fontSize:".78rem",color:"#856404",textAlign:"left"}}>{linkErr}</div>}
 
 
@@ -1772,7 +1772,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v2.2.14</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v2.2.15</div>
       </div>
     </div>
   );
@@ -3969,7 +3969,7 @@ function SearchBox({ value, onChange, placeholder }) {
   );
 }
 
-function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equips, setEquips, costs, setCosts, logs, showToast, cards=[], setCards, emoney=[], setEmoney, calcPayDate, user }) {
+function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equips, setEquips, costs, setCosts, logs, setLogs, showToast, cards=[], setCards, emoney=[], setEmoney, calcPayDate, user }) {
   const today = new Date();
   const curYear  = String(today.getFullYear());
   const curMonth = curYear+"-"+String(today.getMonth()+1).padStart(2,"0"); // 端末の日付（日本時間）で今月
@@ -4085,6 +4085,36 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
   const equipWords = equipQ.trim().split(/\s+/).filter(Boolean);
   const equipsShown = equipWords.length ? equipsOnly.filter(e=>{const h=[e.name,e.cat,e.status,e.note];return equipWords.every(k=>h.some(t=>matchM(String(t||""),k)));}) : equipsOnly;
 
+  // 購入品（資材・農具）の名前を変えたら、費用の記録・作業記録の名前も全部そろえる
+  // baseCosts：直前までの変更を含む最新の費用の配列
+  const renameLinked = (kind, id, oldN, newN, baseCosts) => {
+    if(!oldN || !newN || oldN===newN) return;
+    const isEq = kind!=="fert" && kind!=="pest";
+    const rn = t => (t===oldN) ? newN : (typeof t==="string" && t.startsWith(oldN+" ") && !t.startsWith(newN)) ? newN+t.slice(oldN.length) : t; // 「名前 1個(250ml)」のような品名は先頭だけ置き換える
+    let nc=0, nl=0;
+    const carr=[...(baseCosts||costs)]; const cch=[];
+    carr.forEach((c,i)=>{
+      if(!c) return;
+      const linked = c.masterId ? c.masterId===id : (!isEq && c.cat===kind && c.name===oldN);
+      if(!linked) return;
+      const nn=rn(c.name); if(nn!==c.name){ carr[i]={...c,name:nn}; cch.push(i); }
+    });
+    cch.forEach(i=>{ setCosts(carr, carr[i]); nc++; });
+    if(typeof setLogs==="function"){
+      const larr=[...logs]; const lch=[];
+      larr.forEach((l,i)=>{
+        if(!isEq){
+          const key = kind==="fert" ? "fertName" : "pestName";
+          if(l[key]===oldN){ larr[i]={...l,[key]:newN}; lch.push(i); }
+        } else if(Array.isArray(l.equipIds) && l.equipIds.includes(id) && typeof l.equipAct==="string" && l.equipAct.startsWith(oldN)){
+          larr[i]={...l,equipAct:newN+l.equipAct.slice(oldN.length)}; lch.push(i);
+        }
+      });
+      lch.forEach(i=>{ setLogs(larr, larr[i]); nl++; });
+    }
+    if(nc+nl>0) showToast("名前の変更を費用"+nc+"件・作業記録"+nl+"件にも反映しました");
+  };
+
   const saveItem = () => {
     if(!mItem) return;
     const isEdit = mItem._idx !== undefined;
@@ -4104,6 +4134,8 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
       const n=isEdit?equips.map(x=>x.id===item.id?{...item}:x):[...equips,item];
       setEquips(n,item);
     }
+    const _prevM = isEdit ? (item._type==="fert"?fertMs:item._type==="pest"?pestMs:equips).find(x=>x.id===item.id) : null;
+    let _latestCosts = costs;
     if(item.price && parseFloat(item.price) > 0) {
       const costCat = (item._type==="equip"||item._type==="material")?"equip":item._type;
       const costName = item.name + (item.capacity?" ("+item.capacity+(item.cunit||item.sunit||"")+"入り)":"");
@@ -4115,12 +4147,15 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
           const updated = costs.map((c,i)=>i===existCostIdx?{...c,amt:String(item.price),name:costName}:c);
           const updCost = updated[existCostIdx];
           setCosts(updated, updCost);
+          _latestCosts = updated;
         }
       } else {
         const newCost = {id:uid0(),masterId:item.id,cat:costCat,name:costName,amt:String(item.price),date:item.buyDate||item.date||todayStr(),qty:String(item.capacity||"1"),qunit:item.cunit||item.sunit||"個",fieldIdx:"",depYears:item.depYears||"",note:item.depYears?("減価償却"+item.depYears+"年"):"マスター登録時に自動追加"};
         setCosts([...costs, newCost], newCost);
+        _latestCosts = [...costs, newCost];
       }
     }
+    if(_prevM && _prevM.name!==item.name) renameLinked(item._type, item.id, _prevM.name, item.name, _latestCosts);
     setMItem(null); showToast("保存しました");
   };
 
@@ -4362,6 +4397,7 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
           price: (mCost._editMaster&&mCost._editPrice!==undefined) ? mCost._editPrice : (mCost._buyUnitPrice||m.price),
         };
         work[idx]=updated; changed.add(idx);
+        if(updated.name!==m.name) renameLinked(mCost.cat, m.id, m.name, updated.name, n);
         if(Math.abs(delta)>0.001) showToast("在庫を"+(delta>0?"+":"")+Math.round(delta*100)/100+editedCunit+"反映しました（在庫 "+newStock+editedCunit+"）");
         if(mCost._editMaster) showToast("資材「"+(updated.name)+"」の情報を更新しました");
       }
@@ -4380,6 +4416,7 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
           depYears:depVal,
         } : {...eq, depYears:depVal};
         setEquips(equips.map((x,i)=>i===eqIdx?updEq:x), updEq);
+        if(updEq.name!==eq.name) renameLinked("equip", eq.id, eq.name, updEq.name, n);
         if(mCost._editMaster) showToast("農機具「"+updEq.name+"」の情報を更新しました");
       }
     }
@@ -8749,7 +8786,7 @@ export default function App() {
       /></>}
         
         {scr==="plot"    &&<PlanScreen    fields={fields} crops={crops} setCrops={setCrops} plots={plots} setPlots={setPlots} setPlotsR={setPlotsR} showToast={showToast} setScr={setScr}/>}
-        {scr==="cost"    &&<CostScreen    fields={fields} crops={crops} fertMs={fertMs} setFertMs={setFertMs} pestMs={pestMs} setPestMs={setPestMs} equips={equips} setEquips={setEquips} costs={costs} setCosts={setCosts} logs={logs} showToast={showToast} cards={cards} setCards={setCardsAndSync} emoney={emoney} setEmoney={setEmoneyAndSync} calcPayDate={calcPayDate} user={user}/>}
+        {scr==="cost"    &&<CostScreen    setLogs={setLogs} fields={fields} crops={crops} fertMs={fertMs} setFertMs={setFertMs} pestMs={pestMs} setPestMs={setPestMs} equips={equips} setEquips={setEquips} costs={costs} setCosts={setCosts} logs={logs} showToast={showToast} cards={cards} setCards={setCardsAndSync} emoney={emoney} setEmoney={setEmoneyAndSync} calcPayDate={calcPayDate} user={user}/>}
 
         {scr==="report"  &&<ReportScreen  fields={fields} crops={crops} logs={logs} costs={costs} fertMs={fertMs} pestMs={pestMs} equips={equips} openLb={openLb}/>}
         {scr==="settings"&&<SettingsScreen showToast={showToast} user={user} uid={uid} signOut={signOut} fields={fields} crops={crops} logs={logs} fertMs={fertMs} cards={cards} setCards={setCardsAndSync} emoney={emoney} setEmoney={setEmoneyAndSync} pestMs={pestMs} equips={equips} costs={costs} setScr={setScr}/>}
