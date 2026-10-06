@@ -1688,7 +1688,7 @@ function LoginScreen() {
       <div style={{background:"#fff",borderRadius:20,padding:"28px 24px",maxWidth:360,width:"100%",textAlign:"center",boxShadow:"0 8px 40px rgba(0,0,0,.3)"}}>
         <div style={{fontSize:"2.2rem",marginBottom:6}}>🌾</div>
         <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:"1.3rem",color:G,marginBottom:4}}>サクメモ</div>
-        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v2.2.7</span></div>
+        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v2.2.8</span></div>
         {linkErr&&<div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:8,padding:"10px 12px",marginBottom:16,fontSize:".78rem",color:"#856404",textAlign:"left"}}>{linkErr}</div>}
 
 
@@ -1748,7 +1748,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v2.2.7</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v2.2.8</div>
       </div>
     </div>
   );
@@ -4184,6 +4184,18 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
   const sv = () => {
     const effName = mCost.name || (mCost._newItem ? mCost._newName : "");
     if(!effName){showToast("品名を入力してください");return;}
+    // 付け替え・取り違えの防止：資材のひもづけが変わるとき／品名と資材名が違うときは確認する
+    if((mCost.cat==="fert"||mCost.cat==="pest")&&mCost.masterId){
+      const _list = mCost.cat==="fert"?fertMs:pestMs;
+      const _cur = _list.find(m=>m.id===mCost.masterId);
+      const _orig = mCost.id ? costs.find(x=>x.id===mCost.id) : null;
+      const _prev = _orig&&_orig.masterId ? _list.find(m=>m.id===_orig.masterId) : null;
+      if(_prev && _cur && _prev.id!==_cur.id){
+        if(!window.confirm("この購入記録の資材を「"+_prev.name+"」から「"+_cur.name+"」に付け替えて保存します。\n在庫も「"+_prev.name+"」から戻して「"+_cur.name+"」に加算します。\n\nよろしいですか？")) return;
+      } else if(_cur && !mCost._editMaster && String(effName).trim()!==String(_cur.name).trim()){
+        if(!window.confirm("品名「"+effName+"」と、選択中の資材「"+_cur.name+"」が違います。\n在庫は「"+_cur.name+"」に加算されます。\n\nこのまま保存しますか？")) return;
+      }
+    }
     // 割引・ポイント分を差し引いた実質金額をamtとして保存
     const discount = parseFloat(mCost.discount)||0;
     const baseAmt = parseFloat(mCost.amt)||0;
@@ -4227,7 +4239,7 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
       _newCunit:undefined, _newPrice:undefined, _newTarget:undefined, _newNpk:undefined,
       _newItemType:undefined, depYears:undefined,
       _editMaster:undefined, _editName:undefined, _editType:undefined, _editCapacity:undefined,
-      _editCunit:undefined, _editPrice:undefined, _editTarget:undefined, _editNpk:undefined};
+      _editCunit:undefined, _editPrice:undefined, _editTarget:undefined, _editNpk:undefined, _showRelink:undefined};
     const n=mCost.id&&costs.find(x=>x.id===mCost.id)?costs.map(x=>x.id===mCost.id?item:x):[...costs,item];
     // 按分率をlocalStorageに保存
     if(!isIncome(mCost.cat)){
@@ -5395,6 +5407,11 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
               ? parseFloat(mCost._buyQty)*parseFloat(selectedMaster.capacity)
               : null;
             const isBuyOpen = mCost._buyOpen !== false; // デフォルトで開く
+            // 既存の購入記録を編集中のとき：「また買う」の履歴をうっかり押して別の資材に付け替えないよう、ふだんは隠す
+            const origCostRec = mCost.id ? costs.find(x=>x.id===mCost.id) : null;
+            const editingLinked = !!(origCostRec && origCostRec.masterId);
+            const origMasterName = editingLinked ? ((msList.find(m=>m.id===origCostRec.masterId)||{}).name||origCostRec.name) : "";
+            const askRelink = (newMs) => !editingLinked || newMs.id===origCostRec.masterId || window.confirm("この購入記録の資材を「"+origMasterName+"」から「"+newMs.name+"」に付け替えますか？\n（在庫も付け替わります。保存するまで確定しません）");
             return <>
               <div style={{background:"#f0faf0",border:"1px solid #b2dfdb",borderRadius:10,padding:"10px 12px",marginBottom:9}}>
                 <div style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",marginBottom:isBuyOpen?8:0}}
@@ -5404,8 +5421,12 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
                 </div>
                 {isBuyOpen&&<>
                   {/* 過去の購入履歴（Amazonの「また買う」）*/}
-                  {historyItems.length>0&&<>
-                    <div style={{fontSize:".73rem",fontWeight:700,color:"#2d6a3f",marginBottom:4}}>🔄 また買う（過去の{costCatLabel}購入）</div>
+                  {editingLinked&&<div style={{fontSize:".72rem",color:"#7c5800",background:"#fff9e6",border:"1px solid #f0c040",borderRadius:8,padding:"6px 10px",marginBottom:8,lineHeight:1.6}}>
+                    この記録は「<b>{origMasterName}</b>」の購入です。
+                    <button onClick={()=>setMCost({...mCost,_showRelink:!mCost._showRelink})} style={{marginLeft:6,fontSize:".68rem",background:"none",border:"1px solid #c9a227",borderRadius:6,padding:"1px 8px",cursor:"pointer",color:"#7c5800"}}>{mCost._showRelink?"閉じる":"別の資材に付け替える"}</button>
+                  </div>}
+                  {historyItems.length>0&&(!editingLinked||mCost._showRelink)&&<>
+                    <div style={{fontSize:".73rem",fontWeight:700,color:"#2d6a3f",marginBottom:4}}>{editingLinked?"⚠️ 別の資材に付け替える":"🔄 また買う（過去の"+costCatLabel+"購入）"}</div>
                     <Inp value={histSrch} onChange={v=>setMCost({...mCost,_histSrch:v})} placeholder={costCatLabel+"名で検索..."} style={{marginBottom:6}}/>
                     <div style={{maxHeight:160,overflowY:"auto",display:"flex",flexDirection:"column",gap:5,marginBottom:8}}>
                       {filteredHistory.slice(0,10).map(c=>{
@@ -5413,6 +5434,7 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
                         return <div key={c.id}
                           onClick={()=>{
                             if(ms){
+                              if(!askRelink(ms)) return;
                               const autoAmt=ms.price&&mCost._buyQty?String(Math.round(parseFloat(ms.price)*parseFloat(mCost._buyQty))):ms.price||"";
                               setMCost({...mCost,masterId:ms.id,name:ms.name,_buyUnitPrice:ms.price||"",_buyQty:mCost._buyQty||"1",amt:autoAmt||mCost.amt,_histSrch:"",_buyOpen:true});
                             }
@@ -5436,6 +5458,7 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
                     {msList.filter(m=>m.status!=="使い切り（非表示）").length>0&&<>
                       <Sel value={mCost.masterId||""} onChange={v=>{
                         const ms=msList.find(m=>m.id===v);
+                        if(ms && !askRelink(ms)) return;
                         if(ms) setMCost({...mCost,masterId:ms.id,name:ms.name,_buyUnitPrice:ms.price||"",_buyQty:mCost._buyQty||"1",_buyOpen:true});
                         else setMCost({...mCost,masterId:"",_buyOpen:true});
                       }} options={[{value:"",label:"（既存の資材から選ぶ）"},...msList.filter(m=>m.status!=="使い切り（非表示）").map(m=>({value:m.id,label:m.name}))]}/>
@@ -5523,7 +5546,7 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
                           style={{fontSize:".65rem",background:mCost._editMaster?"#fff9e6":"none",border:"1px solid "+(mCost._editMaster?"#f0c040":"#ccc"),borderRadius:6,padding:"2px 8px",cursor:"pointer",color:mCost._editMaster?"#7c5800":"#555"}}>
                           ✏️ 資材情報を編集
                         </button>
-                        <button onClick={()=>setMCost({...mCost,masterId:"",_buyQty:"",_buyUnitPrice:"",_editMaster:false})}
+                        <button onClick={()=>{ if(editingLinked && !window.confirm("この購入記録は「"+origMasterName+"」の購入です。資材の選び直しをしますか？（保存するまで確定しません）")) return; setMCost({...mCost,masterId:"",_buyQty:"",_buyUnitPrice:"",_editMaster:false}); }}
                           style={{fontSize:".65rem",background:"none",border:"1px solid #ccc",borderRadius:6,padding:"2px 8px",cursor:"pointer",color:"#888"}}>変更</button>
                       </div>
                     </div>
