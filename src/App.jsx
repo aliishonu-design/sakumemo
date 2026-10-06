@@ -959,6 +959,30 @@ const logUsageOf = (l, m) => {
   if(PACK_UNITS.includes(unit) && parseFloat(m.capacity)>0 && !PACK_UNITS.includes(mu)) return amt*parseFloat(m.capacity); // 1袋＝内容量
   return normalizeToMasterUnit(amt, unit, mu);
 };
+// ─── 在庫は「購入の合計 − 作業記録の使用量」で自動計算する ───
+// 1回の購入で在庫に入る量（資材の単位）。個数×内容量。在庫機能の前の記録は数量の単位から割り出す
+const purchaseAmtOf = (c, m) => {
+  const q = parseFloat(c.stockQty)||0, cap = parseFloat(c.capacity)||parseFloat(m.capacity)||0;
+  if(q>0) return cap>0 ? q*cap : q;
+  const q2 = parseFloat(c.qty)||0; if(!(q2>0)) return 0;
+  if(UNIT_BASE[unitKey(c.qunit)]!=null){ const cv=convertUnitStrict(q2, c.qunit, masterUnitOf(m)); return cv!=null ? cv : q2; } // 「250 ml」のような量はそのまま
+  return cap>0 ? q2*cap : 0; // 「1 個」などは 個数×内容量
+};
+const derivedStock = (kind, m, costs, logs) => {
+  let bought=0, nBuy=0, used=0, nUse=0;
+  (costs||[]).forEach(c=>{
+    if(c.cancelled || c.cat!==kind) return;
+    if(c.masterId ? c.masterId!==m.id : c.name!==m.name) return;
+    const a=purchaseAmtOf(c,m); if(a>0){ bought+=a; nBuy++; }
+  });
+  (logs||[]).forEach(l=>{
+    const nm = kind==="fert" ? (isFertWork(l.work)?l.fertName:null) : (isPestWork(l.work)?l.pestName:null);
+    if(!nm || nm!==m.name) return;
+    const u=logUsageOf(l,m); if(u>0){ used+=u; nUse++; }
+  });
+  const unit=masterUnitOf(m);
+  return { unit, bought:roundByUnit(bought,unit), used:roundByUnit(used,unit), nBuy, nUse, calc:roundByUnit(bought-used,unit) };
+};
 // { "fert:<id>": 使用量, "pest:<id>": 使用量 }
 const stockUsageMap = (entries, fertMs, pestMs) => {
   const map = {};
@@ -1688,7 +1712,7 @@ function LoginScreen() {
       <div style={{background:"#fff",borderRadius:20,padding:"28px 24px",maxWidth:360,width:"100%",textAlign:"center",boxShadow:"0 8px 40px rgba(0,0,0,.3)"}}>
         <div style={{fontSize:"2.2rem",marginBottom:6}}>🌾</div>
         <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:"1.3rem",color:G,marginBottom:4}}>サクメモ</div>
-        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v2.2.12</span></div>
+        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v2.2.13</span></div>
         {linkErr&&<div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:8,padding:"10px 12px",marginBottom:16,fontSize:".78rem",color:"#856404",textAlign:"left"}}>{linkErr}</div>}
 
 
@@ -1748,7 +1772,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v2.2.12</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v2.2.13</div>
       </div>
     </div>
   );
@@ -4027,32 +4051,8 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
   const buildRecalcRows = () => {
     const rows = [];
     const mk = (kind, list) => list.forEach((m,idx)=>{
-      const catV = kind;
-      let bought = 0, nBuy = 0;
-      costs.forEach(c=>{
-        if(c.cancelled || c.cat!==catV) return;
-        const linked = c.masterId ? c.masterId===m.id : (c.name===m.name);
-        if(!linked) return;
-        let a = costStockAmt(c);
-        if(!(a>0)){
-          // 在庫機能の前の購入：数量が「250 ml」のように量の単位なら、そのまま量として数える（内容量をかけない）。「1 個」「2 本」のような個数だけ 個数×内容量
-          const q=parseFloat(c.qty)||0; const cap=parseFloat(c.capacity)||parseFloat(m.capacity)||0;
-          if(q>0){
-            if(UNIT_BASE[unitKey(c.qunit)]!=null){ const cv=convertUnitStrict(q, c.qunit, masterUnitOf(m)); a = cv!=null ? cv : q; }
-            else if(cap>0) a=q*cap;
-          }
-        }
-        if(a>0){ bought+=a; nBuy++; }
-      });
-      let used = 0, nUse = 0;
-      logs.forEach(l=>{
-        const nm = kind==="fert" ? (isFertWork(l.work)?l.fertName:null) : (isPestWork(l.work)?l.pestName:null);
-        if(!nm || nm!==m.name) return;
-        const u = logUsageOf(l, m); if(u>0){ used+=u; nUse++; }
-      });
-      const unit = masterUnitOf(m);
-      const calc = roundByUnit(bought-used, unit);
-      rows.push({ key:kind+":"+m.id, kind, idx, m, unit, bought:roundByUnit(bought,unit), used:roundByUnit(used,unit), nBuy, nUse, calc, cur:parseFloat(m.stock)||0 });
+      const d = derivedStock(kind, m, costs, logs);
+      rows.push({ key:kind+":"+m.id, kind, idx, m, unit:d.unit, bought:d.bought, used:d.used, nBuy:d.nBuy, nUse:d.nUse, calc:d.calc, cur:parseFloat(m.stock)||0 });
     });
     mk("fert", fertMs); mk("pest", pestMs);
     return rows.filter(r=>r.nBuy>0||r.nUse>0);
@@ -5634,40 +5634,26 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
                     </div>}
                     <div style={{fontSize:".68rem",color:"#888"}}>💡 保存時に資材が新規登録され、在庫が加算されます</div>
                   </div>}
-                  {/* 在庫の確認と修正：購入の合計 − 作業記録の使用量 */}
+                  {/* 在庫は自動計算：購入の合計 − 作業記録の使用量 */}
                   {selectedMaster&&(()=>{
                     const kind=mCost.cat, unit=masterUnitOf(selectedMaster);
-                    const r=buildRecalcRows().find(x=>x.key===kind+":"+selectedMaster.id);
+                    const d=derivedStock(kind,selectedMaster,costs,logs);
                     const cur=parseFloat(selectedMaster.stock)||0;
-                    const calc=r?Math.max(0,r.calc):null;
                     const orig=mCost.id?costs.find(x=>x.id===mCost.id):null;
-                    const notCounted=!!(orig && orig.masterId===selectedMaster.id && !(parseFloat(orig.stockQty)>0));
-                    const act=mCost._stkActual;
-                    const setStock=(v)=>{
-                      const u={...selectedMaster, stock:String(roundByUnit(v,unit)), status: v>0&&selectedMaster.status==="使い切り（非表示）"?"使用中":selectedMaster.status};
-                      if(kind==="fert") setFertMs(fertMs.map(x=>x.id===u.id?u:x),u); else setPestMs(pestMs.map(x=>x.id===u.id?u:x),u);
-                      setMCost({...mCost,_stkActual:undefined});
-                      showToast("「"+u.name+"」の在庫を "+roundByUnit(v,unit)+unit+" にしました");
-                    };
+                    const notCounted=!!(orig && orig.masterId===selectedMaster.id && !(parseFloat(orig.stockQty)>0) && !(purchaseAmtOf(orig,selectedMaster)>0));
+                    const buys=costs.filter(c=>!c.cancelled&&c.cat===kind&&(c.masterId?c.masterId===selectedMaster.id:c.name===selectedMaster.name)&&purchaseAmtOf(c,selectedMaster)>0).sort((a,b)=>(b.date||"").localeCompare(a.date||""));
                     return <div style={{background:"#fffdf2",border:"1px solid #f0c040",borderRadius:8,padding:"8px 10px",margin:"8px 0"}}>
-                      <div style={{fontSize:".74rem",fontWeight:700,color:"#7c5800",marginBottom:4}}>📦 在庫の確認と修正（{selectedMaster.name}）</div>
+                      <div style={{fontSize:".74rem",fontWeight:700,color:"#7c5800",marginBottom:4}}>📦 {selectedMaster.name} の在庫（自動計算）</div>
                       <div style={{fontSize:".72rem",color:"#555",lineHeight:1.8}}>
-                        購入の合計 <b>+{r?r.bought:0}{unit}</b>（{r?r.nBuy:0}件）／ 作業記録の使用 <b>−{r?r.used:0}{unit}</b>（{r?r.nUse:0}件）<br/>
-                        計算上の在庫 <b style={{color:"#2d6a3f"}}>{calc===null?"—":calc+unit}</b> ／ 現在の在庫 <b>{cur}{unit}</b>
-                        {r&&r.calc<0&&<span style={{color:"#dc2626"}}>　（使用が購入を上回っています。購入の記録を確認してください）</span>}
+                        <b>購入の合計 +{d.bought}{unit}</b>（{d.nBuy}件）− <b>作業記録の使用 {d.used}{unit}</b>（{d.nUse}件）＝ <b style={{color:"#2d6a3f"}}>{Math.max(0,d.calc)}{unit}</b>
+                        {Math.abs(Math.max(0,d.calc)-cur)>0.0001&&d.nBuy>0&&<span style={{color:"#b45309"}}>　（保存すると在庫が自動で合います）</span>}
+                        {d.calc<0&&<span style={{color:"#dc2626"}}>　⚠️使用が購入を上回っています。購入の量を確認してください</span>}
                       </div>
-                      {notCounted&&<div style={{fontSize:".7rem",color:"#b45309",background:"#fff3cd",borderRadius:6,padding:"4px 8px",marginTop:4,lineHeight:1.6}}>⚠️ この購入記録は在庫の計算に入っていません（在庫機能の前の記録）。下の「購入個数」を入れて保存すると、購入量として数えます。</div>}
-                      <div style={{fontSize:".68rem",color:"#888",marginTop:4}}>※ 保存済みの記録で計算しています。</div>
-                      <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap",marginTop:6}}>
-                        {calc!==null&&Math.abs(calc-cur)>0.0001&&<button onClick={()=>{ if(window.confirm("「"+selectedMaster.name+"」の在庫を、計算上の "+calc+unit+" に合わせますか？（現在 "+cur+unit+"）")) setStock(calc); }}
-                          style={{...S.btn,background:"#2d6a3f",color:"#fff",padding:"4px 10px",fontSize:".72rem",borderRadius:8,width:"auto"}}>計算上の在庫に合わせる</button>}
-                        <span style={{fontSize:".7rem",color:"#555"}}>実際の残量</span>
-                        <input type="number" inputMode="decimal" value={act??""} placeholder="例：120" onChange={e=>setMCost({...mCost,_stkActual:e.target.value})}
-                          style={{...S.inp,width:80,padding:"3px 6px",fontSize:".78rem"}}/>
-                        <span style={{fontSize:".7rem",color:"#555"}}>{unit}</span>
-                        <button disabled={act===undefined||act===""||isNaN(parseFloat(act))} onClick={()=>setStock(Math.max(0,parseFloat(act)))}
-                          style={{...S.btn,background:"#fff",color:"#7c5800",border:"1px solid #c9a227",padding:"4px 10px",fontSize:".72rem",borderRadius:8,width:"auto",opacity:(act===undefined||act===""||isNaN(parseFloat(act)))?.4:1}}>この残量に合わせる</button>
-                      </div>
+                      {buys.length>0&&<div style={{fontSize:".68rem",color:"#777",marginTop:4,lineHeight:1.7}}>
+                        購入の内訳：{buys.slice(0,6).map(c=>(c.date||"日付なし").slice(5)+" "+roundByUnit(purchaseAmtOf(c,selectedMaster),unit)+unit+(c.id===mCost.id?"（この記録）":"")).join(" ／ ")}{buys.length>6?" ほか":""}
+                      </div>}
+                      {notCounted&&<div style={{fontSize:".7rem",color:"#b45309",background:"#fff3cd",borderRadius:6,padding:"4px 8px",marginTop:4,lineHeight:1.6}}>⚠️ この購入記録は在庫の量が入っていません。下の「購入量」か「購入個数」を入れて保存してください。</div>}
+                      <div style={{fontSize:".68rem",color:"#888",marginTop:4}}>※ 購入の量が違うときは、下の「購入量」を直して保存してください。作業記録の使用量は自動で引かれます。</div>
                     </div>;
                   })()}
                   {/* 選択中資材の購入入力 */}
@@ -5747,6 +5733,21 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
                         }} placeholder={selectedMaster.price||"例：1500"}/>
                       </FG>
                     </R2>
+                    {(()=>{
+                      const cap0=parseFloat(mCost._editMaster&&mCost._editCapacity!==undefined?mCost._editCapacity:selectedMaster.capacity)||0;
+                      const u0=(mCost._editMaster&&mCost._editCunit!==undefined?mCost._editCunit:selectedMaster.cunit||selectedMaster.sunit)||"";
+                      const bq0=parseFloat(mCost._buyQty)||0;
+                      return <FG label={"購入量（在庫に入れる量・"+(u0||"単位")+"）"}>
+                        <CalcInp value={bq0>0?String(roundByUnit(cap0>0?bq0*cap0:bq0,u0)):""} onChange={v=>{
+                          const A=parseFloat(v)||0;
+                          const cnt=A>0?(cap0>0?String(Math.round(A/cap0*10000)/10000):String(A)):"";
+                          const price=parseFloat(mCost._buyUnitPrice||selectedMaster.price)||0;
+                          const autoAmt=price&&parseFloat(cnt)?String(Math.round(price*parseFloat(cnt))):"";
+                          setMCost({...mCost,_buyQty:cnt,amt:autoAmt||mCost.amt});
+                        }} placeholder={cap0>0?"例："+cap0:"例：250"}/>
+                        <div style={{fontSize:".66rem",color:"#888",marginTop:2}}>購入個数×内容量と連動します（どちらを直してもOK）</div>
+                      </FG>;
+                    })()}
                     {(()=>{
                       const bq=parseFloat(mCost._buyQty)||0;
                       const cap=parseFloat(mCost._editMaster&&mCost._editCapacity!==undefined?mCost._editCapacity:selectedMaster.capacity)||0;
@@ -8727,6 +8728,21 @@ export default function App() {
   const setEquips = (arr, item) => { setEquipsR(arr); if(item) dbSaveEquip(item); };
   const setCosts  = (arr, item) => { setCostsR(arr); if(item) dbSaveCost(item); };
   const setPlots  = (arr, item) => { setPlotsR(arr); if(item) dbSavePlot(item); };
+  // 在庫は購入と作業記録から自動で合わせる（購入の記録がある肥料・農薬が対象。使い切りにした資材はそのまま）
+  useEffect(()=>{
+    if(dbLoad || !uid) return;
+    const sync=(list,kind,setter)=>{
+      let arr=null;
+      list.forEach((m,i)=>{
+        if(m.status==="使い切り（非表示）") return;
+        const d=derivedStock(kind,m,costs,logs); if(d.nBuy===0) return;
+        const v=roundByUnit(Math.max(0,d.calc),d.unit);
+        if(Math.abs(v-(parseFloat(m.stock)||0))>0.0001){ if(!arr) arr=[...list]; const u={...m,stock:String(v)}; arr[i]=u; setter(arr,u); }
+      });
+    };
+    sync(fertMs,"fert",setFertMs); sync(pestMs,"pest",setPestMs);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[costs,logs,fertMs,pestMs,dbLoad]);
   const setApiKey = v => { setApiKeyR(v); localStorage.setItem("sakumemo_key",v); };
 
   const signOut=async()=>{ await sb.auth.signOut(); setUser(null);setFieldsR([]);setCropsR([]);setLogsR([]);setFertMsR([]);setPestMsR([]);setEquipsR([]);setCostsR([]);setPlotsR([]); };
