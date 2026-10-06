@@ -1688,7 +1688,7 @@ function LoginScreen() {
       <div style={{background:"#fff",borderRadius:20,padding:"28px 24px",maxWidth:360,width:"100%",textAlign:"center",boxShadow:"0 8px 40px rgba(0,0,0,.3)"}}>
         <div style={{fontSize:"2.2rem",marginBottom:6}}>🌾</div>
         <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:"1.3rem",color:G,marginBottom:4}}>サクメモ</div>
-        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v2.2.11</span></div>
+        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v2.2.12</span></div>
         {linkErr&&<div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:8,padding:"10px 12px",marginBottom:16,fontSize:".78rem",color:"#856404",textAlign:"left"}}>{linkErr}</div>}
 
 
@@ -1748,7 +1748,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v2.2.11</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v2.2.12</div>
       </div>
     </div>
   );
@@ -2550,13 +2550,23 @@ function LogScreen({ fields, crops, setCrops, fertMs, setFertMs, pestMs, setPest
   const [amendName, setAmendName] = useState("");
   const [amendAmt,  setAmendAmt]  = useState("");
   const [amendUnit, setAmendUnit] = useState("kg");
-  const amendOptions = [{value:"",label:"（選択）"},...fertMs.map((f,i)=>({value:i,label:f.name})).filter((_,i)=>fertMs[i]?.status!=="使い切り（非表示）")];
+  // 作業記録で資材を選ぶとき、その場で在庫がわかるようにする
+  const stockTxt = m => { const st=parseFloat(m&&m.stock); const u=masterUnitOf(m); return "（在庫 "+(isNaN(st)?0:roundByUnit(st,u))+u+"）"; };
+  const afterTxt = (list, name, useAmt) => { // 新規記録のときだけ「使用後の在庫」も出す（編集中は在庫に反映済みのため）
+    const m=list.find(x=>x.name===name); if(!m) return "";
+    const st=parseFloat(m.stock)||0, u=masterUnitOf(m);
+    const base="（在庫 "+roundByUnit(st,u)+u;
+    if(editLog || !(parseFloat(useAmt)>0)) return base+"）";
+    const left=st-parseFloat(useAmt);
+    return base+" → 使用後 "+(left<0?"0（不足 "+roundByUnit(-left,u)+u+"）":roundByUnit(left,u)+u)+"）";
+  };
+  const amendOptions = [{value:"",label:"（選択）"},...fertMs.map((f,i)=>({value:i,label:f.name+stockTxt(f)})).filter((_,i)=>fertMs[i]?.status!=="使い切り（非表示）")];
   // ─── 原液量の自動計算：資材の内容量の単位（在庫の単位）にそろえる。Lなら小数も使ってLで表示 ───
   const masterUnitByName = (list, name) => { const m=list.find(x=>x.name===name); return m?masterUnitOf(m):""; };
   const fertAutoOf = (meth,dil,spray,su,name) => isDilMeth(meth) ? calcConcentrate(spray,dil,su||"L",masterUnitByName(fertMs,name)) : null;
   const pestConcOf = (name,dil,amt,unit) => parseFloat(dil)>0 ? calcConcentrate(amt,dil,unit||"L",masterUnitByName(pestMs,name)) : null;
   // ホルモン処理で選べる資材（農薬マスターのうち種類がホルモン剤・生育調整剤のもの）
-  const hormOptions = [{value:"",label:"（選択）"},...pestMs.map((p,i)=>({value:i,label:p.name})).filter((_,i)=>isHormoneMaster(pestMs[i]) && pestMs[i]?.status!=="使い切り（非表示）")];
+  const hormOptions = [{value:"",label:"（選択）"},...pestMs.map((p,i)=>({value:i,label:p.name+stockTxt(p)})).filter((_,i)=>isHormoneMaster(pestMs[i]) && pestMs[i]?.status!=="使い切り（非表示）")];
   useEffect(()=>{
     const c=fertAutoOf(fertMeth,fertDil,fertSprayAmt,fertSprayUnit,fertName);
     if(!c) return;
@@ -3167,7 +3177,7 @@ useEffect(()=>{
                 setFertName(v);
                 const fm=fertMs.find(f=>f.name===v);
                 if(fm){if(masterUnitOf(fm))setFertUnit(masterUnitOf(fm));if(fm.dil)setFertDil(fm.dil);}
-              }} options={[{value:"",label:"（選択）"},...fertMs.filter(f=>f.status!=="使い切り（非表示）").map(f=>({value:f.name,label:f.name}))]}/>
+              }} options={[{value:"",label:"（選択）"},...fertMs.filter(f=>f.status!=="使い切り（非表示）").map(f=>({value:f.name,label:f.name+stockTxt(f)}))]}/>
             </FG>
             <R2>
               <FG label="施用方法"><Sel value={fertMeth} onChange={setFertMeth} options={["元肥","追肥","葉面散布","かん注","液肥希釈"].map(v=>({value:v,label:v}))}/></FG>
@@ -3180,7 +3190,7 @@ useEffect(()=>{
                     : <><CalcInp value={fertAmt} onChange={setFertAmt} style={{flex:1}}/>
                         <Sel value={fertUnit} onChange={setFertUnit} options={[...new Set(["kg","g","L","ml","袋",fertUnit].filter(Boolean))].map(v=>({value:v,label:v}))} style={{width:60,flex:"none"}}/></>}
                 </div>
-                {fa&&fertName&&<div style={{fontSize:".68rem",color:"#059669",marginTop:2}}>💧 原液 {fa.amt}{fa.unit} → 在庫から差し引きます</div>}
+                {fa&&fertName&&<div style={{fontSize:".68rem",color:"#059669",marginTop:2}}>💧 原液 {fa.amt}{fa.unit} → 在庫から差し引きます{afterTxt(fertMs,fertName,fa.amt)}</div>}
               </FG>); })()}
             </R2>
             {isDilMeth(fertMeth)&&<R2>
@@ -3199,7 +3209,7 @@ useEffect(()=>{
                   setFertEntries(p=>p.map((x,i)=>i===fi?{...x,name:v}:x));
                   const fm2=fertMs.find(f=>f.name===v);
                   if(fm2)setFertEntries(p=>p.map((x,i)=>i===fi?{...x,unit:masterUnitOf(fm2)||x.unit,dil:fm2.dil||x.dil}:x));
-                }} options={[{value:"",label:"（選択）"},...fertMs.filter(f=>f.status!=="使い切り（非表示）").map(f=>({value:f.name,label:f.name}))]}/>
+                }} options={[{value:"",label:"（選択）"},...fertMs.filter(f=>f.status!=="使い切り（非表示）").map(f=>({value:f.name,label:f.name+stockTxt(f)}))]}/>
               </FG>
               <R2>
                 <FG label="施用方法"><Sel value={fe.meth} onChange={v=>setFertEntries(p=>p.map((x,i)=>i===fi?{...x,meth:v}:x))} options={["元肥","追肥","葉面散布","かん注","液肥希釈"].map(v=>({value:v,label:v}))}/></FG>
@@ -3212,7 +3222,7 @@ useEffect(()=>{
                       : <><CalcInp value={fe.amt} onChange={v=>setFertEntries(p=>p.map((x,i)=>i===fi?{...x,amt:v}:x))} style={{flex:1}}/>
                           <Sel value={fe.unit} onChange={v=>setFertEntries(p=>p.map((x,i)=>i===fi?{...x,unit:v}:x))} options={[...new Set(["kg","g","L","ml","袋",fe.unit].filter(Boolean))].map(v=>({value:v,label:v}))} style={{width:60,flex:"none"}}/></>}
                   </div>
-                  {fa&&fe.name&&<div style={{fontSize:".68rem",color:"#059669",marginTop:2}}>💧 原液 {fa.amt}{fa.unit} → 在庫から差し引きます</div>}
+                  {fa&&fe.name&&<div style={{fontSize:".68rem",color:"#059669",marginTop:2}}>💧 原液 {fa.amt}{fa.unit} → 在庫から差し引きます{afterTxt(fertMs,fe.name,fa.amt)}</div>}
                 </FG>); })()}
               </R2>
               {isDilMeth(fe.meth)&&<R2>
@@ -3235,7 +3245,7 @@ useEffect(()=>{
             <div style={{fontSize:".72rem",fontWeight:700,color:"#92400e",marginBottom:5}}>農薬 1</div>
             <FG label="農薬を選ぶ">
               <Sel value={pestMs.findIndex(p=>p.name===pestName)} onChange={v=>{if(v===""){setPestName("");}else{const pm=pestMs[parseInt(v)];if(pm){setPestName(pm.name);if(pm.dil)setPestDil(pm.dil);}}}}
-                options={[{value:"",label:"（選択）"},...pestMs.map((p,i)=>({value:i,label:p.name})).filter((_,i)=>pestMs[i]?.status!=="使い切り（非表示）" && !isHormoneMaster(pestMs[i]))]}/>
+                options={[{value:"",label:"（選択）"},...pestMs.map((p,i)=>({value:i,label:p.name+stockTxt(p)})).filter((_,i)=>pestMs[i]?.status!=="使い切り（非表示）" && !isHormoneMaster(pestMs[i]))]}/>
             </FG>
             <R2>
               <FG label="希釈倍数"><CalcInp value={pestDil} onChange={setPestDil} placeholder="1000"/></FG>
@@ -3247,7 +3257,7 @@ useEffect(()=>{
                   <div style={{...S.inp,flex:1,background:"#f0fdf4",color:"#065f46",cursor:"default",fontWeight:600}}>{pc.amt}</div>
                   <div style={{...S.inp,width:60,flex:"none",background:"#f0fdf4",color:"#065f46",cursor:"default",textAlign:"center"}}>{pc.unit}</div>
                 </div>
-                {pestName&&<div style={{fontSize:".68rem",color:"#059669",marginTop:2}}>💧 原液 {pc.amt}{pc.unit} → 在庫から差し引きます</div>}
+                {pestName&&<div style={{fontSize:".68rem",color:"#059669",marginTop:2}}>💧 原液 {pc.amt}{pc.unit} → 在庫から差し引きます{afterTxt(pestMs,pestName,pc.amt)}</div>}
               </FG>):null; })()}
             <FG label="対象病害虫"><Inp value={pestTgt} onChange={setPestTgt} placeholder="アブラムシ等"/></FG>
           </div>
@@ -3262,7 +3272,7 @@ useEffect(()=>{
                 <Sel value={pe.name?pestMs.findIndex(p=>p.name===pe.name):""} onChange={v=>{
                   if(v===""){setPestEntries(p=>p.map((x,i)=>i===pi?{...x,name:""}:x));}
                   else{const pm=pestMs[parseInt(v)];setPestEntries(p=>p.map((x,i)=>i===pi?{...x,name:pm.name,dil:pm.dil||x.dil}:x));}
-                }} options={[{value:"",label:"（選択）"},...pestMs.map((p,i)=>({value:i,label:p.name})).filter((_,i)=>pestMs[i]?.status!=="使い切り（非表示）" && !isHormoneMaster(pestMs[i]))]}/>
+                }} options={[{value:"",label:"（選択）"},...pestMs.map((p,i)=>({value:i,label:p.name+stockTxt(p)})).filter((_,i)=>pestMs[i]?.status!=="使い切り（非表示）" && !isHormoneMaster(pestMs[i]))]}/>
               </FG>
               <R2>
                 <FG label="希釈倍数"><CalcInp value={pe.dil} onChange={v=>setPestEntries(p=>p.map((x,i)=>i===pi?{...x,dil:v}:x))} placeholder="1000"/></FG>
@@ -3274,7 +3284,7 @@ useEffect(()=>{
                     <div style={{...S.inp,flex:1,background:"#f0fdf4",color:"#065f46",cursor:"default",fontWeight:600}}>{pc.amt}</div>
                     <div style={{...S.inp,width:60,flex:"none",background:"#f0fdf4",color:"#065f46",cursor:"default",textAlign:"center"}}>{pc.unit}</div>
                   </div>
-                  {pe.name&&<div style={{fontSize:".68rem",color:"#059669",marginTop:2}}>💧 原液 {pc.amt}{pc.unit} → 在庫から差し引きます</div>}
+                  {pe.name&&<div style={{fontSize:".68rem",color:"#059669",marginTop:2}}>💧 原液 {pc.amt}{pc.unit} → 在庫から差し引きます{afterTxt(pestMs,pe.name,pc.amt)}</div>}
                 </FG>):null; })()}
               <FG label="対象病害虫"><Inp value={pe.tgt} onChange={v=>setPestEntries(p=>p.map((x,i)=>i===pi?{...x,tgt:v}:x))} placeholder="アブラムシ等"/></FG>
             </div>
@@ -3353,7 +3363,7 @@ useEffect(()=>{
                   <div style={{...S.inp,flex:1,background:"#f0fdf4",color:"#065f46",cursor:"default",fontWeight:600}}>{pc.amt}</div>
                   <div style={{...S.inp,width:60,flex:"none",background:"#f0fdf4",color:"#065f46",cursor:"default",textAlign:"center"}}>{pc.unit}</div>
                 </div>
-                {hormName&&<div style={{fontSize:".68rem",color:"#059669",marginTop:2}}>💧 原液 {pc.amt}{pc.unit} → 在庫から差し引きます</div>}
+                {hormName&&<div style={{fontSize:".68rem",color:"#059669",marginTop:2}}>💧 原液 {pc.amt}{pc.unit} → 在庫から差し引きます{afterTxt(pestMs,hormName,pc.amt)}</div>}
               </FG>):null; })()}
             <FG label="目的・対象"><Inp value={hormTgt} onChange={setHormTgt} placeholder="着果促進（第2花房）等"/></FG>
           </div>
@@ -3380,7 +3390,7 @@ useEffect(()=>{
                     <div style={{...S.inp,flex:1,background:"#f0fdf4",color:"#065f46",cursor:"default",fontWeight:600}}>{pc.amt}</div>
                     <div style={{...S.inp,width:60,flex:"none",background:"#f0fdf4",color:"#065f46",cursor:"default",textAlign:"center"}}>{pc.unit}</div>
                   </div>
-                  {he.name&&<div style={{fontSize:".68rem",color:"#059669",marginTop:2}}>💧 原液 {pc.amt}{pc.unit} → 在庫から差し引きます</div>}
+                  {he.name&&<div style={{fontSize:".68rem",color:"#059669",marginTop:2}}>💧 原液 {pc.amt}{pc.unit} → 在庫から差し引きます{afterTxt(pestMs,he.name,pc.amt)}</div>}
                 </FG>):null; })()}
               <FG label="目的・対象"><Inp value={he.tgt} onChange={v=>setHormEntries(p=>p.map((x,i)=>i===hi?{...x,tgt:v}:x))} placeholder="着果促進（第2花房）等"/></FG>
             </div>
@@ -4295,7 +4305,7 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
       _newCunit:undefined, _newPrice:undefined, _newTarget:undefined, _newNpk:undefined,
       _newItemType:undefined, depYears:undefined,
       _editMaster:undefined, _editName:undefined, _editType:undefined, _editCapacity:undefined,
-      _editCunit:undefined, _editPrice:undefined, _editTarget:undefined, _editNpk:undefined, _showRelink:undefined};
+      _editCunit:undefined, _editPrice:undefined, _editTarget:undefined, _editNpk:undefined, _showRelink:undefined, _stkActual:undefined};
     const n=mCost.id&&costs.find(x=>x.id===mCost.id)?costs.map(x=>x.id===mCost.id?item:x):[...costs,item];
     // 按分率をlocalStorageに保存
     if(!isIncome(mCost.cat)){
@@ -5624,6 +5634,42 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
                     </div>}
                     <div style={{fontSize:".68rem",color:"#888"}}>💡 保存時に資材が新規登録され、在庫が加算されます</div>
                   </div>}
+                  {/* 在庫の確認と修正：購入の合計 − 作業記録の使用量 */}
+                  {selectedMaster&&(()=>{
+                    const kind=mCost.cat, unit=masterUnitOf(selectedMaster);
+                    const r=buildRecalcRows().find(x=>x.key===kind+":"+selectedMaster.id);
+                    const cur=parseFloat(selectedMaster.stock)||0;
+                    const calc=r?Math.max(0,r.calc):null;
+                    const orig=mCost.id?costs.find(x=>x.id===mCost.id):null;
+                    const notCounted=!!(orig && orig.masterId===selectedMaster.id && !(parseFloat(orig.stockQty)>0));
+                    const act=mCost._stkActual;
+                    const setStock=(v)=>{
+                      const u={...selectedMaster, stock:String(roundByUnit(v,unit)), status: v>0&&selectedMaster.status==="使い切り（非表示）"?"使用中":selectedMaster.status};
+                      if(kind==="fert") setFertMs(fertMs.map(x=>x.id===u.id?u:x),u); else setPestMs(pestMs.map(x=>x.id===u.id?u:x),u);
+                      setMCost({...mCost,_stkActual:undefined});
+                      showToast("「"+u.name+"」の在庫を "+roundByUnit(v,unit)+unit+" にしました");
+                    };
+                    return <div style={{background:"#fffdf2",border:"1px solid #f0c040",borderRadius:8,padding:"8px 10px",margin:"8px 0"}}>
+                      <div style={{fontSize:".74rem",fontWeight:700,color:"#7c5800",marginBottom:4}}>📦 在庫の確認と修正（{selectedMaster.name}）</div>
+                      <div style={{fontSize:".72rem",color:"#555",lineHeight:1.8}}>
+                        購入の合計 <b>+{r?r.bought:0}{unit}</b>（{r?r.nBuy:0}件）／ 作業記録の使用 <b>−{r?r.used:0}{unit}</b>（{r?r.nUse:0}件）<br/>
+                        計算上の在庫 <b style={{color:"#2d6a3f"}}>{calc===null?"—":calc+unit}</b> ／ 現在の在庫 <b>{cur}{unit}</b>
+                        {r&&r.calc<0&&<span style={{color:"#dc2626"}}>　（使用が購入を上回っています。購入の記録を確認してください）</span>}
+                      </div>
+                      {notCounted&&<div style={{fontSize:".7rem",color:"#b45309",background:"#fff3cd",borderRadius:6,padding:"4px 8px",marginTop:4,lineHeight:1.6}}>⚠️ この購入記録は在庫の計算に入っていません（在庫機能の前の記録）。下の「購入個数」を入れて保存すると、購入量として数えます。</div>}
+                      <div style={{fontSize:".68rem",color:"#888",marginTop:4}}>※ 保存済みの記録で計算しています。</div>
+                      <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap",marginTop:6}}>
+                        {calc!==null&&Math.abs(calc-cur)>0.0001&&<button onClick={()=>{ if(window.confirm("「"+selectedMaster.name+"」の在庫を、計算上の "+calc+unit+" に合わせますか？（現在 "+cur+unit+"）")) setStock(calc); }}
+                          style={{...S.btn,background:"#2d6a3f",color:"#fff",padding:"4px 10px",fontSize:".72rem",borderRadius:8,width:"auto"}}>計算上の在庫に合わせる</button>}
+                        <span style={{fontSize:".7rem",color:"#555"}}>実際の残量</span>
+                        <input type="number" inputMode="decimal" value={act??""} placeholder="例：120" onChange={e=>setMCost({...mCost,_stkActual:e.target.value})}
+                          style={{...S.inp,width:80,padding:"3px 6px",fontSize:".78rem"}}/>
+                        <span style={{fontSize:".7rem",color:"#555"}}>{unit}</span>
+                        <button disabled={act===undefined||act===""||isNaN(parseFloat(act))} onClick={()=>setStock(Math.max(0,parseFloat(act)))}
+                          style={{...S.btn,background:"#fff",color:"#7c5800",border:"1px solid #c9a227",padding:"4px 10px",fontSize:".72rem",borderRadius:8,width:"auto",opacity:(act===undefined||act===""||isNaN(parseFloat(act)))?.4:1}}>この残量に合わせる</button>
+                      </div>
+                    </div>;
+                  })()}
                   {/* 選択中資材の購入入力 */}
                   {selectedMaster&&<div style={{marginTop:8,borderTop:"1px dashed #b2dfdb",paddingTop:8}}>
                     <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}}>
