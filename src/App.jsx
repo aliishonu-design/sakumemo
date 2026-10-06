@@ -1688,7 +1688,7 @@ function LoginScreen() {
       <div style={{background:"#fff",borderRadius:20,padding:"28px 24px",maxWidth:360,width:"100%",textAlign:"center",boxShadow:"0 8px 40px rgba(0,0,0,.3)"}}>
         <div style={{fontSize:"2.2rem",marginBottom:6}}>🌾</div>
         <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:"1.3rem",color:G,marginBottom:4}}>サクメモ</div>
-        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v2.2.9</span></div>
+        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v2.2.10</span></div>
         {linkErr&&<div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:8,padding:"10px 12px",marginBottom:16,fontSize:".78rem",color:"#856404",textAlign:"left"}}>{linkErr}</div>}
 
 
@@ -1748,7 +1748,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v2.2.9</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v2.2.10</div>
       </div>
     </div>
   );
@@ -3952,6 +3952,9 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
   const [costQ,  setCostQ]  = useState(""); // 費用の検索
   const [stockQ, setStockQ] = useState(""); // 在庫の検索
   const [equipQ, setEquipQ] = useState(""); // 農具の検索
+  const [showRecalc, setShowRecalc] = useState(false);   // 在庫の再計算
+  const [recalcSel, setRecalcSel]   = useState({});      // {key:true} 反映する行
+  const [recalcActual, setRecalcActual] = useState({});  // {key:"実際の残量"} 手入力（あれば計算より優先）
   const [mItem,  setMItem]  = useState(null);
   const [mBuy,   setMBuy]   = useState(null);
 
@@ -4008,6 +4011,52 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
     const m = [...fertMs,...pestMs,...equips].find(x=>x.id===c.masterId);
     const cap = parseFloat(c.capacity)||parseFloat(m&&m.capacity)||0;
     return cap>0 ? q*cap : q;
+  };
+  // ─── 在庫の再計算：購入の合計 − 作業記録の使用量合計（肥料・農薬・ホルモン剤・土壌改良） ───
+  // 在庫機能の追加前の記録（stockQtyなし・資材にひもづいていない購入）も、個数×内容量で数える
+  const buildRecalcRows = () => {
+    const rows = [];
+    const mk = (kind, list) => list.forEach((m,idx)=>{
+      const catV = kind;
+      let bought = 0, nBuy = 0;
+      costs.forEach(c=>{
+        if(c.cancelled || c.cat!==catV) return;
+        const linked = c.masterId ? c.masterId===m.id : (c.name===m.name);
+        if(!linked) return;
+        let a = costStockAmt(c);
+        if(!(a>0)){ const q=parseFloat(c.qty)||0; const cap=parseFloat(c.capacity)||parseFloat(m.capacity)||0; if(q>0&&cap>0) a=q*cap; }
+        if(a>0){ bought+=a; nBuy++; }
+      });
+      let used = 0, nUse = 0;
+      logs.forEach(l=>{
+        const nm = kind==="fert" ? (isFertWork(l.work)?l.fertName:null) : (isPestWork(l.work)?l.pestName:null);
+        if(!nm || nm!==m.name) return;
+        const u = logUsageOf(l, m); if(u>0){ used+=u; nUse++; }
+      });
+      const unit = masterUnitOf(m);
+      const calc = roundByUnit(bought-used, unit);
+      rows.push({ key:kind+":"+m.id, kind, idx, m, unit, bought:roundByUnit(bought,unit), used:roundByUnit(used,unit), nBuy, nUse, calc, cur:parseFloat(m.stock)||0 });
+    });
+    mk("fert", fertMs); mk("pest", pestMs);
+    return rows.filter(r=>r.nBuy>0||r.nUse>0);
+  };
+  const openRecalc = () => {
+    const rows = buildRecalcRows(); const sel = {};
+    rows.forEach(r=>{ if(r.nBuy>0 && Math.abs(Math.max(0,r.calc)-r.cur)>0.0001) sel[r.key]=true; });
+    setRecalcSel(sel); setRecalcActual({}); setShowRecalc(true);
+  };
+  const applyRecalc = () => {
+    const rows = buildRecalcRows().filter(r=>recalcSel[r.key]);
+    if(rows.length===0){ showToast("反映する行を選んでください"); return; }
+    let nf=[...fertMs], np=[...pestMs]; const upF=[], upP=[];
+    rows.forEach(r=>{
+      const act = recalcActual[r.key];
+      const v = (act!==undefined && act!=="" && !isNaN(parseFloat(act))) ? Math.max(0,parseFloat(act)) : Math.max(0,r.calc);
+      const u = {...r.m, stock:String(roundByUnit(v,r.unit)), status: v>0&&r.m.status==="使い切り（非表示）" ? "使用中" : r.m.status};
+      if(r.kind==="fert"){ nf[r.idx]=u; upF.push(u); } else { np[r.idx]=u; upP.push(u); }
+    });
+    upF.forEach(u=>setFertMs(nf,u)); upP.forEach(u=>setPestMs(np,u));
+    setShowRecalc(false); showToast(rows.length+"件の在庫を更新しました");
   };
   // 在庫を増減（delta>0で加算）。肥料・農薬・消耗資材に対応
   const adjustMasterStock = (masterId, delta) => {
@@ -5135,6 +5184,39 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
         <div style={{fontSize:".72rem",color:TX3,background:"#f0f9f0",borderRadius:8,padding:"8px 10px",marginBottom:10,lineHeight:1.6}}>
           📦 在庫は<b>費用タブ</b>から購入を記録すると自動加算されます。資材の新規登録も費用タブから行ってください。
         </div>
+        <button onClick={openRecalc} style={{...S.btn,background:"#fff",color:"#2d6a3f",border:"1px solid #a5d6a7",borderRadius:8,width:"100%",padding:"8px 0",fontSize:".78rem",fontWeight:700,marginBottom:10}}>
+          🔄 在庫を購入・作業記録から再計算する
+        </button>
+        <ModalWithSave open={showRecalc} onClose={()=>setShowRecalc(false)} title="🔄 在庫の再計算" onSave={applyRecalc} saveLabel="選んだ行を反映">
+          {showRecalc&&(()=>{ const rows=buildRecalcRows(); return <>
+            <div style={{fontSize:".72rem",color:"#555",lineHeight:1.7,marginBottom:8,background:"#f0f9f0",borderRadius:8,padding:"8px 10px"}}>
+              <b>計算上の在庫 ＝ 購入の合計 − 作業記録の使用量の合計</b>。在庫機能ができる前の購入・作業記録も数えます。
+              実際の残量がわかるときは「実際の残量」に入れると、計算より優先して反映します。反映するまで在庫は変わりません。
+            </div>
+            {rows.length===0&&<div style={{color:TX3,fontSize:".82rem",padding:16,textAlign:"center"}}>購入・作業記録のある資材がありません</div>}
+            {rows.map(r=>{
+              const diff = Math.abs(Math.max(0,r.calc)-r.cur)>0.0001;
+              return <div key={r.key} style={{border:"1px solid "+(diff?"#f0c040":"#e0d9ce"),background:diff?"#fffdf2":"#fff",borderRadius:8,padding:"8px 10px",marginBottom:6}}>
+                <label style={{display:"flex",alignItems:"center",gap:6,fontSize:".8rem",fontWeight:700,cursor:"pointer"}}>
+                  <input type="checkbox" checked={!!recalcSel[r.key]} onChange={e=>setRecalcSel({...recalcSel,[r.key]:e.target.checked})}/>
+                  {r.m.name}<span style={{fontSize:".62rem",fontWeight:400,color:TX3}}>{r.kind==="fert"?"肥料":isHormoneMaster(r.m)?"ホルモン剤":"農薬"}</span>
+                </label>
+                <div style={{fontSize:".72rem",color:TX3,marginTop:4,lineHeight:1.7}}>
+                  購入 +{r.bought}{r.unit}（{r.nBuy}件）／ 使用 −{r.used}{r.unit}（{r.nUse}件）<br/>
+                  計算上 <b style={{color:r.calc<0?"#dc2626":"#2d6a3f"}}>{r.calc<0?"0（マイナス "+r.calc+"）":r.calc}{r.unit}</b> ／ 現在 <b>{r.cur}{r.unit}</b>
+                  {r.nBuy===0&&<span style={{color:"#b45309"}}>　⚠️購入の記録がないため計算できません</span>}
+                </div>
+                <div style={{display:"flex",alignItems:"center",gap:6,marginTop:4,fontSize:".72rem"}}>
+                  <span style={{color:TX3,whiteSpace:"nowrap"}}>実際の残量</span>
+                  <input type="number" inputMode="decimal" value={recalcActual[r.key]??""} placeholder="任意"
+                    onChange={e=>{ setRecalcActual({...recalcActual,[r.key]:e.target.value}); if(e.target.value!=="") setRecalcSel({...recalcSel,[r.key]:true}); }}
+                    style={{...S.inp,width:90,padding:"3px 6px",fontSize:".78rem"}}/>
+                  <span style={{color:TX3}}>{r.unit}</span>
+                </div>
+              </div>;
+            })}
+          </>; })()}
+        </ModalWithSave>
         {[...fertMs.map((f,i)=>({...f,_type:"fert",_idx:i})),...pestMs.map((p,i)=>({...p,_type:"pest",_idx:i})),...materialMs.map((m,i)=>({...m,_type:"material",_idx:equips.indexOf(m)}))].length===0
           &&<div style={{color:TX3,fontSize:".82rem",padding:20,textAlign:"center"}}>
             肥料・農薬・消耗資材がまだ登録されていません<br/>費用タブで肥料費・農薬費を入力すると自動登録されます
