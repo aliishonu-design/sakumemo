@@ -1712,7 +1712,7 @@ function LoginScreen() {
       <div style={{background:"#fff",borderRadius:20,padding:"28px 24px",maxWidth:360,width:"100%",textAlign:"center",boxShadow:"0 8px 40px rgba(0,0,0,.3)"}}>
         <div style={{fontSize:"2.2rem",marginBottom:6}}>🌾</div>
         <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:"1.3rem",color:G,marginBottom:4}}>サクメモ</div>
-        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v2.2.15</span></div>
+        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v2.2.16</span></div>
         {linkErr&&<div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:8,padding:"10px 12px",marginBottom:16,fontSize:".78rem",color:"#856404",textAlign:"left"}}>{linkErr}</div>}
 
 
@@ -1772,7 +1772,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v2.2.15</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v2.2.16</div>
       </div>
     </div>
   );
@@ -3554,7 +3554,9 @@ function TimelineScreen({ fields, crops, equips, logs, setLogs, setLogsR, showTo
       // 日付を複数形式で検索可能に（2026-05-20, 2026/05/20, 05/20, 5/20）
       const dSlash=d.replace(/-/g,'/');
       const dShort=d.slice(5).replace('-','/').replace(/^0/,'');
-      const txt=[db.n, cr.variety, cr.customName, l.memo, l.work, WORK_LABELS[l.work]||'', d, dSlash, dShort, l.fertName||'', l.pestName||''].join(' ');
+      const lf=(l.fieldId&&fields.find(f=>f.id===l.fieldId))||fields[l.fieldIdx]||{};   // 作業した圃場
+      const cf=(cr.fieldId&&fields.find(f=>f.id===cr.fieldId))||fields[cr.fieldIdx]||{}; // 品目を育てている圃場
+      const txt=[lf.name, cf.name, db.n, cr.variety, cr.customName, l.memo, l.work, WORK_LABELS[l.work]||'', d, dSlash, dShort, l.fertName||'', l.pestName||''].join(' ');
       if(!matchQ(txt, q)) return false;
     }
     return true;
@@ -3652,7 +3654,7 @@ function TimelineScreen({ fields, crops, equips, logs, setLogs, setLogsR, showTo
         </div>
 
         {/* 検索 */}
-        <input value={q} onChange={e=>setQ(e.target.value)} placeholder="🔍 キーワード検索..."
+        <input value={q} onChange={e=>setQ(e.target.value)} placeholder="🔍 圃場・品目・資材・メモなどで検索..."
           style={{flex:1,minWidth:100,padding:'6px 10px',border:'1px solid #e0d9ce',borderRadius:8,fontSize:'16px',fontFamily:'inherit',outline:'none'}}/>
       </div>
 
