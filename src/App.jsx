@@ -764,33 +764,33 @@ function skCardMeta(logs) {
 
 const COST_CATS = [
   // 費目の名前は青色申告決算書（農業所得用）の科目と同じ。保存する値(value)は従来のまま
-  { value:"tax",       label:"🧾 租税公課",          group:"農業費用" },
-  { value:"seed",      label:"🌱 種苗費",           group:"農業費用" },
-  { value:"livestock", label:"🐄 素畜費",           group:"農業費用" },
-  { value:"fert",      label:"🌿 肥料費",            group:"農業費用" },
-  { value:"feed",      label:"🥣 飼料費",            group:"農業費用" },
-  { value:"machine",   label:"🚜 農具費",            group:"農業費用" },
-  { value:"pest",      label:"🐛 農薬衛生費",        group:"農業費用" },
-  { value:"equip",     label:"🏗️ 諸材料費",          group:"農業費用" },
-  { value:"repair",    label:"🔧 修繕費",            group:"農業費用" },
-  { value:"fuel",      label:"⛽ 動力光熱費",        group:"農業費用" },
-  { value:"clothing",  label:"🧤 作業用衣料費",      group:"農業費用" },
-  { value:"insurance", label:"🛡️ 農業共済掛金",      group:"農業費用" },
-  { value:"deprec",    label:"📉 減価償却費",        group:"農業費用" },
-  { value:"transport", label:"🚚 荷造運賃手数料",    group:"農業費用" },
-  { value:"labor",     label:"👷 雇人費",            group:"農業費用" },
-  { value:"interest",  label:"🏦 利子割引料",        group:"農業費用" },
-  { value:"land",      label:"🌾 地代・賃借料",      group:"農業費用" },
-  { value:"landimp",   label:"🏞️ 土地改良費",        group:"農業費用" },
-  { value:"worker",    label:"👨‍👩‍👧 専従者給与",        group:"農業費用" },
-  { value:"other",     label:"📦 その他",            group:"農業費用" },
-  { value:"owner_loan",label:"💼 事業主借（個人口座から）", group:"資金管理" },
+  { value:"tax",       label:"🧾 租税公課",          group:"農業費用", hint:"固定資産税・事業税・自動車税・印紙税、水利費や農協の組合費などの公課。（所得税・住民税・国保は経費になりません）" },
+  { value:"seed",      label:"🌱 種苗費",           group:"農業費用", hint:"種子・苗・種いも・球根・接ぎ木苗などの購入費。" },
+  { value:"livestock", label:"🐄 素畜費",           group:"農業費用", hint:"子牛・子豚・ひななど家畜の購入費、種付料。" },
+  { value:"fert",      label:"🌿 肥料費",            group:"農業費用", hint:"化成肥料・有機肥料・液肥・堆肥・石灰などの購入費。" },
+  { value:"feed",      label:"🥣 飼料費",            group:"農業費用", hint:"家畜・家禽のえさ（飼料）の購入費。" },
+  { value:"machine",   label:"🚜 農具費",            group:"農業費用", hint:"10万円未満の農具の購入費（鍬・はさみ・かご・コンテナ・ホースなど）。10万円以上の農機具は耐用年数を設定して減価償却。" },
+  { value:"pest",      label:"🐛 農薬衛生費",        group:"農業費用", hint:"農薬・殺虫殺菌剤・除草剤・ホルモン剤、共同防除費。" },
+  { value:"equip",     label:"🏗️ 諸材料費",          group:"農業費用", hint:"ビニール・マルチ・支柱・ひも・ネット・育苗ポット・縄・釘・針金などの購入費。" },
+  { value:"repair",    label:"🔧 修繕費",            group:"農業費用", hint:"農機具・軽トラ・ハウス・施設・倉庫などの修理費。" },
+  { value:"fuel",      label:"⛽ 動力光熱費",        group:"農業費用", hint:"電気代・水道代・ガス代・灯油・ガソリン・軽油などの燃料費。" },
+  { value:"clothing",  label:"🧤 作業用衣料費",      group:"農業費用", hint:"作業着・長靴・手袋・帽子・雨具などの購入費。" },
+  { value:"insurance", label:"🛡️ 農業共済掛金",      group:"農業費用", hint:"農業共済・収入保険などの掛金（保険料）。" },
+  { value:"deprec",    label:"📉 減価償却費",        group:"農業費用", hint:"10万円以上の農機具・ハウス・車両などの償却費。農具の耐用年数を設定すると自動で計上されます。" },
+  { value:"transport", label:"🚚 荷造運賃手数料",    group:"農業費用", hint:"出荷用の箱・袋・ラベル・テープ・緩衝材、送料・運賃、市場や直売所の販売手数料。" },
+  { value:"labor",     label:"👷 雇人費",            group:"農業費用", hint:"パート・アルバイト・手伝いの人への給料。（家族の専従者は「専従者給与」）" },
+  { value:"interest",  label:"🏦 利子割引料",        group:"農業費用", hint:"事業用の借入金の利息、手形の割引料。" },
+  { value:"land",      label:"🌾 地代・賃借料",      group:"農業費用", hint:"農地の賃借料（小作料）、機械のレンタル料・リース料。" },
+  { value:"landimp",   label:"🏞️ 土地改良費",        group:"農業費用", hint:"客土・暗渠排水・農道・区画整理など土地改良の費用。" },
+  { value:"worker",    label:"👨‍👩‍👧 専従者給与",        group:"農業費用", hint:"青色事業専従者として届け出た家族への給与。" },
+  { value:"other",     label:"📦 その他",            group:"農業費用", hint:"上のどれにも当てはまらないもの。文房具・事務用品・通信費・研修費・図書費・税理士報酬など。" },
+  { value:"owner_loan",label:"💼 事業主借（個人口座から）", group:"資金管理", hint:"事業の支払いを個人の財布や口座から出したときの記録。経費ではなく、資金の貸し借りとして扱います。" },
   // 以前の費目（すでに記録があるものだけ表示。新しい記録では選べません。帳簿では下の科目に入ります）
-  { value:"water",     label:"💧 水道光熱費（旧・動力光熱費）",   group:"農業費用", hidden:true },
-  { value:"sales",     label:"🏪 販売費・手数料（旧・荷造運賃手数料）", group:"農業費用", hidden:true },
-  { value:"research",  label:"📚 研修・図書費（旧・その他）",     group:"農業費用", hidden:true },
-  { value:"comms",     label:"📞 通信費（旧・その他）",           group:"農業費用", hidden:true },
-  { value:"vehicle",   label:"🚗 車両費（旧・その他）",           group:"農業費用", hidden:true },
+  { value:"water",     label:"💧 水道光熱費（旧・動力光熱費）",   group:"農業費用", hint:"電気・水道・ガス・燃料などの代金。（帳簿では動力光熱費）", hidden:true },
+  { value:"sales",     label:"🏪 販売費・手数料（旧・荷造運賃手数料）", group:"農業費用", hint:"販売手数料・直売所の出店料。（帳簿では荷造運賃手数料）", hidden:true },
+  { value:"research",  label:"📚 研修・図書費（旧・その他）",     group:"農業費用", hint:"研修費・図書費。（帳簿ではその他）", hidden:true },
+  { value:"comms",     label:"📞 通信費（旧・その他）",           group:"農業費用", hint:"スマホ・インターネット・郵便などの通信費。（帳簿ではその他）", hidden:true },
+  { value:"vehicle",   label:"🚗 車両費（旧・その他）",           group:"農業費用", hint:"車の維持費。（帳簿ではその他）", hidden:true },
 ];
 const INCOME_CATS = [
   { value:"inc_crop",    label:"🌾 農産物売上",      group:"農業収入" },
@@ -1720,7 +1720,7 @@ function LoginScreen() {
       <div style={{background:"#fff",borderRadius:20,padding:"28px 24px",maxWidth:360,width:"100%",textAlign:"center",boxShadow:"0 8px 40px rgba(0,0,0,.3)"}}>
         <div style={{fontSize:"2.2rem",marginBottom:6}}>🌾</div>
         <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:"1.3rem",color:G,marginBottom:4}}>サクメモ</div>
-        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v2.2.17</span></div>
+        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v2.2.18</span></div>
         {linkErr&&<div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:8,padding:"10px 12px",marginBottom:16,fontSize:".78rem",color:"#856404",textAlign:"left"}}>{linkErr}</div>}
 
 
@@ -1780,7 +1780,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v2.2.17</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v2.2.18</div>
       </div>
     </div>
   );
@@ -5449,6 +5449,15 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
                 </button>
               ))}
             </div>
+            {(()=>{ const ct=[...COST_CATS,...INCOME_CATS].find(x=>x.value===mCost.cat); return ct&&ct.hint?<div style={{marginTop:6,fontSize:".72rem",color:"#5c3d1e",background:"#fbf7ee",border:"1px solid #e8dfc8",borderRadius:8,padding:"6px 10px",lineHeight:1.6}}>
+              💡 <b>{ct.label.replace(/^\S+\s/,"")}</b>：{ct.hint}
+            </div>:null; })()}
+            {!isIncome(mCost.cat)&&<details style={{marginTop:6}}>
+              <summary style={{fontSize:".7rem",color:"#8a6d3b",cursor:"pointer"}}>どの費目か迷ったら（費目ごとの例を見る）</summary>
+              <div style={{marginTop:4,fontSize:".68rem",color:"#555",lineHeight:1.65}}>
+                {COST_CATS.filter(c=>!c.hidden&&c.hint).map(c=><div key={c.value} style={{marginBottom:3}}><b>{c.label}</b>：{c.hint}</div>)}
+              </div>
+            </details>}
           </FG>
           <FG label="金額（円）">
             <CalcInp value={mCost.amt} onChange={v=>setMCost({...mCost,amt:v})} placeholder="例：5000"/>
