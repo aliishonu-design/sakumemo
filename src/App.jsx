@@ -763,26 +763,34 @@ function skCardMeta(logs) {
 }
 
 const COST_CATS = [
-  // 農業経営の主要費目（青色申告帳簿に対応）
+  // 費目の名前は青色申告決算書（農業所得用）の科目と同じ。保存する値(value)は従来のまま
+  { value:"tax",       label:"🧾 租税公課",          group:"農業費用" },
   { value:"seed",      label:"🌱 種苗費",           group:"農業費用" },
+  { value:"livestock", label:"🐄 素畜費",           group:"農業費用" },
   { value:"fert",      label:"🌿 肥料費",            group:"農業費用" },
+  { value:"feed",      label:"🥣 飼料費",            group:"農業費用" },
+  { value:"machine",   label:"🚜 農具費",            group:"農業費用" },
   { value:"pest",      label:"🐛 農薬衛生費",        group:"農業費用" },
-  { value:"equip",     label:"🏗️ 農具・資材費",      group:"農業費用" },
-  { value:"machine",   label:"🚜 農機具費（修繕含む）",group:"農業費用" },
-  { value:"land",      label:"🌾 作付地賃借料",      group:"農業費用" },
-  { value:"labor",     label:"👷 雇用労務費",        group:"農業費用" },
-  { value:"fuel",      label:"⛽ 燃料費",            group:"農業費用" },
-  { value:"water",     label:"💧 水道光熱費",        group:"農業費用" },
-  { value:"transport", label:"🚚 荷造運賃",          group:"農業費用" },
-  { value:"sales",     label:"🏪 販売費・手数料",    group:"農業費用" },
-  { value:"research",  label:"📚 研修・図書費",      group:"農業費用" },
-  { value:"comms",     label:"📞 通信費",            group:"農業費用" },
-  { value:"insurance", label:"🛡️ 農業保険料",        group:"農業費用" },
+  { value:"equip",     label:"🏗️ 諸材料費",          group:"農業費用" },
+  { value:"repair",    label:"🔧 修繕費",            group:"農業費用" },
+  { value:"fuel",      label:"⛽ 動力光熱費",        group:"農業費用" },
+  { value:"clothing",  label:"🧤 作業用衣料費",      group:"農業費用" },
+  { value:"insurance", label:"🛡️ 農業共済掛金",      group:"農業費用" },
   { value:"deprec",    label:"📉 減価償却費",        group:"農業費用" },
-  { value:"vehicle",   label:"🚗 車両費（按分）",     group:"農業費用" },
-  { value:"other",     label:"📦 その他農業費用",    group:"農業費用" },
+  { value:"transport", label:"🚚 荷造運賃手数料",    group:"農業費用" },
+  { value:"labor",     label:"👷 雇人費",            group:"農業費用" },
+  { value:"interest",  label:"🏦 利子割引料",        group:"農業費用" },
+  { value:"land",      label:"🌾 地代・賃借料",      group:"農業費用" },
+  { value:"landimp",   label:"🏞️ 土地改良費",        group:"農業費用" },
   { value:"worker",    label:"👨‍👩‍👧 専従者給与",        group:"農業費用" },
+  { value:"other",     label:"📦 その他",            group:"農業費用" },
   { value:"owner_loan",label:"💼 事業主借（個人口座から）", group:"資金管理" },
+  // 以前の費目（すでに記録があるものだけ表示。新しい記録では選べません。帳簿では下の科目に入ります）
+  { value:"water",     label:"💧 水道光熱費（旧・動力光熱費）",   group:"農業費用", hidden:true },
+  { value:"sales",     label:"🏪 販売費・手数料（旧・荷造運賃手数料）", group:"農業費用", hidden:true },
+  { value:"research",  label:"📚 研修・図書費（旧・その他）",     group:"農業費用", hidden:true },
+  { value:"comms",     label:"📞 通信費（旧・その他）",           group:"農業費用", hidden:true },
+  { value:"vehicle",   label:"🚗 車両費（旧・その他）",           group:"農業費用", hidden:true },
 ];
 const INCOME_CATS = [
   { value:"inc_crop",    label:"🌾 農産物売上",      group:"農業収入" },
@@ -1712,7 +1720,7 @@ function LoginScreen() {
       <div style={{background:"#fff",borderRadius:20,padding:"28px 24px",maxWidth:360,width:"100%",textAlign:"center",boxShadow:"0 8px 40px rgba(0,0,0,.3)"}}>
         <div style={{fontSize:"2.2rem",marginBottom:6}}>🌾</div>
         <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:"1.3rem",color:G,marginBottom:4}}>サクメモ</div>
-        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v2.2.16</span></div>
+        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v2.2.17</span></div>
         {linkErr&&<div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:8,padding:"10px 12px",marginBottom:16,fontSize:".78rem",color:"#856404",textAlign:"left"}}>{linkErr}</div>}
 
 
@@ -1772,7 +1780,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v2.2.16</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v2.2.17</div>
       </div>
     </div>
   );
@@ -3769,7 +3777,8 @@ const LEDGER_CAT_TO_KAMOKU = {
   seed:"種苗費", fert:"肥料費", pest:"農薬衛生費", equip:"諸材料費", machine:"農具費",
   land:"地代・賃借料", labor:"雇人費", fuel:"動力光熱費", water:"動力光熱費",
   transport:"荷造運賃手数料", sales:"荷造運賃手数料", research:"その他", comms:"その他",
-  insurance:"農業共済掛金", deprec:"減価償却費", vehicle:"その他", other:"その他", worker:"専従者給与"
+  insurance:"農業共済掛金", deprec:"減価償却費", vehicle:"その他", other:"その他", worker:"専従者給与",
+  tax:"租税公課", livestock:"素畜費", feed:"飼料費", repair:"修繕費", clothing:"作業用衣料費", interest:"利子割引料", landimp:"土地改良費"
 };
 const LEDGER_KAMOKU_COLS = ["租税公課","種苗費","素畜費","肥料費","飼料費","農具費","農薬衛生費","諸材料費","修繕費",
   "動力光熱費","作業用衣料費","農業共済掛金","減価償却費","荷造運賃手数料","雇人費","利子割引料",
@@ -5092,7 +5101,7 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
               const v=byCat[cat.value]||0;
               const pct=total>0?v/total*100:0;
               const cols=CAT_BAR_COLORS;
-              return pct>0?<div key={cat.value} style={{width:pct+"%",background:cols[i],transition:"width .5s"}}/>:null;
+              return pct>0?<div key={cat.value} style={{width:pct+"%",background:cols[i%cols.length],transition:"width .5s"}}/>:null;
             })}
           </div>
           <div style={{display:"flex",flexWrap:"wrap",gap:"4px 10px"}}>
@@ -5100,7 +5109,7 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
               const cols=CAT_BAR_COLORS;
               const ci=COST_CATS.indexOf(cat);
               return <div key={cat.value} style={{fontSize:".62rem",display:"flex",alignItems:"center",gap:3}}>
-                <span style={{width:8,height:8,borderRadius:2,background:cols[ci],display:"inline-block"}}/>
+                <span style={{width:8,height:8,borderRadius:2,background:cols[ci%cols.length],display:"inline-block"}}/>
                 {cat.label.replace(/^[^\s]+\s/,"")}: {Math.round(byCat[cat.value]).toLocaleString()}円
               </div>;
             })}
@@ -5427,7 +5436,7 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
           {/* 費目ボタングリッド */}
           <FG label="費目">
             <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
-              {(isIncome(mCost.cat)?INCOME_CATS:COST_CATS).map(cat=>(
+              {(isIncome(mCost.cat)?INCOME_CATS:COST_CATS.filter(c=>!c.hidden||c.value===mCost.cat)).map(cat=>(
                 <button key={cat.value} onClick={()=>setMCost({...mCost,cat:cat.value,
                   masterId:"",_newItem:false,_newName:"",_newType:"",_newCapacity:"",_newCunit:"",_newPrice:"",_newNpk:"",_newTarget:"",
                   _editMaster:false,_editName:undefined,_editType:undefined,_editCapacity:undefined,_editCunit:undefined,_editPrice:undefined,_editNpk:undefined,_editTarget:undefined,
@@ -5915,7 +5924,7 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
           <FG label="名称"><Inp value={mApportion.name||""} onChange={v=>setMApportion({...mApportion,name:v})} placeholder="例：電気代"/></FG>
           <FG label="費用カテゴリ">
             <Sel value={mApportion.cat||""} onChange={v=>setMApportion({...mApportion,cat:v})}
-              options={[{value:"",label:"（選択）"},...COST_CATS.filter(c=>!c.value.startsWith("inc_")).map(c=>({value:c.value,label:c.label}))]}/>
+              options={[{value:"",label:"（選択）"},...COST_CATS.filter(c=>!c.hidden&&!c.value.startsWith("inc_")).map(c=>({value:c.value,label:c.label}))]}/>
           </FG>
           <FG label="デフォルト農業割合（%）">
             <div style={{display:"flex",alignItems:"center",gap:8}}>
