@@ -1426,6 +1426,20 @@ function Inp({ value, onChange, type="text", placeholder="", style={}, ...props 
     {...(type!=="number"?{lang:"ja"}:{})}
     {...props} />;
 }
+// 日付の入力欄：端末の日付ピッカーの「リセット／消去」で空にしても確実に未入力へ戻る。右の「クリア」でも未入力に戻せる
+function DateInp({ value, onChange, clearable=true, style={} }) {
+  const ref = useRef(null);
+  // ピッカー側で空にされたのに通知が来ない端末向け：入力欄を離れたとき・変化の検知時に実際の値と合わせる
+  const sync = e => { const v = e.target.value || ""; if(v !== (value||"")) onChange(v); };
+  return (
+    <div style={{display:"flex",gap:6,alignItems:"center",width:"100%"}}>
+      <input ref={ref} type="date" value={value||""} onChange={e=>onChange(e.target.value||"")} onInput={sync} onBlur={sync}
+        style={{...S.inp,flex:1,minWidth:0,...style}}/>
+      {clearable && value ? <button type="button" onClick={()=>{ if(ref.current) ref.current.value=""; onChange(""); }}
+        style={{background:"#f3efe6",border:"1px solid #e0d9ce",borderRadius:6,color:"#7a6a50",cursor:"pointer",fontSize:".7rem",padding:"6px 8px",flexShrink:0,whiteSpace:"nowrap"}}>未入力に戻す</button> : null}
+    </div>
+  );
+}
 
 // 計算機キーボード付き数値入力（PC・スマホ共通：クリックで計算機、PCはキー入力も可）
 function CalcInp({ value, onChange, placeholder="0", style={} }) {
@@ -1720,7 +1734,7 @@ function LoginScreen() {
       <div style={{background:"#fff",borderRadius:20,padding:"28px 24px",maxWidth:360,width:"100%",textAlign:"center",boxShadow:"0 8px 40px rgba(0,0,0,.3)"}}>
         <div style={{fontSize:"2.2rem",marginBottom:6}}>🌾</div>
         <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:"1.3rem",color:G,marginBottom:4}}>サクメモ</div>
-        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v2.2.18</span></div>
+        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v2.2.19</span></div>
         {linkErr&&<div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:8,padding:"10px 12px",marginBottom:16,fontSize:".78rem",color:"#856404",textAlign:"left"}}>{linkErr}</div>}
 
 
@@ -1780,7 +1794,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v2.2.18</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v2.2.19</div>
       </div>
     </div>
   );
@@ -2386,24 +2400,18 @@ function FieldsScreen({ fields, setFields, setFieldsR, crops, setCrops, setCrops
                 </FG>
                 <R2>
                   {mCrop.cultivationType==="direct" && (
-                    <FG label={<><TermTooltip>播種</TermTooltip>日 *</>}><Inp type="date" value={mCrop.plantDate} onChange={v=>setMCrop({...mCrop,plantDate:v})}/></FG>
+                    <FG label={<><TermTooltip>播種</TermTooltip>日 *</>}><DateInp value={mCrop.plantDate} onChange={v=>setMCrop({...mCrop,plantDate:v})}/></FG>
                   )}
                   {mCrop.cultivationType==="nursery" && (<>
                     <FG label={<><TermTooltip>播種</TermTooltip>日</>}>
-                      <div style={{display:"flex",gap:6,alignItems:"center"}}>
-                        <Inp type="date" value={mCrop.sowDate} onChange={v=>setMCrop({...mCrop,sowDate:v})}/>
-                        {mCrop.sowDate&&<button type="button" onClick={()=>setMCrop({...mCrop,sowDate:""})} style={{background:"none",border:"none",color:"#aaa",cursor:"pointer",fontSize:".8rem",flexShrink:0}}>✕</button>}
-                      </div>
+                      <DateInp value={mCrop.sowDate} onChange={v=>setMCrop({...mCrop,sowDate:v})}/>
                     </FG>
                     <FG label={<><TermTooltip>定植</TermTooltip>日（後から作業記録で登録可）</>}>
-                      <div style={{display:"flex",gap:6,alignItems:"center"}}>
-                        <Inp type="date" value={mCrop.plantDate} onChange={v=>setMCrop({...mCrop,plantDate:v})}/>
-                        {mCrop.plantDate&&<button type="button" onClick={()=>setMCrop({...mCrop,plantDate:""})} style={{background:"none",border:"none",color:"#aaa",cursor:"pointer",fontSize:".8rem",flexShrink:0}}>✕</button>}
-                      </div>
+                      <DateInp value={mCrop.plantDate} onChange={v=>setMCrop({...mCrop,plantDate:v})}/>
                     </FG>
                   </>)}
                   {mCrop.cultivationType==="seedling" && (<>
-                    <FG label={<>購入・<TermTooltip>定植</TermTooltip>日 *</>}><Inp type="date" value={mCrop.plantDate} onChange={v=>setMCrop({...mCrop,plantDate:v})}/></FG>
+                    <FG label={<>購入・<TermTooltip>定植</TermTooltip>日 *</>}><DateInp value={mCrop.plantDate} onChange={v=>setMCrop({...mCrop,plantDate:v})}/></FG>
                   </>)}
                 </R2>
                 <R2><FG label="株数（本数）"><Inp type="number" value={mCrop.stocks} onChange={v=>setMCrop({...mCrop,stocks:v})} placeholder="120"/></FG><FG label=""><div/></FG></R2>
@@ -7003,8 +7011,8 @@ function PlanScreen({ fields, crops, setCrops, plots, setPlots, setPlotsR, showT
               options={makeCropOptions(crops.filter(c=>!c.ended))}/>
           </FG>
           <R2>
-            <FG label="定植・播種日"><Inp type="date" value={mPlant.plantDate} onChange={v=>{const hv=calcHarvest(mPlant.cropId,v);setMPlant({...mPlant,plantDate:v,harvestDate:hv});}}/></FG>
-            <FG label="収穫予定日"><Inp type="date" value={mPlant.harvestDate} onChange={v=>setMPlant({...mPlant,harvestDate:v})}/></FG>
+            <FG label="定植・播種日"><DateInp value={mPlant.plantDate} onChange={v=>{const hv=v?calcHarvest(mPlant.cropId,v):"";setMPlant({...mPlant,plantDate:v,harvestDate:hv});}}/></FG>
+            <FG label="収穫予定日"><DateInp value={mPlant.harvestDate} onChange={v=>setMPlant({...mPlant,harvestDate:v})}/></FG>
           </R2>
           <div style={{fontSize:".68rem",color:TX3,marginBottom:8,lineHeight:1.5}}>💡 品目と定植日を選ぶと収穫予定日を自動計算します（手動で調整可）<br/>同じ区画に同時期の作付けを複数追加すると、混植として縦に並べて表示されます</div>
 
