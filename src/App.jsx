@@ -57,8 +57,8 @@ const pestMToDb   = (o, uid) => ({ id:o.id||uid0(), user_id:uid, name:o.name||nu
 const pestMFromDb = r => ({ id:r.id, name:r.name||"", type:r.type||"", target:r.target||"", capacity:r.capacity||"", cunit:r.sunit||"ml", sunit:r.sunit||"ml", stock:r.stock!=null?String(r.stock):"", dil:r.dil||"", formType:r.form_type||"", price:r.price||"", note:r.note||"", status:r.status||"使用中" });
 const equipToDb   = (o, uid) => ({ id:o.id||uid0(), user_id:uid, name:o.name||null, cat:o.cat||null, status:o.status||null, price:o.price||null, date:o.date||null, note:o.note||null, dep_years:o.depYears||null, stock:(o.stock===0||o.stock)?String(o.stock):null, capacity:o.capacity||null, cunit:o.cunit||null, sunit:o.sunit||null });
 const equipFromDb = r => alignStockUnit({ id:r.id, name:r.name||"", cat:r.cat||"", status:r.status||"", price:r.price||"", date:r.date||"", note:r.note||"", depYears:r.dep_years||"", stock:r.stock!=null?String(r.stock):"", capacity:r.capacity||"", cunit:r.cunit||"", sunit:r.sunit||"" });
-const costToDb    = (o, uid, fields) => ({ id:o.id, user_id:uid, field_id:(fields&&o.fieldIdx!==undefined&&o.fieldIdx!=="")?fields[o.fieldIdx]?.id||o.fieldId||null:o.fieldId||null, crop_id:o.cropId||null, cat:o.cat||null, name:o.name||null, amt:o.amt||null, date:o.date||null, qty:o.qty||null, qunit:o.qunit||null, note:o.note||null, master_id:o.masterId||null, work:o.work||null, pay_method:o.payMethod||null, pay_date:o.payDate||null, cancelled:o.cancelled||null, is_receivable:!!o.isReceivable, receivable_date:o.receivableDate||null, capacity:o.capacity||null, cunit:o.cunit||null, apportion_rate:(o.apportionRate!=null&&o.apportionRate!==""&&Number(o.apportionRate)<100)?Number(o.apportionRate):null, work_log_id:o.logId||null, stock_qty:o.stockQty||null });
-const costFromDb  = (r, fields) => { const fi=fields.findIndex(f=>f.id===r.field_id); return { id:r.id, fieldId:r.field_id||"", fieldIdx:fi>=0?fi:0, cropId:r.crop_id||"", cat:r.cat||"", name:r.name||"", amt:r.amt||"", date:r.date||"", qty:r.qty||"1", qunit:r.qunit||"個", note:r.note||"", masterId:r.master_id||null, work:r.work||"", logId:r.work_log_id||null, capacity:r.capacity||"", cunit:r.cunit||"", stockQty:r.stock_qty!=null?String(r.stock_qty):"", apportionRate:(r.apportion_rate!=null&&Number(r.apportion_rate)<100)?Number(r.apportion_rate):undefined, payMethod:r.pay_method||"現金", payDate:r.pay_date||"", cancelled:r.cancelled||false, isReceivable:!!r.is_receivable, receivableDate:r.receivable_date||"" }; };
+const costToDb    = (o, uid, fields) => ({ id:o.id, user_id:uid, field_id:(fields&&o.fieldIdx!==undefined&&o.fieldIdx!=="")?fields[o.fieldIdx]?.id||o.fieldId||null:o.fieldId||null, crop_id:o.cropId||null, cat:o.cat||null, name:o.name||null, amt:o.amt||null, date:o.date||null, qty:o.qty||null, qunit:o.qunit||null, note:o.note||null, master_id:o.masterId||null, work:o.work||null, pay_method:o.payMethod||null, pay_date:o.payDate||null, cancelled:o.cancelled||null, is_receivable:!!o.isReceivable, receivable_date:o.receivableDate||null, capacity:o.capacity||null, cunit:o.cunit||null, apportion_rate:(o.apportionRate!=null&&o.apportionRate!==""&&Number(o.apportionRate)<100)?Number(o.apportionRate):null, work_log_id:o.logId||null, stock_qty:o.stockQty||null, receipt_url:o.receiptUrl||null });
+const costFromDb  = (r, fields) => { const fi=fields.findIndex(f=>f.id===r.field_id); return { id:r.id, fieldId:r.field_id||"", fieldIdx:fi>=0?fi:0, cropId:r.crop_id||"", cat:r.cat||"", name:r.name||"", amt:r.amt||"", date:r.date||"", qty:r.qty||"1", qunit:r.qunit||"個", note:r.note||"", masterId:r.master_id||null, work:r.work||"", logId:r.work_log_id||null, capacity:r.capacity||"", cunit:r.cunit||"", stockQty:r.stock_qty!=null?String(r.stock_qty):"", apportionRate:(r.apportion_rate!=null&&Number(r.apportion_rate)<100)?Number(r.apportion_rate):undefined, payMethod:r.pay_method||"現金", payDate:r.pay_date||"", cancelled:r.cancelled||false, isReceivable:!!r.is_receivable, receivableDate:r.receivable_date||"", receiptUrl:r.receipt_url||"" }; };
 const plotToDb    = (o, uid) => ({ id:o.id, user_id:uid, field_id:o.fieldId||null, name:o.name||null, cols:o.cols||20, rows:o.rows||20, cells:o.cells||[], season:o.season||null, cell_size:o.cellSize||30, bg_plot_id:o.bgPlotId||null, plant_date:o.plantDate||null, end_date:o.endDate||null, kind:o.kind||null, beds:o.beds||null, plantings:o.plantings||null });
 const plotFromDb  = r => ({ id:r.id, fieldId:r.field_id||"", name:r.name||"", cols:r.cols||20, rows:r.rows||20, cells:Array.isArray(r.cells)?r.cells:safeJson(r.cells,[]), season:r.season||"", cellSize:r.cell_size||30, bgPlotId:r.bg_plot_id||"", plantDate:r.plant_date||"", endDate:r.end_date||"", kind:r.kind||"", beds:Array.isArray(r.beds)?r.beds:safeJson(r.beds,[]), plantings:Array.isArray(r.plantings)?r.plantings:safeJson(r.plantings,[]) });
 
@@ -1109,6 +1109,98 @@ async function uploadPhoto(blob, userId, filename) {
   }
 }
 
+// ===== レシート（非公開バケット "receipts"）=====
+const RECEIPT_BUCKET = "receipts";
+function _loadImg(file){ return new Promise((res,rej)=>{ const img=new Image(); const url=URL.createObjectURL(file); img.onload=()=>res({img,url}); img.onerror=()=>{URL.revokeObjectURL(url);rej(new Error("画像を開けませんでした"));}; img.src=url; }); }
+// 保存用：長辺1000px・JPEG品質0.7
+async function compressReceipt(file){
+  const {img,url}=await _loadImg(file);
+  const MAX=1000; let w=img.width,h=img.height;
+  if(w>MAX||h>MAX){ if(w>h){h=Math.round(h*MAX/w);w=MAX;} else {w=Math.round(w*MAX/h);h=MAX;} }
+  const cv=document.createElement("canvas"); cv.width=w; cv.height=h; cv.getContext("2d").drawImage(img,0,0,w,h);
+  return new Promise(r=>cv.toBlob(b=>{URL.revokeObjectURL(url);r(b);},"image/jpeg",0.7));
+}
+// 読み取り用：長辺1800px・白黒＋コントラスト強調
+async function prepReceiptForOcr(file){
+  const {img,url}=await _loadImg(file);
+  const MAX=1800; let w=img.width,h=img.height;
+  if(Math.max(w,h)>MAX){ if(w>h){h=Math.round(h*MAX/w);w=MAX;} else {w=Math.round(w*MAX/h);h=MAX;} }
+  const cv=document.createElement("canvas"); cv.width=w; cv.height=h;
+  const cx=cv.getContext("2d"); cx.drawImage(img,0,0,w,h);
+  const d=cx.getImageData(0,0,w,h); const p=d.data;
+  for(let i=0;i<p.length;i+=4){ let g=0.299*p[i]+0.587*p[i+1]+0.114*p[i+2]; g=(g-128)*1.4+128+10; g=g<0?0:g>255?255:g; p[i]=p[i+1]=p[i+2]=g; }
+  cx.putImageData(d,0,0); URL.revokeObjectURL(url);
+  return cv;
+}
+async function uploadReceipt(blob,userId){
+  try{
+    const path=(userId||"anon")+"/"+Date.now().toString(36)+Math.random().toString(36).slice(2,7)+".jpg";
+    const {error}=await sb.storage.from(RECEIPT_BUCKET).upload(path,blob,{contentType:"image/jpeg",upsert:false});
+    if(error){ console.error("[uploadReceipt]",error.message); return {path:null,error:error.message}; }
+    return {path};
+  }catch(e){ console.error("uploadReceipt exception:",e.message); return {path:null,error:e.message}; }
+}
+async function receiptSignedUrl(path){
+  try{ if(!path) return null; const {data,error}=await sb.storage.from(RECEIPT_BUCKET).createSignedUrl(path,600); return error?null:data?.signedUrl||null; }catch{ return null; }
+}
+async function deleteReceipt(path){
+  try{ if(path) await sb.storage.from(RECEIPT_BUCKET).remove([path]); }catch(e){ console.error("deleteReceipt:",e.message); }
+}
+let _tessP=null;
+function loadTesseract(){
+  if(window.Tesseract) return Promise.resolve(window.Tesseract);
+  if(_tessP) return _tessP;
+  _tessP=new Promise((res,rej)=>{
+    const s=document.createElement("script");
+    s.src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js";
+    s.onload=()=>window.Tesseract?res(window.Tesseract):rej(new Error("読み取り部品の読み込みに失敗"));
+    s.onerror=()=>{_tessP=null;rej(new Error("読み取り部品をダウンロードできません（通信状況を確認してください）"));};
+    document.head.appendChild(s);
+  });
+  return _tessP;
+}
+async function ocrReceipt(file,onProgress){
+  const T=await loadTesseract();
+  const cv=await prepReceiptForOcr(file);
+  const worker=await T.createWorker("jpn",1,{
+    langPath:"https://cdn.jsdelivr.net/gh/naptha/tessdata@gh-pages/4.0.0_fast",
+    logger:m=>{ if(m&&m.status&&onProgress) onProgress(m.status,m.progress||0); }
+  });
+  try{ const r=await worker.recognize(cv); return (r&&r.data&&r.data.text)||""; }
+  finally{ try{await worker.terminate();}catch{} }
+}
+// OCR文字列 → 日付・金額・店名・費目の候補
+function parseReceiptText(raw){
+  const z=String(raw||"").replace(/[０-９]/g,c=>String.fromCharCode(c.charCodeAt(0)-0xFEE0)).replace(/[，､、]/g,",").replace(/[．]/g,".").replace(/[￥]/g,"¥").replace(/[／]/g,"/").replace(/[－−]/g,"-");
+  // 日本語の文字どうしの間に入った空白を除く
+  const text=z.replace(/([぀-ヿ㐀-鿿])[ \t]+(?=[぀-ヿ㐀-鿿])/g,"$1");
+  const lines=text.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+  // 日付
+  const dates=[]; const dre=/(20\d{2}|\d{2})\s*[\/\-.年]\s*(\d{1,2})\s*[\/\-.月]\s*(\d{1,2})/g; let m;
+  while((m=dre.exec(text))){ let y=+m[1]; if(y<100) y+=2000; const mo=+m[2], d=+m[3]; if(y>=2000&&y<=2100&&mo>=1&&mo<=12&&d>=1&&d<=31){ const s=y+"-"+String(mo).padStart(2,"0")+"-"+String(d).padStart(2,"0"); if(!dates.includes(s)) dates.push(s); } }
+  // 金額
+  const num=s=>{ const t=String(s).replace(/[\s,]/g,"").replace(/\.(?=\d{3}\b)/g,""); const n=parseInt(t,10); return isFinite(n)?n:0; };
+  const keyRe=/(合計|総合計|お買上|お買い上|ご請求|請求額|お支払|支払額|税込|領収|総計)/;
+  const skipRe=/(小計|お預|お釣|おつり|釣銭|預り|税率|対象|内税|外税|消費税|\(内)/;
+  const amts=[]; const push=(n,w)=>{ if(n>=10&&n<=9999999){ const e=amts.find(a=>a.v===n); if(e) e.w=Math.max(e.w,w); else amts.push({v:n,w}); } };
+  lines.forEach((ln,i)=>{
+    const near=[ln, lines[i+1]||""].join(" ");
+    const isKey=keyRe.test(ln)&&!/小計/.test(ln); const isSkip=skipRe.test(ln)&&!keyRe.test(ln);
+    const re=/[¥\\]\s*([\d][\d,.\s]{0,9}\d|\d)|([\d][\d,]{1,9})\s*円/g; let a;
+    while((a=re.exec(ln))){ push(num(a[1]||a[2]), isKey?3:isSkip?0:1); }
+    if(isKey){ const re2=/(\d[\d,]{1,9})\s*$/; const b=re2.exec(ln)||re2.exec(lines[i+1]||""); if(b) push(num(b[1]),3); }
+  });
+  amts.sort((a,b)=>b.w-a.w||b.v-a.v);
+  // 店名：上のほうの行で、日本語を含み、数字だらけでない行
+  let store=""; for(const ln of lines.slice(0,6)){ if(/[぀-ヿ㐀-鿿]{2,}/.test(ln)&&!/(領収|レシート|電話|TEL|住所|〒|年|月|日|登録番号)/i.test(ln)&&ln.replace(/\D/g,"").length<ln.length/2){ store=ln.replace(/[|｜_]/g,"").slice(0,30); break; } }
+  // 費目の推定
+  const CATS=[["fert",/(肥料|堆肥|石灰|化成|液肥|腐葉土|培養土|苦土)/],["pest",/(農薬|殺虫|殺菌|除草剤|薬剤|スプレー)/],["seed",/(種|苗|球根|種子)/],["fuel",/(ガソリン|軽油|灯油|電気|ガス|水道|給油)/],["transport",/(段ボール|ダンボール|テープ|ラベル|送料|宅配|運賃|レジ袋|梱包)/],["clothing",/(手袋|長靴|作業服|作業着|帽子|雨具)/],["equip",/(マルチ|支柱|ビニール|ネット|ポット|ひも|紐|結束|肥料袋)/],["machine",/(はさみ|鋏|鎌|鍬|スコップ|シャベル|ホース|コンテナ|バケツ)/],["repair",/(修理|修繕|部品|交換)/]];
+  let cat=""; for(const [c,re] of CATS){ if(re.test(text)){ cat=c; break; } }
+  // 品名候補（金額が付いた行の文字部分）
+  const items=[]; lines.forEach(ln=>{ const mm=/^(.*?[぀-ヿ㐀-鿿A-Za-z]{2,}.*?)\s+[¥\\]?\s*\d[\d,]*\s*$/.exec(ln); if(mm&&!keyRe.test(ln)&&!skipRe.test(ln)){ const t=mm[1].replace(/\s+/g," ").trim(); if(t.length>=2&&t.length<=30&&!items.includes(t)) items.push(t); } });
+  return {dates:dates.slice(0,3), amts:amts.slice(0,4).map(a=>a.v), store, cat, items:items.slice(0,4), text};
+}
+
 // 住所→緯度経度変換（共通）
 async function geocode(addr) {
   let lat=34.9756, lon=138.3827;
@@ -1572,7 +1664,7 @@ function CalcInp({ value, onChange, placeholder="0", style={} }) {
   </>;
 }
 function Sel({ value, onChange, options, style={} }) { const selV = (value===0 || (value && value!==-1)) ? String(value) : ""; /* 0番目（先頭）の資材も選択状態にする */ return <select value={selV} onChange={e=>{ if(!options.find(o=>o.value===e.target.value)?.disabled) onChange(e.target.value); }} style={{...S.inp,...style}}>{options.map(o=><option key={o.value} value={o.value} disabled={o.disabled} style={o.disabled?{color:"#aaa",fontWeight:700,background:"#f5f5f0"}:{}}>{o.label}</option>)}</select>; }
-function TA({ value, onChange, placeholder="" }) { return <textarea value={value||""} onChange={e=>onChange(e.target.value)} placeholder={placeholder} style={{...S.inp,minHeight:65,resize:"vertical",lineHeight:1.5}} />; }
+function TA({ value, onChange, placeholder="", minHeight=65 }) { return <textarea value={value||""} onChange={e=>onChange(e.target.value)} placeholder={placeholder} style={{...S.inp,minHeight,resize:"vertical",lineHeight:1.5}} />; }
 function R2({ children }) { return <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>{children}</div>; }
 function R3({ children }) { return <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:6}}>{children}</div>; }
 function Prog({ pct }) { return <div style={{height:5,background:"#eee",borderRadius:999,overflow:"hidden",marginTop:6}}><div style={{height:"100%",borderRadius:999,background:"linear-gradient(90deg,"+G+","+G2+")",width:pct+"%",transition:"width .7s ease"}} /></div>; }
@@ -1734,7 +1826,7 @@ function LoginScreen() {
       <div style={{background:"#fff",borderRadius:20,padding:"28px 24px",maxWidth:360,width:"100%",textAlign:"center",boxShadow:"0 8px 40px rgba(0,0,0,.3)"}}>
         <div style={{fontSize:"2.2rem",marginBottom:6}}>🌾</div>
         <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:"1.3rem",color:G,marginBottom:4}}>サクメモ</div>
-        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v2.2.19</span></div>
+        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v2.2.21</span></div>
         {linkErr&&<div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:8,padding:"10px 12px",marginBottom:16,fontSize:".78rem",color:"#856404",textAlign:"left"}}>{linkErr}</div>}
 
 
@@ -1794,7 +1886,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v2.2.19</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v2.2.21</div>
       </div>
     </div>
   );
@@ -3988,6 +4080,69 @@ function SearchBox({ value, onChange, placeholder }) {
   );
 }
 
+
+// レシート添付＋端末内読み取り（画像は非公開バケットに保存し、表示のたびに期限付きURLを発行）
+function ReceiptBox({ mCost, setMCost, user, showToast }) {
+  const [thumb,setThumb]=useState(null);
+  const [busy,setBusy]=useState("");
+  const [prog,setProg]=useState("");
+  const [cand,setCand]=useState(null);
+  const [srcFile,setSrcFile]=useState(null);
+  const path=mCost.receiptUrl||"";
+  useEffect(()=>{ let off=false; setThumb(null); if(path) receiptSignedUrl(path).then(u=>{ if(!off) setThumb(u); }); return ()=>{off=true;}; },[path]);
+  const pick=async e=>{
+    const f=e.target.files&&e.target.files[0]; e.target.value=""; if(!f) return;
+    setBusy("save"); setCand(null);
+    try{
+      const blob=await compressReceipt(f);
+      const r=await uploadReceipt(blob,user&&user.id);
+      if(!r.path){ showToast("画像を保存できませんでした（"+(r.error||"")+"）。SQLを実行したか確認してください"); }
+      else { setSrcFile(f); setMCost(prev=>({...prev,receiptUrl:r.path,_oldReceipt:prev._oldReceipt!==undefined?prev._oldReceipt:(prev.receiptUrl||"")})); showToast("レシート画像を添付しました"); }
+    }catch(err){ showToast(err.message||"画像を処理できませんでした"); }
+    setBusy("");
+  };
+  const read=async()=>{
+    if(!srcFile){ showToast("読み取るには、画像をもう一度選んでください"); return; }
+    setBusy("ocr"); setProg("準備中…（初回は言語データの取得で1分ほどかかります）");
+    try{
+      const txt=await ocrReceipt(srcFile,(st,p)=>setProg((st||"読み取り中")+" "+Math.round(p*100)+"%"));
+      const r=parseReceiptText(txt);
+      if(!r.dates.length&&!r.amts.length&&!r.store){ showToast("うまく読み取れませんでした。明るい場所で、レシート全体をまっすぐ撮ってください"); }
+      setCand(r);
+    }catch(err){ showToast(err.message||"読み取りに失敗しました"); }
+    setBusy(""); setProg("");
+  };
+  const chip=(label,onClick)=><button key={label} onClick={onClick} style={{border:"1px solid #c9b88a",background:"#fffdf6",borderRadius:14,padding:"3px 10px",fontSize:".76rem",marginRight:5,marginBottom:5,cursor:"pointer",color:"#5c3d1e"}}>{label}</button>;
+  const catLabel=cand&&cand.cat?((COST_CATS.find(c=>c.value===cand.cat)||{}).label||""):"";
+  return <FG label="🧾 レシート">
+    {path&&<div style={{marginBottom:8}}>
+      {thumb?<a href={thumb} target="_blank" rel="noreferrer"><img src={thumb} alt="レシート" style={{maxWidth:"100%",maxHeight:180,borderRadius:8,border:"1px solid #e0d8c8"}}/></a>:<div style={{fontSize:".74rem",color:TX3}}>画像を読み込み中…</div>}
+      <div style={{fontSize:".66rem",color:TX3,marginTop:2}}>🔒 非公開で保存（タップで拡大）</div>
+    </div>}
+    <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+      <label style={{...S.secBtn,display:"inline-block",cursor:"pointer",opacity:busy?0.5:1}}>
+        {path?"📷 撮り直す／差し替え":"📷 レシートを撮る・選ぶ"}
+        <input type="file" accept="image/*" capture="environment" onChange={pick} disabled={!!busy} style={{display:"none"}}/>
+      </label>
+      {srcFile&&<button style={{...S.secBtn,background:"#2E7D32",color:"#fff"}} disabled={!!busy} onClick={read}>🔍 内容を読み取る</button>}
+      {path&&<button style={S.secBtn} disabled={!!busy} onClick={()=>{ if(window.confirm("このレシート画像を外しますか？（保存を押すと反映されます）")){ setMCost(prev=>({...prev,receiptUrl:"",_oldReceipt:prev._oldReceipt!==undefined?prev._oldReceipt:(prev.receiptUrl||"")})); setSrcFile(null); setCand(null); } }}>画像を外す</button>}
+    </div>
+    {busy==="save"&&<div style={{fontSize:".74rem",color:TX3,marginTop:6}}>画像を保存中…</div>}
+    {busy==="ocr"&&<div style={{fontSize:".74rem",color:TX3,marginTop:6}}>🔍 {prog}</div>}
+    {cand&&<div style={{marginTop:8,background:"#faf6ec",border:"1px solid #e6dcc0",borderRadius:8,padding:"8px 10px"}}>
+      <div style={{fontSize:".72rem",color:TX3,marginBottom:6}}>読み取り結果です（間違いがあります）。使うものをタップして入力してください。</div>
+      {cand.dates.length>0&&<div><div style={{fontSize:".7rem",fontWeight:700}}>日付</div>{cand.dates.map(d=>chip(d,()=>setMCost(prev=>({...prev,date:d}))))}</div>}
+      {cand.amts.length>0&&<div><div style={{fontSize:".7rem",fontWeight:700}}>金額</div>{cand.amts.map(a=>chip("¥"+a.toLocaleString(),()=>setMCost(prev=>({...prev,amt:String(a)}))))}</div>}
+      {(cand.store||cand.items.length>0)&&<div><div style={{fontSize:".7rem",fontWeight:700}}>内容・品名（タップで入力）</div>
+        {cand.store&&chip("🏪 "+cand.store,()=>setMCost(prev=>({...prev,name:cand.store})))}
+        {cand.items.map(t=>chip(t,()=>setMCost(prev=>({...prev,name:t}))))}</div>}
+      {cand.store&&<div><div style={{fontSize:".7rem",fontWeight:700}}>メモ</div>{chip("店名をメモに追加",()=>setMCost(prev=>({...prev,note:(prev.note?prev.note+"　":"")+"購入先："+cand.store})))}</div>}
+      {catLabel&&<div><div style={{fontSize:".7rem",fontWeight:700}}>費目の候補</div>{chip(catLabel,()=>setMCost(prev=>({...prev,cat:cand.cat})))}</div>}
+      <details style={{marginTop:4}}><summary style={{fontSize:".68rem",color:TX3,cursor:"pointer"}}>読み取った文字を見る</summary><pre style={{whiteSpace:"pre-wrap",fontSize:".68rem",margin:"4px 0 0"}}>{cand.text}</pre></details>
+    </div>}
+  </FG>;
+}
+
 function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equips, setEquips, costs, setCosts, logs, setLogs, showToast, cards=[], setCards, emoney=[], setEmoney, calcPayDate, user }) {
   const today = new Date();
   const curYear  = String(today.getFullYear());
@@ -4327,7 +4482,8 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
       _newCunit:undefined, _newPrice:undefined, _newTarget:undefined, _newNpk:undefined,
       _newItemType:undefined, depYears:undefined,
       _editMaster:undefined, _editName:undefined, _editType:undefined, _editCapacity:undefined,
-      _editCunit:undefined, _editPrice:undefined, _editTarget:undefined, _editNpk:undefined, _showRelink:undefined, _stkActual:undefined};
+      _editCunit:undefined, _editPrice:undefined, _editTarget:undefined, _editNpk:undefined, _showRelink:undefined, _stkActual:undefined, _oldReceipt:undefined};
+    if(mCost._oldReceipt && mCost._oldReceipt!==item.receiptUrl) deleteReceipt(mCost._oldReceipt);
     const n=mCost.id&&costs.find(x=>x.id===mCost.id)?costs.map(x=>x.id===mCost.id?item:x):[...costs,item];
     // 按分率をlocalStorageに保存
     if(!isIncome(mCost.cat)){
@@ -5191,6 +5347,7 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
                     {isKaigyo?"🏪開業費":cat.label.split(" ")[0]}
                   </span>
                   {isCancelled&&<span style={{fontSize:".58rem",background:"#EEE",color:"#999",borderRadius:3,padding:"0 4px"}}>取消</span>}
+                  {c.receiptUrl&&<span title="レシート画像あり" style={{fontSize:".62rem"}}>🧾</span>}
                 </div>
                 <div style={{fontSize:".74rem",fontWeight:700,color:isCancelled?"#999":"#1c1a14",
                   overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.name||"（内容なし）"}</div>
@@ -5207,7 +5364,7 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
               </div>
               {/* 複製・入金済みボタン */}
               <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
-                <button onClick={e=>{e.stopPropagation();setMCost({...c,id:undefined,date:todayStr(),cancelled:false,payDate:"",isReceivable:false,receivableDate:"",apportionRate:(()=>{try{const r=JSON.parse(localStorage.getItem("apportionRates")||"{}")[c.id];return r!==undefined?Number(r):c.apportionRate;}catch{return c.apportionRate;}})()});showToast("複製しました。内容を確認して保存してください");}}
+                <button onClick={e=>{e.stopPropagation();setMCost({...c,id:undefined,receiptUrl:"",date:todayStr(),cancelled:false,payDate:"",isReceivable:false,receivableDate:"",apportionRate:(()=>{try{const r=JSON.parse(localStorage.getItem("apportionRates")||"{}")[c.id];return r!==undefined?Number(r):c.apportionRate;}catch{return c.apportionRate;}})()});showToast("複製しました。内容を確認して保存してください");}}
                   title="複製"
                   style={{fontSize:"1rem",lineHeight:1,border:"none",background:"none",cursor:"pointer",padding:"4px",color:"#9b59b6"}}>📋</button>
                 {costTab==="receivable"&&c.isReceivable&&<button onClick={e=>{e.stopPropagation();const updated={...c,isReceivable:false,receivableDate:""};setCosts(costs.map(x=>x.id===c.id?updated:x),updated);showToast("入金済みにしました");}}
@@ -5420,7 +5577,7 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
               </FG>
               <FG label="日付"><Inp type="date" value={mBuy.date||todayStr()} onChange={v=>setMBuy({...mBuy,date:v})}/></FG>
             </R2>
-            <FG label="メモ"><Inp value={mBuy.note||""} onChange={v=>setMBuy({...mBuy,note:v})} placeholder="例：燃料代・修理費"/></FG>
+            <FG label="メモ"><TA value={mBuy.note||""} onChange={v=>setMBuy({...mBuy,note:v})} placeholder="例：燃料代・修理費・購入先など" minHeight={110}/></FG>
           </>}
         </ModalWithSave>
       </>}
@@ -5481,6 +5638,7 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
             </div>}
           </>}
           <FG label="内容・品名"><Inp value={mCost.name||""} onChange={v=>setMCost({...mCost,name:v})} placeholder="例：トマト苗/肥料/農産物売上"/></FG>
+          <ReceiptBox mCost={mCost} setMCost={setMCost} user={user} showToast={showToast}/>
           {/* 肥料費・農薬費：購入記録＋在庫連動 (v2.0.9 強化) */}
           {(mCost.cat==="fert"||mCost.cat==="pest")&&(()=>{
             const msList = mCost.cat==="fert" ? fertMs : pestMs;
@@ -5916,12 +6074,12 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
               </>}
             </div>;
           })()}
-          <FG label="メモ"><Inp value={mCost.note||""} onChange={v=>setMCost({...mCost,note:v})} placeholder="購入先・領収書番号など"/></FG>
+          <FG label="メモ"><TA value={mCost.note||""} onChange={v=>setMCost({...mCost,note:v})} placeholder={"購入先・領収書番号・内容・使い道など、自由にメモできます"} minHeight={140}/></FG>
           {mCost.id&&<div style={{display:"flex",gap:6,marginTop:8}}>
             {!mCost.cancelled
               ? <button onClick={()=>{if(window.confirm("この取引を取り消しますか？（記録は残ります）")){const orig=costs.find(x=>x.id===mCost.id)||mCost;const updated={...orig,cancelled:true};setCosts(costs.map(x=>x.id===mCost.id?updated:x),updated);const amt=costStockAmt(orig);if(amt>0)adjustMasterStock(orig.masterId,-amt);setMCost(null);showToast(amt>0?"取り消しました（在庫から"+Math.round(amt*100)/100+"を戻しました）":"取り消しました");}}} style={{...S.btn,background:"#FFF3E0",color:"#E65100",border:"1px solid #FFCC80",flex:1}}>取消</button>
               : <button onClick={()=>{if(window.confirm("取り消しを復活させますか？")){const orig=costs.find(x=>x.id===mCost.id)||mCost;const updated={...orig,cancelled:false};setCosts(costs.map(x=>x.id===mCost.id?updated:x),updated);const amt=costStockAmt(orig);if(amt>0)adjustMasterStock(orig.masterId,amt);setMCost(null);showToast(amt>0?"復活しました（在庫に"+Math.round(amt*100)/100+"を再加算）":"復活しました");}}} style={{...S.btn,background:"#E8F5E9",color:"#2E7D32",border:"1px solid #A5D6A7",flex:1}}>復活</button>}
-            <button onClick={()=>{if(window.confirm("削除しますか？")){const n=costs.filter(x=>x.id!==mCost.id);try{const r=getApportionRates();delete r[mCost.id];localStorage.setItem("apportionRates",JSON.stringify(r));}catch{}if(mCost.id){dbDelete("costs",mCost.id);}setCosts(n);const orig=costs.find(x=>x.id===mCost.id);const amt=orig&&!orig.cancelled?costStockAmt(orig):0;if(amt>0&&window.confirm("この購入で在庫に加算した分（"+Math.round(amt*100)/100+"）を在庫から戻しますか？"))adjustMasterStock(orig.masterId,-amt);setMCost(null);showToast("削除しました");}}} style={{...S.btn,...S.btnR,flex:1}}>削除</button>
+            <button onClick={()=>{if(window.confirm("削除しますか？")){const n=costs.filter(x=>x.id!==mCost.id);try{const r=getApportionRates();delete r[mCost.id];localStorage.setItem("apportionRates",JSON.stringify(r));}catch{}if(mCost.id){dbDelete("costs",mCost.id);}{const _rp=(costs.find(x=>x.id===mCost.id)||{}).receiptUrl||mCost.receiptUrl; if(_rp) deleteReceipt(_rp);}setCosts(n);const orig=costs.find(x=>x.id===mCost.id);const amt=orig&&!orig.cancelled?costStockAmt(orig):0;if(amt>0&&window.confirm("この購入で在庫に加算した分（"+Math.round(amt*100)/100+"）を在庫から戻しますか？"))adjustMasterStock(orig.masterId,-amt);setMCost(null);showToast("削除しました");}}} style={{...S.btn,...S.btnR,flex:1}}>削除</button>
           </div>}
         </>}
       </ModalWithSave>
