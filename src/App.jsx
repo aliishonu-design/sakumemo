@@ -1826,7 +1826,7 @@ function LoginScreen() {
       <div style={{background:"#fff",borderRadius:20,padding:"28px 24px",maxWidth:360,width:"100%",textAlign:"center",boxShadow:"0 8px 40px rgba(0,0,0,.3)"}}>
         <div style={{fontSize:"2.2rem",marginBottom:6}}>🌾</div>
         <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:"1.3rem",color:G,marginBottom:4}}>サクメモ</div>
-        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v2.2.21</span></div>
+        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v2.2.22</span></div>
         {linkErr&&<div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:8,padding:"10px 12px",marginBottom:16,fontSize:".78rem",color:"#856404",textAlign:"left"}}>{linkErr}</div>}
 
 
@@ -1886,7 +1886,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v2.2.21</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v2.2.22</div>
       </div>
     </div>
   );
@@ -5637,7 +5637,7 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
               　（{parseFloat(mCost.discount).toLocaleString()}円 割引）
             </div>}
           </>}
-          <FG label="内容・品名"><Inp value={mCost.name||""} onChange={v=>setMCost({...mCost,name:v})} placeholder="例：トマト苗/肥料/農産物売上"/></FG>
+          <FG label="内容・品名"><Inp value={mCost.name||""} onChange={v=>setMCost({...mCost,name:v,...((mCost.cat==="equip"||mCost.cat==="machine")&&mCost._newItem?{_newName:v}:{})})} placeholder="例：トマト苗/肥料/農産物売上"/></FG>
           <ReceiptBox mCost={mCost} setMCost={setMCost} user={user} showToast={showToast}/>
           {/* 肥料費・農薬費：購入記録＋在庫連動 (v2.0.9 強化) */}
           {(mCost.cat==="fert"||mCost.cat==="pest")&&(()=>{
@@ -6009,7 +6009,7 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
                     }} options={[{value:"",label:"（既存から選択）"},...equipList.map(e=>({value:e.id,label:e.name}))]}/>
                   </>}
                   <button onClick={()=>{
-                    setMCost({...mCost,_newItem:true,_newType:EQUIP_CATS[0],_newName:"",_buyOpen:true});
+                    setMCost({...mCost,_newItem:true,_newType:EQUIP_CATS[0],_newName:mCost.name||"",_buyOpen:true});
                   }} style={{...S.btn,background:"#f0e8d0",color:"#5c3d1e",border:"1px solid #c8a84b",marginTop:6,fontSize:".78rem",width:"100%"}}>
                     ＋ 新しい{equipLabel}を登録して購入
                   </button>
