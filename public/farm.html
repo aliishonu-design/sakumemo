@@ -662,7 +662,7 @@ async function main(){
     allCrops=res[0]||[];allEquips=res[2]||[];
     // 公開設定した品目の記録だけを表示（非公開の品目・品目なしの記録は出さない）
     var pubIds={};allCrops.forEach(function(c){pubIds[c.id]=1;});
-    allLogs=(res[1]||[]).filter(function(l){return l.crop_id&&pubIds[l.crop_id];});
+    allLogs=(res[1]||[]).filter(function(l){return l.work!=='schedule'&&l.crop_id&&pubIds[l.crop_id];});
 
     if(!allCrops.length){document.getElementById('main').innerHTML='<div class="empty"><div class="empty-icon">🌱</div><p>公開されている品目がありません</p></div>';return;}
 
