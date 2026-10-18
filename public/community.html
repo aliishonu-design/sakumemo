@@ -352,7 +352,7 @@ api('public_farms','is_public=eq.true&select=*').then(function(farms){
     allCrops=results[0]||[];
     // 公開設定した品目の記録だけを表示
     var pubIds={};allCrops.forEach(function(c){pubIds[c.id]=1;});
-    allLogs=(results[1]||[]).filter(function(l){return l.crop_id&&pubIds[l.crop_id];});
+    allLogs=(results[1]||[]).filter(function(l){return l.work!=='schedule'&&l.crop_id&&pubIds[l.crop_id];});
     renderAll();
   }).catch(function(){
     document.getElementById('main-container').innerHTML='<div class="empty">データの読み込みに失敗しました</div>';
