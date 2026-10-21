@@ -1826,7 +1826,7 @@ function LoginScreen() {
       <div style={{background:"#fff",borderRadius:20,padding:"28px 24px",maxWidth:360,width:"100%",textAlign:"center",boxShadow:"0 8px 40px rgba(0,0,0,.3)"}}>
         <div style={{fontSize:"2.2rem",marginBottom:6}}>🌾</div>
         <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:"1.3rem",color:G,marginBottom:4}}>サクメモ</div>
-        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v2.2.22</span></div>
+        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v2.2.23</span></div>
         {linkErr&&<div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:8,padding:"10px 12px",marginBottom:16,fontSize:".78rem",color:"#856404",textAlign:"left"}}>{linkErr}</div>}
 
 
@@ -1886,7 +1886,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v2.2.22</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v2.2.23</div>
       </div>
     </div>
   );
@@ -3651,11 +3651,12 @@ function TimelineScreen({ fields, crops, equips, logs, setLogs, setLogsR, showTo
   const WORK_LABELS = {sow:'播種',germinated:'発芽確認',transplant:'定植',water:'水やり',fert:'施肥',pest:'防除',pruning:'整枝・誘引',thinning:'摘果・摘花',sideshot:'脇芽かき',repot:'植え替え',event:'生育記録',harvest:'収穫',discard:'廃棄',equip:'資材作業',check:'見回り',soil:'土づくり',amend:'土壌改良',weed:'除草',hormone:'ホルモン処理',other:'その他',end:'栽培終了'};
 
   // フィルタ済みログ
-  const filtered = logs.filter(l=>{
-    if(l.work==='schedule') return false; // カスタム予定はタイムラインに表示しない
-    if(selCropId && l.cropId !== selCropId) return false;
-    if(fW && l.work !== fW) return false;
-    if(q){
+  // 1枚のカードにまとまる記録（同じ日・品目・圃場・時刻、またはグループID）のキー
+  const _cardKey = l => l._groupId || (l.cropId+':'+l.fieldIdx+':'+l.date+':'+(l.time||''));
+  const _baseOk = l => !(l.work==='schedule') && !(selCropId && l.cropId !== selCropId) && !(fW && l.work !== fW);
+  const _textOk = l=>{
+    if(!q) return true;
+    {
       const cr=crops.find(c=>c.id===l.cropId)||{};
       const db=CDB[cr.type]||{};
       const d=l.date||'';
@@ -3668,6 +3669,13 @@ function TimelineScreen({ fields, crops, equips, logs, setLogs, setLogsR, showTo
       if(!matchQ(txt, q)) return false;
     }
     return true;
+  };
+  // 検索で1件でも当たったカードは、同じカードの他の作業（施肥＋土壌改良など）も省かずに全部表示する
+  const _hitKeys = new Set();
+  if(q) logs.forEach(l=>{ if(_baseOk(l) && _textOk(l)) _hitKeys.add(_cardKey(l)); });
+  const filtered = logs.filter(l=>{
+    if(!_baseOk(l)) return false;
+    return q ? _hitKeys.has(_cardKey(l)) : true;
   }).sort((a,b)=>((b.date||'')+(b.time||''))>((a.date||'')+(a.time||''))?1:-1);
 
   // 日付でグループ化
