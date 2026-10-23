@@ -1201,6 +1201,78 @@ function parseReceiptText(raw){
   return {dates:dates.slice(0,3), amts:amts.slice(0,4).map(a=>a.v), store, cat, items:items.slice(0,4), text};
 }
 
+
+// ===== 予定の取り込み（Excel / CSV）=====
+// 列：日付 / 予定（タイトル）/ 品目（任意）/ 備考（任意）。1行目は見出し行
+let _xlsxP=null;
+function loadXlsxLib(){
+  if(window.XLSX) return Promise.resolve(window.XLSX);
+  if(_xlsxP) return _xlsxP;
+  _xlsxP=new Promise((res,rej)=>{
+    const sc=document.createElement("script");
+    sc.src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js";
+    sc.onload=()=>window.XLSX?res(window.XLSX):rej(new Error("Excel読み取り部品の読み込みに失敗"));
+    sc.onerror=()=>{_xlsxP=null;rej(new Error("Excel読み取り部品をダウンロードできません。CSVで保存し直して試してください"));};
+    document.head.appendChild(sc);
+  });
+  return _xlsxP;
+}
+function parseCsvText(text){
+  const rows=[]; let row=[],cur="",q=false; const t=String(text||"").replace(/^﻿/,"");
+  for(let i=0;i<t.length;i++){
+    const ch=t[i];
+    if(q){ if(ch==='"'){ if(t[i+1]==='"'){cur+='"';i++;} else q=false; } else cur+=ch; }
+    else if(ch==='"') q=true;
+    else if(ch===","||ch==="\t"){ row.push(cur); cur=""; }
+    else if(ch==="\n"||ch==="\r"){ if(ch==="\r"&&t[i+1]==="\n") i++; row.push(cur); cur=""; rows.push(row); row=[]; }
+    else cur+=ch;
+  }
+  if(cur!==""||row.length){ row.push(cur); rows.push(row); }
+  return rows;
+}
+function normSchedDate(v, baseYear){
+  if(v==null||v==="") return "";
+  if(v instanceof Date && !isNaN(v)) return v.getFullYear()+"-"+String(v.getMonth()+1).padStart(2,"0")+"-"+String(v.getDate()).padStart(2,"0");
+  if(typeof v==="number" && v>20000 && v<80000){ const d=new Date(Math.round((v-25569)*86400000)); return d.getUTCFullYear()+"-"+String(d.getUTCMonth()+1).padStart(2,"0")+"-"+String(d.getUTCDate()).padStart(2,"0"); }
+  const s=String(v).trim().replace(/[０-９]/g,c=>String.fromCharCode(c.charCodeAt(0)-0xFEE0));
+  let m=s.match(/(\d{4})\s*[\/\-.年]\s*(\d{1,2})\s*[\/\-.月]\s*(\d{1,2})/);
+  if(m) return m[1]+"-"+String(+m[2]).padStart(2,"0")+"-"+String(+m[3]).padStart(2,"0");
+  m=s.match(/^(\d{1,2})\s*[\/\-.月]\s*(\d{1,2})/);
+  if(m) return (baseYear||new Date().getFullYear())+"-"+String(+m[1]).padStart(2,"0")+"-"+String(+m[2]).padStart(2,"0");
+  return "";
+}
+function parseScheduleRows(rows){
+  const clean=(rows||[]).map(r=>(r||[]).map(c=>c==null?"":c));
+  let hi=clean.findIndex(r=>r.some(c=>String(c).trim()==="日付")&&r.some(c=>/^(予定|タイトル|内容)$/.test(String(c).trim())));
+  if(hi<0) return {items:[],error:"見出し行（日付・予定・品目）が見つかりません"};
+  const h=clean[hi].map(c=>String(c).trim());
+  const ci=(re)=>h.findIndex(c=>re.test(c));
+  const iD=ci(/^日付$/), iT=ci(/^(予定|タイトル|内容)$/), iC=ci(/^品目/), iN=ci(/^(備考|メモ)/);
+  const items=[]; let skipped=0;
+  clean.slice(hi+1).forEach(r=>{
+    const date=normSchedDate(r[iD]); const title=String(r[iT]==null?"":r[iT]).trim();
+    if(!title && !date) return;
+    if(!date||!title){ skipped++; return; }
+    const note=iN>=0?String(r[iN]||"").trim():"";
+    items.push({date, title: note? title+"（"+note+"）" : title, cropText: iC>=0?String(r[iC]||"").trim():""});
+  });
+  return {items, skipped};
+}
+function matchCropByText(text, cropList){
+  const norm=x=>String(x||"").replace(/[\s　()（）・\-]/g,"").toLowerCase();
+  const t=norm(text); if(!t) return "";
+  let best="",score=0;
+  cropList.forEach(c=>{
+    const db=CDB[c.type]||{}; const name=norm(c.type==="custom"?c.customName:db.n); const vr=norm(c.variety);
+    if(!name) return;
+    let sc=0;
+    if(t.includes(name)||name.includes(t)) sc=1;
+    if(sc && vr && t.includes(vr)) sc=2;
+    if(sc>score){ score=sc; best=c.id; }
+  });
+  return best;
+}
+
 // 住所→緯度経度変換（共通）
 async function geocode(addr) {
   let lat=34.9756, lon=138.3827;
@@ -1826,7 +1898,7 @@ function LoginScreen() {
       <div style={{background:"#fff",borderRadius:20,padding:"28px 24px",maxWidth:360,width:"100%",textAlign:"center",boxShadow:"0 8px 40px rgba(0,0,0,.3)"}}>
         <div style={{fontSize:"2.2rem",marginBottom:6}}>🌾</div>
         <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:"1.3rem",color:G,marginBottom:4}}>サクメモ</div>
-        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v2.2.23</span></div>
+        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v2.2.24</span></div>
         {linkErr&&<div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:8,padding:"10px 12px",marginBottom:16,fontSize:".78rem",color:"#856404",textAlign:"left"}}>{linkErr}</div>}
 
 
@@ -1886,7 +1958,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v2.2.23</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v2.2.24</div>
       </div>
     </div>
   );
@@ -1895,6 +1967,38 @@ function LoginScreen() {
 function HomeScreen({ fields, crops, setCrops, logs, setLogs, costs, onEditCrop, showToast, setScr, onNew, dbLoad, dbSaveLog, dbDelete }) {
   const [reminderMode, setReminderMode] = useState("both"); // "auto"|"custom"|"both"
   const [mSched, setMSched] = useState(null); // カスタム予定モーダル {date,title,cropId,id}
+  const [mImp, setMImp] = useState(null); // 予定の取り込み {rows:[{date,title,cropId,dup,on}], note}
+  const impFileRef = useRef(null);
+  const onPickImport = async e => {
+    const f=e.target.files&&e.target.files[0]; e.target.value=""; if(!f) return;
+    try{
+      let rows;
+      if(/\.csv$|\.txt$/i.test(f.name)){
+        const buf=await f.arrayBuffer(); let txt=new TextDecoder("utf-8").decode(buf);
+        if(txt.includes("\uFFFD")){ try{ txt=new TextDecoder("shift_jis").decode(buf); }catch{} }
+        rows=parseCsvText(txt);
+      } else {
+        const X=await loadXlsxLib(); const wb=X.read(await f.arrayBuffer(),{type:"array",cellDates:true});
+        const ws=wb.Sheets[wb.SheetNames[0]]; rows=X.utils.sheet_to_json(ws,{header:1,raw:true,defval:""});
+      }
+      const r=parseScheduleRows(rows);
+      if(r.error){ showToast(r.error); return; }
+      if(!r.items.length){ showToast("取り込める予定がありません"); return; }
+      const active=crops.filter(c=>!c.ended);
+      const list=r.items.map(it=>{
+        const cropId=matchCropByText(it.cropText,active);
+        const dup=logs.some(l=>l.work==="schedule"&&l.date===it.date&&l.memo===it.title&&(l.cropId||"")===cropId);
+        return {...it, cropId, dup, on:!dup};
+      });
+      setMImp({rows:list, skipped:r.skipped||0});
+    }catch(err){ showToast(err.message||"読み込みに失敗しました"); }
+  };
+  const doImport = () => {
+    const sel=mImp.rows.filter(x=>x.on); if(!sel.length){ showToast("取り込む予定を選んでください"); return; }
+    const items=sel.map(x=>({id:uid0(),_groupId:null,fieldIdx:0,cropId:x.cropId||"",work:"schedule",memo:x.title,date:x.date,time:"",duration:"",imgSrc:null,imgSrc2:null,imgSrc3:null}));
+    setLogs([...logs,...items]); items.forEach(it=>dbSaveLog(it));
+    setMImp(null); showToast(items.length+"件の予定を取り込みました");
+  };
   // 自動リマインダーの非表示リスト（key→true）、localStorageで永続化
   const [dismissedAuto, setDismissedAuto] = useState(()=>{
     try{return JSON.parse(localStorage.getItem('sakumemo_dismissed_auto')||'{}');}catch{return{};}
@@ -2082,8 +2186,13 @@ function HomeScreen({ fields, crops, setCrops, logs, setLogs, costs, onEditCrop,
       <div style={{...S.card,marginBottom:12}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
           <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".88rem",color:"#5c3d1e"}}>📅 次の作業予定</div>
-          <button onClick={()=>setMSched({date:todayStr(),title:"",cropId:"",id:null})}
-            style={{...S.btn,...S.btnSm,background:G,color:"#fff",fontSize:".72rem"}}>＋ 予定追加</button>
+          <div style={{display:"flex",gap:6}}>
+            <button onClick={()=>impFileRef.current&&impFileRef.current.click()}
+              style={{...S.btn,...S.btnSm,background:"#fff",color:G,border:"1px solid "+G,fontSize:".72rem"}}>📥 取り込み</button>
+            <button onClick={()=>setMSched({date:todayStr(),title:"",cropId:"",id:null})}
+              style={{...S.btn,...S.btnSm,background:G,color:"#fff",fontSize:".72rem"}}>＋ 予定追加</button>
+          </div>
+          <input ref={impFileRef} type="file" accept=".xlsx,.xls,.csv,.txt" onChange={onPickImport} style={{display:"none"}}/>
         </div>
         {/* モード切替 */}
         <div style={{display:"flex",borderRadius:8,overflow:"hidden",border:"1px solid #e0d9ce",marginBottom:10}}>
@@ -2133,6 +2242,23 @@ function HomeScreen({ fields, crops, setCrops, logs, setLogs, costs, onEditCrop,
         }
       </div>
       {/* カスタム予定モーダル */}
+      {mImp&&<ModalWithSave open={!!mImp} title="予定を取り込む" saveLabel={"取り込む（"+mImp.rows.filter(x=>x.on).length+"件）"} onSave={doImport} onClose={()=>setMImp(null)}>
+        <div style={{fontSize:".72rem",color:"#555",lineHeight:1.6,marginBottom:8}}>チェックした予定だけを登録します。同じ日・同じ内容の予定がすでにあるものは、チェックを外してあります。品目は読み取れたものを選んでありますので、違う場合は直してください。{mImp.skipped>0?"（日付か予定が空の "+mImp.skipped+" 行は除きました）":""}</div>
+        <div style={{display:"flex",gap:8,marginBottom:8}}>
+          <button style={{...S.btn,...S.btnSm,fontSize:".7rem"}} onClick={()=>setMImp({...mImp,rows:mImp.rows.map(x=>({...x,on:true}))})}>すべて選ぶ</button>
+          <button style={{...S.btn,...S.btnSm,fontSize:".7rem"}} onClick={()=>setMImp({...mImp,rows:mImp.rows.map(x=>({...x,on:false}))})}>すべて外す</button>
+        </div>
+        {mImp.rows.map((x,i)=><div key={i} style={{border:"1px solid #e0d9ce",borderRadius:8,padding:"6px 8px",marginBottom:6,background:x.on?"#fff":"#f6f3ee",opacity:x.on?1:0.7}}>
+          <label style={{display:"flex",gap:8,alignItems:"flex-start",cursor:"pointer"}}>
+            <input type="checkbox" checked={x.on} onChange={e=>setMImp({...mImp,rows:mImp.rows.map((y,j)=>j===i?{...y,on:e.target.checked}:y)})} style={{marginTop:3}}/>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{fontSize:".74rem",fontWeight:700,color:"#5c3d1e"}}>{x.date.slice(5).replace("-","/")}　{x.dup&&<span style={{fontSize:".62rem",background:"#EEE",color:"#888",borderRadius:3,padding:"0 4px"}}>登録済み</span>}</div>
+              <div style={{fontSize:".78rem",lineHeight:1.5}}>{x.title}</div>
+            </div>
+          </label>
+          <div style={{marginTop:4}}><Sel value={x.cropId||""} onChange={v=>setMImp({...mImp,rows:mImp.rows.map((y,j)=>j===i?{...y,cropId:v}:y)})} options={makeCropOptions(crops.filter(c=>!c.ended),"品目なし")}/></div>
+        </div>)}
+      </ModalWithSave>}
       {mSched&&<ModalWithSave open={!!mSched} title={mSched.id?"予定を編集":"予定を追加"} onSave={saveSchedule} onClose={()=>setMSched(null)}>
         <FG label="タイトル *"><Inp value={mSched.title} onChange={v=>setMSched({...mSched,title:v})} placeholder="例：追肥・収穫など"/></FG>
         <FG label="予定日"><Inp type="date" value={mSched.date} onChange={v=>setMSched({...mSched,date:v})}/></FG>
