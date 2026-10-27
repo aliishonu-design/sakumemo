@@ -1935,7 +1935,7 @@ function LoginScreen() {
       <div style={{background:"#fff",borderRadius:20,padding:"28px 24px",maxWidth:360,width:"100%",textAlign:"center",boxShadow:"0 8px 40px rgba(0,0,0,.3)"}}>
         <div style={{fontSize:"2.2rem",marginBottom:6}}>🌾</div>
         <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:"1.3rem",color:G,marginBottom:4}}>サクメモ</div>
-        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v2.2.27</span></div>
+        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v2.2.28</span></div>
         {linkErr&&<div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:8,padding:"10px 12px",marginBottom:16,fontSize:".78rem",color:"#856404",textAlign:"left"}}>{linkErr}</div>}
 
 
@@ -1995,7 +1995,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v2.2.27</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v2.2.28</div>
       </div>
     </div>
   );
@@ -7496,16 +7496,13 @@ function PlanScreen({ fields, crops, setCrops, plots, setPlots, setPlotsR, showT
                             style={{position:"absolute",left:lx,width:bw,top:4+(laneOf[pl.id]||0)*30,height:26,
                               background:cropColorByType(c.type),borderRadius:5,display:"flex",alignItems:"center",
                               fontSize:".6rem",color:"#fff",overflow:"hidden",whiteSpace:"nowrap",
-                              boxShadow:"0 1px 3px rgba(0,0,0,.2)",touchAction:"none",zIndex:2}}>
-                            <div onMouseDown={e=>onDragStart(e,pl,"start")} onTouchStart={e=>onDragStart(e,pl,"start")}
-                              style={{width:8,height:"100%",cursor:"ew-resize",flexShrink:0,background:"rgba(255,255,255,.25)"}}/>
-                            <div onMouseDown={e=>onDragStart(e,pl,"move")} onTouchStart={e=>onDragStart(e,pl,"move")}
-                              onClick={()=>{if(!drag||!drag.moved){const _bed=plan.beds.find(b=>b.id===pl.bedId);setMPlant({...pl,year,_prevCrops:(_bed?.prevCrops||[])});};}}
-                              style={{flex:1,height:"100%",display:"flex",alignItems:"center",paddingLeft:3,cursor:"grab",overflow:"hidden"}}>
+                              boxShadow:"0 1px 3px rgba(0,0,0,.2)",zIndex:2}}>
+                            {/* 期間の変更は、タップして開く画面の日付入力からだけ行う（ドラッグでは動かさない） */}
+                            <div
+                              onClick={()=>{const _bed=plan.beds.find(b=>b.id===pl.bedId);setMPlant({...pl,year,_prevCrops:(_bed?.prevCrops||[])});}}
+                              style={{flex:1,height:"100%",display:"flex",alignItems:"center",paddingLeft:6,cursor:"pointer",overflow:"hidden"}}>
                               {cropFull(c)}
                             </div>
-                            <div onMouseDown={e=>onDragStart(e,pl,"end")} onTouchStart={e=>onDragStart(e,pl,"end")}
-                              style={{width:8,height:"100%",cursor:"ew-resize",flexShrink:0,background:"rgba(255,255,255,.25)"}}/>
                           </div>
                         );
                       })}
