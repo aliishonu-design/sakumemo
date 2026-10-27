@@ -1611,6 +1611,18 @@ function CalcInp({ value, onChange, placeholder="0", style={} }) {
   const [expr, setExpr] = useState("");
   const [display, setDisplay] = useState("");
   const inputRef = useRef(null);
+  // PC（マウス操作）のときは、パッドを開かなくても、そのままキーボードで入力できる
+  const [isPC] = useState(()=>{ try{ return !!(window.matchMedia && window.matchMedia("(pointer: fine)").matches && !window.matchMedia("(pointer: coarse)").matches); }catch{ return false; } });
+  const [txt, setTxt] = useState(value?String(value):"");
+  const focusedRef = useRef(false);
+  useEffect(()=>{ if(!focusedRef.current) setTxt(value?String(value):""); },[value]);
+  const commitTxt = () => {
+    const t=txt.trim();
+    if(!t){ onChange(""); setTxt(""); return; }
+    const r=evalExpr(t);
+    if(r!==null){ onChange(String(r)); setTxt(String(r)); }
+    else { setTxt(value?String(value):""); }
+  };
 
   const evalExpr = (e) => {
     const safe = e.replace(/×/g,"*").replace(/÷/g,"/").replace(/−/g,"-").replace(/＋/g,"+").replace(/[^0-9+\-*/.()]/g,"");
@@ -1623,14 +1635,17 @@ function CalcInp({ value, onChange, placeholder="0", style={} }) {
     } catch { return null; }
   };
 
+  const overlayRef = useRef(null);
+  useEffect(()=>{ if(open && overlayRef.current) overlayRef.current.focus(); },[open]);
   const openCalc = () => {
+    if(inputRef.current && inputRef.current.blur) inputRef.current.blur();
     setExpr(value ? String(value) : "");
     setDisplay(value ? String(value) : "");
     setOpen(true);
   };
 
   const pressKey = (k) => {
-    if(k === "AC") { setExpr(""); setDisplay(""); onChange(""); setOpen(false); return; }
+    if(k === "AC") { setExpr(""); setDisplay(""); onChange(""); return; } // クリアしても入力パッドは閉じない
     if(k === "⌫") { const ne=expr.slice(0,-1); setExpr(ne); setDisplay(ne); return; }
     if(k === "＝") {
       const r = evalExpr(expr);
@@ -1671,7 +1686,28 @@ function CalcInp({ value, onChange, placeholder="0", style={} }) {
   ];
 
   return <>
-    <input
+    {isPC
+      ? <div style={{display:"flex",gap:4,alignItems:"center",...style}}>
+          <input
+            ref={inputRef}
+            type="text"
+            inputMode="decimal"
+            value={txt}
+            placeholder={placeholder}
+            onFocus={()=>{focusedRef.current=true;}}
+            onChange={e=>{
+              const v=e.target.value.replace(/[^0-9+\-*/.()×÷−＋,]/g,"");
+              setTxt(v);
+              if(/^-?\d*\.?\d*$/.test(v)) onChange(v); // 数字だけなら、そのまま反映
+            }}
+            onBlur={()=>{focusedRef.current=false;commitTxt();}}
+            onKeyDown={e=>{ if(e.key==="Enter"){ e.preventDefault(); commitTxt(); } }}
+            style={{...S.inp,flex:1,minWidth:0,background:"#fffdf8"}}
+          />
+          <button type="button" onClick={openCalc} title="電卓を開く（+ − × ÷ の計算）"
+            style={{border:"1px solid #e0d9ce",background:"#fff",borderRadius:8,padding:"0 8px",height:"100%",minHeight:34,cursor:"pointer",fontSize:".95rem",flexShrink:0}}>🧮</button>
+        </div>
+      : <input
       ref={inputRef}
       type="text"
       inputMode="none"
@@ -1681,11 +1717,12 @@ function CalcInp({ value, onChange, placeholder="0", style={} }) {
       onClick={openCalc}
       onKeyDown={handleKeyDown}
       style={{...S.inp,...style,cursor:"pointer",background:"#fffdf8"}}
-    />
+    />}
     {open && <div
       style={{position:"fixed",top:0,left:0,right:0,bottom:0,zIndex:10000,display:"flex",flexDirection:"column",justifyContent:"flex-end"}}
       onClick={e=>{if(e.target===e.currentTarget)confirm();}}
       onKeyDown={handleKeyDown}
+      ref={overlayRef}
       tabIndex={-1}
     >
       <div style={{background:"#f8f5ef",borderRadius:"16px 16px 0 0",padding:"12px 16px 0",boxShadow:"0 -4px 24px rgba(0,0,0,.18)",
@@ -1898,7 +1935,7 @@ function LoginScreen() {
       <div style={{background:"#fff",borderRadius:20,padding:"28px 24px",maxWidth:360,width:"100%",textAlign:"center",boxShadow:"0 8px 40px rgba(0,0,0,.3)"}}>
         <div style={{fontSize:"2.2rem",marginBottom:6}}>🌾</div>
         <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:"1.3rem",color:G,marginBottom:4}}>サクメモ</div>
-        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v2.2.26</span></div>
+        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v2.2.27</span></div>
         {linkErr&&<div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:8,padding:"10px 12px",marginBottom:16,fontSize:".78rem",color:"#856404",textAlign:"left"}}>{linkErr}</div>}
 
 
@@ -1958,7 +1995,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v2.2.26</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v2.2.27</div>
       </div>
     </div>
   );
