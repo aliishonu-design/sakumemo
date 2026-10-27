@@ -47,8 +47,8 @@ const dbDelete = async (table, id) => {
 const safeJson = (v, fb) => { if(v==null||v==='') return fb; if(typeof v!=='string') return v; try{ return JSON.parse(v); }catch{ return fb; } };
 const fieldToDb   = (o, uid) => ({ id:o.id, user_id:uid, name:o.name||"", area:o.area||null, soil:o.soil||null, addr:o.addr||null, memo:o.memo||null, prefecture:o.prefecture||null });
 const fieldFromDb = r => ({ id:r.id, name:r.name||"", area:r.area||"", soil:r.soil||"", addr:r.addr||"", memo:r.memo||"", prefecture:r.prefecture||"" });
-const cropToDb    = (o, uid) => ({ id:o.id, user_id:uid, field_id:o.fieldId||null, type:o.type||null, variety:o.variety||null, germ_rate:o.germRate||null, stocks:o.stocks||null, ridge_w:o.ridgeW||null, ridge_h:o.ridgeH||null, rows:o.rows||null, row_space:o.rowSpace||null, plant_space:o.plantSpace||null, sow_date:o.sowDate||null, plant_date:o.plantDate||null, memo:o.memo||null, cultivation_type:o.cultivationType||null, seed_cost:o.seedCost||null, seed_note:o.seedNote||null, custom_name:o.customName||null, ended:o.ended||false, end_date:o.endDate||null, maturity:o.maturity||null, custom_days:o.customDays||null, custom_water:o.customWater||null, pot_size:o.potSize||null, pot_volume:o.potVolume||null, pot_count:o.potCount||null, grow_env:o.growEnv||null, agri_month_start:o.agriMonthStart||null, ridge_len:o.ridgeLen||null, cultivation_area:o.cultivationArea||null, temp_min:o.tempMin||null, temp_max:o.tempMax||null, fert_skip_date:o.fertSkipDate||null, fert_interval:o.fertInterval||null, reminder_mode:o.reminderMode||null, custom_events:o.customEvents?JSON.stringify(o.customEvents):null, harvest_days:o.harvestDays?parseInt(o.harvestDays):null, is_public:!!o.isPublic });
-const cropFromDb  = (r, fields) => { const fi = fields.findIndex(f=>f.id===r.field_id); return { id:r.id, fieldId:r.field_id||"", fieldIdx:fi>=0?fi:0, type:r.type||"", variety:r.variety||"", germRate:r.germ_rate||"", stocks:r.stocks||"", ridgeW:r.ridge_w||"", ridgeH:r.ridge_h||"", rows:r.rows||"", rowSpace:r.row_space||"", plantSpace:r.plant_space||"", sowDate:r.sow_date||"", plantDate:r.plant_date||"", memo:r.memo||"", cultivationType:r.cultivation_type||"transplant", seedCost:r.seed_cost||"", seedNote:r.seed_note||"", customName:r.custom_name||"", ended:r.ended||false, endDate:r.end_date||"", maturity:r.maturity||"mid", customDays:r.custom_days||"", customWater:r.custom_water||"", potSize:r.pot_size||"", potVolume:r.pot_volume||"", potCount:r.pot_count||"", growEnv:r.grow_env||"field", agriMonthStart:r.agri_month_start||"", ridgeLen:r.ridge_len||"", cultivationArea:r.cultivation_area||"", tempMin:r.temp_min||"", tempMax:r.temp_max||"", fertSkipDate:r.fert_skip_date||"", fertInterval:r.fert_interval||"", reminderMode:r.reminder_mode||"auto", customEvents:safeJson(r.custom_events,[]), harvestDays:r.harvest_days||null, isPublic:!!r.is_public }; };
+const cropToDb    = (o, uid) => ({ id:o.id, user_id:uid, field_id:o.fieldId||null, type:o.type||null, variety:o.variety||null, germ_rate:o.germRate||null, stocks:o.stocks||null, ridge_w:o.ridgeW||null, ridge_h:o.ridgeH||null, rows:o.rows||null, row_space:o.rowSpace||null, plant_space:o.plantSpace||null, sow_date:o.sowDate||null, plant_date:o.plantDate||null, memo:o.memo||null, cultivation_type:o.cultivationType||null, seed_cost:o.seedCost||null, seed_note:o.seedNote||null, custom_name:o.customName||null, ended:o.ended||false, end_date:o.endDate||null, maturity:o.maturity||null, custom_days:o.customDays||null, custom_water:o.customWater||null, pot_size:o.potSize||null, pot_volume:o.potVolume||null, pot_count:o.potCount||null, grow_env:o.growEnv||null, agri_month_start:o.agriMonthStart||null, ridge_len:o.ridgeLen||null, cultivation_area:o.cultivationArea||null, temp_min:o.tempMin||null, temp_max:o.tempMax||null, fert_skip_date:o.fertSkipDate||null, fert_interval:o.fertInterval||null, reminder_mode:o.reminderMode||null, custom_events:o.customEvents?JSON.stringify(o.customEvents):null, plan:o.plan?JSON.stringify(o.plan):null, harvest_days:o.harvestDays?parseInt(o.harvestDays):null, is_public:!!o.isPublic });
+const cropFromDb  = (r, fields) => { const fi = fields.findIndex(f=>f.id===r.field_id); return { id:r.id, fieldId:r.field_id||"", fieldIdx:fi>=0?fi:0, type:r.type||"", variety:r.variety||"", germRate:r.germ_rate||"", stocks:r.stocks||"", ridgeW:r.ridge_w||"", ridgeH:r.ridge_h||"", rows:r.rows||"", rowSpace:r.row_space||"", plantSpace:r.plant_space||"", sowDate:r.sow_date||"", plantDate:r.plant_date||"", memo:r.memo||"", cultivationType:r.cultivation_type||"transplant", seedCost:r.seed_cost||"", seedNote:r.seed_note||"", customName:r.custom_name||"", ended:r.ended||false, endDate:r.end_date||"", maturity:r.maturity||"mid", customDays:r.custom_days||"", customWater:r.custom_water||"", potSize:r.pot_size||"", potVolume:r.pot_volume||"", potCount:r.pot_count||"", growEnv:r.grow_env||"field", agriMonthStart:r.agri_month_start||"", ridgeLen:r.ridge_len||"", cultivationArea:r.cultivation_area||"", tempMin:r.temp_min||"", tempMax:r.temp_max||"", fertSkipDate:r.fert_skip_date||"", fertInterval:r.fert_interval||"", reminderMode:r.reminder_mode||"auto", customEvents:safeJson(r.custom_events,[]), plan:safeJson(r.plan,null), harvestDays:r.harvest_days||null, isPublic:!!r.is_public }; };
 const logToDb     = (o, uid, fields) => ({ id:o.id, user_id:uid, field_id:fields[o.fieldIdx]?.id||o.fieldId||null, crop_id:o.cropId||null, work:o.work||null, memo:o.memo||null, date:o.date||null, time:o.time||null, duration:o.duration||null, img_src:o.imgSrc||null, img2_src:o.imgSrc2||null, img3_src:o.imgSrc3||null, fert_name:o.fertName||null, fert_amt:o.fertAmt||null, fert_unit:o.fertUnit||null, fert_method:o.fertMethod||null, fert_cost:o.fertCost||null, fert_dil:o.fertDil||null, fert_spray_amt:o.fertSprayAmt||null, fert_spray_unit:o.fertSprayUnit||null, pest_name:o.pestName||null, pest_spray_amt:o.pestSprayAmt||null, pest_dil:o.pestDil||null, pest_amt:o.pestAmt||null, pest_unit:o.pestUnit||null, pest_tgt:o.pestTarget||null, pest_cost:o.pestCost||null, hv_kg:o.hvKg||null, hv_cnt:o.hvCnt||null, hv_q:o.hvQ||null, hv_price:o.hvPrice||null, equip_ids:o.equipIds||null, equip_act:o.equipAct||null, equip_use_amt:o.equipUseAmt||null, equip_use_unit:o.equipUseUnit||null, sow_qty:o.sowQty||null, germination_cnt:o.germinationCnt||null, germ_date:o.germinationDate||null, transplant_qty:o.transplantQty||null, discard_cnt:o.discardCnt||null, add_cnt:o.addCnt||null, event_type:o.eventType||null, event_note:o.eventNote||null, hv_grade_str:o.hvGradeStr||null, other_note:o.otherNote||null, repot_size:o.repotSize||null, repot_vol:o.repotVol||null, group_id:o._groupId||null, weather:o.weather||null });
 const logFromDb   = (r, fields) => { const fi=fields.findIndex(f=>f.id===r.field_id); return { id:r.id, fieldId:r.field_id||"", fieldIdx:fi>=0?fi:0, cropId:r.crop_id||"", work:r.work||"", memo:r.memo||"", date:r.date||"", time:r.time||"", duration:r.duration||"", imgSrc:r.img_src||null, imgSrc2:r.img2_src||null, imgSrc3:r.img3_src||null, aiReply:"", fertName:r.fert_name||"", fertAmt:r.fert_amt||"", fertUnit:r.fert_unit||"", fertMethod:r.fert_method||"", fertCost:r.fert_cost||"", fertDil:r.fert_dil||"", fertSprayAmt:r.fert_spray_amt||"", fertSprayUnit:r.fert_spray_unit||"L", pestName:r.pest_name||"", pestSprayAmt:r.pest_spray_amt||"", pestDil:r.pest_dil||"", pestAmt:r.pest_amt||"", pestUnit:r.pest_unit||"", pestTarget:r.pest_tgt||r.pest_target||"", pestCost:r.pest_cost||"", hvKg:r.hv_kg!=null?String(r.hv_kg):"", hvCnt:r.hv_cnt!=null?String(r.hv_cnt):"", hvQ:r.hv_q||"", hvPrice:r.hv_price||"", hvImgSrc:r.hv_img_src||null, equipIds:Array.isArray(r.equip_ids)?r.equip_ids:safeJson(r.equip_ids,[]), equipAct:r.equip_act||"", hvGradeStr:r.hv_grade_str||"", otherNote:r.other_note||"", repotSize:r.repot_size||"", repotVol:r.repot_vol||"", _groupId:r.group_id||null, weather:r.weather||"", equipUseAmt:r.equip_use_amt||null, equipUseUnit:r.equip_use_unit||null, sowQty:r.sow_qty||"", germinationCnt:r.germination_cnt||"", germinationDate:r.germ_date||r.germination_date||"", transplantQty:r.transplant_qty||"", discardCnt:r.discard_cnt||"", addCnt:r.add_cnt||"", eventType:r.event_type||"", eventNote:r.event_note||"" }; };
 const fertMToDb   = (o, uid) => ({ id:o.id||uid0(), user_id:uid, name:o.name||null, type:o.type||null, price:o.price||null, punit:o.punit||null, capacity:o.capacity||null, cunit:o.cunit||null, npk:o.npk||null, stock:o.stock||null, sunit:o.sunit||null, dil:o.dil||null, note:o.note||null, status:o.status||null });
@@ -605,7 +605,7 @@ const CROP_OPTIONS = [
   { value:"custom", label:"✏️ カスタム（自由入力）" },
 ];
 // 消耗資材カテゴリ（在庫管理あり）
-const MATERIAL_CATS = ["マルチ","トンネル資材","防虫ネット","支柱・杭","プランター・育苗ポット","消耗品","その他資材"];
+const MATERIAL_CATS = ["マルチ","不織布","トンネル資材","防虫ネット","支柱・杭","プランター・育苗ポット","消耗品","その他資材"];
 
 // ホルモン剤・生育調整剤（トマトトーン等）：農薬マスターの「種類」で区別し、作業は「ホルモン処理」として防除とは別に記録
 const HORMONE_TYPE = "ホルモン剤・生育調整剤";
@@ -1898,7 +1898,7 @@ function LoginScreen() {
       <div style={{background:"#fff",borderRadius:20,padding:"28px 24px",maxWidth:360,width:"100%",textAlign:"center",boxShadow:"0 8px 40px rgba(0,0,0,.3)"}}>
         <div style={{fontSize:"2.2rem",marginBottom:6}}>🌾</div>
         <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:"1.3rem",color:G,marginBottom:4}}>サクメモ</div>
-        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v2.2.24</span></div>
+        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v2.2.26</span></div>
         {linkErr&&<div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:8,padding:"10px 12px",marginBottom:16,fontSize:".78rem",color:"#856404",textAlign:"left"}}>{linkErr}</div>}
 
 
@@ -1958,7 +1958,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v2.2.24</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v2.2.26</div>
       </div>
     </div>
   );
@@ -2278,8 +2278,192 @@ function HomeScreen({ fields, crops, setCrops, logs, setLogs, costs, onEditCrop,
   );
 }
 
+// ===== 栽培計画（防除・施肥）：必要量の計算とチェック =====
+// 計算の元になる数字（希釈倍数・散布液量・収穫前日数・使用回数）はラベルを見て入力する。アプリは登録内容を持たない
+const planNum = v => { const n=parseFloat(String(v==null?"":v).replace(/,/g,"")); return isFinite(n)?n:0; };
+const FERT_MODES = [
+  {v:"mix",   l:"土壌混和・基肥（kg/10a）"},
+  {v:"plant", l:"株あたり（g/株）"},
+  {v:"dil",   l:"液肥・希釈して散布"},
+];
+function planCalc(kind,row,crop,master){
+  const area=planNum(crop&&crop.cultivationArea), stocks=planNum(crop&&crop.stocks);
+  const mu=masterUnitOf(master)||"";
+  const r={ok:false,err:"",amt:0,unit:"",water:0,desc:""};
+  const mode = kind==="pest" ? "dil" : (row.mode||"mix");
+  if(mode==="dil"){
+    const dil=planNum(row.dil), liq=planNum(row.liquid);
+    if(!(dil>0)){ r.err="希釈倍数を入れてください"; return r; }
+    if(!(liq>0)){ r.err="散布液量（L/10a）を入れてください"; return r; }
+    if(!(area>0)){ r.err="この品目の栽培面積（㎡）を入れてください"; return r; }
+    const water=liq*area/1000, conc=water*1000/dil; // 原液（ml または g）
+    const v=mu?convertDilUnit(conc,"ml",mu):null;
+    r.ok=true; r.water=Math.round(water*100)/100;
+    r.unit=v==null?"ml":mu; r.amt=roundByUnit(v==null?conc:v,r.unit);
+    r.desc="希釈"+dil+"倍・"+liq+"L/10a";
+    return r;
+  }
+  let kg=0;
+  if(mode==="plant"){
+    const g=planNum(row.rate);
+    if(!(g>0)){ r.err="1株あたりの量（g）を入れてください"; return r; }
+    if(!(stocks>0)){ r.err="この品目の株数を入れてください"; return r; }
+    kg=g*stocks/1000; r.desc=g+"g/株×"+stocks+"株";
+  } else {
+    const k=planNum(row.rate);
+    if(!(k>0)){ r.err="10aあたりの量（kg）を入れてください"; return r; }
+    if(!(area>0)){ r.err="この品目の栽培面積（㎡）を入れてください"; return r; }
+    kg=k*area/1000; r.desc=k+"kg/10a×"+area+"㎡";
+  }
+  const v=mu?convertUnitStrict(kg,"kg",mu):null;
+  r.ok=true; r.unit=v==null?"kg":mu; r.amt=roundByUnit(v==null?kg:v,r.unit);
+  return r;
+}
+function planDaysBetween(d1,d2){ const a=new Date(d1),b=new Date(d2); if(isNaN(a)||isNaN(b)) return null; return Math.round((b-a)/86400000); }
+// 行ごとの注意（収穫前日数・使用回数・未入力）
+function planWarnings(kind,row,plan,rows){
+  const w=[];
+  if(kind!=="pest") return w;
+  if(!row.masterId&&!row.name) w.push("農薬を選んでください");
+  const phi=planNum(row.phi), harvest=plan&&plan.harvestDate;
+  if(!(phi>0)) w.push("収穫前日数が未入力です（ラベルで確認して入れてください）");
+  else if(harvest&&row.date){
+    const dd=planDaysBetween(row.date,harvest);
+    if(dd!=null&&dd<0) w.push("散布日が収穫予定日より後です");
+    else if(dd!=null&&dd<phi) w.push("収穫の"+dd+"日前の散布です。この農薬は収穫の"+phi+"日前までしか使えません");
+  } else if(phi>0&&!harvest) w.push("収穫予定日を入れると、収穫前日数をチェックできます");
+  const maxN=planNum(row.maxN);
+  if(!(maxN>0)) w.push("本剤の使用回数が未入力です（ラベルで確認して入れてください）");
+  else if(row.masterId){
+    const n=rows.filter(x=>x.masterId===row.masterId).length;
+    if(n>maxN) w.push("この農薬は"+maxN+"回までですが、計画では"+n+"回になっています");
+  }
+  return w;
+}
+// 資材ごとの必要量の合計と在庫との比較
+function planStockSummary(plan,crop,pestMs,fertMs){
+  const out=[];
+  [["pest",pestMs],["fert",fertMs]].forEach(([kind,list])=>{
+    const rows=(plan&&plan[kind])||[]; const map={};
+    rows.forEach(row=>{
+      if(!row.masterId) return;
+      const m=list.find(x=>x.id===row.masterId); if(!m) return;
+      const c=planCalc(kind,row,crop,m); if(!c.ok) return;
+      const mu=masterUnitOf(m)||c.unit; const v=convertUnitStrict(c.amt,c.unit,mu);
+      const e=map[m.id]||(map[m.id]={m,kind,unit:mu,total:0,n:0,bad:false});
+      if(v==null) e.bad=true; else e.total+=v; e.n++;
+    });
+    Object.values(map).forEach(e=>{
+      e.total=roundByUnit(e.total,e.unit);
+      const st=parseFloat(e.m.stock); e.stock=isNaN(st)?0:st;
+      e.short=Math.max(0,roundByUnit(e.total-e.stock,e.unit));
+      const cap=parseFloat(e.m.capacity); const pu=String(e.m.punit||"").split("/")[1]||"個";
+      e.packs=(e.short>0&&cap>0)?Math.ceil(e.short/cap-1e-9):0; e.packUnit=pu;
+      out.push(e);
+    });
+  });
+  return out;
+}
+function planTitle(kind,row,c){
+  const nm=row.name||"";
+  if(kind==="pest"){
+    return "防除："+nm+(row.dil?" "+row.dil+"倍":"")+(c.ok?"（薬剤 "+c.amt+c.unit+"＋水 "+c.water+"L）":"");
+  }
+  const mode=row.mode||"mix";
+  if(mode==="dil") return "施肥："+nm+(row.dil?" "+row.dil+"倍":"")+(c.ok?"（原液 "+c.amt+c.unit+"＋水 "+c.water+"L）":"");
+  return "施肥："+nm+(c.ok?" "+c.amt+c.unit:"")+(mode==="plant"?"（株あたり）":"（土壌混和）");
+}
+
+// 品目登録画面：防除・施肥の計画
+function CropPlanEditor({ mCrop, setMCrop, pestMs, fertMs, crops }) {
+  const [open,setOpen]=useState(false);
+  const plan=mCrop.plan||{pest:[],fert:[],harvestDate:""};
+  const setPlan=p=>setMCrop(prev=>({...prev,plan:{...(prev.plan||{pest:[],fert:[],harvestDate:""}),...p}}));
+  const area=planNum(mCrop.cultivationArea), stocks=planNum(mCrop.stocks);
+  const nRows=(plan.pest||[]).length+(plan.fert||[]).length;
+  const upd=(kind,id,patch)=>setPlan({[kind]:(plan[kind]||[]).map(r=>r.id===id?{...r,...patch}:r)});
+  const del=(kind,id)=>{ if(window.confirm("この計画を削除しますか？（保存すると、ホームの予定からも消えます）")) setPlan({[kind]:(plan[kind]||[]).filter(r=>r.id!==id)}); };
+  const add=kind=>setPlan({[kind]:[...(plan[kind]||[]),{id:uid0(),schedId:uid0(),masterId:"",name:"",date:"",mode:"mix",rate:"",dil:"",liquid:"",phi:"",maxN:"",note:""}]});
+  // 同じ資材を前に計画したときの値（希釈倍数・散布液量・収穫前日数・使用回数）を呼び出す
+  const prevOf=(kind,mid)=>{ let hit=null; (crops||[]).concat([mCrop]).forEach(c=>{ ((c.plan&&c.plan[kind])||[]).forEach(r=>{ if(r.masterId===mid&&(r.dil||r.rate||r.liquid||r.phi||r.maxN)) hit=r; }); }); return hit; };
+  const pick=(kind,row,mid)=>{
+    const list=kind==="pest"?pestMs:fertMs; const m=list.find(x=>x.id===mid);
+    const p=mid?prevOf(kind,mid):null;
+    const patch={masterId:mid,name:m?m.name:""};
+    if(p){ ["dil","liquid","phi","maxN","rate"].forEach(k=>{ if(!row[k]&&p[k]) patch[k]=p[k]; }); if(kind==="fert"&&p.mode) patch.mode=p.mode; }
+    else if(m&&m.dil&&!row.dil) patch.dil=m.dil;
+    upd(kind,row.id,patch);
+  };
+  const sum=planStockSummary(plan,mCrop,pestMs,fertMs);
+  const box={background:"#f4fbf6",border:"1px solid #b7dfc3",borderRadius:8,padding:"6px 9px",fontSize:".76rem",color:"#14532d",marginTop:6,lineHeight:1.6};
+  const warnBox={background:"#fff7e6",border:"1px solid #ffd591",borderRadius:8,padding:"6px 9px",fontSize:".72rem",color:"#92400e",marginTop:6,lineHeight:1.6};
+  const row=(kind,r,idx)=>{
+    const list=kind==="pest"?pestMs:fertMs; const m=list.find(x=>x.id===r.masterId);
+    const c=planCalc(kind,r,mCrop,m); const mode=kind==="pest"?"dil":(r.mode||"mix");
+    const warns=planWarnings(kind,r,plan,plan[kind]||[]);
+    return <div key={r.id} style={{background:"#fff",border:"1px solid #e0d9ce",borderRadius:10,padding:"8px 10px",marginTop:8}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+        <span style={{fontSize:".74rem",fontWeight:700,color:"#5c3d1e"}}>{kind==="pest"?"🐛 防除":"🌿 施肥"} {idx+1}</span>
+        <button onClick={()=>del(kind,r.id)} style={{...S.btn,...S.btnR,...S.btnSm,fontSize:".65rem",padding:"2px 8px"}}>✕</button>
+      </div>
+      <R2>
+        <FG label="予定日"><DateInp value={r.date||""} onChange={v=>upd(kind,r.id,{date:v})}/></FG>
+        <FG label={kind==="pest"?"農薬":"肥料"}><Sel value={r.masterId||""} onChange={v=>pick(kind,r,v)} options={[{value:"",label:"（選択）"},...list.filter(x=>x.status!=="使い切り（非表示）"||x.id===r.masterId).map(x=>({value:x.id,label:x.name}))]}/></FG>
+      </R2>
+      {kind==="fert"&&<FG label="施し方"><Sel value={mode} onChange={v=>upd(kind,r.id,{mode:v})} options={FERT_MODES.map(o=>({value:o.v,label:o.l}))}/></FG>}
+      {mode==="dil"?<R2>
+        <FG label="希釈倍数（倍）"><Inp type="number" value={r.dil||""} onChange={v=>upd(kind,r.id,{dil:v})} placeholder="例：1000"/></FG>
+        <FG label="散布液量（L/10a）"><Inp type="number" value={r.liquid||""} onChange={v=>upd(kind,r.id,{liquid:v})} placeholder="例：200"/></FG>
+      </R2>:<FG label={mode==="plant"?"1株あたり（g）":"10aあたり（kg）"}><Inp type="number" value={r.rate||""} onChange={v=>upd(kind,r.id,{rate:v})} placeholder={mode==="plant"?"例：30":"例：60"}/></FG>}
+      {kind==="pest"&&<R2>
+        <FG label="収穫前日数（日前まで）"><Inp type="number" value={r.phi||""} onChange={v=>upd(kind,r.id,{phi:v})} placeholder="前日まで＝1"/></FG>
+        <FG label="本剤の使用回数（回まで）"><Inp type="number" value={r.maxN||""} onChange={v=>upd(kind,r.id,{maxN:v})} placeholder="例：3"/></FG>
+      </R2>}
+      {c.ok
+        ? <div style={box}>
+            {mode==="dil"
+              ? <>必要な{kind==="pest"?"薬剤":"原液"}：<b style={{fontSize:".95rem"}}>{c.amt}{c.unit}</b>　水：<b style={{fontSize:".95rem"}}>{c.water}L</b></>
+              : <>必要な量：<b style={{fontSize:".95rem"}}>{c.amt}{c.unit}</b></>}
+            <div style={{fontSize:".66rem",color:"#4b7a5c"}}>{c.desc}（栽培面積 {area}㎡{mode==="plant"?"・"+stocks+"株":""}）</div>
+          </div>
+        : <div style={{...warnBox,background:"#f5f5f5",border:"1px solid #ddd",color:"#555"}}>{c.err}</div>}
+      {warns.length>0&&<div style={warnBox}>{warns.map((w,i)=><div key={i}>⚠️ {w}</div>)}</div>}
+    </div>;
+  };
+  return <div style={{background:"#f6fbf7",border:"1px solid #b7dfc3",borderRadius:10,padding:"10px 12px",marginBottom:9}}>
+    <div onClick={()=>setOpen(!open)} style={{display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer"}}>
+      <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".84rem",color:"#14532d"}}>🧪 防除・施肥の計画{nRows>0&&<span style={{fontSize:".7rem",color:"#4b7a5c",marginLeft:6}}>（{nRows}件）</span>}</div>
+      <span style={{fontSize:".72rem",color:TX3}}>{open?"▲ 閉じる":"▼ 開く"}</span>
+    </div>
+    {open&&<>
+      <div style={{fontSize:".7rem",color:"#555",lineHeight:1.6,margin:"6px 0"}}>面積と株数からの必要量を計算します。計算の元になる数字（希釈倍数・散布液量・収穫前日数・使用回数）は、<b>必ず農薬のラベルを見て入力</b>してください。日付を入れた計画は、保存するとホームの「次の作業予定」にも出ます。</div>
+      <div style={{fontSize:".72rem",background:"#fff",border:"1px solid #e0d9ce",borderRadius:8,padding:"5px 9px",marginBottom:6}}>栽培面積：<b>{area>0?area+"㎡":"未入力"}</b>　株数：<b>{stocks>0?stocks+"株":"未入力"}</b>{!(area>0)&&<span style={{color:"#b45309"}}>　← 面積は下の欄に入れてください</span>}</div>
+      <FG label="収穫予定日（収穫前日数のチェックに使います）"><DateInp value={plan.harvestDate||""} onChange={v=>setPlan({harvestDate:v})}/></FG>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:6}}>
+        <span style={{fontSize:".78rem",fontWeight:700,color:"#5c3d1e"}}>🐛 防除の計画</span>
+        <button onClick={()=>add("pest")} style={{...S.btn,...S.btnSm,background:G,color:"#fff",fontSize:".72rem"}}>＋ 防除を追加</button>
+      </div>
+      {(plan.pest||[]).map((r,i)=>row("pest",r,i))}
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:14}}>
+        <span style={{fontSize:".78rem",fontWeight:700,color:"#5c3d1e"}}>🌿 施肥の計画</span>
+        <button onClick={()=>add("fert")} style={{...S.btn,...S.btnSm,background:G,color:"#fff",fontSize:".72rem"}}>＋ 施肥を追加</button>
+      </div>
+      {(plan.fert||[]).map((r,i)=>row("fert",r,i))}
+      {sum.length>0&&<div style={{background:"#fff",border:"1px solid #e0d9ce",borderRadius:10,padding:"8px 10px",marginTop:12}}>
+        <div style={{fontSize:".76rem",fontWeight:700,color:"#5c3d1e",marginBottom:4}}>📦 必要量の合計と在庫</div>
+        {sum.map(e=><div key={e.kind+e.m.id} style={{fontSize:".74rem",lineHeight:1.7,borderTop:"1px dashed #eee",paddingTop:3,marginTop:3}}>
+          <b>{e.m.name}</b>：計画 {e.n}回で <b>{e.total}{e.unit}</b>　在庫 {e.stock}{e.unit}
+          {e.bad&&<span style={{color:"#b45309"}}>（単位が違う計画は合計できません）</span>}
+          {e.short>0?<span style={{color:"#b91c1c",fontWeight:700}}>　→ {e.short}{e.unit}不足{e.packs>0?"（約"+e.packs+e.packUnit+"買い足し）":""}</span>:<span style={{color:"#15803d"}}>　→ 足ります</span>}
+        </div>)}
+        <div style={{fontSize:".64rem",color:TX3,marginTop:4}}>※ 在庫は、他の計画や普段の作業記録での使用分は引いていません。</div>
+      </div>}
+    </>}
+  </div>;
+}
+
 // FIELDS
-function FieldsScreen({ fields, setFields, setFieldsR, crops, setCrops, setCropsR, costs, setCosts, logs, setLogs, setLogsR, plots, setPlots, setPlotsR, showToast, editCrop, uid }) {
+function FieldsScreen({ fields, setFields, setFieldsR, crops, setCrops, setCropsR, costs, setCosts, logs, setLogs, setLogsR, plots, setPlots, setPlotsR, showToast, editCrop, uid, fertMs, pestMs, dbSaveLog }) {
   const [mField, setMField] = useState(null);
   const [mCrop,  setMCrop]  = useState(null);
   // みんなのサクメモ：公開設定・閲覧数
@@ -2317,11 +2501,29 @@ function FieldsScreen({ fields, setFields, setFieldsR, crops, setCrops, setCrops
     setMField(null);
     showToast("保存しました");
   };
+  // 計画（防除・施肥）の日付つきの行を、ホームの「次の作業予定」（work="schedule"の記録）に反映する
+  const syncPlanSchedules = (entry) => {
+    const prevCrop=crops.find(c=>c.id===entry.id);
+    const rowsOf=p=>[...((p&&p.pest)||[]).map(r=>({...r,k:"pest"})),...((p&&p.fert)||[]).map(r=>({...r,k:"fert"}))];
+    const cur=rowsOf(entry.plan).filter(r=>r.date&&r.schedId), prev=rowsOf(prevCrop&&prevCrop.plan);
+    const curIds=new Set(cur.map(r=>r.schedId));
+    const gone=prev.filter(r=>r.schedId&&!curIds.has(r.schedId)).map(r=>r.schedId);
+    const items=cur.map(r=>{
+      const m=(r.k==="pest"?(pestMs||[]):(fertMs||[])).find(x=>x.id===r.masterId);
+      const c=planCalc(r.k,r,entry,m);
+      return {id:r.schedId,_groupId:null,fieldIdx:entry.fieldIdx||0,cropId:entry.id,work:"schedule",memo:planTitle(r.k,r,c),date:r.date,time:"",duration:"",imgSrc:null,imgSrc2:null,imgSrc3:null};
+    });
+    if(!items.length&&!gone.length) return;
+    const ids=new Set(items.map(i=>i.id));
+    setLogsR([...logs.filter(l=>!gone.includes(l.id)&&!ids.has(l.id)),...items]);
+    items.forEach(it=>dbSaveLog&&dbSaveLog(it)); gone.forEach(id=>dbDelete("logs",id));
+  };
   const saveCrop=()=>{
     if(!mCrop) return;
     const entry={...mCrop,id:mCrop.id||uid0(),fieldId:fields[mCrop.fieldIdx]?.id||mCrop.fieldId||""};
     const n=mCrop._idx!==undefined?crops.map((x,i)=>i===mCrop._idx?entry:x):[...crops,entry];
     setCrops(n,entry,fields);
+    try{ syncPlanSchedules(entry); }catch(e){ console.error('plan sync:',e); }
     // 費用ページの既存種苗代を紐付け（選択された場合は品目を割当し、自動追加はスキップ）
     if(mCrop._linkSeedCostId){
       const linkCost=costs.find(co=>co.id===mCrop._linkSeedCostId);
@@ -2702,6 +2904,8 @@ function FieldsScreen({ fields, setFields, setFieldsR, crops, setCrops, setCrops
                       style={{...S.btn,...S.btnSm,background:G,color:"#fff",fontSize:".72rem",marginTop:4}}>＋ 予定を追加</button>
                   </>}
                 </div>
+
+                <CropPlanEditor mCrop={mCrop} setMCrop={setMCrop} pestMs={pestMs||[]} fertMs={fertMs||[]} crops={crops}/>
 
                 {/* 栽培環境の選択 */}
                 <FG label="栽培環境">
@@ -4604,17 +4808,23 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
       : (mCost.cunit||"");
     // _editNameがあれば費用レコードの品名も更新
     const finalName = (mCost._editMaster && mCost._editName!==undefined) ? mCost._editName : effName;
-    const finalMasterId = newMasterId || mCost.masterId || null;
+    // 消耗資材（マルチ・不織布・支柱など）：諸材料費で新規登録、または既存の消耗資材を選んだ購入
+    const _selMat = mCost.masterId ? materialMs.find(x=>x.id===mCost.masterId) : null;
+    const _isMatCost = mCost.cat==="equip" && (!!mCost._matNew || !!_selMat);
+    const _matQ = parseFloat(mCost._matQty)||0;
+    const _matUnit = mCost._matUnit || (_selMat&&masterUnitOf(_selMat)) || "本";
+    const newMatId = (mCost.cat==="equip" && mCost._matNew && finalName) ? uid0() : null;
+    const finalMasterId = newMasterId || newMatId || mCost.masterId || null;
     const _stockTracked = (mCost.cat==="fert"||mCost.cat==="pest") && (mCost.masterId || (mCost._newItem && mCost._newName));
     const item={...mCost, id:costId, name:finalName, amt:String(realAmt), note:noteWithApportion,
       stockQty: _stockTracked ? (parseFloat(mCost._buyQty)>0 ? String(parseFloat(mCost._buyQty)) : "") : (mCost.stockQty||""),
       masterId:finalMasterId,
-      qty:buyQtyVal, qunit:mCost.qunit||"個", capacity:buyCapVal, cunit:buyCunitVal,
+      qty:(_isMatCost&&_matQ>0)?String(_matQ):buyQtyVal, qunit:_isMatCost?_matUnit:(mCost.qunit||"個"), capacity:buyCapVal, cunit:buyCunitVal,
       discount:undefined, apportionId:undefined, apportionRate:(apportionRate<100&&!isIncome(mCost.cat))?apportionRate:undefined,
       _buyQty:undefined, _buyUnitPrice:undefined, _buyOpen:undefined, _histSrch:undefined,
       _newItem:undefined, _newName:undefined, _newType:undefined, _newCapacity:undefined,
       _newCunit:undefined, _newPrice:undefined, _newTarget:undefined, _newNpk:undefined,
-      _newItemType:undefined, depYears:undefined,
+      _newItemType:undefined, depYears:undefined, _matNew:undefined, _matCat:undefined, _matQty:undefined, _matUnit:undefined,
       _editMaster:undefined, _editName:undefined, _editType:undefined, _editCapacity:undefined,
       _editCunit:undefined, _editPrice:undefined, _editTarget:undefined, _editNpk:undefined, _showRelink:undefined, _stkActual:undefined, _oldReceipt:undefined};
     if(mCost._oldReceipt && mCost._oldReceipt!==item.receiptUrl) deleteReceipt(mCost._oldReceipt);
@@ -4713,7 +4923,7 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
       changed.forEach(i=>setList(work, work[i]));
     }
     // 農具・農機具費：masterIdがあればdepYearsを農機具マスターに反映、_editMasterなら情報も更新
-    if((mCost.cat==="equip"||mCost.cat==="machine")&&mCost.masterId){
+    if((mCost.cat==="equip"||mCost.cat==="machine")&&mCost.masterId&&!_isMatCost){
       const eqIdx = equips.findIndex(e=>e.id===mCost.masterId);
       if(eqIdx>=0){
         const eq=equips[eqIdx];
@@ -4765,6 +4975,19 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
         };
         setEquips([...equips, newEq], newEq);
         showToast("「"+mCost._newName+"」を農機具管理に登録しました");
+      }
+    }
+    // 消耗資材：新規なら資材マスターを作って購入数を在庫に、既存なら新規の購入記録のぶんだけ在庫を増やす
+    if(_isMatCost){
+      if(newMatId){
+        const nm={id:newMatId,name:finalName,cat:mCost._matCat||"マルチ",status:"使用中",price:_matQ>0?String(Math.round(realAmt/_matQ)):String(realAmt),punit:"円/"+_matUnit,capacity:"1",cunit:_matUnit,stock:String(_matQ>0?_matQ:0),sunit:_matUnit,date:mCost.date||"",note:"",depYears:""};
+        setEquips([...equips,nm],nm);
+        showToast("消耗資材「"+finalName+"」を登録し、在庫に"+(_matQ>0?_matQ:0)+_matUnit+"を加えました");
+      } else if(_selMat && !mCost.id && _matQ>0){
+        const u={..._selMat,stock:String(roundByUnit((parseFloat(_selMat.stock)||0)+_matQ,masterUnitOf(_selMat))),status:_selMat.status==="使い切り（非表示）"?"使用中":_selMat.status};
+        setEquips(equips.map(x=>x.id===_selMat.id?u:x),u);
+        showToast("「"+_selMat.name+"」の在庫に"+_matQ+masterUnitOf(_selMat)+"を加えました");
+        setMCost(null); return;
       }
     }
     setMCost(null); showToast("保存しました");
@@ -6120,8 +6343,44 @@ function CostScreen({ fields, crops, fertMs, setFertMs, pestMs, setPestMs, equip
               <Inp type="date" value={mCost.receivableDate||""} onChange={v=>setMCost({...mCost,receivableDate:v})}/>
             </div>}
           </FG>}
+          {/* 諸材料費：消耗資材（マルチ・不織布・支柱など）の登録と在庫 */}
+          {mCost.cat==="equip"&&(()=>{
+            const selM = mCost.masterId ? materialMs.find(x=>x.id===mCost.masterId) : null;
+            const selTool = mCost.masterId && !selM;
+            if(selTool) return null;
+            const units=["本","巻","枚","袋","箱","m","個","セット"];
+            return <div style={{background:"#f0f7ff",border:"1px solid #9ec5e8",borderRadius:10,padding:"10px 12px",marginBottom:9}}>
+              <div style={{fontSize:".78rem",fontWeight:700,color:"#1e4e79",marginBottom:6}}>📦 消耗資材（マルチ・不織布・支柱など）</div>
+              {!mCost.masterId&&!mCost._matNew&&<>
+                {materialMs.length>0&&<>
+                  <div style={{fontSize:".72rem",color:TX3,marginBottom:4}}>登録済みの消耗資材を買い足す</div>
+                  <Sel value={""} onChange={v=>{ if(!v) return; const m=materialMs.find(x=>x.id===v); setMCost({...mCost,masterId:v,name:mCost.name||(m?m.name:""),_matUnit:m?masterUnitOf(m):"本"}); }}
+                    options={[{value:"",label:"（選択）"},...materialMs.map(m=>({value:m.id,label:m.name+"（"+(m.cat||"")+"・在庫 "+(parseFloat(m.stock)||0)+masterUnitOf(m)+"）"}))]}/>
+                </>}
+                <button onClick={()=>setMCost({...mCost,_matNew:true,_matCat:"マルチ",_matUnit:"本"})}
+                  style={{...S.btn,background:"#e3f0fb",color:"#1e4e79",border:"1px solid #9ec5e8",marginTop:6,fontSize:".78rem",width:"100%"}}>＋ 新しい消耗資材を登録して購入</button>
+                <div style={{fontSize:".66rem",color:TX3,marginTop:4}}>道具・設備（鍬・管理機など）を登録するときは、下の「農具・農機具を登録」を使ってください。</div>
+              </>}
+              {mCost._matNew&&<>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+                  <span style={{fontSize:".75rem",fontWeight:700,color:"#1e4e79"}}>✨ 新しい消耗資材（名称は上の「内容・品名」です）</span>
+                  <button onClick={()=>setMCost({...mCost,_matNew:false,_matCat:undefined,_matQty:undefined,_matUnit:undefined})} style={{background:"none",border:"none",fontSize:".8rem",color:TX3,cursor:"pointer"}}>✕ やめる</button>
+                </div>
+                <FG label="カテゴリ"><Sel value={mCost._matCat||"マルチ"} onChange={v=>setMCost({...mCost,_matCat:v})} options={MATERIAL_CATS.map(v=>({value:v,label:v}))}/></FG>
+              </>}
+              {(mCost._matNew||selM)&&<R2>
+                <FG label="購入数（在庫に加わる数）"><CalcInp value={mCost._matQty||""} onChange={v=>setMCost({...mCost,_matQty:v})} placeholder="例：2"/></FG>
+                <FG label="単位">{selM?<div style={{...S.inp,background:"#f3f3f3",color:"#555"}}>{masterUnitOf(selM)||"本"}</div>:<Sel value={mCost._matUnit||"本"} onChange={v=>setMCost({...mCost,_matUnit:v})} options={units.map(v=>({value:v,label:v}))}/>}</FG>
+              </R2>}
+              {selM&&<div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:2}}>
+                <div style={{fontSize:".74rem",color:"#1e4e79",fontWeight:700}}>✅ {selM.name}（{selM.cat||""}）　在庫 {parseFloat(selM.stock)||0}{masterUnitOf(selM)}{mCost.id?"":"　→ 購入数を在庫に加えます"}</div>
+                <button onClick={()=>setMCost({...mCost,masterId:"",_matQty:undefined,_matUnit:undefined})} style={{fontSize:".65rem",background:"none",border:"1px solid #ccc",borderRadius:6,padding:"2px 8px",cursor:"pointer",color:"#888"}}>×解除</button>
+              </div>}
+              {mCost.id&&selM&&<div style={{fontSize:".64rem",color:TX3,marginTop:3}}>※ 保存済みの購入記録を直しても、在庫は自動では変わりません。</div>}
+            </div>;
+          })()}
           {/* 農具・農機具費：既存から選ぶ or 新規登録 */}
-          {(mCost.cat==="equip"||mCost.cat==="machine")&&(()=>{
+          {(mCost.cat==="machine"||(mCost.cat==="equip"&&!mCost._matNew&&!(mCost.masterId&&materialMs.find(x=>x.id===mCost.masterId))))&&(()=>{
             const equipLabel = mCost.cat==="machine" ? "農機具" : "農具・農機具";
             const equipList = (equips||[]).filter(e=>!MATERIAL_CATS.includes(e.cat));
             const isBuyOpen = mCost._buyOpen !== false;
@@ -9088,7 +9347,7 @@ export default function App() {
         </div>
       </div>
       <div id="main-scroll" style={S.main}>
-        {scr==="fields"  &&<FieldsScreen  fields={fields} setFields={setFields} setFieldsR={setFieldsR} crops={crops} setCrops={setCrops} setCropsR={setCropsR} costs={costs} setCosts={setCosts} logs={logs} setLogs={setLogs} setLogsR={setLogsR} plots={plots} setPlots={setPlots} setPlotsR={setPlotsR} showToast={showToast} editCrop={pendingEditCrop} uid={uid}/>}
+        {scr==="fields"  &&<FieldsScreen  fields={fields} setFields={setFields} setFieldsR={setFieldsR} crops={crops} setCrops={setCrops} setCropsR={setCropsR} costs={costs} setCosts={setCosts} logs={logs} setLogs={setLogs} setLogsR={setLogsR} plots={plots} setPlots={setPlots} setPlotsR={setPlotsR} showToast={showToast} editCrop={pendingEditCrop} uid={uid} fertMs={fertMs} pestMs={pestMs} dbSaveLog={dbSaveLog}/>}
         {(scr==="log"||scr==="home") && <><HomeScreen fields={fields} crops={crops} setCrops={setCrops} logs={logs} costs={costs} showToast={showToast} setScr={setScr} dbLoad={dbLoad} onEditCrop={c=>{setPendingEditCrop(c);setScr("fields");}} onNew={()=>{setInitLog(null);setLogModal(true);}} setLogs={setLogs} dbSaveLog={dbSaveLog} dbDelete={dbDelete}/><TimelineScreen fields={fields} crops={crops} equips={equips} logs={logs} setLogs={setLogs} setLogsR={setLogsR} showToast={showToast} openLb={openLb} pestMs={pestMs} fertMs={fertMs} setFertMs={setFertMs} setPestMs={setPestMs}
         onEdit={ls=>{const _ls=Array.isArray(ls)?ls:[ls];const _sorted=[..._ls].sort((a,b)=>(a.imgSrc?-1:0)-(b.imgSrc?-1:0));setInitLogs(_ls);setInitLog(_sorted[0]);setLogModal(true);}}
         onNew={()=>{setInitLog(null);setLogModal(true);}}
