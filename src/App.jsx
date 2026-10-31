@@ -1935,7 +1935,7 @@ function LoginScreen() {
       <div style={{background:"#fff",borderRadius:20,padding:"28px 24px",maxWidth:360,width:"100%",textAlign:"center",boxShadow:"0 8px 40px rgba(0,0,0,.3)"}}>
         <div style={{fontSize:"2.2rem",marginBottom:6}}>🌾</div>
         <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:"1.3rem",color:G,marginBottom:4}}>サクメモ</div>
-        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v2.2.31</span></div>
+        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v2.2.32</span></div>
         {linkErr&&<div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:8,padding:"10px 12px",marginBottom:16,fontSize:".78rem",color:"#856404",textAlign:"left"}}>{linkErr}</div>}
 
 
@@ -1995,7 +1995,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v2.2.31</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v2.2.32</div>
       </div>
     </div>
   );
@@ -4022,7 +4022,10 @@ function TimelineScreen({ fields, crops, equips, logs, setLogs, setLogsR, showTo
   // フィルタ済みログ
   // 1枚のカードにまとまる記録（同じ日・品目・圃場・時刻、またはグループID）のキー
   const _cardKey = l => l._groupId || (l.cropId+':'+l.fieldIdx+':'+l.date+':'+(l.time||''));
-  const _baseOk = l => !(l.work==='schedule') && !(selCropId && l.cropId !== selCropId) && !(fW && l.work !== fW);
+  const _wins = buildCropWindows(crops, fields, logs);
+  // 作物で絞り込んだとき、その品目に按分された全品目共通の作業も出す
+  const _cropOk = l => !selCropId || l.cropId===selCropId || (l.sharedAll && sharedTargets(l,_wins,fields).includes(selCropId));
+  const _baseOk = l => !(l.work==='schedule') && _cropOk(l) && !(fW && l.work !== fW);
   const _textOk = l=>{
     if(!q) return true;
     {
@@ -4034,7 +4037,9 @@ function TimelineScreen({ fields, crops, equips, logs, setLogs, setLogsR, showTo
       const dShort=d.slice(5).replace('-','/').replace(/^0/,'');
       const lf=(l.fieldId&&fields.find(f=>f.id===l.fieldId))||fields[l.fieldIdx]||{};   // 作業した圃場
       const cf=(cr.fieldId&&fields.find(f=>f.id===cr.fieldId))||fields[cr.fieldIdx]||{}; // 品目を育てている圃場
-      const txt=[lf.name, cf.name, db.n, cr.variety, cr.customName, l.memo, l.work, WORK_LABELS[l.work]||'', d, dSlash, dShort, l.fertName||'', l.pestName||''].join(' ');
+      const _tg = l.sharedAll ? sharedTargets(l,_wins,fields).map(id=>crops.find(c=>c.id===id)).filter(Boolean) : [];
+      const _tgTxt = l.sharedAll ? '全品目共通 共通 '+_tg.map(c=>[(CDB[c.type]||{}).n, c.variety, c.customName].join(' ')).join(' ') : '';
+      const txt=[_tgTxt, lf.name, cf.name, db.n, cr.variety, cr.customName, l.memo, l.work, WORK_LABELS[l.work]||'', d, dSlash, dShort, l.fertName||'', l.pestName||''].join(' ');
       if(!matchQ(txt, q)) return false;
     }
     return true;
@@ -4293,6 +4298,19 @@ const depreciationFor = (eq, year, kaigyoDate) => {
     acc += a; if(y===year) annual=a;
   }
   return {annual, book:price-acc, owned:true};
+};
+// 全品目共通の作業：どの品目に按分されるか（作業した圃場で、その日に栽培中の品目）
+//   栽培中＝（播種日または定植日）〜（栽培終了日。終了していなければ続いている）。日付が未入力なら、その品目の最初〜最後の記録日で見る
+const buildCropWindows = (crops, fields, logs) => (crops||[]).map(c=>{
+  const ds=(logs||[]).filter(l=>l.cropId===c.id&&l.date).map(l=>l.date).sort();
+  const st=c.sowDate||c.plantDate||ds[0]||"";
+  const en=c.ended?(c.endDate||ds[ds.length-1]||st):"9999-12-31";
+  return {id:c.id, fid:c.fieldId||(fields[c.fieldIdx]&&fields[c.fieldIdx].id)||"", st, en};
+}).filter(w=>w.st);
+const sharedTargets = (l, wins, fields) => {
+  if(!l||!l.sharedAll||!l.date) return [];
+  const lfid=l.fieldId||(fields[l.fieldIdx]&&fields[l.fieldIdx].id)||"";
+  return wins.filter(w=>w.st<=l.date&&l.date<=w.en&&(!lfid||!w.fid||w.fid===lfid)).map(w=>w.id);
 };
 // 資材（肥料・農薬・消耗資材）の在庫評価額：在庫÷内容量×購入価格（内容量か価格が未設定なら0＝在庫タブと同じ）
 const stockValueOf = (m) => {
@@ -7740,21 +7758,14 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs, equips=[], o
 
   // 全品目共通の作業：作業した圃場で、その日に栽培中の品目の数で作業時間を均等に割り振る
   //   栽培中＝（播種日または定植日）〜（栽培終了日。終了していなければ続いている）。日付が未入力なら、その品目の最初〜最後の記録日で見る
-  const _cropWindow = c => {
-    const ds=logs.filter(l=>l.cropId===c.id&&l.date).map(l=>l.date).sort();
-    const st=c.sowDate||c.plantDate||ds[0]||"";
-    const en=c.ended?(c.endDate||ds[ds.length-1]||st):"9999-12-31";
-    return {st,en};
-  };
-  const _wins = crops.map(c=>({id:c.id,fid:c.fieldId||(fields[c.fieldIdx]&&fields[c.fieldIdx].id)||"",..._cropWindow(c)})).filter(w=>w.st);
+  const _wins = buildCropWindows(crops, fields, logs);
   const sharedAlloc = {}; let sharedUnalloc = 0, sharedTotal = 0;
   logs.filter(l=>l.sharedAll && l.date && inPeriod(l.date)).forEach(l=>{
     const mn=parseInt(l.duration)||0; if(!(mn>0)) return;
     sharedTotal+=mn;
-    const lfid=l.fieldId||(fields[l.fieldIdx]&&fields[l.fieldIdx].id)||""; // 作業した圃場
-    const act=_wins.filter(w=>w.st<=l.date&&l.date<=w.en&&(!lfid||!w.fid||w.fid===lfid)); // 同じ圃場で栽培中の品目だけで割る
+    const act=sharedTargets(l,_wins,fields); // 同じ圃場で栽培中の品目だけで割る
     if(!act.length){ sharedUnalloc+=mn; return; }
-    act.forEach(w=>{ sharedAlloc[w.id]=(sharedAlloc[w.id]||0)+mn/act.length; });
+    act.forEach(id=>{ sharedAlloc[id]=(sharedAlloc[id]||0)+mn/act.length; });
   });
   const cropStats = crops.map(c=>{
     const db=CDB[c.type]||{};
@@ -7844,7 +7855,7 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs, equips=[], o
 
   // 選択中の品目データ
   const sel = selCropId==="all" ? null : cropStats.find(c=>c.id===selCropId);
-  const dispLogs = (selCropId==="all" ? logs : logs.filter(l=>l.cropId===selCropId)).filter(l=>inPeriod(l.date)).sort((a,b)=>((a.date+a.time)<(b.date+b.time)?-1:1));
+  const dispLogs = (selCropId==="all" ? logs : logs.filter(l=>l.cropId===selCropId || (l.sharedAll && sharedTargets(l,_wins,fields).includes(selCropId)))).filter(l=>inPeriod(l.date)).sort((a,b)=>((a.date+a.time)<(b.date+b.time)?-1:1));
 
   // 全体集計
   const totalKg  = cropStats.reduce((s,c)=>s+c.kg,0);
@@ -8559,6 +8570,7 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs, equips=[], o
                 <div style={{padding:'8px 11px'}}>
                   <div style={{fontSize:'.7rem',color:TX3,marginBottom:4,display:'flex',gap:8,flexWrap:'wrap'}}>
                     <span>📅 {fmtYMD(l0.date)}</span>
+                    {l0.sharedAll&&<span style={{background:"#e3f0fb",color:"#1e4e79",borderRadius:4,padding:"0 5px",fontWeight:700}}>🌐 全品目共通（按分）</span>}
                     {fields[l0.fieldIdx]?.name&&<span>📍{fields[l0.fieldIdx].name}</span>}
                     {meta.time&&<span>🕐{meta.time}</span>}
                     {meta.duration&&<span>⏱{meta.duration}</span>}
