@@ -409,10 +409,8 @@ function makeGroupCard(card,showCropTag){
     var cname=cropName(crop)+(crop.variety?' ('+skEsc(crop.variety)+')':'');
     cropLabel='<div style="margin-bottom:4px"><span class="log-crop-name" onclick="selectCrop(this.dataset.cid)" data-cid="'+skEsc(crop.id)+'" style="cursor:pointer;font-size:.84rem;font-weight:700;color:#1c1a14;">'+(db.e||'🌱')+' '+cname+'</span></div>';
   }
-  // 時刻・作業時間
-  var meta=skCardMeta(card.logs);
-  var metaHtml=(meta.time||meta.duration)?'<div style="font-size:.7rem;color:#888;margin-bottom:5px;display:flex;gap:8px;flex-wrap:wrap">'
-    +(meta.time?'<span>🕐'+skEsc(meta.time)+'</span>':'')+(meta.duration?'<span>⏱'+skEsc(meta.duration)+'</span>':'')+'</div>':'';
+  // 時刻・作業時間は公開ページでは表示しない
+  var metaHtml='';
   // 作業タグ（決まった順番）
   var tagHtml=skCardWorks(card.logs).map(function(w){
     var i=skWorkInfo(w);
