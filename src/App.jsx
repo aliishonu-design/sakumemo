@@ -1935,7 +1935,7 @@ function LoginScreen() {
       <div style={{background:"#fff",borderRadius:20,padding:"28px 24px",maxWidth:360,width:"100%",textAlign:"center",boxShadow:"0 8px 40px rgba(0,0,0,.3)"}}>
         <div style={{fontSize:"2.2rem",marginBottom:6}}>🌾</div>
         <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:"1.3rem",color:G,marginBottom:4}}>サクメモ</div>
-        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v2.2.32</span></div>
+        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v2.2.33</span></div>
         {linkErr&&<div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:8,padding:"10px 12px",marginBottom:16,fontSize:".78rem",color:"#856404",textAlign:"left"}}>{linkErr}</div>}
 
 
@@ -1995,7 +1995,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v2.2.32</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v2.2.33</div>
       </div>
     </div>
   );
@@ -4013,7 +4013,7 @@ function TimelineScreen({ fields, crops, equips, logs, setLogs, setLogsR, showTo
   const toHira = s => s.replace(/[\u30a1-\u30f6]/g, c=>String.fromCharCode(c.charCodeAt(0)-0x60));
   const toKata = s => s.replace(/[\u3041-\u3096]/g, c=>String.fromCharCode(c.charCodeAt(0)+0x60));
   const matchQ = (text, word) => {
-    const t=text.toLowerCase(), w=word.toLowerCase();
+    const t=String(text||'').normalize('NFKC').toLowerCase(), w=String(word||'').normalize('NFKC').toLowerCase();
     return toHira(t).includes(toHira(w)) || toKata(t).includes(toKata(w)) || t.includes(w);
   };
 
@@ -4026,30 +4026,36 @@ function TimelineScreen({ fields, crops, equips, logs, setLogs, setLogsR, showTo
   // 作物で絞り込んだとき、その品目に按分された全品目共通の作業も出す
   const _cropOk = l => !selCropId || l.cropId===selCropId || (l.sharedAll && sharedTargets(l,_wins,fields).includes(selCropId));
   const _baseOk = l => !(l.work==='schedule') && _cropOk(l) && !(fW && l.work !== fW);
-  const _textOk = l=>{
-    if(!q) return true;
-    {
-      const cr=crops.find(c=>c.id===l.cropId)||{};
-      const db=CDB[cr.type]||{};
-      const d=l.date||'';
-      // 日付を複数形式で検索可能に（2026-05-20, 2026/05/20, 05/20, 5/20）
-      const dSlash=d.replace(/-/g,'/');
-      const dShort=d.slice(5).replace('-','/').replace(/^0/,'');
-      const lf=(l.fieldId&&fields.find(f=>f.id===l.fieldId))||fields[l.fieldIdx]||{};   // 作業した圃場
-      const cf=(cr.fieldId&&fields.find(f=>f.id===cr.fieldId))||fields[cr.fieldIdx]||{}; // 品目を育てている圃場
-      const _tg = l.sharedAll ? sharedTargets(l,_wins,fields).map(id=>crops.find(c=>c.id===id)).filter(Boolean) : [];
-      const _tgTxt = l.sharedAll ? '全品目共通 共通 '+_tg.map(c=>[(CDB[c.type]||{}).n, c.variety, c.customName].join(' ')).join(' ') : '';
-      const txt=[_tgTxt, lf.name, cf.name, db.n, cr.variety, cr.customName, l.memo, l.work, WORK_LABELS[l.work]||'', d, dSlash, dShort, l.fertName||'', l.pestName||''].join(' ');
-      if(!matchQ(txt, q)) return false;
-    }
-    return true;
+  // フリーワード検索：カードに表示される文字（品目・圃場・日付・作業名・詳細行・メモ・作業時間など）のどれにでも当たる。
+  //   スペースで区切った言葉は、すべてがカードのどこかに含まれていれば当たり（AND）
+  const _cardText = (cl) => {
+    const parts=[];
+    cl.forEach(l=>{
+      const cr=crops.find(c=>c.id===l.cropId)||{}; const db=CDB[cr.type]||{};
+      const d=l.date||''; const dm=d.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      const lf=(l.fieldId&&fields.find(f=>f.id===l.fieldId))||fields[l.fieldIdx]||{};
+      const cf=(cr.fieldId&&fields.find(f=>f.id===cr.fieldId))||fields[cr.fieldIdx]||{};
+      parts.push(l.sharedAll?'全品目共通 共通':getCropName(cr), db.n, cr.variety, cr.customName, lf.name, cf.name, l.memo, l.work, WORK_LABELS[l.work]||'', l.fertName, l.pestName, d, d.replace(/-/g,'/'), d.slice(5).replace('-','/').replace(/^0/,''));
+      if(dm) parts.push(dm[1]+'年'+(+dm[2])+'月'+(+dm[3])+'日', (+dm[2])+'月'+(+dm[3])+'日', (+dm[2])+'月', (+dm[3])+'日');
+      if(l.duration) parts.push(l.duration+'分');
+      if(l.sharedAll) sharedTargets(l,_wins,fields).forEach(id=>{ const c=crops.find(x=>x.id===id); if(c) parts.push(getCropName(c), c.variety, c.customName); });
+    });
+    skCardWorks(cl).forEach(w=>{ parts.push(w, skWorkInfo(w).label); });
+    skCardLines(cl).forEach(ln=>parts.push(ln.text));
+    const mt=skCardMeta(cl); parts.push(mt.time, mt.duration);
+    return parts.filter(Boolean).join(' ');
   };
-  // 検索で1件でも当たったカードは、同じカードの他の作業（施肥＋土壌改良など）も省かずに全部表示する
+  const _words = q.trim().split(/\s+/).filter(Boolean);
+  // 検索で当たったカードは、同じカードの他の作業（施肥＋土壌改良など）も省かずに全部表示する
   const _hitKeys = new Set();
-  if(q) logs.forEach(l=>{ if(_baseOk(l) && _textOk(l)) _hitKeys.add(_cardKey(l)); });
+  if(_words.length){
+    const _grp = {};
+    logs.filter(_baseOk).forEach(l=>{ const k=_cardKey(l); (_grp[k]=_grp[k]||[]).push(l); });
+    Object.keys(_grp).forEach(k=>{ const t=_cardText(_grp[k]); if(_words.every(w=>matchQ(t,w))) _hitKeys.add(k); });
+  }
   const filtered = logs.filter(l=>{
     if(!_baseOk(l)) return false;
-    return q ? _hitKeys.has(_cardKey(l)) : true;
+    return _words.length ? _hitKeys.has(_cardKey(l)) : true;
   }).sort((a,b)=>((b.date||'')+(b.time||''))>((a.date||'')+(a.time||''))?1:-1);
 
   // 日付でグループ化
