@@ -49,7 +49,7 @@ const fieldToDb   = (o, uid) => ({ id:o.id, user_id:uid, name:o.name||"", area:o
 const fieldFromDb = r => ({ id:r.id, name:r.name||"", area:r.area||"", soil:r.soil||"", addr:r.addr||"", memo:r.memo||"", prefecture:r.prefecture||"" });
 const cropToDb    = (o, uid) => ({ id:o.id, user_id:uid, field_id:o.fieldId||null, type:o.type||null, variety:o.variety||null, germ_rate:o.germRate||null, stocks:o.stocks||null, ridge_w:o.ridgeW||null, ridge_h:o.ridgeH||null, rows:o.rows||null, row_space:o.rowSpace||null, plant_space:o.plantSpace||null, sow_date:o.sowDate||null, plant_date:o.plantDate||null, memo:o.memo||null, cultivation_type:o.cultivationType||null, seed_cost:o.seedCost||null, seed_note:o.seedNote||null, custom_name:o.customName||null, ended:o.ended||false, end_date:o.endDate||null, maturity:o.maturity||null, custom_days:o.customDays||null, custom_water:o.customWater||null, pot_size:o.potSize||null, pot_volume:o.potVolume||null, pot_count:o.potCount||null, grow_env:o.growEnv||null, agri_month_start:o.agriMonthStart||null, ridge_len:o.ridgeLen||null, cultivation_area:o.cultivationArea||null, temp_min:o.tempMin||null, temp_max:o.tempMax||null, fert_skip_date:o.fertSkipDate||null, fert_interval:o.fertInterval||null, reminder_mode:o.reminderMode||null, custom_events:o.customEvents?JSON.stringify(o.customEvents):null, plan:o.plan?JSON.stringify(o.plan):null, harvest_days:o.harvestDays?parseInt(o.harvestDays):null, is_public:!!o.isPublic });
 const cropFromDb  = (r, fields) => { const fi = fields.findIndex(f=>f.id===r.field_id); return { id:r.id, fieldId:r.field_id||"", fieldIdx:fi>=0?fi:0, type:r.type||"", variety:r.variety||"", germRate:r.germ_rate||"", stocks:r.stocks||"", ridgeW:r.ridge_w||"", ridgeH:r.ridge_h||"", rows:r.rows||"", rowSpace:r.row_space||"", plantSpace:r.plant_space||"", sowDate:r.sow_date||"", plantDate:r.plant_date||"", memo:r.memo||"", cultivationType:r.cultivation_type||"transplant", seedCost:r.seed_cost||"", seedNote:r.seed_note||"", customName:r.custom_name||"", ended:r.ended||false, endDate:r.end_date||"", maturity:r.maturity||"mid", customDays:r.custom_days||"", customWater:r.custom_water||"", potSize:r.pot_size||"", potVolume:r.pot_volume||"", potCount:r.pot_count||"", growEnv:r.grow_env||"field", agriMonthStart:r.agri_month_start||"", ridgeLen:r.ridge_len||"", cultivationArea:r.cultivation_area||"", tempMin:r.temp_min||"", tempMax:r.temp_max||"", fertSkipDate:r.fert_skip_date||"", fertInterval:r.fert_interval||"", reminderMode:r.reminder_mode||"auto", customEvents:safeJson(r.custom_events,[]), plan:safeJson(r.plan,null), harvestDays:r.harvest_days||null, isPublic:!!r.is_public }; };
-const logToDb     = (o, uid, fields) => ({ id:o.id, user_id:uid, field_id:fields[o.fieldIdx]?.id||o.fieldId||null, crop_id:o.cropId||null, shared_all:o.sharedAll||null, work:o.work||null, memo:o.memo||null, date:o.date||null, time:o.time||null, duration:o.duration||null, img_src:o.imgSrc||null, img2_src:o.imgSrc2||null, img3_src:o.imgSrc3||null, fert_name:o.fertName||null, fert_amt:o.fertAmt||null, fert_unit:o.fertUnit||null, fert_method:o.fertMethod||null, fert_cost:o.fertCost||null, fert_dil:o.fertDil||null, fert_spray_amt:o.fertSprayAmt||null, fert_spray_unit:o.fertSprayUnit||null, pest_name:o.pestName||null, pest_spray_amt:o.pestSprayAmt||null, pest_dil:o.pestDil||null, pest_amt:o.pestAmt||null, pest_unit:o.pestUnit||null, pest_tgt:o.pestTarget||null, pest_cost:o.pestCost||null, hv_kg:o.hvKg||null, hv_cnt:o.hvCnt||null, hv_q:o.hvQ||null, hv_price:o.hvPrice||null, equip_ids:o.equipIds||null, equip_act:o.equipAct||null, equip_use_amt:o.equipUseAmt||null, equip_use_unit:o.equipUseUnit||null, sow_qty:o.sowQty||null, germination_cnt:o.germinationCnt||null, germ_date:o.germinationDate||null, transplant_qty:o.transplantQty||null, discard_cnt:o.discardCnt||null, add_cnt:o.addCnt||null, event_type:o.eventType||null, event_note:o.eventNote||null, hv_grade_str:o.hvGradeStr||null, other_note:o.otherNote||null, repot_size:o.repotSize||null, repot_vol:o.repotVol||null, group_id:o._groupId||null, weather:o.weather||null });
+const logToDb     = (o, uid, fields) => ({ id:o.id, user_id:uid, field_id:(o.sharedAll&&!o.fieldId)?null:(fields[o.fieldIdx]?.id||o.fieldId||null), crop_id:o.cropId||null, shared_all:o.sharedAll||null, work:o.work||null, memo:o.memo||null, date:o.date||null, time:o.time||null, duration:o.duration||null, img_src:o.imgSrc||null, img2_src:o.imgSrc2||null, img3_src:o.imgSrc3||null, fert_name:o.fertName||null, fert_amt:o.fertAmt||null, fert_unit:o.fertUnit||null, fert_method:o.fertMethod||null, fert_cost:o.fertCost||null, fert_dil:o.fertDil||null, fert_spray_amt:o.fertSprayAmt||null, fert_spray_unit:o.fertSprayUnit||null, pest_name:o.pestName||null, pest_spray_amt:o.pestSprayAmt||null, pest_dil:o.pestDil||null, pest_amt:o.pestAmt||null, pest_unit:o.pestUnit||null, pest_tgt:o.pestTarget||null, pest_cost:o.pestCost||null, hv_kg:o.hvKg||null, hv_cnt:o.hvCnt||null, hv_q:o.hvQ||null, hv_price:o.hvPrice||null, equip_ids:o.equipIds||null, equip_act:o.equipAct||null, equip_use_amt:o.equipUseAmt||null, equip_use_unit:o.equipUseUnit||null, sow_qty:o.sowQty||null, germination_cnt:o.germinationCnt||null, germ_date:o.germinationDate||null, transplant_qty:o.transplantQty||null, discard_cnt:o.discardCnt||null, add_cnt:o.addCnt||null, event_type:o.eventType||null, event_note:o.eventNote||null, hv_grade_str:o.hvGradeStr||null, other_note:o.otherNote||null, repot_size:o.repotSize||null, repot_vol:o.repotVol||null, group_id:o._groupId||null, weather:o.weather||null });
 const logFromDb   = (r, fields) => { const fi=fields.findIndex(f=>f.id===r.field_id); return { id:r.id, fieldId:r.field_id||"", fieldIdx:fi>=0?fi:0, cropId:r.crop_id||"", sharedAll:!!r.shared_all, work:r.work||"", memo:r.memo||"", date:r.date||"", time:r.time||"", duration:r.duration||"", imgSrc:r.img_src||null, imgSrc2:r.img2_src||null, imgSrc3:r.img3_src||null, aiReply:"", fertName:r.fert_name||"", fertAmt:r.fert_amt||"", fertUnit:r.fert_unit||"", fertMethod:r.fert_method||"", fertCost:r.fert_cost||"", fertDil:r.fert_dil||"", fertSprayAmt:r.fert_spray_amt||"", fertSprayUnit:r.fert_spray_unit||"L", pestName:r.pest_name||"", pestSprayAmt:r.pest_spray_amt||"", pestDil:r.pest_dil||"", pestAmt:r.pest_amt||"", pestUnit:r.pest_unit||"", pestTarget:r.pest_tgt||r.pest_target||"", pestCost:r.pest_cost||"", hvKg:r.hv_kg!=null?String(r.hv_kg):"", hvCnt:r.hv_cnt!=null?String(r.hv_cnt):"", hvQ:r.hv_q||"", hvPrice:r.hv_price||"", hvImgSrc:r.hv_img_src||null, equipIds:Array.isArray(r.equip_ids)?r.equip_ids:safeJson(r.equip_ids,[]), equipAct:r.equip_act||"", hvGradeStr:r.hv_grade_str||"", otherNote:r.other_note||"", repotSize:r.repot_size||"", repotVol:r.repot_vol||"", _groupId:r.group_id||null, weather:r.weather||"", equipUseAmt:r.equip_use_amt||null, equipUseUnit:r.equip_use_unit||null, sowQty:r.sow_qty||"", germinationCnt:r.germination_cnt||"", germinationDate:r.germ_date||r.germination_date||"", transplantQty:r.transplant_qty||"", discardCnt:r.discard_cnt||"", addCnt:r.add_cnt||"", eventType:r.event_type||"", eventNote:r.event_note||"" }; };
 const fertMToDb   = (o, uid) => ({ id:o.id||uid0(), user_id:uid, name:o.name||null, type:o.type||null, price:o.price||null, punit:o.punit||null, capacity:o.capacity||null, cunit:o.cunit||null, npk:o.npk||null, stock:o.stock||null, sunit:o.sunit||null, dil:o.dil||null, note:o.note||null, status:o.status||null });
 const fertMFromDb = r => alignStockUnit({ id:r.id, name:r.name||"", type:r.type||"", price:r.price||"", punit:r.punit||"", capacity:r.capacity||"", cunit:r.cunit||"", npk:r.npk||"", stock:r.stock||"", sunit:r.sunit||"", dil:r.dil||"", note:r.note||"", status:r.status||"使用中" });
@@ -1120,18 +1120,6 @@ async function compressReceipt(file){
   const cv=document.createElement("canvas"); cv.width=w; cv.height=h; cv.getContext("2d").drawImage(img,0,0,w,h);
   return new Promise(r=>cv.toBlob(b=>{URL.revokeObjectURL(url);r(b);},"image/jpeg",0.7));
 }
-// 読み取り用：長辺1800px・白黒＋コントラスト強調
-async function prepReceiptForOcr(file){
-  const {img,url}=await _loadImg(file);
-  const MAX=1800; let w=img.width,h=img.height;
-  if(Math.max(w,h)>MAX){ if(w>h){h=Math.round(h*MAX/w);w=MAX;} else {w=Math.round(w*MAX/h);h=MAX;} }
-  const cv=document.createElement("canvas"); cv.width=w; cv.height=h;
-  const cx=cv.getContext("2d"); cx.drawImage(img,0,0,w,h);
-  const d=cx.getImageData(0,0,w,h); const p=d.data;
-  for(let i=0;i<p.length;i+=4){ let g=0.299*p[i]+0.587*p[i+1]+0.114*p[i+2]; g=(g-128)*1.4+128+10; g=g<0?0:g>255?255:g; p[i]=p[i+1]=p[i+2]=g; }
-  cx.putImageData(d,0,0); URL.revokeObjectURL(url);
-  return cv;
-}
 async function uploadReceipt(blob,userId){
   try{
     const path=(userId||"anon")+"/"+Date.now().toString(36)+Math.random().toString(36).slice(2,7)+".jpg";
@@ -1147,132 +1135,6 @@ async function deleteReceipt(path){
   try{ if(path) await sb.storage.from(RECEIPT_BUCKET).remove([path]); }catch(e){ console.error("deleteReceipt:",e.message); }
 }
 let _tessP=null;
-function loadTesseract(){
-  if(window.Tesseract) return Promise.resolve(window.Tesseract);
-  if(_tessP) return _tessP;
-  _tessP=new Promise((res,rej)=>{
-    const s=document.createElement("script");
-    s.src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js";
-    s.onload=()=>window.Tesseract?res(window.Tesseract):rej(new Error("読み取り部品の読み込みに失敗"));
-    s.onerror=()=>{_tessP=null;rej(new Error("読み取り部品をダウンロードできません（通信状況を確認してください）"));};
-    document.head.appendChild(s);
-  });
-  return _tessP;
-}
-async function ocrReceipt(file,onProgress){
-  const T=await loadTesseract();
-  const cv=await prepReceiptForOcr(file);
-  const worker=await T.createWorker("jpn",1,{
-    langPath:"https://cdn.jsdelivr.net/gh/naptha/tessdata@gh-pages/4.0.0_fast",
-    logger:m=>{ if(m&&m.status&&onProgress) onProgress(m.status,m.progress||0); }
-  });
-  try{ const r=await worker.recognize(cv); return (r&&r.data&&r.data.text)||""; }
-  finally{ try{await worker.terminate();}catch{} }
-}
-// OCR文字列 → 日付・金額・店名・費目の候補
-function parseReceiptText(raw){
-  const z=String(raw||"").replace(/[０-９]/g,c=>String.fromCharCode(c.charCodeAt(0)-0xFEE0)).replace(/[，､、]/g,",").replace(/[．]/g,".").replace(/[￥]/g,"¥").replace(/[／]/g,"/").replace(/[－−]/g,"-");
-  // 日本語の文字どうしの間に入った空白を除く
-  const text=z.replace(/([぀-ヿ㐀-鿿])[ \t]+(?=[぀-ヿ㐀-鿿])/g,"$1");
-  const lines=text.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
-  // 日付
-  const dates=[]; const dre=/(20\d{2}|\d{2})\s*[\/\-.年]\s*(\d{1,2})\s*[\/\-.月]\s*(\d{1,2})/g; let m;
-  while((m=dre.exec(text))){ let y=+m[1]; if(y<100) y+=2000; const mo=+m[2], d=+m[3]; if(y>=2000&&y<=2100&&mo>=1&&mo<=12&&d>=1&&d<=31){ const s=y+"-"+String(mo).padStart(2,"0")+"-"+String(d).padStart(2,"0"); if(!dates.includes(s)) dates.push(s); } }
-  // 金額
-  const num=s=>{ const t=String(s).replace(/[\s,]/g,"").replace(/\.(?=\d{3}\b)/g,""); const n=parseInt(t,10); return isFinite(n)?n:0; };
-  const keyRe=/(合計|総合計|お買上|お買い上|ご請求|請求額|お支払|支払額|税込|領収|総計)/;
-  const skipRe=/(小計|お預|お釣|おつり|釣銭|預り|税率|対象|内税|外税|消費税|\(内)/;
-  const amts=[]; const push=(n,w)=>{ if(n>=10&&n<=9999999){ const e=amts.find(a=>a.v===n); if(e) e.w=Math.max(e.w,w); else amts.push({v:n,w}); } };
-  lines.forEach((ln,i)=>{
-    const near=[ln, lines[i+1]||""].join(" ");
-    const isKey=keyRe.test(ln)&&!/小計/.test(ln); const isSkip=skipRe.test(ln)&&!keyRe.test(ln);
-    const re=/[¥\\]\s*([\d][\d,.\s]{0,9}\d|\d)|([\d][\d,]{1,9})\s*円/g; let a;
-    while((a=re.exec(ln))){ push(num(a[1]||a[2]), isKey?3:isSkip?0:1); }
-    if(isKey){ const re2=/(\d[\d,]{1,9})\s*$/; const b=re2.exec(ln)||re2.exec(lines[i+1]||""); if(b) push(num(b[1]),3); }
-  });
-  amts.sort((a,b)=>b.w-a.w||b.v-a.v);
-  // 店名：上のほうの行で、日本語を含み、数字だらけでない行
-  let store=""; for(const ln of lines.slice(0,6)){ if(/[぀-ヿ㐀-鿿]{2,}/.test(ln)&&!/(領収|レシート|電話|TEL|住所|〒|年|月|日|登録番号)/i.test(ln)&&ln.replace(/\D/g,"").length<ln.length/2){ store=ln.replace(/[|｜_]/g,"").slice(0,30); break; } }
-  // 費目の推定
-  const CATS=[["fert",/(肥料|堆肥|石灰|化成|液肥|腐葉土|培養土|苦土)/],["pest",/(農薬|殺虫|殺菌|除草剤|薬剤|スプレー)/],["seed",/(種|苗|球根|種子)/],["fuel",/(ガソリン|軽油|灯油|電気|ガス|水道|給油)/],["transport",/(段ボール|ダンボール|テープ|ラベル|送料|宅配|運賃|レジ袋|梱包)/],["clothing",/(手袋|長靴|作業服|作業着|帽子|雨具)/],["equip",/(マルチ|支柱|ビニール|ネット|ポット|ひも|紐|結束|肥料袋)/],["machine",/(はさみ|鋏|鎌|鍬|スコップ|シャベル|ホース|コンテナ|バケツ)/],["repair",/(修理|修繕|部品|交換)/]];
-  let cat=""; for(const [c,re] of CATS){ if(re.test(text)){ cat=c; break; } }
-  // 品名候補（金額が付いた行の文字部分）
-  const items=[]; lines.forEach(ln=>{ const mm=/^(.*?[぀-ヿ㐀-鿿A-Za-z]{2,}.*?)\s+[¥\\]?\s*\d[\d,]*\s*$/.exec(ln); if(mm&&!keyRe.test(ln)&&!skipRe.test(ln)){ const t=mm[1].replace(/\s+/g," ").trim(); if(t.length>=2&&t.length<=30&&!items.includes(t)) items.push(t); } });
-  return {dates:dates.slice(0,3), amts:amts.slice(0,4).map(a=>a.v), store, cat, items:items.slice(0,4), text};
-}
-
-
-// ===== 予定の取り込み（Excel / CSV）=====
-// 列：日付 / 予定（タイトル）/ 品目（任意）/ 備考（任意）。1行目は見出し行
-let _xlsxP=null;
-function loadXlsxLib(){
-  if(window.XLSX) return Promise.resolve(window.XLSX);
-  if(_xlsxP) return _xlsxP;
-  _xlsxP=new Promise((res,rej)=>{
-    const sc=document.createElement("script");
-    sc.src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js";
-    sc.onload=()=>window.XLSX?res(window.XLSX):rej(new Error("Excel読み取り部品の読み込みに失敗"));
-    sc.onerror=()=>{_xlsxP=null;rej(new Error("Excel読み取り部品をダウンロードできません。CSVで保存し直して試してください"));};
-    document.head.appendChild(sc);
-  });
-  return _xlsxP;
-}
-function parseCsvText(text){
-  const rows=[]; let row=[],cur="",q=false; const t=String(text||"").replace(/^﻿/,"");
-  for(let i=0;i<t.length;i++){
-    const ch=t[i];
-    if(q){ if(ch==='"'){ if(t[i+1]==='"'){cur+='"';i++;} else q=false; } else cur+=ch; }
-    else if(ch==='"') q=true;
-    else if(ch===","||ch==="\t"){ row.push(cur); cur=""; }
-    else if(ch==="\n"||ch==="\r"){ if(ch==="\r"&&t[i+1]==="\n") i++; row.push(cur); cur=""; rows.push(row); row=[]; }
-    else cur+=ch;
-  }
-  if(cur!==""||row.length){ row.push(cur); rows.push(row); }
-  return rows;
-}
-function normSchedDate(v, baseYear){
-  if(v==null||v==="") return "";
-  if(v instanceof Date && !isNaN(v)) return v.getFullYear()+"-"+String(v.getMonth()+1).padStart(2,"0")+"-"+String(v.getDate()).padStart(2,"0");
-  if(typeof v==="number" && v>20000 && v<80000){ const d=new Date(Math.round((v-25569)*86400000)); return d.getUTCFullYear()+"-"+String(d.getUTCMonth()+1).padStart(2,"0")+"-"+String(d.getUTCDate()).padStart(2,"0"); }
-  const s=String(v).trim().replace(/[０-９]/g,c=>String.fromCharCode(c.charCodeAt(0)-0xFEE0));
-  let m=s.match(/(\d{4})\s*[\/\-.年]\s*(\d{1,2})\s*[\/\-.月]\s*(\d{1,2})/);
-  if(m) return m[1]+"-"+String(+m[2]).padStart(2,"0")+"-"+String(+m[3]).padStart(2,"0");
-  m=s.match(/^(\d{1,2})\s*[\/\-.月]\s*(\d{1,2})/);
-  if(m) return (baseYear||new Date().getFullYear())+"-"+String(+m[1]).padStart(2,"0")+"-"+String(+m[2]).padStart(2,"0");
-  return "";
-}
-function parseScheduleRows(rows){
-  const clean=(rows||[]).map(r=>(r||[]).map(c=>c==null?"":c));
-  let hi=clean.findIndex(r=>r.some(c=>String(c).trim()==="日付")&&r.some(c=>/^(予定|タイトル|内容)$/.test(String(c).trim())));
-  if(hi<0) return {items:[],error:"見出し行（日付・予定・品目）が見つかりません"};
-  const h=clean[hi].map(c=>String(c).trim());
-  const ci=(re)=>h.findIndex(c=>re.test(c));
-  const iD=ci(/^日付$/), iT=ci(/^(予定|タイトル|内容)$/), iC=ci(/^品目/), iN=ci(/^(備考|メモ)/);
-  const items=[]; let skipped=0;
-  clean.slice(hi+1).forEach(r=>{
-    const date=normSchedDate(r[iD]); const title=String(r[iT]==null?"":r[iT]).trim();
-    if(!title && !date) return;
-    if(!date||!title){ skipped++; return; }
-    const note=iN>=0?String(r[iN]||"").trim():"";
-    items.push({date, title: note? title+"（"+note+"）" : title, cropText: iC>=0?String(r[iC]||"").trim():""});
-  });
-  return {items, skipped};
-}
-function matchCropByText(text, cropList){
-  const norm=x=>String(x||"").replace(/[\s　()（）・\-]/g,"").toLowerCase();
-  const t=norm(text); if(!t) return "";
-  let best="",score=0;
-  cropList.forEach(c=>{
-    const db=CDB[c.type]||{}; const name=norm(c.type==="custom"?c.customName:db.n); const vr=norm(c.variety);
-    if(!name) return;
-    let sc=0;
-    if(t.includes(name)||name.includes(t)) sc=1;
-    if(sc && vr && t.includes(vr)) sc=2;
-    if(sc>score){ score=sc; best=c.id; }
-  });
-  return best;
-}
-
 // 住所→緯度経度変換（共通）
 async function geocode(addr) {
   let lat=34.9756, lon=138.3827;
@@ -1935,7 +1797,7 @@ function LoginScreen() {
       <div style={{background:"#fff",borderRadius:20,padding:"28px 24px",maxWidth:360,width:"100%",textAlign:"center",boxShadow:"0 8px 40px rgba(0,0,0,.3)"}}>
         <div style={{fontSize:"2.2rem",marginBottom:6}}>🌾</div>
         <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:"1.3rem",color:G,marginBottom:4}}>サクメモ</div>
-        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v2.2.33</span></div>
+        <div style={{fontSize:".76rem",color:TX3,marginBottom:20}}>作物の記録アプリ <span style={{opacity:.5}}>v2.2.35</span></div>
         {linkErr&&<div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:8,padding:"10px 12px",marginBottom:16,fontSize:".78rem",color:"#856404",textAlign:"left"}}>{linkErr}</div>}
 
 
@@ -1995,7 +1857,7 @@ function LoginScreen() {
           <a href="https://sakumemo-1.vercel.app/privacy-policy.html" target="_blank" style={{color:G}}>プライバシーポリシー</a>・
           <a href="https://sakumemo-1.vercel.app/terms-of-service.html" target="_blank" style={{color:G}}>利用規約</a>
         </div>
-        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v2.2.33</div>
+        <div style={{fontSize:".62rem",color:"#ccc",marginTop:8}}>v2.2.35</div>
       </div>
     </div>
   );
@@ -2004,38 +1866,6 @@ function LoginScreen() {
 function HomeScreen({ fields, crops, setCrops, logs, setLogs, costs, onEditCrop, showToast, setScr, onNew, dbLoad, dbSaveLog, dbDelete }) {
   const [reminderMode, setReminderMode] = useState("both"); // "auto"|"custom"|"both"
   const [mSched, setMSched] = useState(null); // カスタム予定モーダル {date,title,cropId,id}
-  const [mImp, setMImp] = useState(null); // 予定の取り込み {rows:[{date,title,cropId,dup,on}], note}
-  const impFileRef = useRef(null);
-  const onPickImport = async e => {
-    const f=e.target.files&&e.target.files[0]; e.target.value=""; if(!f) return;
-    try{
-      let rows;
-      if(/\.csv$|\.txt$/i.test(f.name)){
-        const buf=await f.arrayBuffer(); let txt=new TextDecoder("utf-8").decode(buf);
-        if(txt.includes("\uFFFD")){ try{ txt=new TextDecoder("shift_jis").decode(buf); }catch{} }
-        rows=parseCsvText(txt);
-      } else {
-        const X=await loadXlsxLib(); const wb=X.read(await f.arrayBuffer(),{type:"array",cellDates:true});
-        const ws=wb.Sheets[wb.SheetNames[0]]; rows=X.utils.sheet_to_json(ws,{header:1,raw:true,defval:""});
-      }
-      const r=parseScheduleRows(rows);
-      if(r.error){ showToast(r.error); return; }
-      if(!r.items.length){ showToast("取り込める予定がありません"); return; }
-      const active=crops.filter(c=>!c.ended);
-      const list=r.items.map(it=>{
-        const cropId=matchCropByText(it.cropText,active);
-        const dup=logs.some(l=>l.work==="schedule"&&l.date===it.date&&l.memo===it.title&&(l.cropId||"")===cropId);
-        return {...it, cropId, dup, on:!dup};
-      });
-      setMImp({rows:list, skipped:r.skipped||0});
-    }catch(err){ showToast(err.message||"読み込みに失敗しました"); }
-  };
-  const doImport = () => {
-    const sel=mImp.rows.filter(x=>x.on); if(!sel.length){ showToast("取り込む予定を選んでください"); return; }
-    const items=sel.map(x=>({id:uid0(),_groupId:null,fieldIdx:0,cropId:x.cropId||"",work:"schedule",memo:x.title,date:x.date,time:"",duration:"",imgSrc:null,imgSrc2:null,imgSrc3:null}));
-    setLogs([...logs,...items]); items.forEach(it=>dbSaveLog(it));
-    setMImp(null); showToast(items.length+"件の予定を取り込みました");
-  };
   // 自動リマインダーの非表示リスト（key→true）、localStorageで永続化
   const [dismissedAuto, setDismissedAuto] = useState(()=>{
     try{return JSON.parse(localStorage.getItem('sakumemo_dismissed_auto')||'{}');}catch{return{};}
@@ -2224,12 +2054,9 @@ function HomeScreen({ fields, crops, setCrops, logs, setLogs, costs, onEditCrop,
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
           <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".88rem",color:"#5c3d1e"}}>📅 次の作業予定</div>
           <div style={{display:"flex",gap:6}}>
-            <button onClick={()=>impFileRef.current&&impFileRef.current.click()}
-              style={{...S.btn,...S.btnSm,background:"#fff",color:G,border:"1px solid "+G,fontSize:".72rem"}}>📥 取り込み</button>
             <button onClick={()=>setMSched({date:todayStr(),title:"",cropId:"",id:null})}
               style={{...S.btn,...S.btnSm,background:G,color:"#fff",fontSize:".72rem"}}>＋ 予定追加</button>
           </div>
-          <input ref={impFileRef} type="file" accept=".xlsx,.xls,.csv,.txt" onChange={onPickImport} style={{display:"none"}}/>
         </div>
         {/* モード切替 */}
         <div style={{display:"flex",borderRadius:8,overflow:"hidden",border:"1px solid #e0d9ce",marginBottom:10}}>
@@ -2279,23 +2106,6 @@ function HomeScreen({ fields, crops, setCrops, logs, setLogs, costs, onEditCrop,
         }
       </div>
       {/* カスタム予定モーダル */}
-      {mImp&&<ModalWithSave open={!!mImp} title="予定を取り込む" saveLabel={"取り込む（"+mImp.rows.filter(x=>x.on).length+"件）"} onSave={doImport} onClose={()=>setMImp(null)}>
-        <div style={{fontSize:".72rem",color:"#555",lineHeight:1.6,marginBottom:8}}>チェックした予定だけを登録します。同じ日・同じ内容の予定がすでにあるものは、チェックを外してあります。品目は読み取れたものを選んでありますので、違う場合は直してください。{mImp.skipped>0?"（日付か予定が空の "+mImp.skipped+" 行は除きました）":""}</div>
-        <div style={{display:"flex",gap:8,marginBottom:8}}>
-          <button style={{...S.btn,...S.btnSm,fontSize:".7rem"}} onClick={()=>setMImp({...mImp,rows:mImp.rows.map(x=>({...x,on:true}))})}>すべて選ぶ</button>
-          <button style={{...S.btn,...S.btnSm,fontSize:".7rem"}} onClick={()=>setMImp({...mImp,rows:mImp.rows.map(x=>({...x,on:false}))})}>すべて外す</button>
-        </div>
-        {mImp.rows.map((x,i)=><div key={i} style={{border:"1px solid #e0d9ce",borderRadius:8,padding:"6px 8px",marginBottom:6,background:x.on?"#fff":"#f6f3ee",opacity:x.on?1:0.7}}>
-          <label style={{display:"flex",gap:8,alignItems:"flex-start",cursor:"pointer"}}>
-            <input type="checkbox" checked={x.on} onChange={e=>setMImp({...mImp,rows:mImp.rows.map((y,j)=>j===i?{...y,on:e.target.checked}:y)})} style={{marginTop:3}}/>
-            <div style={{flex:1,minWidth:0}}>
-              <div style={{fontSize:".74rem",fontWeight:700,color:"#5c3d1e"}}>{x.date.slice(5).replace("-","/")}　{x.dup&&<span style={{fontSize:".62rem",background:"#EEE",color:"#888",borderRadius:3,padding:"0 4px"}}>登録済み</span>}</div>
-              <div style={{fontSize:".78rem",lineHeight:1.5}}>{x.title}</div>
-            </div>
-          </label>
-          <div style={{marginTop:4}}><Sel value={x.cropId||""} onChange={v=>setMImp({...mImp,rows:mImp.rows.map((y,j)=>j===i?{...y,cropId:v}:y)})} options={makeCropOptions(crops.filter(c=>!c.ended),"品目なし")}/></div>
-        </div>)}
-      </ModalWithSave>}
       {mSched&&<ModalWithSave open={!!mSched} title={mSched.id?"予定を編集":"予定を追加"} onSave={saveSchedule} onClose={()=>setMSched(null)}>
         <FG label="タイトル *"><Inp value={mSched.title} onChange={v=>setMSched({...mSched,title:v})} placeholder="例：追肥・収穫など"/></FG>
         <FG label="予定日"><Inp type="date" value={mSched.date} onChange={v=>setMSched({...mSched,date:v})}/></FG>
@@ -3126,7 +2936,7 @@ useEffect(()=>{
       setDiscardCnt("");setAddCnt("");setEquipSel([]);setEquipAct("設置");setEquipUseAmt("");setEquipUseUnit("L");setEquipEntries([]);setRepotSize("");setRepotVol("");  return;
     }
     setEditId(editLog._isCopy ? null : editLog.id);
-    setFieldIdx(editLog.fieldIdx||0);
+    setFieldIdx((editLog.sharedAll&&!editLog.fieldId)?-1:(editLog.fieldIdx||0));
     setCropId(editLog.sharedAll?"__all__":(editLog.cropId||""));
     // 複数作業を復元
     const _validWorks = new Set(WORK_TYPES.map(w=>w.value));
@@ -3310,7 +3120,7 @@ useEffect(()=>{
       const e = {
         id: existingId || uid0(),
         _groupId: groupId || null,
-        fieldIdx, cropId:(cropId==="__all__"?"":cropId), sharedAll:(cropId==="__all__"), date, time, duration:dur, work:w,
+        fieldIdx, fieldId:(fieldIdx<0?"":(fields[fieldIdx]?.id||"")), cropId:((cropId==="__all__"||fieldIdx<0)?"":cropId), sharedAll:(fieldIdx<0||cropId==="__all__"), date, time, duration:dur, work:w,
         // メモ・写真は1件目のみ
         memo: isFirst ? memo : '',
         imgSrc: isFirst ? imgUrl||null : null,
@@ -3625,9 +3435,9 @@ useEffect(()=>{
       </div>
       <div style={S.card}>
         <R2>
-          <FG label="圃場">{fields.length>0?<Sel value={fieldIdx} onChange={v=>{setFieldIdx(parseInt(v));setCropId("");}} options={fields.map((f,i)=>({value:i,label:f.name}))}/>:<div style={{color:TX3,fontSize:".82rem"}}>圃場を登録してください</div>}</FG>
-          <FG label="品目"><Sel value={cropId} onChange={setCropId} options={(()=>{ const o=makeCropOptions(fieldCrops.filter(c=>!c.ended)); return [o[0],{value:"__all__",label:"🌐 この圃場の全品目に共通（灌水・除草など）"},...o.slice(1)]; })()} />
-            {cropId==="__all__"&&<div style={{fontSize:".68rem",color:"#1e4e79",background:"#eef6fd",border:"1px solid #bcd9f1",borderRadius:8,padding:"5px 9px",marginTop:5,lineHeight:1.6}}>🌐 作業時間は、上で選んだ圃場で、その日に栽培中の品目の数で均等に割って、各品目のレポート（作業時間・時給換算）に入ります。圃場ごとに1回ずつ登録してください。</div>}
+          <FG label="圃場">{fields.length>0?<Sel value={fieldIdx} onChange={v=>{setFieldIdx(parseInt(v));setCropId("");}} options={[...fields.map((f,i)=>({value:i,label:f.name})),...(fields.length>1?[{value:-1,label:"🌐 全圃場まとめて（共通作業）"}]:[])]}/>:<div style={{color:TX3,fontSize:".82rem"}}>圃場を登録してください</div>}</FG>
+          <FG label="品目">{fieldIdx<0?<div style={{fontSize:".78rem",color:"#1e4e79",background:"#eef6fd",border:"1px solid #bcd9f1",borderRadius:8,padding:"7px 9px",lineHeight:1.6}}>🌐 全圃場・全品目に共通の作業です。作業時間は、その日に栽培中の品目へ「栽培面積の比」で割り振られます（栽培面積が未入力の品目は、入力済みの品目の平均面積で計算）。</div>:<Sel value={cropId} onChange={setCropId} options={(()=>{ const o=makeCropOptions(fieldCrops.filter(c=>!c.ended)); return [o[0],{value:"__all__",label:"🌐 この圃場の全品目に共通（灌水・除草など）"},...o.slice(1)]; })()} />}
+            {cropId==="__all__"&&<div style={{fontSize:".68rem",color:"#1e4e79",background:"#eef6fd",border:"1px solid #bcd9f1",borderRadius:8,padding:"5px 9px",marginTop:5,lineHeight:1.6}}>🌐 作業時間は、上で選んだ圃場で、その日に栽培中の品目へ「栽培面積の比」で割って、各品目のレポート（作業時間・時給換算）に入ります。複数の圃場にまたがる作業は、圃場に「全圃場まとめて」を選ぶと1回で登録できます。</div>}
           </FG>
         </R2>
         <FG label="作業内容">
@@ -4035,7 +3845,7 @@ function TimelineScreen({ fields, crops, equips, logs, setLogs, setLogsR, showTo
       const d=l.date||''; const dm=d.match(/^(\d{4})-(\d{2})-(\d{2})/);
       const lf=(l.fieldId&&fields.find(f=>f.id===l.fieldId))||fields[l.fieldIdx]||{};
       const cf=(cr.fieldId&&fields.find(f=>f.id===cr.fieldId))||fields[cr.fieldIdx]||{};
-      parts.push(l.sharedAll?'全品目共通 共通':getCropName(cr), db.n, cr.variety, cr.customName, lf.name, cf.name, l.memo, l.work, WORK_LABELS[l.work]||'', l.fertName, l.pestName, d, d.replace(/-/g,'/'), d.slice(5).replace('-','/').replace(/^0/,''));
+      parts.push(l.sharedAll?'全品目共通 共通':getCropName(cr), db.n, cr.variety, cr.customName, (l.sharedAll&&!l.fieldId)?'全圃場':lf.name, cf.name, l.memo, l.work, WORK_LABELS[l.work]||'', l.fertName, l.pestName, d, d.replace(/-/g,'/'), d.slice(5).replace('-','/').replace(/^0/,''));
       if(dm) parts.push(dm[1]+'年'+(+dm[2])+'月'+(+dm[3])+'日', (+dm[2])+'月'+(+dm[3])+'日', (+dm[2])+'月', (+dm[3])+'日');
       if(l.duration) parts.push(l.duration+'分');
       if(l.sharedAll) sharedTargets(l,_wins,fields).forEach(id=>{ const c=crops.find(x=>x.id===id); if(c) parts.push(getCropName(c), c.variety, c.customName); });
@@ -4192,7 +4002,7 @@ function TimelineScreen({ fields, crops, equips, logs, setLogs, setLogsR, showTo
                   const l0=card.logs[0];
                   const cr=crops.find(c=>c.id===l0.cropId)||{};
                   const db=CDB[cr.type]||{};
-                  const fieldName=fields[l0.fieldIdx]?.name||'';
+                  const fieldName=(l0.sharedAll&&!l0.fieldId)?'全圃場':(fields[l0.fieldIdx]?.name||'');
                   const photos=[];
                   card.logs.forEach(l=>{[l.imgSrc,l.imgSrc2,l.imgSrc3].forEach(s=>{if(s&&photos.length<3)photos.push(s);});});
                   const memoLog=card.logs.find(l=>l.memo);
@@ -4311,12 +4121,20 @@ const buildCropWindows = (crops, fields, logs) => (crops||[]).map(c=>{
   const ds=(logs||[]).filter(l=>l.cropId===c.id&&l.date).map(l=>l.date).sort();
   const st=c.sowDate||c.plantDate||ds[0]||"";
   const en=c.ended?(c.endDate||ds[ds.length-1]||st):"9999-12-31";
-  return {id:c.id, fid:c.fieldId||(fields[c.fieldIdx]&&fields[c.fieldIdx].id)||"", st, en};
+  return {id:c.id, fid:c.fieldId||(fields[c.fieldIdx]&&fields[c.fieldIdx].id)||"", st, en, ar:parseFloat(c.cultivationArea)||0};
 }).filter(w=>w.st);
 const sharedTargets = (l, wins, fields) => {
   if(!l||!l.sharedAll||!l.date) return [];
-  const lfid=l.fieldId||(fields[l.fieldIdx]&&fields[l.fieldIdx].id)||"";
+  const lfid=l.fieldId||""; // 圃場が空＝全圃場まとめて
   return wins.filter(w=>w.st<=l.date&&l.date<=w.en&&(!lfid||!w.fid||w.fid===lfid)).map(w=>w.id);
+};
+// 按分の割合：栽培面積（cultivationArea）の比。面積未入力の品目は、入力済み品目の平均面積。誰も未入力なら均等
+const sharedShares = (l, wins, fields) => {
+  const ids=sharedTargets(l,wins,fields); const ws=wins.filter(w=>ids.includes(w.id));
+  if(!ws.length) return [];
+  const known=ws.filter(w=>w.ar>0); const avg=known.length?known.reduce((a,w)=>a+w.ar,0)/known.length:1;
+  const wt=ws.map(w=>w.ar>0?w.ar:avg); const tot=wt.reduce((a,b)=>a+b,0);
+  return ws.map((w,i)=>({id:w.id, r:wt[i]/tot}));
 };
 // 資材（肥料・農薬・消耗資材）の在庫評価額：在庫÷内容量×購入価格（内容量か価格が未設定なら0＝在庫タブと同じ）
 const stockValueOf = (m) => {
@@ -4485,39 +4303,23 @@ function SearchBox({ value, onChange, placeholder }) {
 }
 
 
-// レシート添付＋端末内読み取り（画像は非公開バケットに保存し、表示のたびに期限付きURLを発行）
+// レシート添付（画像は非公開バケットに保存し、表示のたびに期限付きURLを発行）
 function ReceiptBox({ mCost, setMCost, user, showToast }) {
   const [thumb,setThumb]=useState(null);
   const [busy,setBusy]=useState("");
-  const [prog,setProg]=useState("");
-  const [cand,setCand]=useState(null);
-  const [srcFile,setSrcFile]=useState(null);
   const path=mCost.receiptUrl||"";
   useEffect(()=>{ let off=false; setThumb(null); if(path) receiptSignedUrl(path).then(u=>{ if(!off) setThumb(u); }); return ()=>{off=true;}; },[path]);
   const pick=async e=>{
     const f=e.target.files&&e.target.files[0]; e.target.value=""; if(!f) return;
-    setBusy("save"); setCand(null);
+    setBusy("save");
     try{
       const blob=await compressReceipt(f);
       const r=await uploadReceipt(blob,user&&user.id);
       if(!r.path){ showToast("画像を保存できませんでした（"+(r.error||"")+"）。SQLを実行したか確認してください"); }
-      else { setSrcFile(f); setMCost(prev=>({...prev,receiptUrl:r.path,_oldReceipt:prev._oldReceipt!==undefined?prev._oldReceipt:(prev.receiptUrl||"")})); showToast("レシート画像を添付しました"); }
+      else { setMCost(prev=>({...prev,receiptUrl:r.path,_oldReceipt:prev._oldReceipt!==undefined?prev._oldReceipt:(prev.receiptUrl||"")})); showToast("レシート画像を添付しました"); }
     }catch(err){ showToast(err.message||"画像を処理できませんでした"); }
     setBusy("");
   };
-  const read=async()=>{
-    if(!srcFile){ showToast("読み取るには、画像をもう一度選んでください"); return; }
-    setBusy("ocr"); setProg("準備中…（初回は言語データの取得で1分ほどかかります）");
-    try{
-      const txt=await ocrReceipt(srcFile,(st,p)=>setProg((st||"読み取り中")+" "+Math.round(p*100)+"%"));
-      const r=parseReceiptText(txt);
-      if(!r.dates.length&&!r.amts.length&&!r.store){ showToast("うまく読み取れませんでした。明るい場所で、レシート全体をまっすぐ撮ってください"); }
-      setCand(r);
-    }catch(err){ showToast(err.message||"読み取りに失敗しました"); }
-    setBusy(""); setProg("");
-  };
-  const chip=(label,onClick)=><button key={label} onClick={onClick} style={{border:"1px solid #c9b88a",background:"#fffdf6",borderRadius:14,padding:"3px 10px",fontSize:".76rem",marginRight:5,marginBottom:5,cursor:"pointer",color:"#5c3d1e"}}>{label}</button>;
-  const catLabel=cand&&cand.cat?((COST_CATS.find(c=>c.value===cand.cat)||{}).label||""):"";
   return <FG label="🧾 レシート">
     {path&&<div style={{marginBottom:8}}>
       {thumb?<a href={thumb} target="_blank" rel="noreferrer"><img src={thumb} alt="レシート" style={{maxWidth:"100%",maxHeight:180,borderRadius:8,border:"1px solid #e0d8c8"}}/></a>:<div style={{fontSize:".74rem",color:TX3}}>画像を読み込み中…</div>}
@@ -4528,22 +4330,9 @@ function ReceiptBox({ mCost, setMCost, user, showToast }) {
         {path?"📷 撮り直す／差し替え":"📷 レシートを撮る・選ぶ"}
         <input type="file" accept="image/*" capture="environment" onChange={pick} disabled={!!busy} style={{display:"none"}}/>
       </label>
-      {srcFile&&<button style={{...S.secBtn,background:"#2E7D32",color:"#fff"}} disabled={!!busy} onClick={read}>🔍 内容を読み取る</button>}
       {path&&<button style={S.secBtn} disabled={!!busy} onClick={()=>{ if(window.confirm("このレシート画像を外しますか？（保存を押すと反映されます）")){ setMCost(prev=>({...prev,receiptUrl:"",_oldReceipt:prev._oldReceipt!==undefined?prev._oldReceipt:(prev.receiptUrl||"")})); setSrcFile(null); setCand(null); } }}>画像を外す</button>}
     </div>
     {busy==="save"&&<div style={{fontSize:".74rem",color:TX3,marginTop:6}}>画像を保存中…</div>}
-    {busy==="ocr"&&<div style={{fontSize:".74rem",color:TX3,marginTop:6}}>🔍 {prog}</div>}
-    {cand&&<div style={{marginTop:8,background:"#faf6ec",border:"1px solid #e6dcc0",borderRadius:8,padding:"8px 10px"}}>
-      <div style={{fontSize:".72rem",color:TX3,marginBottom:6}}>読み取り結果です（間違いがあります）。使うものをタップして入力してください。</div>
-      {cand.dates.length>0&&<div><div style={{fontSize:".7rem",fontWeight:700}}>日付</div>{cand.dates.map(d=>chip(d,()=>setMCost(prev=>({...prev,date:d}))))}</div>}
-      {cand.amts.length>0&&<div><div style={{fontSize:".7rem",fontWeight:700}}>金額</div>{cand.amts.map(a=>chip("¥"+a.toLocaleString(),()=>setMCost(prev=>({...prev,amt:String(a)}))))}</div>}
-      {(cand.store||cand.items.length>0)&&<div><div style={{fontSize:".7rem",fontWeight:700}}>内容・品名（タップで入力）</div>
-        {cand.store&&chip("🏪 "+cand.store,()=>setMCost(prev=>({...prev,name:cand.store})))}
-        {cand.items.map(t=>chip(t,()=>setMCost(prev=>({...prev,name:t}))))}</div>}
-      {cand.store&&<div><div style={{fontSize:".7rem",fontWeight:700}}>メモ</div>{chip("店名をメモに追加",()=>setMCost(prev=>({...prev,note:(prev.note?prev.note+"　":"")+"購入先："+cand.store})))}</div>}
-      {catLabel&&<div><div style={{fontSize:".7rem",fontWeight:700}}>費目の候補</div>{chip(catLabel,()=>setMCost(prev=>({...prev,cat:cand.cat})))}</div>}
-      <details style={{marginTop:4}}><summary style={{fontSize:".68rem",color:TX3,cursor:"pointer"}}>読み取った文字を見る</summary><pre style={{whiteSpace:"pre-wrap",fontSize:".68rem",margin:"4px 0 0"}}>{cand.text}</pre></details>
-    </div>}
   </FG>;
 }
 
@@ -7762,7 +7551,7 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs, equips=[], o
   // 全品目のデータ集計
   // デバッグ: costs の内容を確認
 
-  // 全品目共通の作業：作業した圃場で、その日に栽培中の品目の数で作業時間を均等に割り振る
+  // 全品目共通の作業：作業した圃場（全圃場なら全部）で、その日に栽培中の品目へ栽培面積の比で作業時間を割り振る
   //   栽培中＝（播種日または定植日）〜（栽培終了日。終了していなければ続いている）。日付が未入力なら、その品目の最初〜最後の記録日で見る
   const _wins = buildCropWindows(crops, fields, logs);
   const sharedAlloc = {}; let sharedUnalloc = 0, sharedTotal = 0;
@@ -7771,7 +7560,7 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs, equips=[], o
     sharedTotal+=mn;
     const act=sharedTargets(l,_wins,fields); // 同じ圃場で栽培中の品目だけで割る
     if(!act.length){ sharedUnalloc+=mn; return; }
-    act.forEach(id=>{ sharedAlloc[id]=(sharedAlloc[id]||0)+mn/act.length; });
+    sharedShares(l,_wins,fields).forEach(x=>{ sharedAlloc[x.id]=(sharedAlloc[x.id]||0)+mn*x.r; });
   });
   const cropStats = crops.map(c=>{
     const db=CDB[c.type]||{};
@@ -7851,7 +7640,7 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs, equips=[], o
       pestUse[l.pestName].amt+=useAmt;
     });
     return{id:c.id,name,emoji:db.e||"🌱",field:f.name||"?",ended:c.ended||false,endDate:c.endDate||"",
-      kg,cnt,rev,minutes,sharedMin,timeStr,stocks,disc,added,germRate,costTotal,profit:rev-costTotal,
+      kg,cnt,rev,minutes,ownMinutes,sharedMin,timeStr,stocks,disc,added,germRate,costTotal,profit:rev-costTotal,
       seedTotal,fertTotal,pestTotal,assignedTotal,
       logCount:cl.length,plantDate:c.plantDate||"",sowDate:c.sowDate||"",
       growDays:(()=>{const st=c.plantDate||c.sowDate;if(!st)return null;const en=c.ended&&c.endDate?new Date(c.endDate):new Date();const d=Math.round((en-new Date(st))/86400000);return d>=0?d:null;})(),
@@ -7940,7 +7729,7 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs, equips=[], o
                 {n:Math.round(sel.rev).toLocaleString()+"円",l:"推定収益"},
                 {n:Math.round(sel.costTotal).toLocaleString()+"円",l:"費用合計"},
                 {n:Math.round(sel.profit).toLocaleString()+"円",l:"損益"},
-                {n:sel.timeStr,l:"作業時間"},
+                {n:sel.timeStr,l:sel.sharedMin>0?"作業時間（うち按分"+sel.sharedMin+"分）":"作業時間"},
                 {n:sel.stocks+"株",l:"現在株数"},
                 {n:sel.germRate!==null?sel.germRate+"%":"—",l:"発芽率"},
                 {n:sel.growDays!==null?sel.growDays+"日":"—",l:sel.ended?"栽培日数":"栽培経過"},
@@ -8532,7 +8321,7 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs, equips=[], o
                     <span>{c.emoji}</span>
                     <div style={{flex:1,minWidth:0}}>
                       <div style={{fontSize:".8rem",fontWeight:700}}>{c.name}</div>
-                      <div style={{fontSize:".68rem",color:TX3}}>{c.timeStr}{c.sharedMin>0?"（うち全品目共通の按分 "+c.sharedMin+"分）":""} / 売上{Math.round(c.rev).toLocaleString()}円</div>
+                      <div style={{fontSize:".68rem",color:TX3}}>{c.timeStr}{c.sharedMin>0?"（自分の作業 "+c.ownMinutes+"分 ＋ 共通作業の按分 "+c.sharedMin+"分）":""} / 売上{Math.round(c.rev).toLocaleString()}円</div>
                     </div>
                     <div style={{textAlign:"right",flexShrink:0}}>
                       <div style={{fontWeight:700,fontSize:".84rem",color:hourly!=null&&hourly>=1000?"#1B5E20":"#E65100"}}>{hourly!=null?hourly.toLocaleString()+"円/h":"—"}</div>
@@ -8577,9 +8366,12 @@ function ReportScreen({ fields, crops, logs, costs, fertMs, pestMs, equips=[], o
                   <div style={{fontSize:'.7rem',color:TX3,marginBottom:4,display:'flex',gap:8,flexWrap:'wrap'}}>
                     <span>📅 {fmtYMD(l0.date)}</span>
                     {l0.sharedAll&&<span style={{background:"#e3f0fb",color:"#1e4e79",borderRadius:4,padding:"0 5px",fontWeight:700}}>🌐 全品目共通（按分）</span>}
-                    {fields[l0.fieldIdx]?.name&&<span>📍{fields[l0.fieldIdx].name}</span>}
+                    {(l0.sharedAll&&!l0.fieldId)?<span>📍全圃場</span>:(fields[l0.fieldIdx]?.name&&<span>📍{fields[l0.fieldIdx].name}</span>)}
                     {meta.time&&<span>🕐{meta.time}</span>}
-                    {meta.duration&&<span>⏱{meta.duration}</span>}
+                    {meta.duration&&<span>⏱{l0.sharedAll?"全体 ":""}{meta.duration}</span>}
+                    {l0.sharedAll&&(()=>{ const tot=parseInt(l0.duration)||0; if(!(tot>0)) return null; const sh=sharedShares(l0,_wins,fields);
+                      if(selCropId!=="all"){ const x=sh.find(y=>y.id===selCropId); return x?<span style={{color:"#1e4e79",fontWeight:700}}>→ この品目へ {Math.round(tot*x.r)}分（{Math.round(x.r*100)}%）</span>:null; }
+                      return sh.length?<span style={{color:"#1e4e79"}}>→ {sh.length}品目に按分</span>:<span style={{color:"#c0392b"}}>→ 按分先なし</span>; })()}
                   </div>
                   <div style={{display:'flex',gap:4,flexWrap:'wrap',marginBottom:4}}>
                     {skCardWorks(card.logs).map(w=>{const wi=skWorkInfo(w);return <span key={w} style={{...S.tag,background:wi.bg,color:wi.fg}}>{wi.icon} {wi.label}</span>;})}
@@ -8760,7 +8552,7 @@ function PwChangeSection() {
   );
 }
 
-function SettingsScreen({ showToast, user, uid, signOut, fields, crops, logs, fertMs, pestMs, equips, costs, setScr, cards=[], setCards, emoney=[], setEmoney }) {
+function SettingsScreen({ showToast, user, uid, signOut, fields, crops, logs, fertMs, pestMs, equips, costs, plots=[], setScr, cards=[], setCards, emoney=[], setEmoney }) {
   // ── 祝日カスタマイズ管理 ──
   const [customHolidays, setCustomHolidaysState] = useState(()=>{
     try{ return JSON.parse(localStorage.getItem("customHolidays")||"[]"); }catch{ return []; }
@@ -8782,7 +8574,53 @@ function SettingsScreen({ showToast, user, uid, signOut, fields, crops, logs, fe
   const [delInput, setDelInput] = useState("");
   const [kaigyoDate, setKaigyoDateState] = useState(()=>{try{return localStorage.getItem("sakumemo_kaigyo_date")||"";}catch{return "";}});
   const setKaigyoDate = v => { setKaigyoDateState(v); try{localStorage.setItem("sakumemo_kaigyo_date",v);}catch{} syncAppSettings(); };
-  const doExport=()=>{ const d=JSON.stringify({fields,crops,logs,fertMs,pestMs,equips,costs},null,2);const a=document.createElement("a");a.href="data:application/json;charset=utf-8,"+encodeURIComponent(d);a.download="farm-ai-export-"+todayStr()+".json";a.click(); };
+  const doExport=()=>{
+    const d=JSON.stringify({app:"sakumemo",version:"2.2.35",exportedAt:new Date().toISOString(),fields,crops,logs,fertMs,pestMs,equips,costs,plots,cards,emoney},null,2);
+    const url=URL.createObjectURL(new Blob([d],{type:"application/json"}));
+    const a=document.createElement("a");a.href=url;a.download="sakumemo-backup-"+todayStr()+".json";document.body.appendChild(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),5000);
+    showToast("バックアップを保存しました（ダウンロードフォルダ）");
+  };
+  // バックアップから復元：同じIDは上書き、無いものは追加。バックアップに無いデータは消さない
+  const restoreRef=useRef(null);
+  const [restoring,setRestoring]=useState("");
+  const onPickRestore=async e=>{
+    const f=e.target.files&&e.target.files[0]; e.target.value=""; if(!f) return;
+    if(!uid){ showToast("ログインしてから行ってください"); return; }
+    let b; try{ b=JSON.parse(await f.text()); }catch{ showToast("ファイルを読み込めません（JSONのバックアップを選んでください）"); return; }
+    const arr=k=>Array.isArray(b&&b[k])?b[k].filter(x=>x&&typeof x==="object"&&x.id):[];
+    const bf=Array.isArray(b&&b.fields)?b.fields:[];
+    const T=[["fields","圃場",arr("fields")],["crops","品目",arr("crops")],["logs","作業記録",arr("logs")],["fert_masters","肥料マスター",arr("fertMs")],["pest_masters","農薬マスター",arr("pestMs")],["equipments","農具・資材",arr("equips")],["costs","費用",arr("costs")],["plots","区画図",arr("plots")]];
+    const total=T.reduce((s,t)=>s+t[2].length,0);
+    if(!total){ showToast("復元できるデータが見つかりません（このアプリのバックアップではないようです）"); return; }
+    const msg="バックアップ"+(b.exportedAt?"（"+String(b.exportedAt).slice(0,10)+"）":"")+"から復元します。\n\n"+T.filter(t=>t[2].length).map(t=>t[1]+" "+t[2].length+"件").join("\n")+"\n\n・同じデータは、バックアップの内容で上書きします\n・今あるデータでバックアップに無いものは、そのまま残します\n・レシート画像は含まれません（今あるものはそのまま使えます）\n\n復元しますか？";
+    if(!window.confirm(msg)) return;
+    const conv={
+      fields:o=>fieldToDb(o,uid),
+      crops:o=>cropToDb({...o,fieldId:(bf[o.fieldIdx]&&bf[o.fieldIdx].id)||o.fieldId||null},uid),
+      logs:o=>logToDb(o,uid,bf),
+      fert_masters:o=>fertMToDb(o,uid), pest_masters:o=>pestMToDb(o,uid), equipments:o=>equipToDb(o,uid),
+      costs:o=>costToDb(o,uid,bf), plots:o=>plotToDb(o,uid)
+    };
+    let done=0, fail=0;
+    for(const [tbl,label,rows] of T){
+      for(let i=0;i<rows.length;i+=10){
+        setRestoring(label+"を復元中… "+done+"/"+total);
+        const res=await Promise.all(rows.slice(i,i+10).map(o=>{ try{ return dbUpsert(tbl,conv[tbl](o)); }catch{ return false; } }));
+        res.forEach(ok=>{ if(ok) done++; else fail++; });
+      }
+    }
+    try{
+      const mergeById=(cur,inc)=>{ const ids=new Set(inc.map(x=>x.id)); return [...(cur||[]).filter(x=>!ids.has(x.id)),...inc]; };
+      const bc=arr("cards"), be=arr("emoney");
+      if(bc.length&&setCards) setCards(mergeById(cards,bc));
+      if(be.length&&setEmoney) setEmoney(mergeById(emoney,be));
+    }catch{}
+    setRestoring("");
+    if(fail) window.alert("復元しました："+done+"件\n失敗："+fail+"件\n（失敗分は通信状態を確認して、もう一度復元してください。成功分は上書きされるだけなので、やり直して問題ありません）");
+    else window.alert("復元が完了しました（"+done+"件）。画面を読み込み直します。");
+    window.location.reload();
+  };
   const csvEsc=v=>{const s=String(v==null?"":v);return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;};
   const downloadCsv=(rows,name)=>{const bom="\uFEFF";const csv=bom+rows.map(r=>r.map(csvEsc).join(",")).join("\r\n");const a=document.createElement("a");a.href="data:text/csv;charset=utf-8,"+encodeURIComponent(csv);a.download=name+"-"+todayStr()+".csv";a.click();};
   const cropName=id=>{if(!id)return"共通";const c=crops.find(x=>x.id===id);if(!c)return"共通";return getCropName(c)+(c.variety?"("+c.variety+")":"");};
@@ -8853,11 +8691,14 @@ function SettingsScreen({ showToast, user, uid, signOut, fields, crops, logs, fe
       {/* データ管理 */}
       <div style={S.card}>
         <div style={{fontFamily:"'Shippori Mincho B1',serif",fontSize:".88rem",color:"#5c3d1e",marginBottom:10}}>📁 データの保存・書き出し</div>
-        <div style={{fontSize:".72rem",color:TX3,marginBottom:10,lineHeight:1.5}}>記録を手元に保存できます。CSVは確定申告や表計算ソフトでの集計に、JSONは全データのバックアップに使えます。</div>
+        <div style={{fontSize:".72rem",color:TX3,marginBottom:10,lineHeight:1.5}}>記録を手元に保存できます。CSVは確定申告や表計算ソフトでの集計に、JSONは全データのバックアップに使えます。バックアップは端末のダウンロードフォルダに保存され、「復元する」でそのファイルを選ぶと戻せます。</div>
         <div style={{display:"flex",flexDirection:"column",gap:8}}>
           <button onClick={exportCostCsv} style={{...S.btn,...S.btnS}}>💰 費用一覧をCSVで書き出す</button>
           <button onClick={exportLogCsv} style={{...S.btn,...S.btnS}}>📝 作業記録をCSVで書き出す</button>
           <button onClick={doExport} style={{...S.btn,...S.btnS}}>💾 全データをバックアップ（JSON）</button>
+          <button onClick={()=>restoreRef.current&&restoreRef.current.click()} disabled={!!restoring} style={{...S.btn,...S.btnS,opacity:restoring?0.6:1}}>♻️ バックアップから復元する</button>
+          <input ref={restoreRef} type="file" accept=".json,application/json" onChange={onPickRestore} style={{display:"none"}}/>
+          {restoring&&<div style={{fontSize:".74rem",color:TX3}}>{restoring}</div>}
         </div>
       </div>
 
@@ -9449,7 +9290,7 @@ export default function App() {
         {scr==="cost"    &&<CostScreen    setLogs={setLogs} fields={fields} crops={crops} fertMs={fertMs} setFertMs={setFertMs} pestMs={pestMs} setPestMs={setPestMs} equips={equips} setEquips={setEquips} costs={costs} setCosts={setCosts} logs={logs} showToast={showToast} cards={cards} setCards={setCardsAndSync} emoney={emoney} setEmoney={setEmoneyAndSync} calcPayDate={calcPayDate} user={user}/>}
 
         {scr==="report"  &&<ReportScreen  fields={fields} crops={crops} logs={logs} costs={costs} fertMs={fertMs} pestMs={pestMs} equips={equips} openLb={openLb}/>}
-        {scr==="settings"&&<SettingsScreen showToast={showToast} user={user} uid={uid} signOut={signOut} fields={fields} crops={crops} logs={logs} fertMs={fertMs} cards={cards} setCards={setCardsAndSync} emoney={emoney} setEmoney={setEmoneyAndSync} pestMs={pestMs} equips={equips} costs={costs} setScr={setScr}/>}
+        {scr==="settings"&&<SettingsScreen showToast={showToast} user={user} uid={uid} signOut={signOut} fields={fields} crops={crops} logs={logs} fertMs={fertMs} cards={cards} setCards={setCardsAndSync} emoney={emoney} setEmoney={setEmoneyAndSync} pestMs={pestMs} equips={equips} costs={costs} plots={plots} setScr={setScr}/>}
       </div>
       {/* ライトボックス */}
       {lb&&<div onClick={closeLb} style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,.92)',zIndex:9999,display:'flex',alignItems:'center',justifyContent:'center',touchAction:'pinch-zoom',overflow:'hidden'}}>
